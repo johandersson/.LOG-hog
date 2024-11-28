@@ -14,7 +14,7 @@ public class LogTextEditor extends JFrame {
     private JList<String> logList;
     private DefaultListModel<String> listModel;
     private JTextArea entryArea;
-    private static final String FILE_PATH = "log.txt";
+    private static final String FILE_PATH = System.getProperty("user.home") + File.separator + "log.txt";
 
     public LogTextEditor() {
         setTitle("Log Text Editor");
@@ -23,6 +23,7 @@ public class LogTextEditor extends JFrame {
         setLocationRelativeTo(null);
 
         JTabbedPane tabbedPane = new JTabbedPane();
+
 
         // Text entry tab
         JPanel entryPanel = new JPanel(new BorderLayout());
