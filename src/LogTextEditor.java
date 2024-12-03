@@ -1,4 +1,6 @@
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import java.awt.*;
@@ -23,7 +25,6 @@ public class LogTextEditor extends JFrame {
         setLocationRelativeTo(null);
 
         JTabbedPane tabbedPane = new JTabbedPane();
-
 
         // Text entry tab
         JPanel entryPanel = new JPanel(new BorderLayout());
@@ -75,6 +76,16 @@ public class LogTextEditor extends JFrame {
                     if (selectedEntry != null) {
                         displayLogEntry(selectedEntry);
                     }
+                }
+            }
+        });
+
+        // Add a change listener to reload log entries when switching to the log entries tab
+        tabbedPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                if (tabbedPane.getSelectedIndex() == 1) { // Assuming "Log Entries" is the second tab
+                    loadLogEntries();
                 }
             }
         });
