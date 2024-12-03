@@ -1,14 +1,14 @@
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.*;
 
 public class LogTextEditor extends JFrame {
 
@@ -20,11 +20,12 @@ public class LogTextEditor extends JFrame {
 
     public LogTextEditor() {
         setTitle("Log Text Editor");
-        setSize(600, 400);
+        setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
         JTabbedPane tabbedPane = new JTabbedPane();
+
 
         // Text entry tab
         JPanel entryPanel = new JPanel(new BorderLayout());
@@ -32,17 +33,41 @@ public class LogTextEditor extends JFrame {
         textArea.setFont(new Font("Arial", Font.PLAIN, 14));
         JScrollPane scrollPane = new JScrollPane(textArea);
         entryPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Add "Save to Log" Button
+        JButton saveButton = new JButton("Save to Log");
+        saveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveText();
+            }
+        });
+        entryPanel.add(saveButton, BorderLayout.SOUTH);
+
         tabbedPane.add("Entry", entryPanel);
 
         // Log entries tab
         JPanel logPanel = new JPanel(new BorderLayout());
         listModel = new DefaultListModel<>();
         logList = new JList<>(listModel);
+        logList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        logList.setCellRenderer(new ColorfulListCellRenderer());
         JScrollPane listScrollPane = new JScrollPane(logList);
         entryArea = new JTextArea();
         entryArea.setFont(new Font("Arial", Font.PLAIN, 14));
         entryArea.setEditable(false);
         JScrollPane entryScrollPane = new JScrollPane(entryArea);
+
+        // Add "Open in Notepad" Button
+        JButton openNotepadButton = new JButton("Open in Notepad");
+        openNotepadButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                openLogFileInNotepad();
+            }
+        });
+        logPanel.add(openNotepadButton, BorderLayout.SOUTH);
+
         logPanel.add(listScrollPane, BorderLayout.NORTH);
         logPanel.add(entryScrollPane, BorderLayout.CENTER);
         tabbedPane.add("Log Entries", logPanel);
@@ -81,12 +106,9 @@ public class LogTextEditor extends JFrame {
         });
 
         // Add a change listener to reload log entries when switching to the log entries tab
-        tabbedPane.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                if (tabbedPane.getSelectedIndex() == 1) { // Assuming "Log Entries" is the second tab
-                    loadLogEntries();
-                }
+        tabbedPane.addChangeListener(e -> {
+            if (tabbedPane.getSelectedIndex() == 1) { // Assuming "Log Entries" is the second tab
+                loadLogEntries();
             }
         });
     }
@@ -117,35 +139,36 @@ public class LogTextEditor extends JFrame {
         }
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
+            StringBuilder entryBuilder = new StringBuilder();
+            String lastTimestamp = "";
             while ((line = reader.readLine()) != null) {
                 if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}")) {
-                    listModel.addElement(line);
+                    if (entryBuilder.length() > 0) {
+                        listModel.addElement(lastTimestamp + "\n" + entryBuilder.toString().trim());
+                        entryBuilder.setLength(0);
+                    }
+                    lastTimestamp = line;
+                } else {
+                    entryBuilder.append(line).append("\n");
                 }
+            }
+            if (entryBuilder.length() > 0) {
+                listModel.addElement(lastTimestamp + "\n" + entryBuilder.toString().trim());
             }
         } catch (IOException ex) {
             showErrorDialog("Error loading log entries: " + ex.getMessage());
         }
     }
 
-    private void displayLogEntry(String timeStamp) {
-        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_PATH))) {
-            String line;
-            StringBuilder entryText = new StringBuilder();
-            boolean entryFound = false;
-            while ((line = reader.readLine()) != null) {
-                if (line.equals(timeStamp)) {
-                    entryFound = true;
-                    entryText.append(timeStamp).append("\n");
-                } else if (entryFound) {
-                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}")) {
-                        break;
-                    }
-                    entryText.append(line).append("\n");
-                }
-            }
-            entryArea.setText(entryText.toString());
-        } catch (IOException ex) {
-            showErrorDialog("Error displaying log entry: " + ex.getMessage());
+    private void displayLogEntry(String logEntry) {
+        entryArea.setText(logEntry);
+    }
+
+    private void openLogFileInNotepad() {
+        try {
+            Desktop.getDesktop().open(new File(FILE_PATH));
+        } catch (IOException e) {
+            showErrorDialog("Error opening log file in Notepad: " + e.getMessage());
         }
     }
 
@@ -158,5 +181,30 @@ public class LogTextEditor extends JFrame {
             LogTextEditor editor = new LogTextEditor();
             editor.setVisible(true);
         });
+    }
+
+    class ColorfulListCellRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value instanceof String) {
+                String logEntry = (String) value;
+                if (logEntry.contains("ERROR")) {
+                    c.setBackground(Color.RED);
+                    c.setForeground(Color.WHITE);
+                } else if (logEntry.contains("WARNING")) {
+                    c.setBackground(Color.ORANGE);
+                    c.setForeground(Color.BLACK);
+                } else {
+                    c.setBackground(Color.GREEN);
+                    c.setForeground(Color.BLACK);
+                }
+            }
+            if (isSelected) {
+                c.setBackground(list.getSelectionBackground());
+                c.setForeground(list.getSelectionForeground());
+            }
+            return c;
+        }
     }
 }
