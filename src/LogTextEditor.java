@@ -8,7 +8,10 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.*;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 public class LogTextEditor extends JFrame {
 
@@ -80,11 +83,15 @@ public class LogTextEditor extends JFrame {
             }
         });
 
-        // Add a change listener to reload log entries when switching to the log entries tab
+        // Add a change listener to handle tab switches
         tabbedPane.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
                 if (tabbedPane.getSelectedIndex() == 1) { // Assuming "Log Entries" is the second tab
+                    if (!textArea.getText().trim().isEmpty()) {
+                        saveText();
+                        textArea.setText("");
+                    }
                     loadLogEntries();
                 }
             }
@@ -115,15 +122,21 @@ public class LogTextEditor extends JFrame {
         if (!file.exists()) {
             return;
         }
+        List<String> logEntries = new LinkedList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}")) {
-                    listModel.addElement(line);
+                    logEntries.add(line);
                 }
             }
         } catch (IOException ex) {
             showErrorDialog("Error loading log entries: " + ex.getMessage());
+        }
+        // Sort log entries in reverse order (most recent first)
+        Collections.sort(logEntries, Collections.reverseOrder());
+        for (String entry : logEntries) {
+            listModel.addElement(entry);
         }
     }
 
