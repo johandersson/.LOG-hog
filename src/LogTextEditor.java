@@ -7,11 +7,11 @@ import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.*;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
-import java.util.List;
 
 public class LogTextEditor extends JFrame {
 
@@ -20,6 +20,7 @@ public class LogTextEditor extends JFrame {
     private DefaultListModel<String> listModel;
     private JTextArea entryArea;
     private static final String FILE_PATH = System.getProperty("user.home") + File.separator + "log.txt";
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm yyyy-MM-dd");
 
     public LogTextEditor() {
         setTitle("Log Text Editor");
@@ -106,10 +107,11 @@ public class LogTextEditor extends JFrame {
                 if (file.length() == 0) {
                     writer.write(".LOG\n");
                 }
-                String timeStamp = new SimpleDateFormat("HH:mm yyyy-MM-dd").format(new Date());
+                String timeStamp = DATE_FORMAT.format(new Date());
                 writer.write(timeStamp + "\n" + text + "\n\n");
                 textArea.setText("");
                 loadLogEntries(); // Reload log entries after saving
+                sortLogEntries(); // Sort the list after saving
             } catch (IOException ex) {
                 showErrorDialog("Error saving text: " + ex.getMessage());
             }
@@ -122,7 +124,7 @@ public class LogTextEditor extends JFrame {
         if (!file.exists()) {
             return;
         }
-        List<String> logEntries = new LinkedList<>();
+        java.util.List<String> logEntries = new LinkedList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -134,7 +136,32 @@ public class LogTextEditor extends JFrame {
             showErrorDialog("Error loading log entries: " + ex.getMessage());
         }
         // Sort log entries in reverse order (most recent first)
-        Collections.sort(logEntries, Collections.reverseOrder());
+        Collections.sort(logEntries, (entry1, entry2) -> {
+            try {
+                Date date1 = DATE_FORMAT.parse(entry1);
+                Date date2 = DATE_FORMAT.parse(entry2);
+                return date2.compareTo(date1);
+            } catch (ParseException e) {
+                return 0;
+            }
+        });
+        for (String entry : logEntries) {
+            listModel.addElement(entry);
+        }
+    }
+
+    private void sortLogEntries() {
+        java.util.List<String> logEntries = Collections.list(listModel.elements());
+        Collections.sort(logEntries, (entry1, entry2) -> {
+            try {
+                Date date1 = DATE_FORMAT.parse(entry1);
+                Date date2 = DATE_FORMAT.parse(entry2);
+                return date2.compareTo(date1);
+            } catch (ParseException e) {
+                return 0;
+            }
+        });
+        listModel.clear();
         for (String entry : logEntries) {
             listModel.addElement(entry);
         }
