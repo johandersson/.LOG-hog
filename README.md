@@ -1,6 +1,6 @@
 ## Log Text Editor
 
-A lightweight Java Swing application for managing personal log entries (in the .LOG text format that Notepad can generate) with ease.
+A lightweight Java Swing application for managing personal log entries (in the .LOG text format that Notepad can generate, a simple yet useful feature for creating time-stamped logs or journal entries) with ease.
 
 ### Features
 
@@ -19,5 +19,3 @@ A lightweight Java Swing application for managing personal log entries (in the .
 - Personal journaling
 - Quick note-taking
 - Keeping a daily log or diary
-
-_No setup required. Just run and start logging!_
