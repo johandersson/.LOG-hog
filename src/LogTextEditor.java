@@ -1,202 +1,164 @@
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.io.*;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class LogTextEditor extends JFrame {
 
-    private JTextArea textArea;
-    private JList<String> logList;
-    private DefaultListModel<String> listModel;
-    private JTextArea entryArea;
-    private static final String FILE_PATH = System.getProperty("user.home") + File.separator + "log.txt";
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm yyyy-MM-dd");
+    private final JTextArea textArea = new JTextArea();
+    private final JList<String> logList = new JList<>(new DefaultListModel<>());
+    private final JTextArea entryArea = new JTextArea();
+    private final LogFileHandler logFileHandler = new LogFileHandler();
 
     public LogTextEditor() {
+        setupUI();
+        setupEventListeners();
+        logFileHandler.loadLogEntries((DefaultListModel<String>) logList.getModel());
+    }
+
+    private void setupUI() {
         setTitle("Log Text Editor");
         setSize(600, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
         JTabbedPane tabbedPane = new JTabbedPane();
-
-        // Text entry tab
-        JPanel entryPanel = new JPanel(new BorderLayout());
-        textArea = new JTextArea();
-        textArea.setFont(new Font("Arial", Font.PLAIN, 14));
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        entryPanel.add(scrollPane, BorderLayout.CENTER);
-        tabbedPane.add("Entry", entryPanel);
-
-        // Log entries tab
-        JPanel logPanel = new JPanel(new BorderLayout());
-        listModel = new DefaultListModel<>();
-        logList = new JList<>(listModel);
-        JScrollPane listScrollPane = new JScrollPane(logList);
-        entryArea = new JTextArea();
-        entryArea.setFont(new Font("Arial", Font.PLAIN, 14));
-        entryArea.setEditable(false);
-        JScrollPane entryScrollPane = new JScrollPane(entryArea);
-        logPanel.add(listScrollPane, BorderLayout.NORTH);
-        logPanel.add(entryScrollPane, BorderLayout.CENTER);
-        tabbedPane.add("Log Entries", logPanel);
+        tabbedPane.add("Entry", createEntryPanel());
+        tabbedPane.add("Log Entries", createLogPanel());
 
         add(tabbedPane);
+        SwingUtilities.invokeLater(textArea::requestFocus);
+    }
 
-        // Set focus on the text area when the window opens
-        SwingUtilities.invokeLater(() -> textArea.requestFocus());
+    private JPanel createEntryPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        textArea.setFont(new Font("Arial", Font.PLAIN, 14));
+        panel.add(new JScrollPane(textArea), BorderLayout.CENTER);
+        return panel;
+    }
 
-        // Add a key listener to save the text on CTRL-S and reload on CTRL-R
+    private JPanel createLogPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        entryArea.setFont(new Font("Arial", Font.PLAIN, 14));
+        entryArea.setEditable(false);
+        panel.add(new JScrollPane(logList), BorderLayout.NORTH);
+        panel.add(new JScrollPane(entryArea), BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void setupEventListeners() {
         textArea.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if ((e.getKeyCode() == KeyEvent.VK_S) && ((e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) != 0)) {
-                    saveText();
-                } else if ((e.getKeyCode() == KeyEvent.VK_R) && ((e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) != 0)) {
-                    loadLogEntries();
-                }
-            }
-        });
-
-        // Load log entries into the list box
-        loadLogEntries();
-
-        // Add a list selection listener to display selected entry
-        logList.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) {
-                    String selectedEntry = logList.getSelectedValue();
-                    if (selectedEntry != null) {
-                        displayLogEntry(selectedEntry);
+                System.out.println("Key pressed: " + e.getKeyCode());
+                if (e.isControlDown()) {
+                    switch (e.getKeyCode()) {
+                        case KeyEvent.VK_S -> {
+                            System.out.println("Ctrl+S triggered!");
+                            logFileHandler.saveText(textArea.getText(), (DefaultListModel<String>) logList.getModel());
+                            //clear text area after saving
+                            textArea.setText("");
+                        }
+                        case KeyEvent.VK_R -> logFileHandler.loadLogEntries((DefaultListModel<String>) logList.getModel());
                     }
                 }
             }
         });
 
-        // Add a change listener to handle tab switches
-        tabbedPane.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                if (tabbedPane.getSelectedIndex() == 1) { // Assuming "Log Entries" is the second tab
-                    if (!textArea.getText().trim().isEmpty()) {
-                        saveText();
-                        textArea.setText("");
-                    }
-                    loadLogEntries();
+
+        logList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                String selectedEntry = logList.getSelectedValue();
+                if (selectedEntry != null) {
+                    entryArea.setText(logFileHandler.loadEntry(selectedEntry));
                 }
             }
         });
     }
 
-    private void saveText() {
-        String text = textArea.getText().trim();
-        if (!text.isEmpty()) {
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_PATH, true))) {
-                File file = new File(FILE_PATH);
-                if (file.length() == 0) {
-                    writer.write(".LOG\n");
-                }
-                String timeStamp = DATE_FORMAT.format(new Date());
-                writer.write(timeStamp + "\n" + text + "\n\n");
-                textArea.setText("");
-                loadLogEntries(); // Reload log entries after saving
-                sortLogEntries(); // Sort the list after saving
-            } catch (IOException ex) {
-                showErrorDialog("Error saving text: " + ex.getMessage());
-            }
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new LogTextEditor().setVisible(true));
+    }
+}
+
+class LogFileHandler {
+    private static final Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd");
+
+    void saveText(String text, DefaultListModel<String> listModel) {
+        if (text.isBlank()) return;
+
+        String timeStamp = FORMATTER.format(LocalDateTime.now());
+        try {
+            Files.writeString(FILE_PATH, timeStamp + "\n" + text + "\n\n", Files.exists(FILE_PATH)
+                    ? java.nio.file.StandardOpenOption.APPEND : java.nio.file.StandardOpenOption.CREATE);
+
+            // Add to list model and re-sort
+            listModel.addElement(timeStamp);
+            sortListModel(listModel);
+        } catch (IOException e) {
+            showErrorDialog("Error saving text: " + e.getMessage());
         }
     }
 
-    private void loadLogEntries() {
+    // Ensure sorting happens right after saving
+    private void sortListModel(DefaultListModel<String> listModel) {
+        List<String> sortedEntries = Collections.list(listModel.elements()).stream()
+                .sorted((a, b) -> parseDate(b).compareTo(parseDate(a))) // Sort descending
+                .toList();
+
         listModel.clear();
-        File file = new File(FILE_PATH);
-        if (!file.exists()) {
-            return;
-        }
-        java.util.List<String> logEntries = new LinkedList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}")) {
-                    logEntries.add(line);
-                }
-            }
-        } catch (IOException ex) {
-            showErrorDialog("Error loading log entries: " + ex.getMessage());
-        }
-        // Sort log entries in reverse order (most recent first)
-        Collections.sort(logEntries, (entry1, entry2) -> {
-            try {
-                Date date1 = DATE_FORMAT.parse(entry1);
-                Date date2 = DATE_FORMAT.parse(entry2);
-                return date2.compareTo(date1);
-            } catch (ParseException e) {
-                return 0;
-            }
-        });
-        for (String entry : logEntries) {
-            listModel.addElement(entry);
-        }
+        sortedEntries.forEach(listModel::addElement);
     }
 
-    private void sortLogEntries() {
-        java.util.List<String> logEntries = Collections.list(listModel.elements());
-        Collections.sort(logEntries, (entry1, entry2) -> {
-            try {
-                Date date1 = DATE_FORMAT.parse(entry1);
-                Date date2 = DATE_FORMAT.parse(entry2);
-                return date2.compareTo(date1);
-            } catch (ParseException e) {
-                return 0;
-            }
-        });
+
+    void loadLogEntries(DefaultListModel<String> listModel) {
         listModel.clear();
-        for (String entry : logEntries) {
-            listModel.addElement(entry);
+        if (!Files.exists(FILE_PATH)) return;
+
+        try {
+            List<String> logs = Files.lines(FILE_PATH)
+                    .filter(line -> line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}"))
+                    .sorted((a, b) -> {
+                        LocalDateTime dateA = parseDate(a);
+                        LocalDateTime dateB = parseDate(b);
+                        return dateB.compareTo(dateA); // Sort descending (newest first)
+                    })
+                    .collect(Collectors.toList());
+
+            logs.forEach(listModel::addElement);
+        } catch (IOException e) {
+            showErrorDialog("Error loading log entries: " + e.getMessage());
         }
     }
 
-    private void displayLogEntry(String timeStamp) {
-        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_PATH))) {
-            String line;
-            StringBuilder entryText = new StringBuilder();
-            boolean entryFound = false;
-            while ((line = reader.readLine()) != null) {
-                if (line.equals(timeStamp)) {
-                    entryFound = true;
-                    entryText.append(timeStamp).append("\n");
-                } else if (entryFound) {
-                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}")) {
-                        break;
-                    }
-                    entryText.append(line).append("\n");
-                }
-            }
-            entryArea.setText(entryText.toString());
-        } catch (IOException ex) {
-            showErrorDialog("Error displaying log entry: " + ex.getMessage());
+    private LocalDateTime parseDate(String timestamp) {
+        return LocalDateTime.parse(timestamp, DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd"));
+    }
+
+
+    String loadEntry(String timeStamp) {
+        if (!Files.exists(FILE_PATH)) return "";
+
+        try {
+            List<String> lines = Files.readAllLines(FILE_PATH);
+            int index = lines.indexOf(timeStamp);
+            return index >= 0 ? String.join("\n", lines.subList(index, Math.min(index + 3, lines.size()))) : "";
+        } catch (IOException e) {
+            showErrorDialog("Error displaying log entry: " + e.getMessage());
+            return "";
         }
     }
 
     private void showErrorDialog(String message) {
-        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            LogTextEditor editor = new LogTextEditor();
-            editor.setVisible(true);
-        });
+        JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 }
