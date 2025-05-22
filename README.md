@@ -1,6 +1,6 @@
 ## .LOG-hog
 
-A lightweight Java application for managing personal log entries (in the .LOG text format that Notepad can generate, a simple yet useful feature for creating time-stamped logs or journal entries) with ease.
+A lightweight Java application for managing personal log entries ([in the .LOG text format that Notepad can generate](https://www.howtogeek.com/258545/how-to-use-notepad-to-create-a-dated-log-or-journal-file/)](https://github.com), a simple yet useful feature for creating time-stamped logs or journal entries) with ease.
 
 ### Features
 
