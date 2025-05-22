@@ -7,6 +7,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
 import javax.swing.DefaultListModel;
+import java.util.Objects;
 
 public class LogTextEditor extends Application {
 
@@ -41,6 +42,7 @@ public class LogTextEditor extends Application {
         mainLayout.setBottom(new Label("Press Ctrl+S to save and Ctrl+R to load"));
 
         Scene scene = new Scene(mainLayout, 600, 400);
+        scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("dark-theme.css")).toExternalForm());
 
         // ✅ Add global keyboard shortcut handling
         scene.setOnKeyPressed(e -> {
