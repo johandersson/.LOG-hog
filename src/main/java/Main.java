@@ -1,11 +1,7 @@
-import javax.swing.*;
 
-public class Main {
-    //main class to load the GUI of a LogTextEditor
+//Main class for running the javafx application LogTextEditor
+class Main {
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            LogTextEditor logTextEditor = new LogTextEditor();
-            logTextEditor.setVisible(true);
-        });
+        LogTextEditor.main(args);
     }
 }

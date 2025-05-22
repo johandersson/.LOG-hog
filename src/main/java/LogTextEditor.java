@@ -1,105 +1,89 @@
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import javafx.application.Application;
+        import javafx.application.Platform;
+        import javafx.scene.Scene;
+        import javafx.scene.control.*;
+        import javafx.scene.layout.BorderPane;
+        import javafx.stage.Stage;
 
-public class LogTextEditor extends JFrame {
+        import javax.swing.DefaultListModel;
 
-    private final JTextArea textArea = new JTextArea();
-    private final JList<String> logList = new JList<>(new DefaultListModel<>());
-    private final JTextArea entryArea = new JTextArea();
-    private final LogFileHandler logFileHandler = new LogFileHandler();
+        public class LogTextEditor extends Application {
 
-    public LogTextEditor() {
-        setupUI();
-        setupEventListeners();
-        logFileHandler.loadLogEntries((DefaultListModel<String>) logList.getModel());
-    }
+            private final TextArea textArea = new TextArea();
+            private final ListView<String> logList = new ListView<>();
+            private final TextArea entryArea = new TextArea();
+            private final LogFileHandler logFileHandler = new LogFileHandler();
+            private final DefaultListModel<String> listModel = new DefaultListModel<>();
 
-    private void setupUI() {
-        setTitle("Log Text Editor");
-        setSize(600, 400);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-
-        JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.add("Entry", createEntryPanel());
-        tabbedPane.add("Log Entries", createLogPanel());
-        //add ? menu bar
-        JMenuBar menuBar = new JMenuBar();
-        JMenu fileMenu = new JMenu("File");
-        JMenuItem saveMenuItem = new JMenuItem("Save all CTRL+S");
-        saveMenuItem.addActionListener(e -> {
-            logFileHandler.saveText(textArea.getText(), (DefaultListModel<String>) logList.getModel());
-            textArea.setText("");
-        });
-        fileMenu.add(saveMenuItem);
-        JMenuItem loadMenuItem = new JMenuItem("Reload all CTRL+R");
-        loadMenuItem.addActionListener(e -> logFileHandler.loadLogEntries((DefaultListModel<String>) logList.getModel()));
-        fileMenu.add(loadMenuItem);
-        menuBar.add(fileMenu);
-
-        setJMenuBar(menuBar);
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.add(tabbedPane, BorderLayout.CENTER);
-        mainPanel.add(new JLabel("Press Ctrl+S to save and Ctrl+R to load"), BorderLayout.SOUTH);
-        setContentPane(mainPanel);
-        setJMenuBar(menuBar);
-        setVisible(true);
-        setFocusable(true);
-
-        add(tabbedPane);
-        SwingUtilities.invokeLater(textArea::requestFocus);
-    }
-
-    private JPanel createEntryPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        textArea.setFont(new Font("Arial", Font.PLAIN, 14));
-        panel.add(new JScrollPane(textArea), BorderLayout.CENTER);
-        return panel;
-    }
-
-    private JPanel createLogPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        entryArea.setFont(new Font("Arial", Font.PLAIN, 14));
-        entryArea.setEditable(false);
-        panel.add(new JScrollPane(logList), BorderLayout.NORTH);
-        panel.add(new JScrollPane(entryArea), BorderLayout.CENTER);
-        return panel;
-    }
-
-    private void setupEventListeners() {
-        textArea.addKeyListener(new KeyAdapter() {
             @Override
-            public void keyPressed(KeyEvent e) {
-                System.out.println("Key pressed: " + e.getKeyCode());
-                if (e.isControlDown()) {
-                    switch (e.getKeyCode()) {
-                        case KeyEvent.VK_S -> {
-                            logFileHandler.saveText(textArea.getText(), (DefaultListModel<String>) logList.getModel());
-                            //clear text area after saving
-                            textArea.setText("");
+            public void start(Stage primaryStage) {
+                primaryStage.setTitle("Log Text Editor");
+
+                TabPane tabPane = new TabPane();
+                tabPane.getTabs().add(new Tab("Entry", createEntryPanel()));
+                tabPane.getTabs().add(new Tab("Log Entries", createLogPanel()));
+
+                MenuBar menuBar = new MenuBar();
+                Menu fileMenu = new Menu("File");
+                MenuItem saveMenuItem = new MenuItem("Save all CTRL+S");
+                saveMenuItem.setOnAction(e -> {
+                    logFileHandler.saveText(textArea.getText(), listModel);
+                    textArea.clear();
+                    updateLogListView();
+                });
+                MenuItem loadMenuItem = new MenuItem("Reload all CTRL+R");
+                loadMenuItem.setOnAction(e -> {
+                    logFileHandler.loadLogEntries(listModel);
+                    updateLogListView();
+                });
+                fileMenu.getItems().addAll(saveMenuItem, loadMenuItem);
+                menuBar.getMenus().add(fileMenu);
+
+                BorderPane mainLayout = new BorderPane();
+                mainLayout.setTop(menuBar);
+                mainLayout.setCenter(tabPane);
+                mainLayout.setBottom(new Label("Press Ctrl+S to save and Ctrl+R to load"));
+
+                Scene scene = new Scene(mainLayout, 600, 400);
+                primaryStage.setScene(scene);
+                primaryStage.show();
+
+                // Initial load
+                logFileHandler.loadLogEntries(listModel);
+                updateLogListView();
+            }
+
+            private BorderPane createLogPanel() {
+                BorderPane pane = new BorderPane();
+                logList.setStyle("-fx-font-size: 14;");
+                logList.setOnMouseClicked(e -> {
+                    if (e.getClickCount() == 2) {
+                        String selectedItem = logList.getSelectionModel().getSelectedItem();
+                        if (selectedItem != null) {
+                            String entry = logFileHandler.loadEntry(selectedItem);
+                            entryArea.setText(entry);
                         }
-                        case KeyEvent.VK_R -> logFileHandler.loadLogEntries((DefaultListModel<String>) logList.getModel());
                     }
-                }
+                });
+                pane.setCenter(logList);
+                pane.setBottom(entryArea);
+                return pane;
             }
-        });
 
-
-        logList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                String selectedEntry = logList.getSelectedValue();
-                if (selectedEntry != null) {
-                    entryArea.setText(logFileHandler.loadEntry(selectedEntry));
-                }
+            private BorderPane createEntryPanel() {
+                BorderPane pane = new BorderPane();
+                textArea.setStyle("-fx-font-size: 14;");
+                pane.setCenter(textArea);
+                return pane;
             }
-        });
-    }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new LogTextEditor().setVisible(true));
-    }
-}
+            private void updateLogListView() {
+                Platform.runLater(() -> {
+                    logList.getItems().setAll(java.util.Collections.list(listModel.elements()));
+                });
+            }
 
-
+            public static void main(String[] args) {
+                launch(args);
+            }
+        }
