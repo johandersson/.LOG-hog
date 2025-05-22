@@ -2,6 +2,10 @@
 
 A lightweight Java application for managing personal log entries [in the .LOG text format that Notepad can generate](https://www.howtogeek.com/258545/how-to-use-notepad-to-create-a-dated-log-or-journal-file/), a simple yet useful feature for creating time-stamped logs or journal entries) with ease.
 
+
+![loghog](https://github.com/user-attachments/assets/4fdf8cea-174d-4491-b551-d4bb8f18c7f9)
+![loghog2](https://github.com/user-attachments/assets/e3291e94-975b-44b7-a913-66f71df1ba5d)
+
 ### Features
 
 - **Tabbed Interface**: Switch between writing new entries and browsing past logs.
