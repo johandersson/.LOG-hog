@@ -19,3 +19,4 @@ A lightweight Java Swing application for managing personal log entries (in the .
 - Personal journaling
 - Quick note-taking
 - Keeping a daily log or diary
+- If you already have a .LOG-file that you use every day, you can use it with .LOG-hog for easier and quicker editing, just start program hit CTRL+s!
