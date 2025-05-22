@@ -1,6 +1,6 @@
-## Log Text Editor
+## .LOG-hog
 
-A lightweight Java Swing application for managing personal log entries (in the .LOG text format that Notepad can generate, a simple yet useful feature for creating time-stamped logs or journal entries) with ease.
+A lightweight Java application for managing personal log entries [in the .LOG text format that Notepad can generate](https://www.howtogeek.com/258545/how-to-use-notepad-to-create-a-dated-log-or-journal-file/), a simple yet useful feature for creating time-stamped logs or journal entries) with ease.
 
 ### Features
 
@@ -19,3 +19,4 @@ A lightweight Java Swing application for managing personal log entries (in the .
 - Personal journaling
 - Quick note-taking
 - Keeping a daily log or diary
+- If you already have a .LOG-file that you use every day, you can use it with .LOG-hog for easier and quicker editing, just start program hit CTRL+s!
