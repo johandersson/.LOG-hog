@@ -24,4 +24,4 @@ A lightweight Java application for managing personal log entries [in the .LOG te
 - Personal journaling
 - Quick note-taking
 - Keeping a daily log or diary
-- If you already have a .LOG-file created by Notepad that you use every day, you can use it with .LOG-hog for easier and quicker editing, just start program hit CTRL+s!
+- If you already have a .LOG-file created by Notepad that you use every day, you can use it with .LOG-hog for easier and quicker editing, just start program hit CTRL+s! Switch between .LOG-hog and Notepad works like a charm! Use Notepad or .LOG-hog or both based on mood.
