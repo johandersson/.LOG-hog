@@ -17,7 +17,6 @@ A lightweight Java application for managing personal log entries [in the .LOG te
 - **Simple Storage**: All logs are saved in a plain text file (`log.txt`) in your home directory.
 - **Distraction-Free**: Clean, minimal UI for focused journaling or note-taking.
 - **Easy Backup & Sharing**: Entries are stored in a human-readable format.
-- **Log in the dark!**
 
 ### Perfect For
 
