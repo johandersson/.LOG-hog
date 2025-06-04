@@ -32,6 +32,36 @@ public class LogFileHandler {
         }
     }
 
+    //delete certain log entry
+    private void deleteLogEntry(String timeStamp, DefaultListModel<String> listModel) {
+        if (!Files.exists(FILE_PATH)) return;
+
+        try {
+            List<String> lines = Files.readAllLines(FILE_PATH);
+            List<String> updatedLines = new ArrayList<>();
+            boolean found = false;
+
+            for (String line : lines) {
+                if (line.trim().equals(timeStamp.trim())) {
+                    found = true; // Skip the timestamp line
+                    continue;
+                }
+                if (found && line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}")) {
+                    found = false; // Stop collecting lines after the next timestamp
+                }
+                if (!found) {
+                    updatedLines.add(line);
+                }
+            }
+
+            Files.write(FILE_PATH, updatedLines);
+            listModel.removeElement(timeStamp);
+            System.out.println("Deleted log entry: " + timeStamp); // Debug print
+        } catch (IOException e) {
+            showErrorDialog("Error deleting log entry: " + e.getMessage());
+        }
+    }
+
     private int getDuplicateCount(String timeStamp) {
         if (!Files.exists(FILE_PATH)) return 0;
 
@@ -123,5 +153,13 @@ public class LogFileHandler {
 
     private void showErrorDialog(String message) {
         JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    public void deleteEntry(String selectedItem, DefaultListModel<String> listModel) {
+        if (selectedItem != null && !selectedItem.isBlank()) {
+            deleteLogEntry(selectedItem, listModel);
+        } else {
+            showErrorDialog("No entry selected for deletion.");
+        }
     }
 }

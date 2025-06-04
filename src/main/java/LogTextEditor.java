@@ -66,9 +66,40 @@ public class LogTextEditor extends Application {
             }
         });
 
+        //add a context menu to the log list, to delete entries
+
+        ContextMenu contextMenu = new ContextMenu();
+        MenuItem deleteItem = getDeleteItem();
+
+        contextMenu.getItems().add(deleteItem);
+        logList.setContextMenu(contextMenu);
+
+
+
         pane.setCenter(logList);
         pane.setBottom(entryArea);
         return pane;
+    }
+
+    private MenuItem getDeleteItem() {
+        MenuItem deleteItem = new MenuItem("Delete Entry");
+        deleteItem.setOnAction(e -> {
+            String selectedItem = logList.getSelectionModel().getSelectedItem();
+            if (selectedItem != null) {
+                // Confirm deletion
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure you want to delete this entry?", ButtonType.YES, ButtonType.NO);
+                alert.setTitle("Delete Entry");
+                alert.setHeaderText("Delete Log Entry");
+                alert.showAndWait().ifPresent(response -> {
+                    if (response == ButtonType.YES) {
+                        logFileHandler.deleteEntry(selectedItem, listModel);
+                        updateLogListView();
+                        entryArea.clear();
+                    }
+                });
+            }
+        });
+        return deleteItem;
     }
 
     private void saveLogEntry() {
