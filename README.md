@@ -14,6 +14,7 @@ A lightweight Java application for managing personal log entries [in the .LOG te
   - `Ctrl+S` to save a new entry  
   - `Ctrl+R` to refresh the log list
 - **Sorted Log List**: View all entries in descending order (newest first).
+- **Delete Log Entry**: Right-click an entry and click Delete log entry.
 - **Simple Storage**: All logs are saved in a plain text file (`log.txt`) in your home directory.
 - **Distraction-Free**: Clean, minimal UI for focused journaling or note-taking.
 - **Easy Backup & Sharing**: Entries are stored in a human-readable format.
