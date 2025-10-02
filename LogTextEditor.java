@@ -45,7 +45,7 @@ public class LogTextEditor extends JFrame {
         setupKeyBindings();
         loadLogEntries();
         loadFullLog(); // populate the full log tab at startup
-        textArea.requestFocusInWindow();
+        SwingUtilities.invokeLater(() -> textArea.requestFocusInWindow());
     }
 
     private JPanel createEntryPanel() {
