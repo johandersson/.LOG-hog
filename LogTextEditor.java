@@ -6,7 +6,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.time.LocalDate;
+import java.time.Year;
 import java.util.Collections;
+import java.util.stream.IntStream;
 
 public class LogTextEditor extends JFrame {
 
@@ -52,6 +55,33 @@ public class LogTextEditor extends JFrame {
 
     private JPanel createLogPanel() {
         JPanel panel = new JPanel(new BorderLayout());
+
+        // Top: simple filter controls (label + year combobox + month combobox + clear)
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 6));
+        JLabel filterLabel = new JLabel("Filter on date");
+        filterLabel.setFont(filterLabel.getFont().deriveFont(Font.BOLD));
+
+        int currentYear = Year.now().getValue();
+        Integer[] years = IntStream.rangeClosed(2000, currentYear).boxed().toArray(Integer[]::new);
+        JComboBox<Integer> yearCombo = new JComboBox<>(years);
+        yearCombo.setSelectedItem(currentYear);
+
+        String[] months = new String[] {
+                "01 - Jan", "02 - Feb", "03 - Mar", "04 - Apr",
+                "05 - May", "06 - Jun", "07 - Jul", "08 - Aug",
+                "09 - Sep", "10 - Oct", "11 - Nov", "12 - Dec"
+        };
+        JComboBox<String> monthCombo = new JComboBox<>(months);
+        monthCombo.setSelectedIndex(LocalDate.now().getMonthValue() - 1);
+
+        JButton clearFilterBtn = new JButton("Clear");
+
+        filterPanel.add(filterLabel);
+        filterPanel.add(yearCombo);
+        filterPanel.add(monthCombo);
+        filterPanel.add(clearFilterBtn);
+
+        // Center: list and entry area
         logList.setFont(new Font("SansSerif", Font.PLAIN, 14));
         logList.setModel(listModel);
 
@@ -78,8 +108,33 @@ public class LogTextEditor extends JFrame {
         JScrollPane entryScroll = new JScrollPane(entryArea);
         entryScroll.setPreferredSize(new Dimension(600, 200));
 
+        panel.add(filterPanel, BorderLayout.NORTH);
         panel.add(new JScrollPane(logList), BorderLayout.CENTER);
         panel.add(entryScroll, BorderLayout.SOUTH);
+
+        // Filter actions: when year or month changes, apply filter
+        Action applyFilterAction = new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    Integer year = (Integer) yearCombo.getSelectedItem();
+                    int month = monthCombo.getSelectedIndex() + 1;
+                    if (year != null) {
+                        logFileHandler.loadFilteredEntries(listModel, year, month);
+                        updateLogListView();
+                    }
+                } catch (Exception ex) {
+                    logFileHandler.showErrorDialog("Error applying date filter: " + ex.getMessage());
+                }
+            }
+        };
+        yearCombo.addActionListener(applyFilterAction);
+        monthCombo.addActionListener(applyFilterAction);
+
+        clearFilterBtn.addActionListener(e -> {
+            logFileHandler.loadLogEntries(listModel);
+            updateLogListView();
+        });
+
         return panel;
     }
 

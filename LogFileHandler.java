@@ -17,7 +17,7 @@ public class LogFileHandler {
         int count = getDuplicateCount(timeStamp);
         String uniqueTimeStamp = count > 0 ? timeStamp + " (" + count + ")" : timeStamp;
 
-        String entry = uniqueTimeStamp + "\n" + text + "\n"; // Each log entry is stored separately
+        String entry = uniqueTimeStamp + "\n" + text + "\n";
 
         try {
             Files.writeString(FILE_PATH, entry, Files.exists(FILE_PATH)
@@ -26,13 +26,13 @@ public class LogFileHandler {
 
             listModel.addElement(uniqueTimeStamp);
             sortListModel(listModel);
-            System.out.println("Saved log entry: \n" + entry); // Debug print
+            System.out.println("Saved log entry: \n" + entry);
         } catch (IOException e) {
             showErrorDialog("Error saving text: " + e.getMessage());
         }
     }
 
-    //delete certain log entry
+    // delete certain log entry
     private void deleteLogEntry(String timeStamp, DefaultListModel<String> listModel) {
         if (!Files.exists(FILE_PATH)) return;
 
@@ -43,11 +43,11 @@ public class LogFileHandler {
 
             for (String line : lines) {
                 if (line.trim().equals(timeStamp.trim())) {
-                    found = true; // Skip the timestamp line
+                    found = true;
                     continue;
                 }
                 if (found && line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}")) {
-                    found = false; // Stop collecting lines after the next timestamp
+                    found = false;
                 }
                 if (!found) {
                     updatedLines.add(line);
@@ -56,7 +56,7 @@ public class LogFileHandler {
 
             Files.write(FILE_PATH, updatedLines);
             listModel.removeElement(timeStamp);
-            System.out.println("Deleted log entry: " + timeStamp); // Debug print
+            System.out.println("Deleted log entry: " + timeStamp);
         } catch (IOException e) {
             showErrorDialog("Error deleting log entry: " + e.getMessage());
         }
@@ -83,7 +83,7 @@ public class LogFileHandler {
 
         listModel.clear();
         sortedEntries.forEach(listModel::addElement);
-        System.out.println("Sorted log entries: " + sortedEntries); // Debug print
+        System.out.println("Sorted log entries: " + sortedEntries);
     }
 
     void loadLogEntries(DefaultListModel<String> listModel) {
@@ -93,14 +93,14 @@ public class LogFileHandler {
         try {
             List<String> lines = Files.readAllLines(FILE_PATH);
             if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
-                lines.remove(0); // Remove .LOG header
+                lines.remove(0);
             }
 
             List<String> timestamps = new ArrayList<>();
 
             for (String line : lines) {
                 if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                    timestamps.add(line.trim()); // Store only timestamps
+                    timestamps.add(line.trim());
                 }
             }
 
@@ -108,14 +108,65 @@ public class LogFileHandler {
             timestamps.sort(Comparator.comparing(this::parseDate).reversed());
             timestamps.forEach(listModel::addElement);
 
-            System.out.println("Consistently sorted timestamps (newest first): \n" + timestamps); // Debug print
-
+            System.out.println("Consistently sorted timestamps (newest first): \n" + timestamps);
         } catch (IOException e) {
             showErrorDialog("Error loading log entries: " + e.getMessage());
         }
     }
 
+    // New: load only entries matching year and month (1..12)
+    public void loadFilteredEntries(DefaultListModel<String> listModel, int year, int month) {
+        listModel.clear();
+        if (!Files.exists(FILE_PATH)) return;
 
+        try {
+            List<String> lines = Files.readAllLines(FILE_PATH);
+            if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
+                lines.remove(0);
+            }
+
+            List<String> timestamps = new ArrayList<>();
+            for (String line : lines) {
+                if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                    String trimmed = line.trim();
+                    try {
+                        LocalDateTime dt = parseDate(trimmed);
+                        if (dt.getYear() == year && dt.getMonthValue() == month) {
+                            timestamps.add(trimmed);
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+
+            timestamps.sort(Comparator.comparing(this::parseDate).reversed());
+            timestamps.forEach(listModel::addElement);
+            System.out.println("Loaded filtered timestamps for " + year + "-" + String.format("%02d", month) + ": " + timestamps);
+        } catch (IOException e) {
+            showErrorDialog("Error loading filtered log entries: " + e.getMessage());
+        }
+    }
+
+    // New: produce a filtered DefaultListModel from an existing model
+    public DefaultListModel<String> filterModelByYearMonth(DefaultListModel<String> sourceModel, int year, int month) {
+        DefaultListModel<String> filtered = new DefaultListModel<>();
+        for (int i = 0; i < sourceModel.getSize(); i++) {
+            String entry = sourceModel.getElementAt(i);
+            try {
+                LocalDateTime dt = parseDate(entry);
+                if (dt.getYear() == year && dt.getMonthValue() == month) {
+                    filtered.addElement(entry);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        List<String> sorted = Collections.list(filtered.elements()).stream()
+                .sorted((a, b) -> parseDate(b).compareTo(parseDate(a)))
+                .toList();
+        filtered.clear();
+        sorted.forEach(filtered::addElement);
+        return filtered;
+    }
 
     private LocalDateTime parseDate(String entry) {
         return LocalDateTime.parse(entry.split("\n")[0].replaceAll(" \\(\\d+\\)", ""), FORMATTER);
@@ -129,21 +180,21 @@ public class LogFileHandler {
             StringBuilder entry = new StringBuilder();
             boolean found = false;
 
-            System.out.println("Searching for entry: " + timeStamp.trim()); // Debug print
+            System.out.println("Searching for entry: " + timeStamp.trim());
 
             for (String line : lines) {
                 if (line.trim().equals(timeStamp.trim())) {
                     found = true;
-                    continue; // Skip the timestamp itself
+                    continue;
                 }
 
                 if (found) {
-                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}")) break; // Stop at next timestamp
+                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}")) break;
                     entry.append(line).append("\n");
                 }
             }
 
-            System.out.println("Final entry loaded:\n" + entry.toString().trim()); // Debug print
+            System.out.println("Final entry loaded:\n" + entry.toString().trim());
             return entry.toString().trim();
         } catch (IOException e) {
             showErrorDialog("Error displaying log entry: " + e.getMessage());
@@ -151,7 +202,7 @@ public class LogFileHandler {
         return "";
     }
 
-    private void showErrorDialog(String message) {
+    void showErrorDialog(String message) {
         JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
