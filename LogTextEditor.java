@@ -174,19 +174,57 @@ public class LogTextEditor extends JFrame {
 
     private void deleteSelectedEntry() {
         String selectedItem = logList.getSelectedValue();
-        if (selectedItem != null) {
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Are you sure you want to delete this entry?",
-                    "Delete Entry",
-                    JOptionPane.YES_NO_OPTION);
-            if (confirm == JOptionPane.YES_OPTION) {
-                logFileHandler.deleteEntry(selectedItem, listModel);
-                updateLogListView();
-                entryArea.setText("");
-                loadFullLog(); // update full log view after deletion
-            }
+        if (selectedItem == null) return;
+
+        // Build preview: timestamp, blank line, then up to 200 chars of the entry followed by "..."
+        String entryText = logFileHandler.loadEntry(selectedItem);
+        String previewBody;
+        if (entryText == null || entryText.isBlank()) {
+            previewBody = "(no content)";
+        } else {
+            String trimmed = entryText.length() > 200 ? entryText.substring(0, 200) + "..." : entryText;
+            previewBody = trimmed;
+        }
+        String previewFull = selectedItem + "\n\n" + previewBody;
+
+        JTextArea previewArea = createPreviewArea(previewFull);
+
+        // Compose dialog content: question label above preview
+        JPanel panel = new JPanel(new BorderLayout(6, 6));
+        JLabel question = new JLabel("Are you sure you want to delete this entry?");
+        panel.add(question, BorderLayout.NORTH);
+        panel.add(new JScrollPane(previewArea,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER), BorderLayout.CENTER);
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                panel,
+                "Delete Entry",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            logFileHandler.deleteEntry(selectedItem, listModel);
+            updateLogListView();
+            entryArea.setText("");
+            loadFullLog(); // update full log view after deletion
         }
     }
+
+    private static JTextArea createPreviewArea(String previewFull) {
+        // Create a small preview component
+        JTextArea previewArea = new JTextArea(previewFull);
+        previewArea.setEditable(false);
+        previewArea.setLineWrap(true);
+        previewArea.setWrapStyleWord(true);
+        previewArea.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        previewArea.setBackground(UIManager.getColor("Panel.background"));
+        previewArea.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+        previewArea.setRows(6);
+        previewArea.setColumns(40);
+        return previewArea;
+    }
+
 
     private void saveLogEntry() {
         logFileHandler.saveText(textArea.getText(), listModel);
