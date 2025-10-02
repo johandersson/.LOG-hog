@@ -17,12 +17,19 @@ public class LogFileHandler {
         int count = getDuplicateCount(timeStamp);
         String uniqueTimeStamp = count > 0 ? timeStamp + " (" + count + ")" : timeStamp;
 
-        String entry = uniqueTimeStamp + "\n" + text + "\n";
+        // Entry ends with one blank line for nicer formatting
+        String entry = uniqueTimeStamp + "\n" + text + "\n\n";
 
         try {
-            Files.writeString(FILE_PATH, entry, Files.exists(FILE_PATH)
-                    ? java.nio.file.StandardOpenOption.APPEND
-                    : java.nio.file.StandardOpenOption.CREATE);
+            if (Files.exists(FILE_PATH)) {
+                // Inspect last line to avoid creating multiple blank lines between entries.
+                List<String> existing = Files.readAllLines(FILE_PATH);
+                boolean lastLineIsBlank = !existing.isEmpty() && existing.get(existing.size() - 1).trim().isEmpty();
+                String toWrite = lastLineIsBlank ? entry : System.lineSeparator() + entry;
+                Files.writeString(FILE_PATH, toWrite, java.nio.file.StandardOpenOption.APPEND);
+            } else {
+                Files.writeString(FILE_PATH, entry, java.nio.file.StandardOpenOption.CREATE);
+            }
 
             listModel.addElement(uniqueTimeStamp);
             sortListModel(listModel);
@@ -39,22 +46,47 @@ public class LogFileHandler {
         try {
             List<String> lines = Files.readAllLines(FILE_PATH);
             List<String> updatedLines = new ArrayList<>();
-            boolean found = false;
+            boolean skipping = false;
 
             for (String line : lines) {
-                if (line.trim().equals(timeStamp.trim())) {
-                    found = true;
+                // timestamp lines are exact matches (whitespace trimmed)
+                if (!skipping && line.trim().equals(timeStamp.trim())) {
+                    skipping = true; // start skipping this timestamp and its body
                     continue;
                 }
-                if (found && line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}")) {
-                    found = false;
-                }
-                if (!found) {
+
+                if (skipping) {
+                    // stop skipping when we hit the next timestamp line
+                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                        skipping = false;
+                        // This line is the next timestamp; it should be kept
+                        updatedLines.add(line);
+                    } else {
+                        // while skipping, simply continue (this drops blank lines and body lines)
+                        continue;
+                    }
+                } else {
                     updatedLines.add(line);
                 }
             }
 
-            Files.write(FILE_PATH, updatedLines);
+            // Normalize spacing: ensure at most one blank line between entries
+            List<String> normalized = new ArrayList<>();
+            boolean prevBlank = false;
+            for (String l : updatedLines) {
+                boolean isBlank = l.trim().isEmpty();
+                if (isBlank) {
+                    if (!prevBlank) {
+                        normalized.add(""); // keep single blank line
+                        prevBlank = true;
+                    } // else skip additional blank lines
+                } else {
+                    normalized.add(l);
+                    prevBlank = false;
+                }
+            }
+
+            Files.write(FILE_PATH, normalized);
             listModel.removeElement(timeStamp);
             System.out.println("Deleted log entry: " + timeStamp);
         } catch (IOException e) {
@@ -104,7 +136,6 @@ public class LogFileHandler {
                 }
             }
 
-            listModel.clear();
             timestamps.sort(Comparator.comparing(this::parseDate).reversed());
             timestamps.forEach(listModel::addElement);
 
@@ -114,7 +145,7 @@ public class LogFileHandler {
         }
     }
 
-    // New: load only entries matching year and month (1..12)
+    // load only entries matching year and month (1..12)
     public void loadFilteredEntries(DefaultListModel<String> listModel, int year, int month) {
         listModel.clear();
         if (!Files.exists(FILE_PATH)) return;
@@ -147,7 +178,7 @@ public class LogFileHandler {
         }
     }
 
-    // New: produce a filtered DefaultListModel from an existing model
+    // produce a filtered DefaultListModel from an existing model
     public DefaultListModel<String> filterModelByYearMonth(DefaultListModel<String> sourceModel, int year, int month) {
         DefaultListModel<String> filtered = new DefaultListModel<>();
         for (int i = 0; i < sourceModel.getSize(); i++) {
@@ -183,13 +214,16 @@ public class LogFileHandler {
             System.out.println("Searching for entry: " + timeStamp.trim());
 
             for (String line : lines) {
-                if (line.trim().equals(timeStamp.trim())) {
+                if (!found && line.trim().equals(timeStamp.trim())) {
                     found = true;
                     continue;
                 }
 
                 if (found) {
-                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}")) break;
+                    // stop at next timestamp (accounts for entries with or without blank lines)
+                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                        break;
+                    }
                     entry.append(line).append("\n");
                 }
             }
