@@ -1,14 +1,16 @@
 import javax.swing.*;
+import javax.swing.text.*;
 import java.awt.*;
-import java.awt.event.*;
 import java.awt.datatransfer.*;
+import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.Year;
-import java.util.Collections;
+import java.util.*;
+import java.util.List;
 import java.util.stream.IntStream;
 
 public class LogTextEditor extends JFrame {
@@ -16,17 +18,17 @@ public class LogTextEditor extends JFrame {
     private final JTextArea textArea = new JTextArea();
     private final JList<String> logList = new JList<>();
     private final JTextArea entryArea = new JTextArea();
-    private final LogFileHandler logFileHandler = new LogFileHandler();
+    private final LogFileHandler logFileHandler = new LogFileHandler(); // external class
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
 
-    // New components for full log tab
-    private final JTextArea fullLogArea = new JTextArea();
+    // Full log view uses JTextPane so we can style timestamps
+    private final JTextPane fullLogPane = new JTextPane();
     private final JButton copyFullLogButton = new JButton("Copy Full Log to Clipboard");
     private final JLabel fullLogPathLabel = new JLabel("Log file: (not loaded)");
 
     public LogTextEditor() {
         setTitle(".LOG hog");
-        setSize(800, 600);
+        setSize(900, 650);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -35,7 +37,7 @@ public class LogTextEditor extends JFrame {
         tabPane.addTab("Log Entries", createLogPanel());
         tabPane.addTab("Full Log", createFullLogPanel());
 
-        JLabel footer = new JLabel("Press Ctrl+S to save and Ctrl+R to load", SwingConstants.CENTER);
+        JLabel footer = new JLabel("Press Ctrl+S to save and Ctrl+R to reload", SwingConstants.CENTER);
 
         add(tabPane, BorderLayout.CENTER);
         add(footer, BorderLayout.SOUTH);
@@ -50,6 +52,13 @@ public class LogTextEditor extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         textArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
         panel.add(new JScrollPane(textArea), BorderLayout.CENTER);
+
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton saveBtn = new JButton("Save");
+        saveBtn.addActionListener(e -> saveLogEntry());
+        bottom.add(saveBtn);
+        panel.add(bottom, BorderLayout.SOUTH);
+
         return panel;
     }
 
@@ -85,13 +94,11 @@ public class LogTextEditor extends JFrame {
         logList.setFont(new Font("SansSerif", Font.PLAIN, 14));
         logList.setModel(listModel);
 
-        logList.addMouseListener(new MouseAdapter() {
+        logList.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 String selectedItem = logList.getSelectedValue();
-                System.out.println("Selected Timestamp Clicked: " + selectedItem);
                 if (selectedItem != null) {
                     String logContent = logFileHandler.loadEntry(selectedItem);
-                    System.out.println("Setting UI Text:\n" + logContent);
                     entryArea.setText(logContent);
                 }
             }
@@ -106,7 +113,7 @@ public class LogTextEditor extends JFrame {
         entryArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
         entryArea.setRows(10);
         JScrollPane entryScroll = new JScrollPane(entryArea);
-        entryScroll.setPreferredSize(new Dimension(600, 200));
+        entryScroll.setPreferredSize(new Dimension(600, 220));
 
         panel.add(filterPanel, BorderLayout.NORTH);
         panel.add(new JScrollPane(logList), BorderLayout.CENTER);
@@ -141,11 +148,12 @@ public class LogTextEditor extends JFrame {
     private JPanel createFullLogPanel() {
         JPanel panel = new JPanel(new BorderLayout(6, 6));
 
-        fullLogArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        fullLogArea.setEditable(false);
-        fullLogArea.setLineWrap(true);
-        fullLogArea.setWrapStyleWord(true);
-        JScrollPane scroll = new JScrollPane(fullLogArea);
+        fullLogPane.setEditable(false);
+        fullLogPane.setBackground(Color.WHITE);
+
+        // Base font is a nicer serif for reading; timestamps will be larger/bold
+        fullLogPane.setFont(new Font("Georgia", Font.PLAIN, 14));
+        JScrollPane scroll = new JScrollPane(fullLogPane);
         panel.add(scroll, BorderLayout.CENTER);
 
         // Path display above text area
@@ -194,7 +202,6 @@ public class LogTextEditor extends JFrame {
 
     private void updateLogListView() {
         logList.setModel(listModel);
-        System.out.println("ListView contents: " + Collections.list(listModel.elements()));
     }
 
     private void setupKeyBindings() {
@@ -218,8 +225,7 @@ public class LogTextEditor extends JFrame {
         });
     }
 
-    // Reads the whole log.txt file and places its contents into fullLogArea.
-    // Preference order: user's home dir, then current working directory.
+    // Reads the whole log.txt file and places its contents into fullLogPane with styling
     private void loadFullLog() {
         SwingUtilities.invokeLater(() -> {
             String userHome = System.getProperty("user.home");
@@ -234,33 +240,70 @@ public class LogTextEditor extends JFrame {
             }
 
             if (chosen == null) {
-                fullLogArea.setText("log.txt not found in user home or current working directory.\n"
+                fullLogPane.setText("log.txt not found in user home or current working directory.\n"
                         + "Checked paths:\n"
                         + userHome + File.separator + "log.txt\n"
                         + System.getProperty("user.dir") + File.separator + "log.txt");
                 fullLogPathLabel.setText("Log file: not found");
-                System.out.println("log.txt not found. Checked: " + homePath + " and " + cwdPath);
                 return;
             }
 
+            fullLogPane.setText("");
+            fullLogPathLabel.setText("Log file: " + chosen.toAbsolutePath().toString());
+
             try {
-                byte[] bytes = Files.readAllBytes(chosen);
-                String content = new String(bytes, StandardCharsets.UTF_8);
-                fullLogArea.setText(content);
-                fullLogArea.setCaretPosition(0);
-                fullLogPathLabel.setText("Log file: " + chosen.toAbsolutePath().toString());
-                System.out.println("Loaded log file from: " + chosen.toAbsolutePath().toString());
-            } catch (IOException ex) {
-                fullLogArea.setText("Error reading " + chosen.toAbsolutePath().toString() + " : " + ex.getMessage());
-                fullLogPathLabel.setText("Log file: error reading file");
-                System.err.println("Error reading log file: " + ex.getMessage());
+                List<String> lines = Files.readAllLines(chosen, StandardCharsets.UTF_8);
+                StyledDocument doc = fullLogPane.getStyledDocument();
+
+                // default/body style
+                Style defaultStyle = doc.addStyle("default", null);
+                StyleConstants.setFontFamily(defaultStyle, "Georgia");
+                StyleConstants.setFontSize(defaultStyle, 14);
+                StyleConstants.setForeground(defaultStyle, Color.DARK_GRAY);
+
+                // timestamp style: larger, bold
+                Style tsStyle = doc.addStyle("timestamp", defaultStyle);
+                StyleConstants.setFontSize(tsStyle, 16);
+                StyleConstants.setBold(tsStyle, true);
+                StyleConstants.setForeground(tsStyle, Color.BLACK);
+
+                // small separator for blank lines
+                Style sepStyle = doc.addStyle("sep", defaultStyle);
+                StyleConstants.setFontSize(sepStyle, 10);
+
+                String tsRegex = "^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?$";
+
+                for (String line : lines) {
+                    if (line.matches(tsRegex)) {
+                        doc.insertString(doc.getLength(), line + "\n", tsStyle);
+                    } else {
+                        if (line.trim().isEmpty()) {
+                            doc.insertString(doc.getLength(), "\n", sepStyle);
+                        } else {
+                            doc.insertString(doc.getLength(), line + "\n", defaultStyle);
+                        }
+                    }
+                }
+
+                fullLogPane.setCaretPosition(0);
+            } catch (IOException | BadLocationException ex) {
+                try {
+                    byte[] bytes = Files.readAllBytes(chosen);
+                    String content = new String(bytes, StandardCharsets.UTF_8);
+                    fullLogPane.setText(content);
+                    fullLogPane.setCaretPosition(0);
+                } catch (IOException e) {
+                    fullLogPane.setText("Error reading " + chosen.toAbsolutePath().toString() + " : " + e.getMessage());
+                    fullLogPane.setText("Error reading " + chosen.toAbsolutePath().toString() + " : " + e.getMessage());
+                    fullLogPathLabel.setText("Log file: error reading file");
+                }
             }
         });
     }
 
-    // Copies entire contents of fullLogArea to system clipboard
+    // Copies entire contents of fullLogPane to system clipboard
     private void copyFullLogToClipboard() {
-        String text = fullLogArea.getText();
+        String text = fullLogPane.getText();
         if (text == null || text.isEmpty()) {
             Toolkit.getDefaultToolkit().beep();
             JOptionPane.showMessageDialog(this, "Log is empty or not loaded.", "Copy Failed", JOptionPane.WARNING_MESSAGE);
@@ -277,6 +320,9 @@ public class LogTextEditor extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new LogTextEditor().setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            LogTextEditor editor = new LogTextEditor();
+            editor.setVisible(true);
+        });
     }
 }
