@@ -25,6 +25,7 @@ public class LogTextEditor extends JFrame {
     private final JTextPane fullLogPane = new JTextPane();
     private final JButton copyFullLogButton = new JButton("Copy Full Log to Clipboard");
     private final JLabel fullLogPathLabel = new JLabel("Log file: (not loaded)");
+    private final Highlighter.HighlightPainter searchPainter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
 
     public LogTextEditor() {
         setTitle(".LOG hog");
@@ -242,6 +243,7 @@ public class LogTextEditor extends JFrame {
         logList.setModel(listModel);
     }
 
+    // updated setupKeyBindings method
     private void setupKeyBindings() {
         JRootPane rootPane = getRootPane();
         InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
@@ -249,6 +251,7 @@ public class LogTextEditor extends JFrame {
 
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), "save");
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK), "load");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "find"); // Ctrl+F
 
         actionMap.put("save", new AbstractAction() {
             public void actionPerformed(ActionEvent e) {
@@ -261,7 +264,69 @@ public class LogTextEditor extends JFrame {
                 loadFullLog();
             }
         });
+        actionMap.put("find", new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                showFindDialogAndSearch();
+            }
+        });
     }
+
+    // new method: shows input dialog and triggers search
+    private void showFindDialogAndSearch() {
+        String query = JOptionPane.showInputDialog(this, "Search text:", "Find", JOptionPane.QUESTION_MESSAGE);
+        if (query == null) return;
+        performSearchInFullLog(query);
+    }
+
+    // new method: perform search, highlight occurrences, scroll to first hit or show "Text not found"
+    private void performSearchInFullLog(String query) {
+        Highlighter highlighter = fullLogPane.getHighlighter();
+        highlighter.removeAllHighlights();
+
+        Document doc = fullLogPane.getDocument();
+        int len = doc.getLength();
+        String text;
+        try {
+            text = doc.getText(0, len);
+        } catch (BadLocationException e) {
+            JOptionPane.showMessageDialog(this, "Error accessing document", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String lower = text.toLowerCase(Locale.ROOT);
+        String qLower = query.toLowerCase(Locale.ROOT);
+
+        int index = lower.indexOf(qLower);
+        if (index == -1) {
+            JOptionPane.showMessageDialog(this, "Text not found", "Find", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        int start = 0;
+        try {
+            while ((start = lower.indexOf(qLower, start)) >= 0) {
+                int end = start + qLower.length();
+                highlighter.addHighlight(start, end, searchPainter);
+                start = end;
+            }
+        } catch (BadLocationException ex) {
+            // ignore individual highlight failures
+        }
+
+        try {
+            Rectangle rect = fullLogPane.modelToView(index);
+            if (rect != null) {
+                rect.height = Math.max(rect.height, 20);
+                fullLogPane.scrollRectToVisible(rect);
+                fullLogPane.setCaretPosition(index);
+            }
+        } catch (BadLocationException ex) {
+            // ignore scrolling failure
+        }
+    }
+
+
+
 
     // Reads the whole log.txt file and places its contents into fullLogPane with styling
     private void loadFullLog() {
@@ -283,10 +348,12 @@ public class LogTextEditor extends JFrame {
                         + userHome + File.separator + "log.txt\n"
                         + System.getProperty("user.dir") + File.separator + "log.txt");
                 fullLogPathLabel.setText("Log file: not found");
+                fullLogPane.getHighlighter().removeAllHighlights();
                 return;
             }
 
             fullLogPane.setText("");
+            fullLogPane.getHighlighter().removeAllHighlights();
             fullLogPathLabel.setText("Log file: " + chosen.toAbsolutePath().toString());
 
             try {
@@ -329,15 +396,17 @@ public class LogTextEditor extends JFrame {
                     byte[] bytes = Files.readAllBytes(chosen);
                     String content = new String(bytes, StandardCharsets.UTF_8);
                     fullLogPane.setText(content);
+                    fullLogPane.getHighlighter().removeAllHighlights();
                     fullLogPane.setCaretPosition(0);
                 } catch (IOException e) {
                     fullLogPane.setText("Error reading " + chosen.toAbsolutePath().toString() + " : " + e.getMessage());
-                    fullLogPane.setText("Error reading " + chosen.toAbsolutePath().toString() + " : " + e.getMessage());
                     fullLogPathLabel.setText("Log file: error reading file");
+                    fullLogPane.getHighlighter().removeAllHighlights();
                 }
             }
         });
     }
+
 
     // Copies entire contents of fullLogPane to system clipboard
     private void copyFullLogToClipboard() {
