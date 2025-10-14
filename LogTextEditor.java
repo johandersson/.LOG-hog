@@ -125,25 +125,6 @@ public class LogTextEditor extends JFrame {
         return bar;
     }
 
-    // Small styled components reused in this class
-
-
-
-    private static class WindowBtn extends JButton {
-        WindowBtn(String text, ActionListener act, Color bg) {
-            super(text);
-            setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
-            setFocusPainted(false);
-            setBackground(bg);
-            setOpaque(true);
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            setFont(getFont().deriveFont(Font.BOLD, 12f));
-            addActionListener(act);
-        }
-    }
-
-
-
     private final java.util.List<NavItem> navItems = new ArrayList<>();
 
     private JPanel createLeftRail() {
@@ -269,6 +250,9 @@ public class LogTextEditor extends JFrame {
         logList.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         logList.setModel(listModel);
 
+        // Ensure single-selection model
+        logList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
         JScrollPane listScroll = new JScrollPane(logList);
         listScroll.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(0xE6E9EB)),
@@ -296,12 +280,26 @@ public class LogTextEditor extends JFrame {
         contextMenu.add(deleteItem);
         logList.setComponentPopupMenu(contextMenu);
 
+        // Selection handling: clicking or programmatic selection loads entry text
         logList.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 String selectedItem = logList.getSelectedValue();
                 if (selectedItem != null) {
                     String logContent = logFileHandler.loadEntry(selectedItem);
                     entryArea.setText(logContent);
+                }
+            }
+        });
+
+        // Also respond to keyboard or programmatic selection changes
+        logList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                String selectedItem = logList.getSelectedValue();
+                if (selectedItem != null) {
+                    String logContent = logFileHandler.loadEntry(selectedItem);
+                    entryArea.setText(logContent);
+                } else {
+                    entryArea.setText("");
                 }
             }
         });
@@ -314,7 +312,8 @@ public class LogTextEditor extends JFrame {
                     int month = monthCombo.getSelectedIndex() + 1;
                     if (year != null) {
                         logFileHandler.loadFilteredEntries(listModel, year, month);
-                        updateLogListView();
+                        // after model is updated, select first entry if present
+                        SwingUtilities.invokeLater(() -> selectFirstLogIfAny());
                     }
                 } catch (Exception ex) {
                     logFileHandler.showErrorDialog("Error applying date filter: " + ex.getMessage());
@@ -325,11 +324,34 @@ public class LogTextEditor extends JFrame {
         monthCombo.addActionListener(applyFilterAction);
         clearFilterBtn.addActionListener(e -> {
             logFileHandler.loadLogEntries(listModel);
-            updateLogListView();
+            SwingUtilities.invokeLater(() -> selectFirstLogIfAny());
         });
+
+        // Ensure initial population selects first item if any
+        SwingUtilities.invokeLater(() -> selectFirstLogIfAny());
 
         return panel;
     }
+
+    // Helper: choose and show first log if list has any entries
+    private void selectFirstLogIfAny() {
+        if (listModel.getSize() > 0) {
+            // choose index 0 (first in model). If your model is sorted newest-first,
+            // index 0 will be the newest; adjust if your model ordering differs.
+            logList.setSelectedIndex(0);
+            logList.ensureIndexIsVisible(0);
+            String item = listModel.getElementAt(0);
+            if (item != null) {
+                String content = logFileHandler.loadEntry(item);
+                entryArea.setText(content);
+            }
+        } else {
+            // nothing to show
+            logList.clearSelection();
+            entryArea.setText("");
+        }
+    }
+
 
     private JPanel createFullLogPanel() {
         JPanel panel = new JPanel(new BorderLayout(6, 6));
