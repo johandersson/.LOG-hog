@@ -72,6 +72,7 @@ public class LogTextEditor extends JFrame {
         ));
 
         // Use the field tabPane so NavItems can control it
+        tabPane.setUI(new HiddenTabUI());
         tabPane.addTab("Entry", createEntryPanel());
         tabPane.addTab("Log Entries", createLogPanel());
         tabPane.addTab("Full Log", createFullLogPanel());
