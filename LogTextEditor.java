@@ -187,11 +187,19 @@ public class LogTextEditor extends JFrame {
 
 
     private void updateNavActiveStates() {
+        // NavItem instances listen to tabPane changes themselves; just repaint to force visual refresh
         int sel = tabPane.getSelectedIndex();
         for (NavItem ni : navItems) {
-            ni.setActive(navItems.indexOf(ni) == sel);
+            ni.repaint();
+            // ensure accessibility/visual sync for the selected item
+            if (navItems.indexOf(ni) == sel) {
+                ni.getAccessibleContext().firePropertyChange(
+                        javax.accessibility.AccessibleContext.ACCESSIBLE_STATE_PROPERTY,
+                        null, null);
+            }
         }
     }
+
 
 
     private JPanel createEntryPanel() {
