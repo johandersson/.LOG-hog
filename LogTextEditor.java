@@ -11,6 +11,8 @@ import java.time.LocalDate;
 import java.time.Year;
 import java.util.*;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 public class LogTextEditor extends JFrame {
@@ -328,83 +330,218 @@ public class LogTextEditor extends JFrame {
 
 
 
-    // Reads the whole log.txt file and places its contents into fullLogPane with styling
+    // Entry point (public or package-private depending on your class)
     private void loadFullLog() {
         SwingUtilities.invokeLater(() -> {
-            String userHome = System.getProperty("user.home");
-            Path homePath = Paths.get(userHome, "log.txt");
-            Path cwdPath = Paths.get(System.getProperty("user.dir"), "log.txt");
-
-            Path chosen = null;
-            if (Files.exists(homePath)) {
-                chosen = homePath;
-            } else if (Files.exists(cwdPath)) {
-                chosen = cwdPath;
-            }
-
+            Path chosen = findLogPath();
             if (chosen == null) {
-                fullLogPane.setText("log.txt not found in user home or current working directory.\n"
-                        + "Checked paths:\n"
-                        + userHome + File.separator + "log.txt\n"
-                        + System.getProperty("user.dir") + File.separator + "log.txt");
-                fullLogPathLabel.setText("Log file: not found");
-                fullLogPane.getHighlighter().removeAllHighlights();
+                showLogNotFound();
                 return;
             }
 
-            fullLogPane.setText("");
-            fullLogPane.getHighlighter().removeAllHighlights();
-            fullLogPathLabel.setText("Log file: " + chosen.toAbsolutePath().toString());
+            ensureLinkListenersInstalled();
+
+            clearEditorForNewLoad(chosen);
 
             try {
                 List<String> lines = Files.readAllLines(chosen, StandardCharsets.UTF_8);
                 StyledDocument doc = fullLogPane.getStyledDocument();
+                Map<String, Style> styles = createStyles(doc);
 
-                // default/body style
-                Style defaultStyle = doc.addStyle("default", null);
-                StyleConstants.setFontFamily(defaultStyle, "Georgia");
-                StyleConstants.setFontSize(defaultStyle, 14);
-                StyleConstants.setForeground(defaultStyle, Color.DARK_GRAY);
-
-                // timestamp style: larger, bold
-                Style tsStyle = doc.addStyle("timestamp", defaultStyle);
-                StyleConstants.setFontSize(tsStyle, 16);
-                StyleConstants.setBold(tsStyle, true);
-                StyleConstants.setForeground(tsStyle, Color.BLACK);
-
-                // small separator for blank lines
-                Style sepStyle = doc.addStyle("sep", defaultStyle);
-                StyleConstants.setFontSize(sepStyle, 10);
-
-                String tsRegex = "^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?$";
-
-                for (String line : lines) {
-                    if (line.matches(tsRegex)) {
-                        doc.insertString(doc.getLength(), line + "\n", tsStyle);
-                    } else {
-                        if (line.trim().isEmpty()) {
-                            doc.insertString(doc.getLength(), "\n", sepStyle);
-                        } else {
-                            doc.insertString(doc.getLength(), line + "\n", defaultStyle);
-                        }
-                    }
-                }
-
+                renderLines(lines, doc, styles);
                 fullLogPane.setCaretPosition(0);
             } catch (IOException | BadLocationException ex) {
-                try {
-                    byte[] bytes = Files.readAllBytes(chosen);
-                    String content = new String(bytes, StandardCharsets.UTF_8);
-                    fullLogPane.setText(content);
-                    fullLogPane.getHighlighter().removeAllHighlights();
-                    fullLogPane.setCaretPosition(0);
-                } catch (IOException e) {
-                    fullLogPane.setText("Error reading " + chosen.toAbsolutePath().toString() + " : " + e.getMessage());
-                    fullLogPathLabel.setText("Log file: error reading file");
-                    fullLogPane.getHighlighter().removeAllHighlights();
-                }
+                fallbackReadRaw(chosen);
             }
         });
+    }
+
+    /* -------------------------
+       Helpers: file discovery
+       ------------------------- */
+    private Path findLogPath() {
+        String userHome = System.getProperty("user.home");
+        Path homePath = Paths.get(userHome, "log.txt");
+        Path cwdPath = Paths.get(System.getProperty("user.dir"), "log.txt");
+        if (Files.exists(homePath)) return homePath;
+        if (Files.exists(cwdPath)) return cwdPath;
+        return null;
+    }
+
+    private void showLogNotFound() {
+        String userHome = System.getProperty("user.home");
+        fullLogPane.setText("log.txt not found in user home or current working directory.\n"
+                + "Checked paths:\n"
+                + userHome + File.separator + "log.txt\n"
+                + System.getProperty("user.dir") + File.separator + "log.txt");
+        fullLogPathLabel.setText("Log file: not found");
+        fullLogPane.getHighlighter().removeAllHighlights();
+    }
+
+    /* -------------------------
+       Editor initialization
+       ------------------------- */
+    private void clearEditorForNewLoad(Path chosen) {
+        fullLogPane.setText("");
+        fullLogPane.getHighlighter().removeAllHighlights();
+        fullLogPathLabel.setText("Log file: " + chosen.toAbsolutePath().toString());
+    }
+
+    /* -------------------------
+       Styles factory
+       ------------------------- */
+    private Map<String, Style> createStyles(StyledDocument doc) {
+        Map<String, Style> styles = new HashMap<>();
+
+        Style defaultStyle = doc.addStyle("default", null);
+        StyleConstants.setFontFamily(defaultStyle, "Georgia");
+        StyleConstants.setFontSize(defaultStyle, 14);
+        StyleConstants.setForeground(defaultStyle, Color.DARK_GRAY);
+        styles.put("default", defaultStyle);
+
+        Style tsStyle = doc.addStyle("timestamp", defaultStyle);
+        StyleConstants.setFontSize(tsStyle, 16);
+        StyleConstants.setBold(tsStyle, true);
+        StyleConstants.setForeground(tsStyle, Color.BLACK);
+        styles.put("timestamp", tsStyle);
+
+        Style sepStyle = doc.addStyle("sep", defaultStyle);
+        StyleConstants.setFontSize(sepStyle, 10);
+        styles.put("sep", sepStyle);
+
+        return styles;
+    }
+
+    /* -------------------------
+       Rendering: lines + links
+       ------------------------- */
+    private static final Pattern LINK_PATTERN = Pattern.compile("\\[([^\\]|]+)(?:\\|([^\\]]*))?\\]");
+
+
+    private static final String TS_REGEX = "^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?$";
+
+    private void renderLines(List<String> lines, StyledDocument doc, Map<String, Style> styles)
+            throws BadLocationException {
+        Style defaultStyle = styles.get("default");
+        Style tsStyle = styles.get("timestamp");
+        Style sepStyle = styles.get("sep");
+
+        for (String line : lines) {
+            if (line.matches(TS_REGEX)) {
+                doc.insertString(doc.getLength(), line + "\n", tsStyle);
+            } else if (line.trim().isEmpty()) {
+                doc.insertString(doc.getLength(), "\n", sepStyle);
+            } else {
+                appendLineWithInlineLinks(doc, line, defaultStyle);
+                doc.insertString(doc.getLength(), "\n", defaultStyle);
+            }
+        }
+    }
+
+    private void appendLineWithInlineLinks(StyledDocument doc, String line, Style defaultStyle)
+            throws BadLocationException {
+        Matcher m = LINK_PATTERN.matcher(line);
+        int last = 0;
+        while (m.find()) {
+            if (m.start() > last) {
+                String before = line.substring(last, m.start());
+                doc.insertString(doc.getLength(), before, defaultStyle);
+            }
+
+            String target = m.group(1);                     // required: the URL/target
+            String display = m.group(2);                    // optional: link text (may be null or empty)
+            String textToShow = (display != null && !display.isEmpty()) ? display : target;
+
+            SimpleAttributeSet linkAttr = new SimpleAttributeSet();
+            StyleConstants.setForeground(linkAttr, Color.BLUE);
+            StyleConstants.setUnderline(linkAttr, true);
+            linkAttr.addAttribute("href", target);
+
+            doc.insertString(doc.getLength(), textToShow, linkAttr);
+            last = m.end();
+        }
+        if (last < line.length()) {
+            String after = line.substring(last);
+            doc.insertString(doc.getLength(), after, defaultStyle);
+        }
+    }
+
+
+    /* -------------------------
+       Mouse listeners for links
+       ------------------------- */
+    private void ensureLinkListenersInstalled() {
+        // Avoid adding multiple duplicate listeners
+        boolean hasLinkListener = Arrays.stream(fullLogPane.getMouseListeners())
+                .anyMatch(l -> l.getClass().getName().contains("MouseAdapter") || l.getClass().getName().contains("MouseListener"));
+        if (hasLinkListener) return;
+
+        fullLogPane.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                handleLinkClick(e);
+            }
+        });
+
+        fullLogPane.addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                handleLinkHover(e);
+            }
+        });
+    }
+
+    private void handleLinkClick(MouseEvent e) {
+        try {
+            int pos = fullLogPane.viewToModel2D(e.getPoint());
+            if (pos < 0) return;
+            StyledDocument doc = fullLogPane.getStyledDocument();
+            AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
+            Object hrefObj = attrs.getAttribute("href");
+            if (hrefObj instanceof String) {
+                String href = (String) hrefObj;
+                if (!href.matches("^[a-zA-Z][a-zA-Z0-9+.-]*:.*")) {
+                    href = "http://" + href;
+                }
+                if (Desktop.isDesktopSupported()) {
+                    Desktop.getDesktop().browse(new java.net.URI(href));
+                }
+            }
+        } catch (Exception ex) {
+            // swallow or log depending on your logging conventions
+        }
+    }
+
+    private void handleLinkHover(MouseEvent e) {
+        try {
+            int pos = fullLogPane.viewToModel2D(e.getPoint());
+            if (pos < 0) {
+                fullLogPane.setCursor(Cursor.getDefaultCursor());
+                return;
+            }
+            AttributeSet attrs = fullLogPane.getStyledDocument().getCharacterElement(pos).getAttributes();
+            Object hrefObj = attrs.getAttribute("href");
+            fullLogPane.setCursor(hrefObj instanceof String ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
+        } catch (Exception ex) {
+            fullLogPane.setCursor(Cursor.getDefaultCursor());
+        }
+    }
+
+    /* -------------------------
+       Fallback raw read
+       ------------------------- */
+    private void fallbackReadRaw(Path chosen) {
+        try {
+            byte[] bytes = Files.readAllBytes(chosen);
+            String content = new String(bytes, StandardCharsets.UTF_8);
+            fullLogPane.setText(content);
+            fullLogPane.getHighlighter().removeAllHighlights();
+            fullLogPane.setCaretPosition(0);
+        } catch (IOException e) {
+            fullLogPane.setText("Error reading " + chosen.toAbsolutePath().toString() + " : " + e.getMessage());
+            fullLogPathLabel.setText("Log file: error reading file");
+            fullLogPane.getHighlighter().removeAllHighlights();
+        }
     }
 
 
