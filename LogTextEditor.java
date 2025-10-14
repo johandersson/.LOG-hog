@@ -28,8 +28,13 @@ public class LogTextEditor extends JFrame {
 
     // Full log view uses JTextPane so we can style timestamps
     private final JTextPane fullLogPane = new JTextPane();
-    private final JButton copyFullLogButton = new JButton("Copy Full Log to Clipboard");
+
+    // instead of: JButton refreshButton = new JButton("Refresh");
+    JButton refreshButton = new AccentButton("Refresh");
     private final JLabel fullLogPathLabel = new JLabel("Log file: (not loaded)");
+    // instead of: JButton copyFullLogButton = new JButton("Copy Full Log to Clipboard");
+    JButton copyFullLogButton = new AccentButton("Copy Full Log to Clipboard");
+
     private final Highlighter.HighlightPainter searchPainter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
     private final JTabbedPane tabPane = new JTabbedPane();
     public LogTextEditor() {
@@ -343,8 +348,7 @@ public class LogTextEditor extends JFrame {
         panel.add(pathPanel, BorderLayout.NORTH);
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        bottom.setOpaque(false);
-        JButton refreshButton = new JButton("Refresh");
+        bottom.setOpaque(false);;
         refreshButton.addActionListener(e -> loadFullLog());
         copyFullLogButton.addActionListener(e -> copyFullLogToClipboard());
         bottom.add(refreshButton);
