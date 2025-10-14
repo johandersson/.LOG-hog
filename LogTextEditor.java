@@ -1,4 +1,5 @@
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.text.*;
 import java.awt.*;
 import java.awt.datatransfer.*;
@@ -17,6 +18,8 @@ import java.util.stream.IntStream;
 
 public class LogTextEditor extends JFrame {
 
+
+
     private final JTextArea textArea = new JTextArea();
     private final JList<String> logList = new JList<>();
     private final JTextArea entryArea = new JTextArea();
@@ -28,36 +31,220 @@ public class LogTextEditor extends JFrame {
     private final JButton copyFullLogButton = new JButton("Copy Full Log to Clipboard");
     private final JLabel fullLogPathLabel = new JLabel("Log file: (not loaded)");
     private final Highlighter.HighlightPainter searchPainter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
-
+    private final JTabbedPane tabPane = new JTabbedPane();
     public LogTextEditor() {
-        setTitle(".LOG hog");
-        setSize(900, 650);
+        applyLookAndFeelTweaks();
+
+        setUndecorated(true);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(980, 660);
         setLocationRelativeTo(null);
 
-        JTabbedPane tabPane = new JTabbedPane();
+        // Root panel with subtle border to emulate window chrome
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBorder(BorderFactory.createLineBorder(new Color(0xD6DCE0)));
+        root.setBackground(new Color(0xF3F6F9));
+        setContentPane(root);
+
+        // Custom title bar
+        JPanel titleBar = createTitleBar();
+        root.add(titleBar, BorderLayout.NORTH);
+
+        // Main content area with left rail + center cards
+        JPanel center = new JPanel(new BorderLayout());
+        center.setBackground(new Color(0xF7FAFC));
+        center.setBorder(new EmptyBorder(12, 12, 12, 12));
+
+        JPanel leftRail = createLeftRail();
+        center.add(leftRail, BorderLayout.WEST);
+
+        // content area (tabs wrapped in a card-like panel)
+        JPanel contentCard = new JPanel(new BorderLayout());
+        contentCard.setBackground(Color.WHITE);
+        contentCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xE7EBEF)),
+                new EmptyBorder(12, 12, 12, 12)
+        ));
+
+
+        // in constructor or initialization code, replace local JTabbedPane usage with the field:
         tabPane.addTab("Entry", createEntryPanel());
         tabPane.addTab("Log Entries", createLogPanel());
         tabPane.addTab("Full Log", createFullLogPanel());
+        contentCard.add(tabPane, BorderLayout.CENTER);
 
-        JLabel footer = new JLabel("Press Ctrl+S to save and Ctrl+R to reload", SwingConstants.CENTER);
+        center.add(contentCard, BorderLayout.CENTER);
 
-        add(tabPane, BorderLayout.CENTER);
-        add(footer, BorderLayout.SOUTH);
+        // small status/footer area (inside root to keep titlebar separate)
+        JPanel statusBar = new JPanel(new BorderLayout());
+        statusBar.setBorder(new EmptyBorder(8, 12, 8, 12));
+        statusBar.setBackground(new Color(0xFFFFFF));
+        JLabel footer = new JLabel("Press Ctrl+S to save and Ctrl+R to reload");
+        footer.setFont(footer.getFont().deriveFont(Font.PLAIN, 12f));
+        footer.setForeground(new Color(0x394B54));
+        statusBar.add(footer, BorderLayout.WEST);
 
+        root.add(center, BorderLayout.CENTER);
+        root.add(statusBar, BorderLayout.SOUTH);
+
+        // wire behavior and load data
         setupKeyBindings();
         loadLogEntries();
         loadFullLog(); // populate the full log tab at startup
+
         SwingUtilities.invokeLater(() -> textArea.requestFocusInWindow());
+        setVisible(true);
     }
+
+    // Apply Nimbus (or Windows LAF) and a few UIManager tweaks for Windows-like visuals
+    private void applyLookAndFeelTweaks() {
+        try {
+            boolean applied = false;
+            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                if ("Windows".equals(info.getName())) {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    applied = true;
+                    break;
+                }
+            }
+            if (!applied) {
+                for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                    if ("Nimbus".equals(info.getName())) {
+                        UIManager.setLookAndFeel(info.getClassName());
+                        applied = true;
+                        break;
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // UI tweaks
+        UIManager.put("control", new Color(0xF3F6F9));
+        UIManager.put("nimbusBase", new Color(0x2E3A3F));
+        UIManager.put("text", new Color(0x22282B));
+        Font uiFont = new Font("Segoe UI", Font.PLAIN, 13);
+        UIManager.put("Label.font", uiFont);
+        UIManager.put("Button.font", uiFont);
+        UIManager.put("ComboBox.font", uiFont);
+        UIManager.put("TabbedPane.font", uiFont);
+    }
+
+    private JPanel createTitleBar() {
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setBackground(new Color(0xFFFFFF));
+        bar.setBorder(new EmptyBorder(6, 10, 6, 10));
+        JLabel title = new JLabel(".LOG hog");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 14f));
+        title.setForeground(new Color(0x2B3A42));
+        bar.add(title, BorderLayout.WEST);
+
+        JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        controls.setOpaque(false);
+
+        JButton minimize = new WindowBtn("\u2013", e -> setState(Frame.ICONIFIED), new Color(0xE7EEF9));
+        JButton maximize = new WindowBtn("\u25A1", e -> setExtendedState(getExtendedState() ^ Frame.MAXIMIZED_BOTH), new Color(0xE7EEF9));
+        JButton close = new WindowBtn("✕", e -> dispose(), new Color(0xFF5F57));
+
+        controls.add(minimize);
+        controls.add(maximize);
+        controls.add(close);
+        bar.add(controls, BorderLayout.EAST);
+
+        // enable dragging
+        WindowDragger.makeDraggable(this, bar);
+        return bar;
+    }
+
+    // Small styled components reused in this class
+
+
+
+    private static class WindowBtn extends JButton {
+        WindowBtn(String text, ActionListener act, Color bg) {
+            super(text);
+            setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+            setFocusPainted(false);
+            setBackground(bg);
+            setOpaque(true);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setFont(getFont().deriveFont(Font.BOLD, 12f));
+            addActionListener(act);
+        }
+    }
+
+
+
+    private final java.util.List<NavItem> navItems = new ArrayList<>();
+
+    private JPanel createLeftRail() {
+        JPanel left = new JPanel();
+        left.setPreferredSize(new Dimension(170, 0));
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+        left.setBackground(new Color(0xF7FAFC));
+        left.setBorder(new EmptyBorder(12, 10, 12, 10));
+
+        JLabel logo = new JLabel("⟡");
+        logo.setFont(logo.getFont().deriveFont(Font.BOLD, 26f));
+        logo.setForeground(new Color(0x2B3A42));
+        logo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        logo.setOpaque(false);
+        logo.setBorder(new EmptyBorder(0, 0, 8, 0));
+        left.add(logo);
+        left.add(Box.createVerticalStrut(12));
+
+        // create NavItems bound to tab indices using the extracted NavItem class (title, tabIndex, tabPane)
+        NavItem n0 = new NavItem("Entry", 0, tabPane);
+        NavItem n1 = new NavItem("Log Entries", 1, tabPane);
+        NavItem n2 = new NavItem("Full Log", 2, tabPane);
+
+        navItems.clear();
+        navItems.add(n0); navItems.add(n1); navItems.add(n2);
+
+        left.add(n0);
+        left.add(Box.createVerticalStrut(6));
+        left.add(n1);
+        left.add(Box.createVerticalStrut(6));
+        left.add(n2);
+        left.add(Box.createVerticalGlue());
+
+        JLabel ver = new JLabel("v1.0");
+        ver.setFont(ver.getFont().deriveFont(11f));
+        ver.setForeground(new Color(0x6B7A80));
+        ver.setAlignmentX(Component.LEFT_ALIGNMENT);
+        ver.setOpaque(false);
+        left.add(ver);
+
+        // ensure nav visuals update when user changes tabs programmatically
+        tabPane.addChangeListener(e -> updateNavActiveStates());
+        updateNavActiveStates(); // sync visuals initially
+
+        return left;
+    }
+
+
+    private void updateNavActiveStates() {
+        int sel = tabPane.getSelectedIndex();
+        for (NavItem ni : navItems) {
+            ni.setActive(navItems.indexOf(ni) == sel);
+        }
+    }
+
 
     private JPanel createEntryPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        textArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        panel.add(new JScrollPane(textArea), BorderLayout.CENTER);
+        panel.setBackground(Color.WHITE);
 
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton saveBtn = new JButton("Save");
+        textArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setEditable(true);
+        JScrollPane sp = new JScrollPane(textArea);
+        sp.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
+        panel.add(sp, BorderLayout.CENTER);
+
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        bottom.setBackground(Color.WHITE);
+        JButton saveBtn = new AccentButton("Save");
         saveBtn.addActionListener(e -> saveLogEntry());
         bottom.add(saveBtn);
         panel.add(bottom, BorderLayout.SOUTH);
@@ -66,17 +253,21 @@ public class LogTextEditor extends JFrame {
     }
 
     private JPanel createLogPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBackground(Color.WHITE);
 
-        // Top: simple filter controls (label + year combobox + month combobox + clear)
+        // Top: filter controls
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 6));
+        filterPanel.setOpaque(false);
         JLabel filterLabel = new JLabel("Filter on date");
         filterLabel.setFont(filterLabel.getFont().deriveFont(Font.BOLD));
+        filterPanel.add(filterLabel);
 
         int currentYear = Year.now().getValue();
         Integer[] years = IntStream.rangeClosed(2000, currentYear).boxed().toArray(Integer[]::new);
         JComboBox<Integer> yearCombo = new JComboBox<>(years);
         yearCombo.setSelectedItem(currentYear);
+        filterPanel.add(yearCombo);
 
         String[] months = new String[] {
                 "01 - Jan", "02 - Feb", "03 - Mar", "04 - Apr",
@@ -85,17 +276,47 @@ public class LogTextEditor extends JFrame {
         };
         JComboBox<String> monthCombo = new JComboBox<>(months);
         monthCombo.setSelectedIndex(LocalDate.now().getMonthValue() - 1);
+        filterPanel.add(monthCombo);
 
         JButton clearFilterBtn = new JButton("Clear");
-
-        filterPanel.add(filterLabel);
-        filterPanel.add(yearCombo);
-        filterPanel.add(monthCombo);
         filterPanel.add(clearFilterBtn);
 
-        // Center: list and entry area
-        logList.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        panel.add(filterPanel, BorderLayout.NORTH);
+
+        // Center: list and editor pane in a split for a polished layout
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        split.setResizeWeight(0.33);
+        split.setBorder(null);
+
+        logList.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         logList.setModel(listModel);
+
+        JScrollPane listScroll = new JScrollPane(logList);
+        listScroll.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xE6E9EB)),
+                new EmptyBorder(6,6,6,6)
+        ));
+
+        JPanel entryContainer = new JPanel(new BorderLayout());
+        entryContainer.setBorder(new EmptyBorder(6,6,6,6));
+        entryArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        entryArea.setLineWrap(true);
+        entryArea.setWrapStyleWord(true);
+        JScrollPane entryScroll = new JScrollPane(entryArea);
+        entryScroll.setPreferredSize(new Dimension(600, 220));
+        entryContainer.add(entryScroll, BorderLayout.CENTER);
+
+        split.setLeftComponent(listScroll);
+        split.setRightComponent(entryContainer);
+
+        panel.add(split, BorderLayout.CENTER);
+
+        // Popup and listeners
+        JPopupMenu contextMenu = new JPopupMenu();
+        JMenuItem deleteItem = new JMenuItem("Delete Entry");
+        deleteItem.addActionListener(e -> deleteSelectedEntry());
+        contextMenu.add(deleteItem);
+        logList.setComponentPopupMenu(contextMenu);
 
         logList.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
@@ -107,22 +328,7 @@ public class LogTextEditor extends JFrame {
             }
         });
 
-        JPopupMenu contextMenu = new JPopupMenu();
-        JMenuItem deleteItem = new JMenuItem("Delete Entry");
-        deleteItem.addActionListener(e -> deleteSelectedEntry());
-        contextMenu.add(deleteItem);
-        logList.setComponentPopupMenu(contextMenu);
-
-        entryArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        entryArea.setRows(10);
-        JScrollPane entryScroll = new JScrollPane(entryArea);
-        entryScroll.setPreferredSize(new Dimension(600, 220));
-
-        panel.add(filterPanel, BorderLayout.NORTH);
-        panel.add(new JScrollPane(logList), BorderLayout.CENTER);
-        panel.add(entryScroll, BorderLayout.SOUTH);
-
-        // Filter actions: when year or month changes, apply filter
+        // Filter actions
         Action applyFilterAction = new AbstractAction() {
             public void actionPerformed(ActionEvent e) {
                 try {
@@ -139,7 +345,6 @@ public class LogTextEditor extends JFrame {
         };
         yearCombo.addActionListener(applyFilterAction);
         monthCombo.addActionListener(applyFilterAction);
-
         clearFilterBtn.addActionListener(e -> {
             logFileHandler.loadLogEntries(listModel);
             updateLogListView();
@@ -150,30 +355,35 @@ public class LogTextEditor extends JFrame {
 
     private JPanel createFullLogPanel() {
         JPanel panel = new JPanel(new BorderLayout(6, 6));
+        panel.setBackground(Color.WHITE);
 
         fullLogPane.setEditable(false);
         fullLogPane.setBackground(Color.WHITE);
-
-        // Base font is a nicer serif for reading; timestamps will be larger/bold
         fullLogPane.setFont(new Font("Georgia", Font.PLAIN, 14));
         JScrollPane scroll = new JScrollPane(fullLogPane);
+        scroll.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
         panel.add(scroll, BorderLayout.CENTER);
 
-        // Path display above text area
         JPanel pathPanel = new JPanel(new BorderLayout());
+        pathPanel.setOpaque(false);
+        fullLogPathLabel.setForeground(new Color(0x3A4A52));
         pathPanel.add(fullLogPathLabel, BorderLayout.WEST);
         panel.add(pathPanel, BorderLayout.NORTH);
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bottom.setOpaque(false);
         JButton refreshButton = new JButton("Refresh");
         refreshButton.addActionListener(e -> loadFullLog());
         copyFullLogButton.addActionListener(e -> copyFullLogToClipboard());
         bottom.add(refreshButton);
         bottom.add(copyFullLogButton);
-
         panel.add(bottom, BorderLayout.SOUTH);
+
         return panel;
     }
+
+
+
 
     private void deleteSelectedEntry() {
         String selectedItem = logList.getSelectedValue();
