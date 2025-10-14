@@ -238,8 +238,6 @@ public class LogTextEditor extends JFrame {
         monthCombo.setSelectedIndex(LocalDate.now().getMonthValue() - 1);
         filterPanel.add(monthCombo);
 
-        JButton clearFilterBtn = new JButton("Clear");
-        filterPanel.add(clearFilterBtn);
 
         panel.add(filterPanel, BorderLayout.NORTH);
 
@@ -323,10 +321,6 @@ public class LogTextEditor extends JFrame {
         };
         yearCombo.addActionListener(applyFilterAction);
         monthCombo.addActionListener(applyFilterAction);
-        clearFilterBtn.addActionListener(e -> {
-            logFileHandler.loadLogEntries(listModel);
-            SwingUtilities.invokeLater(() -> selectFirstLogIfAny());
-        });
 
         // Ensure initial population selects first item if any
         SwingUtilities.invokeLater(() -> selectFirstLogIfAny());
