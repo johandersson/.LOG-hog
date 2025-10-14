@@ -75,7 +75,7 @@ public class LogTextEditor extends JFrame {
         tabPane.addTab("Entry", createEntryPanel());
         tabPane.addTab("Log Entries", createLogPanel());
         tabPane.addTab("Full Log", createFullLogPanel());
-        tabPane.addTab("About", createAboutPanel());
+        tabPane.addTab("About", new AboutPanel(tabPane));
         contentCard.add(tabPane, BorderLayout.CENTER);
 
         center.add(contentCard, BorderLayout.CENTER);
@@ -153,7 +153,7 @@ public class LogTextEditor extends JFrame {
         left.setOpaque(true);
         left.setBackground(new Color(0xF7FAFC));
         left.setBorder(new EmptyBorder(12, 10, 12, 10));
-        
+
 
         // create NavItems bound to tab indices using the extracted NavItem class (title, tabIndex, tabPane)
         NavItem n0 = new NavItem("Entry", 0, tabPane);
@@ -188,55 +188,7 @@ public class LogTextEditor extends JFrame {
     }
 
 
-    private JPanel createAboutPanel() {
-        JPanel panel = new JPanel(new BorderLayout(8, 8));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(new EmptyBorder(12, 12, 12, 12));
 
-        // Header
-        JLabel header = new JLabel(".LOG hog — About");
-        header.setFont(header.getFont().deriveFont(Font.BOLD, 16f));
-        header.setForeground(new Color(0x2B3A42));
-        panel.add(header, BorderLayout.NORTH);
-
-        // License / info text
-        String licenseText =
-                "LogTextEditor\n\n" +
-                        "Version: 1.0\n\n" +
-                        "License\n" +
-                        "-------\n" +
-                        "This software is provided under the MIT License.\n\n" +
-                        "Copyright (c) 2025 Your Name\n\n" +
-                        "Permission is hereby granted, free of charge, to any person obtaining a copy\n" +
-                        "of this software and associated documentation files (the \"Software\"), to deal\n" +
-                        "in the Software without restriction, including without limitation the rights\n" +
-                        "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n" +
-                        "copies of the Software, and to permit persons to whom the Software is\n" +
-                        "furnished to do so, subject to the following conditions:\n\n" +
-                        "[...complete MIT license text or your preferred license...]\n\n" +
-                        "Replace this text with your actual license if different.";
-
-        JTextArea ta = new JTextArea(licenseText);
-        ta.setEditable(false);
-        ta.setLineWrap(true);
-        ta.setWrapStyleWord(true);
-        ta.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        ta.setBackground(Color.WHITE);
-        JScrollPane sp = new JScrollPane(ta);
-        sp.setOpaque(false);
-        sp.getViewport().setOpaque(false);
-        panel.add(sp, BorderLayout.CENTER);
-
-        // Bottom: close / OK button to return to the main tab (Entry)
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        bottom.setOpaque(false);
-        JButton ok = new AccentButton("OK");
-        ok.addActionListener(e -> tabPane.setSelectedIndex(0)); // return to Entry tab
-        bottom.add(ok);
-        panel.add(bottom, BorderLayout.SOUTH);
-
-        return panel;
-    }
 
 
 
