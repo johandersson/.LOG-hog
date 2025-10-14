@@ -152,14 +152,6 @@ public class LogTextEditor extends JFrame {
         left.setBackground(new Color(0xF7FAFC));
         left.setBorder(new EmptyBorder(12, 10, 12, 10));
 
-        JLabel logo = new JLabel("⟡");
-        logo.setFont(logo.getFont().deriveFont(Font.BOLD, 26f));
-        logo.setForeground(new Color(0x2B3A42));
-        logo.setAlignmentX(Component.LEFT_ALIGNMENT);
-        logo.setOpaque(false);
-        logo.setBorder(new EmptyBorder(0, 0, 8, 0));
-        left.add(logo);
-        left.add(Box.createVerticalStrut(12));
 
         // create NavItems bound to tab indices using the extracted NavItem class (title, tabIndex, tabPane)
         NavItem n0 = new NavItem("Entry", 0, tabPane);
