@@ -33,22 +33,22 @@ public class LogTextEditor extends JFrame {
     private final Highlighter.HighlightPainter searchPainter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
     private final JTabbedPane tabPane = new JTabbedPane();
     public LogTextEditor() {
-        applyLookAndFeelTweaks();
+        // Ensure the frame is decorated by the OS (native chrome)
+        setUndecorated(false);
 
-        setUndecorated(true);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setTitle(".LOG hog");
         setSize(980, 660);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // Root panel with subtle border to emulate window chrome
+        // Apply LAF tweaks (do not change the LAF here; set LAF from your launcher)
+        applyLookAndFeelTweaks();
+
+        // Root panel with subtle border to emulate card area (do NOT add a custom title bar)
         JPanel root = new JPanel(new BorderLayout());
         root.setBorder(BorderFactory.createLineBorder(new Color(0xD6DCE0)));
         root.setBackground(new Color(0xF3F6F9));
         setContentPane(root);
-
-        // Custom title bar
-        JPanel titleBar = createTitleBar();
-        root.add(titleBar, BorderLayout.NORTH);
 
         // Main content area with left rail + center cards
         JPanel center = new JPanel(new BorderLayout());
@@ -66,8 +66,7 @@ public class LogTextEditor extends JFrame {
                 new EmptyBorder(12, 12, 12, 12)
         ));
 
-
-        // in constructor or initialization code, replace local JTabbedPane usage with the field:
+        // Use the field tabPane so NavItems can control it
         tabPane.addTab("Entry", createEntryPanel());
         tabPane.addTab("Log Entries", createLogPanel());
         tabPane.addTab("Full Log", createFullLogPanel());
@@ -75,7 +74,7 @@ public class LogTextEditor extends JFrame {
 
         center.add(contentCard, BorderLayout.CENTER);
 
-        // small status/footer area (inside root to keep titlebar separate)
+        // small status/footer area
         JPanel statusBar = new JPanel(new BorderLayout());
         statusBar.setBorder(new EmptyBorder(8, 12, 8, 12));
         statusBar.setBackground(new Color(0xFFFFFF));
@@ -96,29 +95,10 @@ public class LogTextEditor extends JFrame {
         setVisible(true);
     }
 
-    // Apply Nimbus (or Windows LAF) and a few UIManager tweaks for Windows-like visuals
-    private void applyLookAndFeelTweaks() {
-        try {
-            boolean applied = false;
-            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Windows".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    applied = true;
-                    break;
-                }
-            }
-            if (!applied) {
-                for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                    if ("Nimbus".equals(info.getName())) {
-                        UIManager.setLookAndFeel(info.getClassName());
-                        applied = true;
-                        break;
-                    }
-                }
-            }
-        } catch (Exception ignored) {}
 
-        // UI tweaks
+    // only tweak UI defaults; do not call UIManager.setLookAndFeel here
+    private void applyLookAndFeelTweaks() {
+        // UI tweaks that are safe to call after the LAF is already set
         UIManager.put("control", new Color(0xF3F6F9));
         UIManager.put("nimbusBase", new Color(0x2E3A3F));
         UIManager.put("text", new Color(0x22282B));
@@ -129,29 +109,13 @@ public class LogTextEditor extends JFrame {
         UIManager.put("TabbedPane.font", uiFont);
     }
 
+    // Do not create a custom title bar when you want native OS chrome.
+// Keep this method empty or remove it entirely and do not add its result to the frame.
     private JPanel createTitleBar() {
-        JPanel bar = new JPanel(new BorderLayout());
-        bar.setBackground(new Color(0xFFFFFF));
-        bar.setBorder(new EmptyBorder(6, 10, 6, 10));
-        JLabel title = new JLabel(".LOG hog");
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 14f));
-        title.setForeground(new Color(0x2B3A42));
-        bar.add(title, BorderLayout.WEST);
-
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        controls.setOpaque(false);
-
-        JButton minimize = new WindowBtn("\u2013", e -> setState(Frame.ICONIFIED), new Color(0xE7EEF9));
-        JButton maximize = new WindowBtn("\u25A1", e -> setExtendedState(getExtendedState() ^ Frame.MAXIMIZED_BOTH), new Color(0xE7EEF9));
-        JButton close = new WindowBtn("✕", e -> dispose(), new Color(0xFF5F57));
-
-        controls.add(minimize);
-        controls.add(maximize);
-        controls.add(close);
-        bar.add(controls, BorderLayout.EAST);
-
-        // enable dragging
-        WindowDragger.makeDraggable(this, bar);
+        // Return an empty non-opaque panel with zero preferred height to avoid altering layout
+        JPanel bar = new JPanel();
+        bar.setOpaque(false);
+        bar.setPreferredSize(new Dimension(0, 0));
         return bar;
     }
 
