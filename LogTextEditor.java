@@ -447,6 +447,7 @@ public class LogTextEditor extends JFrame {
 
     private void updateLogListView() {
         logList.setModel(listModel);
+        selectFirstLogIfAny();
     }
 
     // updated setupKeyBindings method
