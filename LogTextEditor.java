@@ -554,7 +554,7 @@ public class LogTextEditor extends JFrame {
                 Map<String, Style> styles = createStyles(doc);
 
                 renderLines(lines, doc, styles);
-                fullLogPane.setCaretPosition(0);
+                fullLogPane.setCaretPosition(fullLogPane.getDocument().getLength());
             } catch (IOException | BadLocationException ex) {
                 fallbackReadRaw(chosen);
             }
