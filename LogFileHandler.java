@@ -39,6 +39,43 @@ public class LogFileHandler {
         }
     }
 
+    //update log entry
+    void updateEntry(String timeStamp, String newText) {
+        if (newText.isBlank() || !Files.exists(FILE_PATH)) return;
+
+        try {
+            List<String> lines = Files.readAllLines(FILE_PATH);
+            List<String> updatedLines = new ArrayList<>();
+            boolean inTargetEntry = false;
+
+            for (String line : lines) {
+                if (line.trim().equals(timeStamp.trim())) {
+                    inTargetEntry = true;
+                    updatedLines.add(line); // keep the timestamp line
+                    updatedLines.add(newText); // add the new text
+                    updatedLines.add(""); // ensure a blank line after the entry
+                    continue;
+                }
+
+                if (inTargetEntry) {
+                    // stop skipping when we hit the next timestamp line
+                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                        inTargetEntry = false;
+                        updatedLines.add(line); // add the next timestamp line
+                    }
+                    // skip old body lines
+                } else {
+                    updatedLines.add(line);
+                }
+            }
+
+            Files.write(FILE_PATH, updatedLines);
+            System.out.println("Updated log entry: " + timeStamp + "\nNew text:\n" + newText);
+        } catch (IOException e) {
+            showErrorDialog("Error updating log entry: " + e.getMessage());
+        }
+    }
+
     // delete certain log entry
     private void deleteLogEntry(String timeStamp, DefaultListModel<String> listModel) {
         if (!Files.exists(FILE_PATH)) return;

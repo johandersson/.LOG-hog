@@ -116,15 +116,6 @@ public class LogTextEditor extends JFrame {
         UIManager.put("TabbedPane.font", uiFont);
     }
 
-    // Do not create a custom title bar when you want native OS chrome.
-// Keep this method empty or remove it entirely and do not add its result to the frame.
-    private JPanel createTitleBar() {
-        // Return an empty non-opaque panel with zero preferred height to avoid altering layout
-        JPanel bar = new JPanel();
-        bar.setOpaque(false);
-        bar.setPreferredSize(new Dimension(0, 0));
-        return bar;
-    }
 
     private final java.util.List<NavItem> navItems = new ArrayList<>();
 
@@ -272,6 +263,16 @@ public class LogTextEditor extends JFrame {
 
         panel.add(split, BorderLayout.CENTER);
 
+        //Add ctrl+s binding to update entry text
+        entryArea.getInputMap(JComponent.WHEN_FOCUSED).put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), "saveEntry");
+        entryArea.getActionMap().put("saveEntry", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveEditetLogEntry();
+            }
+        });
+
         // Popup and listeners
         JPopupMenu contextMenu = new JPopupMenu();
         JMenuItem deleteItem = new JMenuItem("Delete Entry");
@@ -326,6 +327,14 @@ public class LogTextEditor extends JFrame {
         SwingUtilities.invokeLater(() -> selectFirstLogIfAny());
 
         return panel;
+    }
+
+    private void saveEditetLogEntry() {
+        String selectedItem = logList.getSelectedValue();
+        if (selectedItem == null) return;
+
+        logFileHandler.updateEntry(selectedItem, entryArea.getText());
+        updateLogListView();
     }
 
     // Helper: choose and show first log if list has any entries
