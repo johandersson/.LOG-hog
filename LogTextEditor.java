@@ -312,8 +312,6 @@ public class LogTextEditor extends JFrame {
                     int month = monthCombo.getSelectedIndex() + 1;
                     if (year != null) {
                         logFileHandler.loadFilteredEntries(listModel, year, month);
-                        // after model is updated, select first entry if present
-                        SwingUtilities.invokeLater(() -> selectFirstLogIfAny());
                     }
                 } catch (Exception ex) {
                     logFileHandler.showErrorDialog("Error applying date filter: " + ex.getMessage());
@@ -335,6 +333,8 @@ public class LogTextEditor extends JFrame {
 
         logFileHandler.updateEntry(selectedItem, entryArea.getText());
         updateLogListView();
+        logList.setSelectedValue(selectedItem, true);
+        loadFullLog();
     }
 
     // Helper: choose and show first log if list has any entries
@@ -422,7 +422,8 @@ public class LogTextEditor extends JFrame {
         if (confirm == JOptionPane.YES_OPTION) {
             logFileHandler.deleteEntry(selectedItem, listModel);
             updateLogListView();
-            entryArea.setText("");
+            //select top if any
+            selectFirstLogIfAny();
             loadFullLog(); // update full log view after deletion
         }
     }
@@ -456,7 +457,6 @@ public class LogTextEditor extends JFrame {
 
     private void updateLogListView() {
         logList.setModel(listModel);
-        selectFirstLogIfAny();
     }
 
     // updated setupKeyBindings method
