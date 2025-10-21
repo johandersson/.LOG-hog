@@ -82,46 +82,10 @@ public class LogFileHandler {
 
         try {
             List<String> lines = Files.readAllLines(FILE_PATH);
-            List<String> updatedLines = new ArrayList<>();
-            boolean skipping = false;
-
-            for (String line : lines) {
-                // timestamp lines are exact matches (whitespace trimmed)
-                if (!skipping && line.trim().equals(timeStamp.trim())) {
-                    skipping = true; // start skipping this timestamp and its body
-                    continue;
-                }
-
-                if (skipping) {
-                    // stop skipping when we hit the next timestamp line
-                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                        skipping = false;
-                        // This line is the next timestamp; it should be kept
-                        updatedLines.add(line);
-                    } else {
-                        // while skipping, simply continue (this drops blank lines and body lines)
-                        continue;
-                    }
-                } else {
-                    updatedLines.add(line);
-                }
-            }
+            List<String> updatedLines = getUpdatedLines(timeStamp, lines);
 
             // Normalize spacing: ensure at most one blank line between entries
-            List<String> normalized = new ArrayList<>();
-            boolean prevBlank = false;
-            for (String l : updatedLines) {
-                boolean isBlank = l.trim().isEmpty();
-                if (isBlank) {
-                    if (!prevBlank) {
-                        normalized.add(""); // keep single blank line
-                        prevBlank = true;
-                    } // else skip additional blank lines
-                } else {
-                    normalized.add(l);
-                    prevBlank = false;
-                }
-            }
+            List<String> normalized = getNormalized(updatedLines);
 
             Files.write(FILE_PATH, normalized);
             listModel.removeElement(timeStamp);
@@ -129,6 +93,52 @@ public class LogFileHandler {
         } catch (IOException e) {
             showErrorDialog("Error deleting log entry: " + e.getMessage());
         }
+    }
+
+    private static List<String> getNormalized(List<String> updatedLines) {
+        List<String> normalized = new ArrayList<>();
+        boolean prevBlank = false;
+        for (String l : updatedLines) {
+            boolean isBlank = l.trim().isEmpty();
+            if (isBlank) {
+                if (!prevBlank) {
+                    normalized.add(""); // keep single blank line
+                    prevBlank = true;
+                } // else skip additional blank lines
+            } else {
+                normalized.add(l);
+                prevBlank = false;
+            }
+        }
+        return normalized;
+    }
+
+    private static List<String> getUpdatedLines(String timeStamp, List<String> lines) {
+        List<String> updatedLines = new ArrayList<>();
+        boolean skipping = false;
+
+        for (String line : lines) {
+            // timestamp lines are exact matches (whitespace trimmed)
+            if (!skipping && line.trim().equals(timeStamp.trim())) {
+                skipping = true; // start skipping this timestamp and its body
+                continue;
+            }
+
+            if (skipping) {
+                // stop skipping when we hit the next timestamp line
+                if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                    skipping = false;
+                    // This line is the next timestamp; it should be kept
+                    updatedLines.add(line);
+                } else {
+                    // while skipping, simply continue (this drops blank lines and body lines)
+                    continue;
+                }
+            } else {
+                updatedLines.add(line);
+            }
+        }
+        return updatedLines;
     }
 
     private int getDuplicateCount(String timeStamp) {
