@@ -20,9 +20,9 @@ public class LogTextEditor extends JFrame {
 
 
 
-    private final JTextArea textArea = new JTextArea();
+    private final JTextArea textArea = new UndoRedoTextArea();
     private final JList<String> logList = new JList<>();
-    private final JTextArea entryArea = new JTextArea();
+    private final JTextArea entryArea = new UndoRedoTextArea();
     private final LogFileHandler logFileHandler = new LogFileHandler(); // external class
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
 
