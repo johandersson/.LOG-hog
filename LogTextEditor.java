@@ -273,6 +273,14 @@ public class LogTextEditor extends JFrame {
             }
         });
 
+        // Add save button under the entry area
+        JPanel entryBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        entryBottom.setOpaque(false);
+        JButton saveEntryBtn = new AccentButton("Save Entry");
+        saveEntryBtn.addActionListener(e -> saveEditetLogEntry());
+        entryBottom.add(saveEntryBtn);
+        entryContainer.add(entryBottom, BorderLayout.SOUTH);
+
         // Popup and listeners
         JPopupMenu contextMenu = new JPopupMenu();
         JMenuItem deleteItem = new JMenuItem("Delete Entry");
