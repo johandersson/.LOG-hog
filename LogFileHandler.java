@@ -8,7 +8,7 @@ import java.util.*;
 
 public class LogFileHandler {
     private static final Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd");
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.getDefault());
 
     void saveText(String text, DefaultListModel<String> listModel) {
         if (text.isBlank()) return;
@@ -247,7 +247,26 @@ public class LogFileHandler {
     }
 
     private LocalDateTime parseDate(String entry) {
-        return LocalDateTime.parse(entry.split("\n")[0].replaceAll(" \\(\\d+\\)", ""), FORMATTER);
+        String dateStr = entry.split("\n")[0].replaceAll(" \\(\\d+\\)", "");
+        List<DateTimeFormatter> formatters = List.of(
+                DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.getDefault()),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.getDefault()),
+                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.getDefault()),
+                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm", Locale.getDefault()),
+                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm", Locale.getDefault()),
+                DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm", Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm", Locale.ENGLISH)
+        );
+        for (DateTimeFormatter fmt : formatters) {
+            try {
+                return LocalDateTime.parse(dateStr, fmt);
+            } catch (Exception ignored) {
+            }
+        }
+        throw new IllegalArgumentException("Unrecognized date format: " + dateStr);
     }
 
     String loadEntry(String timeStamp) {
