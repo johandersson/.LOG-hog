@@ -269,7 +269,7 @@ public class LogTextEditor extends JFrame {
         entryArea.getActionMap().put("saveEntry", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                saveEditetLogEntry();
+                saveEditedLogEntry();
             }
         });
 
@@ -277,7 +277,7 @@ public class LogTextEditor extends JFrame {
         JPanel entryBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
         entryBottom.setOpaque(false);
         JButton saveEntryBtn = new AccentButton("Save Entry");
-        saveEntryBtn.addActionListener(e -> saveEditetLogEntry());
+        saveEntryBtn.addActionListener(e -> saveEditedLogEntry());
         entryBottom.add(saveEntryBtn);
         entryContainer.add(entryBottom, BorderLayout.SOUTH);
 
@@ -335,7 +335,7 @@ public class LogTextEditor extends JFrame {
         return panel;
     }
 
-    private void saveEditetLogEntry() {
+    private void saveEditedLogEntry() {
         String selectedItem = logList.getSelectedValue();
         if (selectedItem == null) return;
 
@@ -383,17 +383,102 @@ public class LogTextEditor extends JFrame {
         panel.add(pathPanel, BorderLayout.NORTH);
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        bottom.setOpaque(false);;
-        refreshButton.addActionListener(e -> loadFullLog());
+        bottom.setOpaque(false);
         copyFullLogButton.addActionListener(e -> copyFullLogToClipboard());
-        bottom.add(refreshButton);
         bottom.add(copyFullLogButton);
         panel.add(bottom, BorderLayout.SOUTH);
 
+        //add getRightBottomPanel to bottom right, under the copy and refresh buttons
+        JPanel rightBottomPanel = getRightBottomPanel();
+        bottom.add(rightBottomPanel, 0); // add at index 0 to place it
         return panel;
+
     }
 
+    private JPanel getRightBottomPanel() {
+        JPanel rightBottomSearchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        rightBottomSearchPanel.setOpaque(false);
+        //Add label above search field, and then break
+        JLabel searchLabel = new JLabel("Search:");
+        rightBottomSearchPanel.add(searchLabel);
+        //Add search form
+        var searchField = new JTextField(15);
+        //Enter in search field triggers search
+        searchField.addActionListener(getActionListenerForSearchField(searchField));
 
+
+        rightBottomSearchPanel.add(searchField);
+        var searchBtn = new AccentButton("Find");
+        rightBottomSearchPanel.add(searchBtn);
+
+        searchBtn.addActionListener(getActionListenerForSearchField(searchField));
+
+        JButton prevHighlightBtn = new AccentButton("<-");
+        JButton nextHighlightBtn = new AccentButton("->");
+
+        prevHighlightBtn.addActionListener(e -> navigateToHighlight(false));
+        nextHighlightBtn.addActionListener(e -> navigateToHighlight(true));
+        rightBottomSearchPanel.add(prevHighlightBtn);
+        rightBottomSearchPanel.add(nextHighlightBtn);
+        return rightBottomSearchPanel;
+    }
+
+    private ActionListener getActionListenerForSearchField(JTextField searchField) {
+        return e -> {
+            String query = searchField.getText();
+            if (query != null && !query.isBlank()) {
+                performSearchInFullLog(query);
+            }
+        };
+    }
+
+    private void navigateToHighlight(boolean b) {
+        Highlighter highlighter = fullLogPane.getHighlighter();
+        Highlighter.Highlight[] highlights = highlighter.getHighlights();
+        if (highlights.length == 0) {
+            Toolkit.getDefaultToolkit().beep();
+            return;
+        }
+
+        int targetIndex = getTargetIndex(b, highlights);
+
+        if (targetIndex != -1) {
+            Highlighter.Highlight h = highlights[targetIndex];
+            int start = h.getStartOffset();
+            try {
+                Rectangle rect = fullLogPane.modelToView2D(start).getBounds();
+                rect.height = Math.max(rect.height, 20);
+                fullLogPane.scrollRectToVisible(rect);
+                fullLogPane.setCaretPosition(start);
+            } catch (BadLocationException ex) {
+                // ignore scrolling failure
+            }
+        }
+    }
+
+    private int getTargetIndex(boolean b, Highlighter.Highlight[] highlights) {
+        int caretPos = fullLogPane.getCaretPosition();
+        int targetIndex = -1;
+
+        if (b) { // next
+            for (int i = 0; i < highlights.length; i++) {
+                if (highlights[i].getStartOffset() > caretPos) {
+                    targetIndex = i;
+                    break;
+                }
+            }
+            if (targetIndex == -1) targetIndex = 0; // wrap around
+        } else { // previous
+            for (int i = highlights.length - 1; i >= 0; i--) {
+                if (highlights[i].getEndOffset() < caretPos) {
+                    targetIndex = i;
+                    break;
+                }
+            }
+            if (targetIndex == -1) targetIndex = highlights.length - 1; // wrap around
+        }
+        return targetIndex;
+    }
 
 
     private void deleteSelectedEntry() {
