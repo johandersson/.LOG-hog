@@ -66,7 +66,7 @@ public class LogTextEditor extends JFrame {
         JPanel statusBar = new JPanel(new BorderLayout());
         statusBar.setBorder(new EmptyBorder(8, 12, 8, 12));
         statusBar.setBackground(new Color(0xFFFFFF));
-        JLabel footer = new JLabel("Press Ctrl+S to save and Ctrl+R to reload");
+        JLabel footer = new JLabel("Write something and hit Ctrl+S! Search with Ctrl+F.");
         footer.setFont(footer.getFont().deriveFont(Font.PLAIN, 12f));
         footer.setForeground(new Color(0x394B54));
         statusBar.add(footer, BorderLayout.WEST);
@@ -575,6 +575,10 @@ public class LogTextEditor extends JFrame {
 
     // new method: shows input dialog and triggers search
     private void showFindDialogAndSearch() {
+        //if in some other tab, first jump to Full Log tab, first check if not already there
+        if (tabPane.getSelectedIndex() != 2) {
+            tabPane.setSelectedIndex(2);
+        }
         String query = JOptionPane.showInputDialog(this, "Search text:", "Find", JOptionPane.QUESTION_MESSAGE);
         if (query == null) return;
         performSearchInFullLog(query);
