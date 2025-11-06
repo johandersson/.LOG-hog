@@ -26,13 +26,10 @@ public class LogTextEditor extends JFrame {
     private final LogFileHandler logFileHandler = new LogFileHandler(); // external class
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
 
-    // Full log view uses JTextPane so we can style timestamps
     private final JTextPane fullLogPane = new JTextPane();
-
-    // instead of: JButton refreshButton = new JButton("Refresh");
+    private final java.util.List<NavItem> navItems = new ArrayList<>();
     JButton refreshButton = new AccentButton("Refresh");
     private final JLabel fullLogPathLabel = new JLabel("Log file: (not loaded)");
-    // instead of: JButton copyFullLogButton = new JButton("Copy Full Log to Clipboard");
     JButton copyFullLogButton = new AccentButton("Copy Full Log to Clipboard");
 
     private final Highlighter.HighlightPainter searchPainter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
@@ -46,7 +43,6 @@ public class LogTextEditor extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // Apply LAF tweaks (do not change the LAF here; set LAF from your launcher)
         applyLookAndFeelTweaks();
 
         // Root panel with subtle border to emulate card area (do NOT add a custom title bar)
@@ -64,22 +60,7 @@ public class LogTextEditor extends JFrame {
         center.add(leftRail, BorderLayout.WEST);
 
         // content area (tabs wrapped in a card-like panel)
-        JPanel contentCard = new JPanel(new BorderLayout());
-        contentCard.setBackground(Color.WHITE);
-        contentCard.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(0xE7EBEF)),
-                new EmptyBorder(12, 12, 12, 12)
-        ));
-
-        // Use the field tabPane so NavItems can control it
-        tabPane.setUI(new HiddenTabUI());
-        tabPane.addTab("Entry", createEntryPanel());
-        tabPane.addTab("Log Entries", createLogPanel());
-        tabPane.addTab("Full Log", createFullLogPanel());
-        tabPane.addTab("About", new AboutPanel(tabPane));
-        contentCard.add(tabPane, BorderLayout.CENTER);
-
-        center.add(contentCard, BorderLayout.CENTER);
+        createContentCardWithTabs(center);
 
         // small status/footer area
         JPanel statusBar = new JPanel(new BorderLayout());
@@ -93,19 +74,33 @@ public class LogTextEditor extends JFrame {
         root.add(center, BorderLayout.CENTER);
         root.add(statusBar, BorderLayout.SOUTH);
 
-        // wire behavior and load data
         setupKeyBindings();
         loadLogEntries();
-        loadFullLog(); // populate the full log tab at startup
+        loadFullLog();
 
         SwingUtilities.invokeLater(() -> textArea.requestFocusInWindow());
         setVisible(true);
     }
 
+    private void createContentCardWithTabs(JPanel center) {
+        JPanel contentCard = new JPanel(new BorderLayout());
+        contentCard.setBackground(Color.WHITE);
+        contentCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xE7EBEF)),
+                new EmptyBorder(12, 12, 12, 12)
+        ));
 
-    // only tweak UI defaults; do not call UIManager.setLookAndFeel here
+        tabPane.setUI(new HiddenTabUI());
+        tabPane.addTab("Entry", createEntryPanel());
+        tabPane.addTab("Log Entries", createLogPanel());
+        tabPane.addTab("Full Log", createFullLogPanel());
+        tabPane.addTab("About", new AboutPanel(tabPane));
+        contentCard.add(tabPane, BorderLayout.CENTER);
+
+        center.add(contentCard, BorderLayout.CENTER);
+    }
+
     private void applyLookAndFeelTweaks() {
-        // UI tweaks that are safe to call after the LAF is already set
         UIManager.put("control", new Color(0xF3F6F9));
         UIManager.put("nimbusBase", new Color(0x2E3A3F));
         UIManager.put("text", new Color(0x22282B));
@@ -116,8 +111,6 @@ public class LogTextEditor extends JFrame {
         UIManager.put("TabbedPane.font", uiFont);
     }
 
-
-    private final java.util.List<NavItem> navItems = new ArrayList<>();
 
     private JPanel createLeftRail() {
         JPanel left = new JPanel();
@@ -798,26 +791,34 @@ public class LogTextEditor extends JFrame {
         });
     }
 
-    private void handleLinkClick(MouseEvent e) {
-        try {
-            int pos = fullLogPane.viewToModel2D(e.getPoint());
-            if (pos < 0) return;
-            StyledDocument doc = fullLogPane.getStyledDocument();
-            AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
-            Object hrefObj = attrs.getAttribute("href");
-            if (hrefObj instanceof String) {
-                String href = (String) hrefObj;
-                if (!href.matches("^[a-zA-Z][a-zA-Z0-9+.-]*:.*")) {
-                    href = "http://" + href;
-                }
-                if (Desktop.isDesktopSupported()) {
-                    Desktop.getDesktop().browse(new java.net.URI(href));
-                }
-            }
-        } catch (Exception ex) {
-            // swallow or log depending on your logging conventions
-        }
-    }
+   private void handleLinkClick(MouseEvent e) {
+       try {
+           int pos = fullLogPane.viewToModel2D(e.getPoint());
+           if (pos < 0) return;
+           StyledDocument doc = fullLogPane.getStyledDocument();
+           AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
+           Object hrefObj = attrs.getAttribute("href");
+           if (hrefObj instanceof String) {
+               String href = (String) hrefObj;
+               if (href.startsWith("file:")) {
+                   String filePath = href.substring(5);
+                   File file = new File(filePath);
+                   if (file.exists() && Desktop.isDesktopSupported()) {
+                       Desktop.getDesktop().open(file);
+                   }
+               } else {
+                   if (!href.matches("^[a-zA-Z][a-zA-Z0-9+.-]*:.*")) {
+                       href = "http://" + href;
+                   }
+                   if (Desktop.isDesktopSupported()) {
+                       Desktop.getDesktop().browse(new java.net.URI(href));
+                   }
+               }
+           }
+       } catch (Exception ex) {
+           // swallow or log depending on your logging conventions
+       }
+   }
 
     private void handleLinkHover(MouseEvent e) {
         try {
