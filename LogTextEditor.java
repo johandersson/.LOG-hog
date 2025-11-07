@@ -449,10 +449,19 @@ public class LogTextEditor extends JFrame {
             return;
         }
         try {
-            new ProcessBuilder("notepad.exe", logPath.toAbsolutePath().toString()).start();
+            new ProcessBuilder("notepads.exe", logPath.toAbsolutePath().toString()).start();
         } catch (IOException e) {
-            logFileHandler.showErrorDialog("Error opening log in Notepad: " + e.getMessage());
+            logFileHandler.showErrorDialog("Error opening log in Notepad, will try to open in vim: " + e.getMessage());
+            //try to open in vim on linux or mac
+            var guessOs = System.getProperty("os.name").toLowerCase(Locale.ROOT);
+            if (guessOs.contains("linux") || guessOs.contains("mac")) {
+                try {
+                    new ProcessBuilder("vim", logPath.toAbsolutePath().toString()).start();
+                } catch (IOException ex) {
+                    logFileHandler.showErrorDialog("Error opening log in vim: " + ex.getMessage());
+                }
         }
+    }
     }
 
     private ActionListener getActionListenerForSearchField(JTextField searchField) {
