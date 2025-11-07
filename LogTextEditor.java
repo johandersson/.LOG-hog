@@ -285,18 +285,13 @@ public class LogTextEditor extends JFrame {
 
         // Popup and listeners
         JPopupMenu contextMenu = new JPopupMenu();
-        JMenuItem deleteItem = new JMenuItem("Delete Entry");
-        deleteItem.addActionListener(e -> deleteSelectedEntry());
-        contextMenu.add(deleteItem);
-        //Copy entry to clipboard, add to context menu
         JMenuItem copyItem = new JMenuItem("Copy Entry Text");
         copyItem.addActionListener(copyLogEntryTextToClipBoard());
         contextMenu.add(copyItem);
         logList.setComponentPopupMenu(contextMenu);
-
-
-
-
+        JMenuItem deleteItem = new JMenuItem("Delete Entry");
+        deleteItem.addActionListener(e -> deleteSelectedEntry());
+        contextMenu.add(deleteItem);
         // Selection handling: clicking or programmatic selection loads entry text
         logList.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
