@@ -269,7 +269,7 @@ public class LogTextEditor extends JFrame {
                 saveEditedLogEntry();
             }
         });
-// Add CTRL+N binding to the whole window (not just entryArea)
+
         getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
                 KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), "newEntryGlobal");
         getRootPane().getActionMap().put("newEntryGlobal", createNewQuickEntry());
@@ -288,7 +288,14 @@ public class LogTextEditor extends JFrame {
         JMenuItem deleteItem = new JMenuItem("Delete Entry");
         deleteItem.addActionListener(e -> deleteSelectedEntry());
         contextMenu.add(deleteItem);
+        //Copy entry to clipboard, add to context menu
+        JMenuItem copyItem = new JMenuItem("Copy Entry Text");
+        copyItem.addActionListener(copyLogEntryTextToClipBoard());
+        contextMenu.add(copyItem);
         logList.setComponentPopupMenu(contextMenu);
+
+
+
 
         // Selection handling: clicking or programmatic selection loads entry text
         logList.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -335,6 +342,18 @@ public class LogTextEditor extends JFrame {
         SwingUtilities.invokeLater(() -> selectFirstLogIfAny());
 
         return panel;
+    }
+
+    private ActionListener copyLogEntryTextToClipBoard() {
+        return e -> {
+            String selectedItem = logList.getSelectedValue();
+            if (selectedItem != null) {
+                String logContent = logFileHandler.loadEntry(selectedItem);
+                StringSelection stringSelection = new StringSelection(logContent);
+                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                clipboard.setContents(stringSelection, null);
+            }
+        };
     }
 
     private AbstractAction createNewQuickEntry() {
