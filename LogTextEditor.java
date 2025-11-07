@@ -30,6 +30,7 @@ public class LogTextEditor extends JFrame {
     JButton refreshButton = new AccentButton("Refresh");
     private final JLabel fullLogPathLabel = new JLabel("Log file: (not loaded)");
     JButton copyFullLogButton = new AccentButton("Copy Full Log to Clipboard");
+    JButton openInNotepadButton = new AccentButton("Open in Notepad");
 
     private final Highlighter.HighlightPainter searchPainter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
     private final JTabbedPane tabPane = new JTabbedPane();
@@ -402,6 +403,9 @@ public class LogTextEditor extends JFrame {
         bottom.add(copyFullLogButton);
         panel.add(bottom, BorderLayout.SOUTH);
 
+        openInNotepadButton.addActionListener(e -> openLogInNotepad());
+        bottom.add(openInNotepadButton);
+
         //add getRightBottomPanel to bottom right, under the copy and refresh buttons
         JPanel rightBottomPanel = getRightBottomPanel();
         bottom.add(rightBottomPanel, 0); // add at index 0 to place it
@@ -435,6 +439,20 @@ public class LogTextEditor extends JFrame {
         rightBottomSearchPanel.add(prevHighlightBtn);
         rightBottomSearchPanel.add(nextHighlightBtn);
         return rightBottomSearchPanel;
+    }
+
+    //open log in notepad
+    private void openLogInNotepad() {
+        Path logPath = findLogPath();
+        if (logPath == null) {
+            showLogNotFound();
+            return;
+        }
+        try {
+            new ProcessBuilder("notepad.exe", logPath.toAbsolutePath().toString()).start();
+        } catch (IOException e) {
+            logFileHandler.showErrorDialog("Error opening log in Notepad: " + e.getMessage());
+        }
     }
 
     private ActionListener getActionListenerForSearchField(JTextField searchField) {
