@@ -19,7 +19,6 @@ import java.util.stream.IntStream;
 public class LogTextEditor extends JFrame {
 
 
-
     private final JTextArea textArea = new UndoRedoTextArea();
     private final JList<String> logList = new JList<>();
     private final JTextArea entryArea = new UndoRedoTextArea();
@@ -34,6 +33,7 @@ public class LogTextEditor extends JFrame {
 
     private final Highlighter.HighlightPainter searchPainter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
     private final JTabbedPane tabPane = new JTabbedPane();
+
     public LogTextEditor() {
         // Ensure the frame is decorated by the OS (native chrome)
         setUndecorated(false);
@@ -66,7 +66,7 @@ public class LogTextEditor extends JFrame {
         JPanel statusBar = new JPanel(new BorderLayout());
         statusBar.setBorder(new EmptyBorder(8, 12, 8, 12));
         statusBar.setBackground(new Color(0xFFFFFF));
-        JLabel footer = new JLabel("Write something and hit Ctrl+S! Search with Ctrl+F.");
+        JLabel footer = new JLabel("Write something and hit Ctrl+S! Search with Ctrl+F. For a quick short entry, use Ctrl+N anywhere.");
         footer.setFont(footer.getFont().deriveFont(Font.PLAIN, 12f));
         footer.setForeground(new Color(0x394B54));
         statusBar.add(footer, BorderLayout.WEST);
@@ -128,7 +128,10 @@ public class LogTextEditor extends JFrame {
         NavItem n3 = new NavItem("About", 3, tabPane); // new About item
 
         navItems.clear();
-        navItems.add(n0); navItems.add(n1); navItems.add(n2); navItems.add(n3);
+        navItems.add(n0);
+        navItems.add(n1);
+        navItems.add(n2);
+        navItems.add(n3);
 
         left.add(n0);
         left.add(Box.createVerticalStrut(6));
@@ -154,10 +157,6 @@ public class LogTextEditor extends JFrame {
     }
 
 
-
-
-
-
     private void updateNavActiveStates() {
         // NavItem instances listen to tabPane changes themselves; just repaint to force visual refresh
         int sel = tabPane.getSelectedIndex();
@@ -171,7 +170,6 @@ public class LogTextEditor extends JFrame {
             }
         }
     }
-
 
 
     private JPanel createEntryPanel() {
@@ -213,7 +211,7 @@ public class LogTextEditor extends JFrame {
         yearCombo.setSelectedItem(currentYear);
         filterPanel.add(yearCombo);
 
-        String[] months = new String[] {
+        String[] months = new String[]{
                 "01 - Jan", "02 - Feb", "03 - Mar", "04 - Apr",
                 "05 - May", "06 - Jun", "07 - Jul", "08 - Aug",
                 "09 - Sep", "10 - Oct", "11 - Nov", "12 - Dec"
@@ -239,11 +237,11 @@ public class LogTextEditor extends JFrame {
         JScrollPane listScroll = new JScrollPane(logList);
         listScroll.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(0xE6E9EB)),
-                new EmptyBorder(6,6,6,6)
+                new EmptyBorder(6, 6, 6, 6)
         ));
 
         JPanel entryContainer = new JPanel(new BorderLayout());
-        entryContainer.setBorder(new EmptyBorder(6,6,6,6));
+        entryContainer.setBorder(new EmptyBorder(6, 6, 6, 6));
         entryArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         entryArea.setLineWrap(true);
         entryArea.setWrapStyleWord(true);
@@ -265,6 +263,11 @@ public class LogTextEditor extends JFrame {
                 saveEditedLogEntry();
             }
         });
+// Add CTRL+N binding to the whole window (not just entryArea)
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), "newEntryGlobal");
+        getRootPane().getActionMap().put("newEntryGlobal", createNewQuickEntry());
+
 
         // Add save button under the entry area
         JPanel entryBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
@@ -326,6 +329,24 @@ public class LogTextEditor extends JFrame {
         SwingUtilities.invokeLater(() -> selectFirstLogIfAny());
 
         return panel;
+    }
+
+    private AbstractAction createNewQuickEntry() {
+        return new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String newEntry = JOptionPane.showInputDialog(
+                        LogTextEditor.this,
+                        "Enter new log entry:",
+                        "New Log Entry",
+                        JOptionPane.PLAIN_MESSAGE);
+                if (newEntry != null && !newEntry.isBlank()) {
+                    logFileHandler.saveText(newEntry, listModel);
+                    updateLogListView();
+                    loadFullLog(); // update full log view after save
+                }
+            }
+        };
     }
 
     private void saveEditedLogEntry() {
@@ -632,8 +653,6 @@ public class LogTextEditor extends JFrame {
     }
 
 
-
-
     // Entry point (public or package-private depending on your class)
     private void loadFullLog() {
         SwingUtilities.invokeLater(() -> {
@@ -795,34 +814,34 @@ public class LogTextEditor extends JFrame {
         });
     }
 
-   private void handleLinkClick(MouseEvent e) {
-       try {
-           int pos = fullLogPane.viewToModel2D(e.getPoint());
-           if (pos < 0) return;
-           StyledDocument doc = fullLogPane.getStyledDocument();
-           AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
-           Object hrefObj = attrs.getAttribute("href");
-           if (hrefObj instanceof String) {
-               String href = (String) hrefObj;
-               if (href.startsWith("file:")) {
-                   String filePath = href.substring(5);
-                   File file = new File(filePath);
-                   if (file.exists() && Desktop.isDesktopSupported()) {
-                       Desktop.getDesktop().open(file);
-                   }
-               } else {
-                   if (!href.matches("^[a-zA-Z][a-zA-Z0-9+.-]*:.*")) {
-                       href = "http://" + href;
-                   }
-                   if (Desktop.isDesktopSupported()) {
-                       Desktop.getDesktop().browse(new java.net.URI(href));
-                   }
-               }
-           }
-       } catch (Exception ex) {
-           // swallow or log depending on your logging conventions
-       }
-   }
+    private void handleLinkClick(MouseEvent e) {
+        try {
+            int pos = fullLogPane.viewToModel2D(e.getPoint());
+            if (pos < 0) return;
+            StyledDocument doc = fullLogPane.getStyledDocument();
+            AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
+            Object hrefObj = attrs.getAttribute("href");
+            if (hrefObj instanceof String) {
+                String href = (String) hrefObj;
+                if (href.startsWith("file:")) {
+                    String filePath = href.substring(5);
+                    File file = new File(filePath);
+                    if (file.exists() && Desktop.isDesktopSupported()) {
+                        Desktop.getDesktop().open(file);
+                    }
+                } else {
+                    if (!href.matches("^[a-zA-Z][a-zA-Z0-9+.-]*:.*")) {
+                        href = "http://" + href;
+                    }
+                    if (Desktop.isDesktopSupported()) {
+                        Desktop.getDesktop().browse(new java.net.URI(href));
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            // swallow or log depending on your logging conventions
+        }
+    }
 
     private void handleLinkHover(MouseEvent e) {
         try {
