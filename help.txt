@@ -18,3 +18,7 @@ Filter entries in the Log Entries tab.
 Search Bar: Find specific entries by keywords.
 Date Filter: View entries from a specific date range.
 
+System tray Integration:
+- View 10 most recent logs, click one and it will open the app and focus that entry.
+- Add quick log entry directly from the tray menu.
+
