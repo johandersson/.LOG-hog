@@ -7,10 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * AboutPanel loads license text from ./license.txt and shows it with an OK button
- * that switches the provided JTabbedPane back to the main tab.
- */
 public class InformationPanel extends JPanel {
     public InformationPanel(JTabbedPane tabPane, String fileNameForText, String title) {
         super(new BorderLayout(8, 8));
@@ -19,16 +15,14 @@ public class InformationPanel extends JPanel {
 
     private void createPanel(JTabbedPane tabPanel, String fileNameForText, String title) {
         // Load license text
-        String licenseText = loadPanelText(fileNameForText);
+        String informationTextToDisplay = loadPanelText(fileNameForText);
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(12, 12, 12, 12));
 
         createHeader(title);
 
-        // Load license text from current folder license.txt
 
-
-        JTextArea ta = new JTextArea(licenseText);
+        JTextArea ta = new JTextArea(informationTextToDisplay);
         ta.setEditable(false);
         ta.setLineWrap(true);
         ta.setWrapStyleWord(true);
