@@ -359,12 +359,18 @@ public class LogTextEditor extends JFrame {
         return e -> {
             String selectedItem = logList.getSelectedValue();
             if (selectedItem != null) {
+                //Copy both timestamp and entry text
                 String logContent = logFileHandler.loadEntry(selectedItem);
-                StringSelection stringSelection = new StringSelection(logContent);
+                String toCopy = selectedItem + "\n\n" + logContent;
+                StringSelection stringSelection = new StringSelection(toCopy);
                 Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
                 clipboard.setContents(stringSelection, null);
-                //Messagebox
-                JOptionPane.showMessageDialog(this, "Log entry copied to clipboard.", "Copied", JOptionPane.INFORMATION_MESSAGE);
+                //show a small popup message "Copied to clipboard"
+                JOptionPane.showMessageDialog(
+                        LogTextEditor.this,
+                        "Log entry copied to clipboard.",
+                        "Copied",
+                        JOptionPane.INFORMATION_MESSAGE);
             }
         };
     }
