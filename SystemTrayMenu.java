@@ -1,3 +1,4 @@
+import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
@@ -19,6 +20,9 @@ class SystemTrayMenu {
             MenuItem addNoteItem = new MenuItem("Add Quick Note");
             MenuItem openItem = new MenuItem("Open");
             MenuItem exitItem = new MenuItem("Exit");
+            //Recent logs item with submenu with the 5 most recent logs
+            Menu recentLogsMenu = new Menu("Recent Logs");
+
 
             // Add items to popup menu
             popup.add(addNoteItem);
@@ -26,6 +30,8 @@ class SystemTrayMenu {
             popup.add(openItem);
             popup.addSeparator();
             popup.add(exitItem);
+            popup.addSeparator();
+            popup.add(recentLogsMenu);
 
             // Create tray icon with tooltip
             TrayIcon trayIcon = new TrayIcon(image, "My Tray App", popup);
@@ -44,8 +50,14 @@ class SystemTrayMenu {
 
             openItem.addActionListener(e -> {
                 System.out.println("Open selected");
-                // You can show a window or perform another action here
+                logTextEditor.setVisible(true);
+                logTextEditor.setExtendedState(JFrame.NORMAL);
+                logTextEditor.toFront();
             });
+
+            //init recent logs menu
+            logTextEditor.updateRecentLogsMenu(recentLogsMenu);
+
 
             exitItem.addActionListener(e -> {
                 System.out.println("Exiting...");
