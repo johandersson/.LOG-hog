@@ -4,6 +4,7 @@ import javax.swing.text.*;
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -43,7 +44,7 @@ public class LogTextEditor extends JFrame {
         setSize(980, 660);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-
+        addIcon();
         applyLookAndFeelTweaks();
 
         // Root panel with subtle border to emulate card area (do NOT add a custom title bar)
@@ -84,6 +85,18 @@ public class LogTextEditor extends JFrame {
 
         SwingUtilities.invokeLater(() -> textArea.requestFocusInWindow());
         setVisible(true);
+    }
+
+    private void addIcon() {
+        //add same L icon as in system tray
+        BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = image.createGraphics();
+        g2.setColor(Color.BLUE);
+        g2.fillRect(0, 0, 16, 16);
+        g2.setColor(Color.WHITE);
+        g2.drawString("L", 4, 12);
+        g2.dispose();
+        setIconImage(image);
     }
 
     private void createContentCardWithTabs(JPanel center) {

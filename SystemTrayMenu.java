@@ -15,8 +15,14 @@ class SystemTrayMenu {
                 return;
             }
 
-            // Create a minimal 1x1 transparent image
-            Image image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+            //add standard java icon as tray icon
+            BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2 = image.createGraphics();
+            g2.setColor(Color.BLUE);
+            g2.fillRect(0, 0, 16, 16);
+            g2.setColor(Color.WHITE);
+            g2.drawString("L", 4, 12);
+            g2.dispose();
 
             // Create popup menu
             PopupMenu popup = new PopupMenu();
@@ -39,7 +45,7 @@ class SystemTrayMenu {
             popup.add(recentLogsMenu);
 
             // Create tray icon with tooltip
-            TrayIcon trayIcon = new TrayIcon(image, "My Tray App", popup);
+            TrayIcon trayIcon = new TrayIcon(image, "LogHog", popup);
             trayIcon.setImageAutoSize(true);
 
             // Add click listener to tray icon
