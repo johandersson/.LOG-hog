@@ -78,6 +78,9 @@ public class LogTextEditor extends JFrame {
         setupKeyBindings();
         loadLogEntries();
         loadFullLog();
+        //init systemtray menu
+        SystemTrayMenu.createTrayMenu(this);
+
 
         SwingUtilities.invokeLater(() -> textArea.requestFocusInWindow());
         setVisible(true);
@@ -351,6 +354,10 @@ public class LogTextEditor extends JFrame {
                 JOptionPane.showMessageDialog(this, "Log entry copied to clipboard.", "Copied", JOptionPane.INFORMATION_MESSAGE);
             }
         };
+    }
+
+    public void quickEntry() {
+        createNewQuickEntry().actionPerformed(null);
     }
 
     private AbstractAction createNewQuickEntry() {
