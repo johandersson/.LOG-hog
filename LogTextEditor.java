@@ -490,7 +490,7 @@ public class LogTextEditor extends JFrame {
             return;
         }
         try {
-            new ProcessBuilder("notepads.exe", logPath.toAbsolutePath().toString()).start();
+            new ProcessBuilder("notepad.exe", logPath.toAbsolutePath().toString()).start();
         } catch (IOException e) {
             logFileHandler.showErrorDialog("Error opening log in Notepad, will try to open in vim: " + e.getMessage());
             //try to open in vim on linux or mac
