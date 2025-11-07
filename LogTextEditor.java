@@ -95,7 +95,8 @@ public class LogTextEditor extends JFrame {
         tabPane.addTab("Entry", createEntryPanel());
         tabPane.addTab("Log Entries", createLogPanel());
         tabPane.addTab("Full Log", createFullLogPanel());
-        tabPane.addTab("About", new AboutPanel(tabPane));
+        tabPane.addTab("Help", new InformationPanel(tabPane, "help.txt", "Help"));
+        tabPane.addTab("About", new InformationPanel(tabPane, "license.txt", "About"));
         contentCard.add(tabPane, BorderLayout.CENTER);
 
         center.add(contentCard, BorderLayout.CENTER);
@@ -126,13 +127,15 @@ public class LogTextEditor extends JFrame {
         NavItem n0 = new NavItem("Entry", 0, tabPane);
         NavItem n1 = new NavItem("Log Entries", 1, tabPane);
         NavItem n2 = new NavItem("Full Log", 2, tabPane);
-        NavItem n3 = new NavItem("About", 3, tabPane); // new About item
+        NavItem n3 = new NavItem("Help", 3, tabPane);
+        NavItem n4 = new NavItem("About", 4, tabPane);
 
         navItems.clear();
         navItems.add(n0);
         navItems.add(n1);
         navItems.add(n2);
         navItems.add(n3);
+        navItems.add(n4);
 
         left.add(n0);
         left.add(Box.createVerticalStrut(6));
@@ -141,6 +144,8 @@ public class LogTextEditor extends JFrame {
         left.add(n2);
         left.add(Box.createVerticalStrut(6));
         left.add(n3);
+        left.add(Box.createVerticalStrut(6));
+        left.add(n4);
         left.add(Box.createVerticalGlue());
 
         JLabel ver = new JLabel("v1.0");
