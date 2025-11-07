@@ -3,7 +3,12 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 class SystemTrayMenu {
-    public static void createTrayMenu(LogTextEditor logTextEditor) {
+    private static SystemTrayMenu instance = null;
+    public static LogTextEditor logTextEditor;
+    SystemTrayMenu(LogTextEditor logTextEditor) {
+        this.logTextEditor = logTextEditor;
+    }
+    public static void initSystemTray(){
         try {
             if (!SystemTray.isSupported()) {
                 System.out.println("System tray not supported!");
@@ -73,5 +78,11 @@ class SystemTrayMenu {
             e.printStackTrace();
 
         }
+    }
+    public static synchronized SystemTrayMenu getInstance() {
+        if (instance == null) {
+            instance = new SystemTrayMenu(logTextEditor);
+        }
+        return instance;
     }
 }

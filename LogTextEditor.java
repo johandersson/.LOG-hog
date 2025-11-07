@@ -79,8 +79,8 @@ public class LogTextEditor extends JFrame {
         loadLogEntries();
         loadFullLog();
         //init systemtray menu
-        SystemTrayMenu.createTrayMenu(this);
-
+       var systemTrayMenu = new SystemTrayMenu(this);
+       SystemTrayMenu.initSystemTray();
 
         SwingUtilities.invokeLater(() -> textArea.requestFocusInWindow());
         setVisible(true);
@@ -960,6 +960,8 @@ public class LogTextEditor extends JFrame {
         //return 5 most recent log entries as menu items
         recentLogsMenu.removeAll();
         List<String> recentLogs = logFileHandler.getRecentLogEntries(5);
+        checkIfWindowIsVisible();
+
         for (String logEntry : recentLogs) {
             MenuItem logItem = new MenuItem(logEntry);
             logItem.addActionListener(e -> {
@@ -969,6 +971,16 @@ public class LogTextEditor extends JFrame {
                 logList.setSelectedValue(logEntry, true); // select the log entry in the list
             });
             recentLogsMenu.add(logItem);
+        }
+    }
+
+    private void checkIfWindowIsVisible() {
+        //if LogTextEditor is not visible, make it visible when a recent log is clicked
+        var isMinimized = (this.getExtendedState() & JFrame.ICONIFIED) == JFrame.ICONIFIED;
+        if (!this.isVisible() || isMinimized) {
+            this.setVisible(true);
+            this.setExtendedState(JFrame.NORMAL);
+            this.toFront();
         }
     }
 }
