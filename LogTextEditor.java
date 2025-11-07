@@ -352,6 +352,8 @@ public class LogTextEditor extends JFrame {
                 StringSelection stringSelection = new StringSelection(logContent);
                 Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
                 clipboard.setContents(stringSelection, null);
+                //Messagebox
+                JOptionPane.showMessageDialog(this, "Log entry copied to clipboard.", "Copied", JOptionPane.INFORMATION_MESSAGE);
             }
         };
     }
