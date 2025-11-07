@@ -959,7 +959,7 @@ public class LogTextEditor extends JFrame {
     public void updateRecentLogsMenu(Menu recentLogsMenu) {
         //return 5 most recent log entries as menu items
         recentLogsMenu.removeAll();
-        List<String> recentLogs = logFileHandler.getRecentLogEntries(5);
+        List<String> recentLogs = logFileHandler.getRecentLogEntries(10);
         checkIfWindowIsVisible();
 
         for (String logEntry : recentLogs) {
