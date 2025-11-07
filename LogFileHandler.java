@@ -313,4 +313,28 @@ public class LogFileHandler {
             showErrorDialog("No entry selected for deletion.");
         }
     }
+
+    public List<String> getRecentLogEntries(int i) {
+        List<String> recentEntries = new ArrayList<>();
+        if (!Files.exists(FILE_PATH)) return recentEntries;
+
+        try {
+            List<String> lines = Files.readAllLines(FILE_PATH);
+            List<String> timestamps = new ArrayList<>();
+
+            for (String line : lines) {
+                if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                    timestamps.add(line.trim());
+                }
+            }
+
+            timestamps.sort(Comparator.comparing(this::parseDate).reversed());
+            for (int j = 0; j < Math.min(i, timestamps.size()); j++) {
+                recentEntries.add(timestamps.get(j));
+            }
+        } catch (IOException e) {
+            showErrorDialog("Error loading recent log entries: " + e.getMessage());
+        }
+        return recentEntries;
+    }
 }

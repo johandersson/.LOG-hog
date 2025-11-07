@@ -488,8 +488,8 @@ public class LogTextEditor extends JFrame {
                 } catch (IOException ex) {
                     logFileHandler.showErrorDialog("Error opening log in vim: " + ex.getMessage());
                 }
+            }
         }
-    }
     }
 
     private ActionListener getActionListenerForSearchField(JTextField searchField) {
@@ -954,5 +954,21 @@ public class LogTextEditor extends JFrame {
             LogTextEditor editor = new LogTextEditor();
             editor.setVisible(true);
         });
+    }
+
+    public void updateRecentLogsMenu(Menu recentLogsMenu) {
+        //return 5 most recent log entries as menu items
+        recentLogsMenu.removeAll();
+        List<String> recentLogs = logFileHandler.getRecentLogEntries(5);
+        for (String logEntry : recentLogs) {
+            MenuItem logItem = new MenuItem(logEntry);
+            logItem.addActionListener(e -> {
+                String logContent = logFileHandler.loadEntry(logEntry);
+                entryArea.setText(logContent);
+                tabPane.setSelectedIndex(1); // switch to Log Entries tab
+                logList.setSelectedValue(logEntry, true); // select the log entry in the list
+            });
+            recentLogsMenu.add(logItem);
+        }
     }
 }
