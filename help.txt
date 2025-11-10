@@ -20,6 +20,6 @@ System tray Integration:
 - Add quick log entry directly from the tray menu.
 
 Link to URL:s and files:
-- Easily create clickable links to websites and local files within your log entries.
+- Easily create clickable links to websites and local files within your log entries. Theese are visibile in the Full log formatted view of the log file.
   - URL:s [http://example.com|Example Site]
   - Local files [file:///C:/path/to/your/file.txt|My File]
