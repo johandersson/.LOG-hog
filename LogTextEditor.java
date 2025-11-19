@@ -39,7 +39,7 @@ public class LogTextEditor extends JFrame {
         setUndecorated(false);
 
         setTitle(".LOG hog");
-        setSize(980, 660);
+        setSize(1200, 660);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         addIcon();
@@ -109,8 +109,8 @@ public class LogTextEditor extends JFrame {
         tabPane.addTab("Entry", createEntryPanel());
         tabPane.addTab("Log Entries", createLogPanel());
         tabPane.addTab("Full Log", createFullLogPanel());
-        tabPane.addTab("Help", new InformationPanel(tabPane, "help.txt", "Help"));
-        tabPane.addTab("About", new InformationPanel(tabPane, "license.txt", "About"));
+        tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help"));
+        tabPane.addTab("About", new InformationPanel(tabPane, "license.md", "About"));
         contentCard.add(tabPane, BorderLayout.CENTER);
 
         center.add(contentCard, BorderLayout.CENTER);

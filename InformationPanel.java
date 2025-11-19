@@ -32,6 +32,7 @@ public class InformationPanel extends JPanel {
         sp.setOpaque(false);
         sp.getViewport().setOpaque(false);
         sp.setBorder(BorderFactory.createEmptyBorder());
+        sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         add(sp, BorderLayout.CENTER);
 
         // Bottom: OK button returns to Entry tab (index 0)
