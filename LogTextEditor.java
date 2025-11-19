@@ -862,24 +862,24 @@ public class LogTextEditor extends JFrame {
                 doc.insertString(doc.getLength(), "\n", sepStyle);
             } else if (line.startsWith("### ")) {
                 String heading = line.substring(4);
-                appendLineWithInlineLinks(doc, heading, styles.get("h3"), styles);
+                appendLineWithInlineLinks(doc, heading, styles.get("h3"));
                 doc.insertString(doc.getLength(), "\n", styles.get("h3"));
             } else if (line.startsWith("## ")) {
                 String heading = line.substring(3);
-                appendLineWithInlineLinks(doc, heading, styles.get("h2"), styles);
+                appendLineWithInlineLinks(doc, heading, styles.get("h2"));
                 doc.insertString(doc.getLength(), "\n", styles.get("h2"));
             } else if (line.startsWith("# ")) {
                 String heading = line.substring(2);
-                appendLineWithInlineLinks(doc, heading, styles.get("h1"), styles);
+                appendLineWithInlineLinks(doc, heading, styles.get("h1"));
                 doc.insertString(doc.getLength(), "\n", styles.get("h1"));
             } else {
-                appendLineWithInlineLinks(doc, line, defaultStyle, styles);
+                appendLineWithInlineLinks(doc, line, defaultStyle);
                 doc.insertString(doc.getLength(), "\n", defaultStyle);
             }
         }
     }
 
-    private void appendLineWithInlineLinks(StyledDocument doc, String line, Style baseStyle, Map<String, Style> styles)
+    private void appendLineWithInlineLinks(StyledDocument doc, String line, Style baseStyle)
             throws BadLocationException {
         List<TextElement> elements = new ArrayList<>();
 
@@ -917,8 +917,16 @@ public class LogTextEditor extends JFrame {
             }
             if (elem.start >= lastEnd) {
                 AttributeSet style = switch (elem.type) {
-                    case "bold" -> styles.get("bold");
-                    case "italic" -> styles.get("italic");
+                    case "bold" -> {
+                        SimpleAttributeSet boldAttr = new SimpleAttributeSet(baseStyle);
+                        StyleConstants.setBold(boldAttr, true);
+                        yield boldAttr;
+                    }
+                    case "italic" -> {
+                        SimpleAttributeSet italicAttr = new SimpleAttributeSet(baseStyle);
+                        StyleConstants.setItalic(italicAttr, true);
+                        yield italicAttr;
+                    }
                     case "link" -> {
                         SimpleAttributeSet linkAttr = new SimpleAttributeSet(baseStyle);
                         StyleConstants.setForeground(linkAttr, Color.BLUE);
