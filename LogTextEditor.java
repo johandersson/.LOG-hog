@@ -4,8 +4,6 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.LocalDate;
@@ -824,38 +822,8 @@ public class LogTextEditor extends JFrame {
     }
 
     public static void main(String[] args) {
-        final int PORT = 9999;
-        try {
-            final ServerSocket serverSocket = new ServerSocket(PORT);
-            // First instance, start listener
-            Thread listener = new Thread(() -> {
-                try {
-                    while (true) {
-                        try (Socket client = serverSocket.accept();
-                             java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(client.getInputStream()))) {
-                            String message = reader.readLine();
-                            if ("SHOW".equals(message) && instance != null) {
-                                SwingUtilities.invokeLater(() -> instance.checkIfWindowIsVisible());
-                            }
-                        }
-                    }
-                } catch (IOException e) {
-                    // Ignore
-                }
-            });
-            listener.setDaemon(true);
-            listener.start();
-        } catch (IOException e) {
-            // Another instance running
-            int choice = JOptionPane.showConfirmDialog(null, "Another instance of .LOG hog is already running.\nDo you want to open the existing instance?", "Instance Already Running", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-            if (choice == JOptionPane.YES_OPTION) {
-                try (Socket socket = new Socket("localhost", PORT);
-                     java.io.PrintWriter writer = new java.io.PrintWriter(socket.getOutputStream(), true)) {
-                    writer.println("SHOW");
-                } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(null, "Failed to communicate with the existing instance.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            }
+        if (SingleInstanceManager.isAnotherInstanceRunning()) {
+            SingleInstanceManager.showAlreadyRunningDialog();
             System.exit(0);
         }
 
