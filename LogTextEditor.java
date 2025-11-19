@@ -840,7 +840,7 @@ public class LogTextEditor extends JFrame {
     /* -------------------------
        Rendering: lines + links + markdown
        ------------------------- */
-    private static final Pattern LINK_PATTERN = Pattern.compile("\\[([^\\]|]+)(?:\\|([^\\]]*))?\\]");
+    private static final Pattern LINK_PATTERN = Pattern.compile("\\[([^\\]]+)\\]\\(([^\\)]+)\\)");
     private static final Pattern BOLD_PATTERN = Pattern.compile("\\*\\*(.*?)\\*\\*");
     private static final Pattern ITALIC_PATTERN = Pattern.compile("\\*(.*?)\\*");
 
@@ -936,9 +936,9 @@ public class LogTextEditor extends JFrame {
         // Find links
         Matcher linkMatcher = LINK_PATTERN.matcher(line);
         while (linkMatcher.find()) {
-            String target = linkMatcher.group(1);
-            String display = linkMatcher.group(2);
-            String textToShow = (display != null && !display.isEmpty()) ? display : target;
+            String display = linkMatcher.group(1);
+            String target = linkMatcher.group(2);
+            String textToShow = display;
             elements.add(new TextElement(linkMatcher.start(), linkMatcher.end(), "link", textToShow, target));
         }
 
