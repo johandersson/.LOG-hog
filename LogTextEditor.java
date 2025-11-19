@@ -992,10 +992,17 @@ public class LogTextEditor extends JFrame {
        Mouse listeners for links
        ------------------------- */
     private void ensureLinkListenersInstalled() {
-        // Avoid adding multiple duplicate listeners
-        boolean hasLinkListener = Arrays.stream(fullLogPane.getMouseListeners())
-                .anyMatch(l -> l.getClass().getName().contains("MouseAdapter") || l.getClass().getName().contains("MouseListener"));
-        if (hasLinkListener) return;
+        // Remove existing link listeners to avoid duplicates
+        for (MouseListener ml : fullLogPane.getMouseListeners()) {
+            if (ml instanceof MouseAdapter) {
+                fullLogPane.removeMouseListener(ml);
+            }
+        }
+        for (MouseMotionListener mml : fullLogPane.getMouseMotionListeners()) {
+            if (mml instanceof MouseMotionAdapter) {
+                fullLogPane.removeMouseMotionListener(mml);
+            }
+        }
 
         fullLogPane.addMouseListener(new MouseAdapter() {
             @Override
