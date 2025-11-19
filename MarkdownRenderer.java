@@ -166,6 +166,18 @@ public class MarkdownRenderer {
                 Style listStyle = styles.get("list");
                 appendLineWithInlineLinks(doc, text, listStyle);
                 doc.insertString(doc.getLength(), "\n", listStyle);
+            } else if (line.startsWith("# ")) {
+                String text = line.substring(2);
+                appendLineWithInlineLinks(doc, text, styles.get("h1"));
+                doc.insertString(doc.getLength(), "\n", styles.get("h1"));
+            } else if (line.startsWith("## ")) {
+                String text = line.substring(3);
+                appendLineWithInlineLinks(doc, text, styles.get("h2"));
+                doc.insertString(doc.getLength(), "\n", styles.get("h2"));
+            } else if (line.startsWith("### ")) {
+                String text = line.substring(4);
+                appendLineWithInlineLinks(doc, text, styles.get("h3"));
+                doc.insertString(doc.getLength(), "\n", styles.get("h3"));
             } else {
                 // Parse for inline headings
                 Set<Integer> headingSet = new TreeSet<>();
