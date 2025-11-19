@@ -190,15 +190,18 @@ public class MarkdownRenderer {
                     String part = line.substring(start, end);
                     Style partStyle = defaultStyle;
                     String text = part;
-                    if (part.startsWith("### ")) {
-                        partStyle = styles.get("h3");
-                        text = part.substring(4);
-                    } else if (part.startsWith("## ")) {
-                        partStyle = styles.get("h2");
-                        text = part.substring(3);
-                    } else if (part.startsWith("# ")) {
-                        partStyle = styles.get("h1");
-                        text = part.substring(2);
+                    String marker = null;
+                    if (part.startsWith("### ")) marker = "### ";
+                    else if (part.startsWith("## ")) marker = "## ";
+                    else if (part.startsWith("# ")) marker = "# ";
+                    if (marker != null) {
+                        partStyle = switch (marker) {
+                            case "### " -> styles.get("h3");
+                            case "## " -> styles.get("h2");
+                            case "# " -> styles.get("h1");
+                            default -> defaultStyle;
+                        };
+                        text = part.substring(marker.length());
                     }
                     appendLineWithInlineLinks(doc, text, partStyle);
                     doc.insertString(doc.getLength(), "\n", partStyle);
