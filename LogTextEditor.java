@@ -873,8 +873,46 @@ public class LogTextEditor extends JFrame {
                 appendLineWithInlineLinks(doc, heading, styles.get("h1"));
                 doc.insertString(doc.getLength(), "\n", styles.get("h1"));
             } else {
-                appendLineWithInlineLinks(doc, line, defaultStyle);
-                doc.insertString(doc.getLength(), "\n", defaultStyle);
+                // Parse for inline headings
+                List<Integer> headingStarts = new ArrayList<>();
+                Map<Integer, Style> headingStyles = new HashMap<>();
+                Matcher h3Matcher = Pattern.compile("### ").matcher(line);
+                while (h3Matcher.find()) {
+                    headingStarts.add(h3Matcher.start());
+                    headingStyles.put(h3Matcher.start(), styles.get("h3"));
+                }
+                Matcher h2Matcher = Pattern.compile("## ").matcher(line);
+                while (h2Matcher.find()) {
+                    if (!headingStarts.contains(h2Matcher.start())) {
+                        headingStarts.add(h2Matcher.start());
+                        headingStyles.put(h2Matcher.start(), styles.get("h2"));
+                    }
+                }
+                Matcher h1Matcher = Pattern.compile("# ").matcher(line);
+                while (h1Matcher.find()) {
+                    if (!headingStarts.contains(h1Matcher.start())) {
+                        headingStarts.add(h1Matcher.start());
+                        headingStyles.put(h1Matcher.start(), styles.get("h1"));
+                    }
+                }
+                headingStarts.sort(Integer::compareTo);
+                headingStarts.add(0, 0);
+                headingStarts.add(line.length());
+                for (int i = 0; i < headingStarts.size() - 1; i++) {
+                    int start = headingStarts.get(i);
+                    int end = headingStarts.get(i + 1);
+                    String part = line.substring(start, end);
+                    Style partStyle = headingStyles.getOrDefault(start, defaultStyle);
+                    if (partStyle != defaultStyle) {
+                        String marker = part.startsWith("### ") ? "### " : part.startsWith("## ") ? "## " : "# ";
+                        String text = part.substring(marker.length());
+                        appendLineWithInlineLinks(doc, text, partStyle);
+                        doc.insertString(doc.getLength(), "\n", partStyle);
+                    } else {
+                        appendLineWithInlineLinks(doc, part, defaultStyle);
+                        doc.insertString(doc.getLength(), "\n", defaultStyle);
+                    }
+                }
             }
         }
     }
