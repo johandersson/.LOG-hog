@@ -142,6 +142,10 @@ public class MarkdownRenderer {
         StyleConstants.setBold(h3Style, true);
         styles.put("h3", h3Style);
 
+        Style listStyle = doc.addStyle("list", defaultStyle);
+        StyleConstants.setLeftIndent(listStyle, 20);
+        styles.put("list", listStyle);
+
         return styles;
     }
 
@@ -157,6 +161,11 @@ public class MarkdownRenderer {
                 doc.insertString(doc.getLength(), line + "\n", tsStyle);
             } else if (line.trim().isEmpty()) {
                 doc.insertString(doc.getLength(), "\n", sepStyle);
+            } else if (line.startsWith("- ")) {
+                String text = "• " + line.substring(2);
+                Style listStyle = styles.get("list");
+                appendLineWithInlineLinks(doc, text, listStyle);
+                doc.insertString(doc.getLength(), "\n", listStyle);
             } else {
                 // Parse for inline headings
                 Set<Integer> headingSet = new TreeSet<>();
@@ -229,35 +238,44 @@ public class MarkdownRenderer {
         int last = 0;
         int lastEnd = 0;
         for (TextElement elem : elements) {
-            if (elem.start >= lastEnd && elem.start > last) {
-                String before = line.substring(last, elem.start);
-                doc.insertString(doc.getLength(), before, baseStyle);
-            }
-            if (elem.start >= lastEnd) {
-                AttributeSet style = switch (elem.type) {
-                    case "bold" -> {
-                        SimpleAttributeSet boldAttr = new SimpleAttributeSet(baseStyle);
-                        StyleConstants.setBold(boldAttr, true);
-                        yield boldAttr;
-                    }
-                    case "italic" -> {
-                        SimpleAttributeSet italicAttr = new SimpleAttributeSet(baseStyle);
-                        StyleConstants.setItalic(italicAttr, true);
-                        yield italicAttr;
-                    }
-                    case "link" -> {
-                        SimpleAttributeSet linkAttr = new SimpleAttributeSet(baseStyle);
-                        StyleConstants.setForeground(linkAttr, Color.BLUE);
-                        StyleConstants.setUnderline(linkAttr, true);
-                        linkAttr.addAttribute("href", elem.href);
-                        yield linkAttr;
-                    }
-                    default -> baseStyle;
-                };
+            if (elem.type.equals("link")) {
+                if (elem.start >= lastEnd && elem.start > last) {
+                    String before = line.substring(last, elem.start - 1);
+                    doc.insertString(doc.getLength(), before, baseStyle);
+                }
+                if (elem.start >= lastEnd) {
+                    SimpleAttributeSet linkAttr = new SimpleAttributeSet(baseStyle);
+                    StyleConstants.setForeground(linkAttr, Color.BLUE);
+                    StyleConstants.setUnderline(linkAttr, true);
+                    linkAttr.addAttribute("href", elem.href);
+                    doc.insertString(doc.getLength(), elem.text, linkAttr);
+                    last = elem.end;
+                    lastEnd = elem.end;
+                }
+            } else {
+                if (elem.start >= lastEnd && elem.start > last) {
+                    String before = line.substring(last, elem.start);
+                    doc.insertString(doc.getLength(), before, baseStyle);
+                }
+                if (elem.start >= lastEnd) {
+                    AttributeSet style = switch (elem.type) {
+                        case "bold" -> {
+                            SimpleAttributeSet boldAttr = new SimpleAttributeSet(baseStyle);
+                            StyleConstants.setBold(boldAttr, true);
+                            yield boldAttr;
+                        }
+                        case "italic" -> {
+                            SimpleAttributeSet italicAttr = new SimpleAttributeSet(baseStyle);
+                            StyleConstants.setItalic(italicAttr, true);
+                            yield italicAttr;
+                        }
+                        default -> baseStyle;
+                    };
 
-                doc.insertString(doc.getLength(), elem.text, style);
-                last = elem.end;
-                lastEnd = elem.end;
+                    doc.insertString(doc.getLength(), elem.text, style);
+                    last = elem.end;
+                    lastEnd = elem.end;
+                }
             }
         }
 
