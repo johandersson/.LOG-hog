@@ -1,10 +1,13 @@
-import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import javax.swing.*;
 
 class SystemTrayMenu {
     private static SystemTrayMenu instance = null;
     public static LogTextEditor logTextEditor;
+    public static Menu recentLogsMenu;
+    public static PopupMenu popup;
+    public static TrayIcon trayIcon;
     SystemTrayMenu(LogTextEditor logTextEditor) {
         this.logTextEditor = logTextEditor;
     }
@@ -25,31 +28,31 @@ class SystemTrayMenu {
             g2.dispose();
 
             // Create popup menu
-            PopupMenu popup = new PopupMenu();
+            SystemTrayMenu.popup = new PopupMenu();
 
             // Create menu items
             MenuItem addNoteItem = new MenuItem("Add Quick Note");
             MenuItem openItem = new MenuItem("Open");
             MenuItem exitItem = new MenuItem("Exit");
             //Recent logs item with submenu with the 5 most recent logs
-            Menu recentLogsMenu = new Menu("Recent Logs");
+            SystemTrayMenu.recentLogsMenu = new Menu("Recent Logs");
 
 
             // Add items to popup menu
-            popup.add(addNoteItem);
-            popup.addSeparator();
-            popup.add(openItem);
-            popup.addSeparator();
-            popup.add(exitItem);
-            popup.addSeparator();
-            popup.add(recentLogsMenu);
+            SystemTrayMenu.popup.add(addNoteItem);
+            SystemTrayMenu.popup.addSeparator();
+            SystemTrayMenu.popup.add(openItem);
+            SystemTrayMenu.popup.addSeparator();
+            SystemTrayMenu.popup.add(exitItem);
+            SystemTrayMenu.popup.addSeparator();
+            SystemTrayMenu.popup.add(SystemTrayMenu.recentLogsMenu);
 
             // Create tray icon with tooltip
-            TrayIcon trayIcon = new TrayIcon(image, "LogHog", popup);
-            trayIcon.setImageAutoSize(true);
+            SystemTrayMenu.trayIcon = new TrayIcon(image, "LogHog", SystemTrayMenu.popup);
+            SystemTrayMenu.trayIcon.setImageAutoSize(true);
 
             // Add click listener to tray icon
-            trayIcon.addActionListener(e -> {
+            SystemTrayMenu.trayIcon.addActionListener(e -> {
                 System.out.println("Tray icon clicked!");
             });
 
@@ -67,7 +70,7 @@ class SystemTrayMenu {
             });
 
             //init recent logs menu
-            logTextEditor.updateRecentLogsMenu(recentLogsMenu);
+            logTextEditor.updateRecentLogsMenu(SystemTrayMenu.recentLogsMenu);
 
 
             exitItem.addActionListener(e -> {
@@ -77,7 +80,7 @@ class SystemTrayMenu {
 
             // Add tray icon to system tray
             SystemTray tray = SystemTray.getSystemTray();
-            tray.add(trayIcon);
+            tray.add(SystemTrayMenu.trayIcon);
 
         } catch (AWTException e) {
             System.out.println("Failed to add tray icon.");
@@ -90,5 +93,14 @@ class SystemTrayMenu {
             instance = new SystemTrayMenu(logTextEditor);
         }
         return instance;
+    }
+
+    public static void updateRecentLogsMenu() {
+        if (logTextEditor != null && recentLogsMenu != null && popup != null && trayIcon != null) {
+            logTextEditor.updateRecentLogsMenu(recentLogsMenu);
+            popup.remove(recentLogsMenu);
+            popup.add(recentLogsMenu);
+            trayIcon.setPopupMenu(popup);
+        }
     }
 }

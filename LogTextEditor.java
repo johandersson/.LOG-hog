@@ -1,6 +1,3 @@
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.text.*;
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
@@ -16,6 +13,9 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.text.*;
 
 public class LogTextEditor extends JFrame {
 
@@ -392,6 +392,7 @@ public class LogTextEditor extends JFrame {
                     logFileHandler.saveText(newEntry, listModel);
                     updateLogListView();
                     loadFullLog(); // update full log view after save
+                    SystemTrayMenu.updateRecentLogsMenu();
                 }
             }
         };
@@ -405,6 +406,7 @@ public class LogTextEditor extends JFrame {
         updateLogListView();
         logList.setSelectedValue(selectedItem, true);
         loadFullLog();
+        SystemTrayMenu.updateRecentLogsMenu();
     }
 
     // Helper: choose and show first log if list has any entries
@@ -606,6 +608,7 @@ public class LogTextEditor extends JFrame {
             //select top if any
             selectFirstLogIfAny();
             loadFullLog(); // update full log view after deletion
+            SystemTrayMenu.updateRecentLogsMenu();
         }
     }
 
@@ -629,6 +632,7 @@ public class LogTextEditor extends JFrame {
         textArea.setText("");
         updateLogListView();
         loadFullLog(); // update full log view after save
+        SystemTrayMenu.updateRecentLogsMenu();
     }
 
     private void loadLogEntries() {
@@ -659,6 +663,7 @@ public class LogTextEditor extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 loadLogEntries();
                 loadFullLog();
+                SystemTrayMenu.updateRecentLogsMenu();
             }
         });
         actionMap.put("find", new AbstractAction() {
@@ -806,13 +811,25 @@ public class LogTextEditor extends JFrame {
         StyleConstants.setFontSize(sepStyle, 10);
         styles.put("sep", sepStyle);
 
+        Style boldStyle = doc.addStyle("bold", defaultStyle);
+        StyleConstants.setBold(boldStyle, true);
+        styles.put("bold", boldStyle);
+
+        Style italicStyle = doc.addStyle("italic", defaultStyle);
+        StyleConstants.setItalic(italicStyle, true);
+        styles.put("italic", italicStyle);
+
         return styles;
     }
 
     /* -------------------------
-       Rendering: lines + links
+       Rendering: lines + links + markdown
        ------------------------- */
     private static final Pattern LINK_PATTERN = Pattern.compile("\\[([^\\]|]+)(?:\\|([^\\]]*))?\\]");
+    private static final Pattern BOLD_PATTERN = Pattern.compile("\\*\\*(.*?)\\*\\*");
+    private static final Pattern ITALIC_PATTERN = Pattern.compile("\\*(.*?)\\*");
+
+    private record TextElement(int start, int end, String type, String text, String href) {}
 
 
     private static final String TS_REGEX = "^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?$";
@@ -829,34 +846,68 @@ public class LogTextEditor extends JFrame {
             } else if (line.trim().isEmpty()) {
                 doc.insertString(doc.getLength(), "\n", sepStyle);
             } else {
-                appendLineWithInlineLinks(doc, line, defaultStyle);
+                appendLineWithInlineLinks(doc, line, defaultStyle, styles);
                 doc.insertString(doc.getLength(), "\n", defaultStyle);
             }
         }
     }
 
-    private void appendLineWithInlineLinks(StyledDocument doc, String line, Style defaultStyle)
+    private void appendLineWithInlineLinks(StyledDocument doc, String line, Style defaultStyle, Map<String, Style> styles)
             throws BadLocationException {
-        Matcher m = LINK_PATTERN.matcher(line);
+        List<TextElement> elements = new ArrayList<>();
+
+        // Find bold
+        Matcher boldMatcher = BOLD_PATTERN.matcher(line);
+        while (boldMatcher.find()) {
+            elements.add(new TextElement(boldMatcher.start(), boldMatcher.end(), "bold", boldMatcher.group(1), null));
+        }
+
+        // Find italic
+        Matcher italicMatcher = ITALIC_PATTERN.matcher(line);
+        while (italicMatcher.find()) {
+            elements.add(new TextElement(italicMatcher.start(), italicMatcher.end(), "italic", italicMatcher.group(1), null));
+        }
+
+        // Find links
+        Matcher linkMatcher = LINK_PATTERN.matcher(line);
+        while (linkMatcher.find()) {
+            String target = linkMatcher.group(1);
+            String display = linkMatcher.group(2);
+            String textToShow = (display != null && !display.isEmpty()) ? display : target;
+            elements.add(new TextElement(linkMatcher.start(), linkMatcher.end(), "link", textToShow, target));
+        }
+
+        // Sort by start position
+        elements.sort(Comparator.comparingInt(TextElement::start));
+
+        // Insert
         int last = 0;
-        while (m.find()) {
-            if (m.start() > last) {
-                String before = line.substring(last, m.start());
+        int lastEnd = 0;
+        for (TextElement elem : elements) {
+            if (elem.start >= lastEnd && elem.start > last) {
+                String before = line.substring(last, elem.start);
                 doc.insertString(doc.getLength(), before, defaultStyle);
             }
+            if (elem.start >= lastEnd) {
+                AttributeSet style = switch (elem.type) {
+                    case "bold" -> styles.get("bold");
+                    case "italic" -> styles.get("italic");
+                    case "link" -> {
+                        SimpleAttributeSet linkAttr = new SimpleAttributeSet(defaultStyle);
+                        StyleConstants.setForeground(linkAttr, Color.BLUE);
+                        StyleConstants.setUnderline(linkAttr, true);
+                        linkAttr.addAttribute("href", elem.href);
+                        yield linkAttr;
+                    }
+                    default -> defaultStyle;
+                };
 
-            String target = m.group(1);                     // required: the URL/target
-            String display = m.group(2);                    // optional: link text (may be null or empty)
-            String textToShow = (display != null && !display.isEmpty()) ? display : target;
-
-            SimpleAttributeSet linkAttr = new SimpleAttributeSet();
-            StyleConstants.setForeground(linkAttr, Color.BLUE);
-            StyleConstants.setUnderline(linkAttr, true);
-            linkAttr.addAttribute("href", target);
-
-            doc.insertString(doc.getLength(), textToShow, linkAttr);
-            last = m.end();
+                doc.insertString(doc.getLength(), elem.text, style);
+                last = elem.end;
+                lastEnd = elem.end;
+            }
         }
+
         if (last < line.length()) {
             String after = line.substring(last);
             doc.insertString(doc.getLength(), after, defaultStyle);
