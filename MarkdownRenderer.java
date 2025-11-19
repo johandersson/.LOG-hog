@@ -191,19 +191,9 @@ public class MarkdownRenderer {
                     Style partStyle = defaultStyle;
                     String text = part;
                     String marker = null;
-                    int maxLen = 0;
-                    if (part.startsWith("### ")) {
-                        marker = "### ";
-                        maxLen = 4;
-                    }
-                    if (part.startsWith("## ") && 3 > maxLen) {
-                        marker = "## ";
-                        maxLen = 3;
-                    }
-                    if (part.startsWith("# ") && 2 > maxLen) {
-                        marker = "# ";
-                        maxLen = 2;
-                    }
+                    if (part.startsWith("### ")) marker = "### ";
+                    else if (part.startsWith("## ")) marker = "## ";
+                    else if (part.startsWith("# ")) marker = "# ";
                     if (marker != null) {
                         partStyle = switch (marker) {
                             case "### " -> styles.get("h3");
