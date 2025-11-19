@@ -819,6 +819,21 @@ public class LogTextEditor extends JFrame {
         StyleConstants.setItalic(italicStyle, true);
         styles.put("italic", italicStyle);
 
+        Style h1Style = doc.addStyle("h1", defaultStyle);
+        StyleConstants.setFontSize(h1Style, 18);
+        StyleConstants.setBold(h1Style, true);
+        styles.put("h1", h1Style);
+
+        Style h2Style = doc.addStyle("h2", defaultStyle);
+        StyleConstants.setFontSize(h2Style, 16);
+        StyleConstants.setBold(h2Style, true);
+        styles.put("h2", h2Style);
+
+        Style h3Style = doc.addStyle("h3", defaultStyle);
+        StyleConstants.setFontSize(h3Style, 14);
+        StyleConstants.setBold(h3Style, true);
+        styles.put("h3", h3Style);
+
         return styles;
     }
 
@@ -845,6 +860,18 @@ public class LogTextEditor extends JFrame {
                 doc.insertString(doc.getLength(), line + "\n", tsStyle);
             } else if (line.trim().isEmpty()) {
                 doc.insertString(doc.getLength(), "\n", sepStyle);
+            } else if (line.startsWith("### ")) {
+                String heading = line.substring(4);
+                appendLineWithInlineLinks(doc, heading, styles.get("h3"), styles);
+                doc.insertString(doc.getLength(), "\n", styles.get("h3"));
+            } else if (line.startsWith("## ")) {
+                String heading = line.substring(3);
+                appendLineWithInlineLinks(doc, heading, styles.get("h2"), styles);
+                doc.insertString(doc.getLength(), "\n", styles.get("h2"));
+            } else if (line.startsWith("# ")) {
+                String heading = line.substring(2);
+                appendLineWithInlineLinks(doc, heading, styles.get("h1"), styles);
+                doc.insertString(doc.getLength(), "\n", styles.get("h1"));
             } else {
                 appendLineWithInlineLinks(doc, line, defaultStyle, styles);
                 doc.insertString(doc.getLength(), "\n", defaultStyle);
@@ -852,7 +879,7 @@ public class LogTextEditor extends JFrame {
         }
     }
 
-    private void appendLineWithInlineLinks(StyledDocument doc, String line, Style defaultStyle, Map<String, Style> styles)
+    private void appendLineWithInlineLinks(StyledDocument doc, String line, Style baseStyle, Map<String, Style> styles)
             throws BadLocationException {
         List<TextElement> elements = new ArrayList<>();
 
@@ -886,20 +913,20 @@ public class LogTextEditor extends JFrame {
         for (TextElement elem : elements) {
             if (elem.start >= lastEnd && elem.start > last) {
                 String before = line.substring(last, elem.start);
-                doc.insertString(doc.getLength(), before, defaultStyle);
+                doc.insertString(doc.getLength(), before, baseStyle);
             }
             if (elem.start >= lastEnd) {
                 AttributeSet style = switch (elem.type) {
                     case "bold" -> styles.get("bold");
                     case "italic" -> styles.get("italic");
                     case "link" -> {
-                        SimpleAttributeSet linkAttr = new SimpleAttributeSet(defaultStyle);
+                        SimpleAttributeSet linkAttr = new SimpleAttributeSet(baseStyle);
                         StyleConstants.setForeground(linkAttr, Color.BLUE);
                         StyleConstants.setUnderline(linkAttr, true);
                         linkAttr.addAttribute("href", elem.href);
                         yield linkAttr;
                     }
-                    default -> defaultStyle;
+                    default -> baseStyle;
                 };
 
                 doc.insertString(doc.getLength(), elem.text, style);
@@ -910,7 +937,7 @@ public class LogTextEditor extends JFrame {
 
         if (last < line.length()) {
             String after = line.substring(last);
-            doc.insertString(doc.getLength(), after, defaultStyle);
+            doc.insertString(doc.getLength(), after, baseStyle);
         }
     }
 
