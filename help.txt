@@ -20,8 +20,8 @@
 
 ## Link to URLs and files:
 - Easily create clickable links to websites and local files within your log entries. These are visible in the Full log formatted view of the log file.
-  - URLs: [Example Site](http://example.com)
-  - Local files: [My File](file:///C:/path/to/your/file.txt)
+- URLs: [Example Site](http://example.com)
+- Local files: [My File](file:///C:/path/to/your/file.txt)
 
 ## Github repo:
 [GitHub Repository](http://github.com/johandersson/.LOG-hog)
