@@ -1,11 +1,11 @@
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 
 public class InformationPanel extends JPanel {
     public InformationPanel(JTabbedPane tabPane, String fileNameForText, String title) {
@@ -22,14 +22,13 @@ public class InformationPanel extends JPanel {
         createHeader(title);
 
 
-        JTextArea ta = new JTextArea(informationTextToDisplay);
-        ta.setEditable(false);
-        ta.setLineWrap(true);
-        ta.setWrapStyleWord(true);
-        ta.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        ta.setBackground(Color.WHITE);
+        JTextPane tp = new JTextPane();
+        tp.setEditable(false);
+        tp.setBackground(Color.WHITE);
+        MarkdownRenderer.renderMarkdown(tp, informationTextToDisplay.lines().toList());
+        MarkdownRenderer.addLinkListeners(tp);
 
-        JScrollPane sp = new JScrollPane(ta);
+        JScrollPane sp = new JScrollPane(tp);
         sp.setOpaque(false);
         sp.getViewport().setOpaque(false);
         sp.setBorder(BorderFactory.createEmptyBorder());
