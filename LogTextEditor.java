@@ -860,9 +860,16 @@ public class LogTextEditor extends JFrame {
         }
 
         SwingUtilities.invokeLater(() -> {
-            LogTextEditor editor = new LogTextEditor();
-            instance = editor;
-            editor.setVisible(true);
+            SplashScreen splash = new SplashScreen();
+            javax.swing.Timer timer = new javax.swing.Timer(3000, e -> {
+                LogTextEditor editor = new LogTextEditor();
+                instance = editor;
+                editor.setVisible(true);
+                splash.setVisible(false);
+                splash.dispose();
+            });
+            timer.setRepeats(false);
+            timer.start();
         });
     }
 
