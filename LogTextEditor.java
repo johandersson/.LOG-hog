@@ -145,14 +145,8 @@ public class LogTextEditor extends JFrame {
         NavItem n2 = new NavItem("Full Log", 2, tabPane, null);
         NavItem n3 = new NavItem("Help", 3, tabPane, null);
         Runnable aboutOnClick = () -> {
-            SplashScreen splash = new SplashScreen();
-            javax.swing.Timer timer = new javax.swing.Timer(3000, ev -> {
-                tabPane.setSelectedIndex(4);
-                splash.setVisible(false);
-                splash.dispose();
-            });
-            timer.setRepeats(false);
-            timer.start();
+            new SplashScreen(); // modal, shows splash
+            tabPane.setSelectedIndex(4);
         };
         NavItem n4 = new NavItem("About", 4, tabPane, aboutOnClick);
 
@@ -869,7 +863,6 @@ public class LogTextEditor extends JFrame {
         }
 
         SwingUtilities.invokeLater(() -> {
-            new SplashScreen(); // modal, waits
             LogTextEditor editor = new LogTextEditor();
             instance = editor;
             editor.setVisible(true);
