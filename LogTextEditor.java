@@ -869,6 +869,7 @@ public class LogTextEditor extends JFrame {
         }
 
         SwingUtilities.invokeLater(() -> {
+            new SplashScreen(); // modal, waits
             LogTextEditor editor = new LogTextEditor();
             instance = editor;
             editor.setVisible(true);
