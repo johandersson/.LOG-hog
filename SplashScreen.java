@@ -40,7 +40,7 @@ public class SplashScreen extends JDialog {
         }
         Collections.shuffle(allEntries);
         entriesList = allEntries.subList(0, Math.min(5, allEntries.size()));
-        // No sorting, keep random order
+        Collections.sort(entriesList, Comparator.comparing(s -> java.time.LocalDateTime.parse(s.substring(0, 16), java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
 
         JPanel panel = new JPanel() {
             @Override
