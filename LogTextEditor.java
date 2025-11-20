@@ -140,11 +140,21 @@ public class LogTextEditor extends JFrame {
 
 
         // create NavItems bound to tab indices using the extracted NavItem class (title, tabIndex, tabPane)
-        NavItem n0 = new NavItem("Entry", 0, tabPane);
-        NavItem n1 = new NavItem("Log Entries", 1, tabPane);
-        NavItem n2 = new NavItem("Full Log", 2, tabPane);
-        NavItem n3 = new NavItem("Help", 3, tabPane);
-        NavItem n4 = new NavItem("About", 4, tabPane);
+        NavItem n0 = new NavItem("Entry", 0, tabPane, null);
+        NavItem n1 = new NavItem("Log Entries", 1, tabPane, null);
+        NavItem n2 = new NavItem("Full Log", 2, tabPane, null);
+        NavItem n3 = new NavItem("Help", 3, tabPane, null);
+        Runnable aboutOnClick = () -> {
+            SplashScreen splash = new SplashScreen();
+            javax.swing.Timer timer = new javax.swing.Timer(3000, ev -> {
+                tabPane.setSelectedIndex(4);
+                splash.setVisible(false);
+                splash.dispose();
+            });
+            timer.setRepeats(false);
+            timer.start();
+        };
+        NavItem n4 = new NavItem("About", 4, tabPane, aboutOnClick);
 
         navItems.clear();
         navItems.add(n0);
@@ -859,16 +869,9 @@ public class LogTextEditor extends JFrame {
         }
 
         SwingUtilities.invokeLater(() -> {
-            SplashScreen splash = new SplashScreen();
-            javax.swing.Timer timer = new javax.swing.Timer(3000, e -> {
-                LogTextEditor editor = new LogTextEditor();
-                instance = editor;
-                editor.setVisible(true);
-                splash.setVisible(false);
-                splash.dispose();
-            });
-            timer.setRepeats(false);
-            timer.start();
+            LogTextEditor editor = new LogTextEditor();
+            instance = editor;
+            editor.setVisible(true);
         });
     }
 
