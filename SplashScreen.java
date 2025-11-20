@@ -218,16 +218,16 @@ public class SplashScreen extends JDialog {
             "2025-11-20 14:40: Added cool feature",
             "2025-11-20 14:45: Tested the app",
             "2025-11-20 14:50: Committed to git",
-            "2025-11-20 14:55: Debugged the universe",
-            "2025-11-20 15:00: Invented time travel in Java",
-            "2025-11-20 15:05: Outsmarted the AI overlord",
-            "2025-11-20 15:10: Achieved enlightenment through semicolons",
-            "2025-11-20 15:15: Conquered the stack overflow",
-            "2025-11-20 15:20: Mastered the art of git rebase",
-            "2025-11-20 15:25: Communed with the coding gods",
-            "2025-11-20 15:30: Solved P=NP in my sleep",
-            "2025-11-20 15:35: Bent reality with quantum computing",
-            "2025-11-20 15:40: Wrote code that writes code"
+            "2025-11-20 14:55: Debugged universe",
+            "2025-11-20 15:00: Time travel invented",
+            "2025-11-20 15:05: AI outsmarted",
+            "2025-11-20 15:10: Enlightenment achieved",
+            "2025-11-20 15:15: Stack overflow conquered",
+            "2025-11-20 15:20: Git rebase mastered",
+            "2025-11-20 15:25: Gods communed with",
+            "2025-11-20 15:30: P=NP solved",
+            "2025-11-20 15:35: Reality bent",
+            "2025-11-20 15:40: Meta-code written"
         );
         Collections.shuffle(allEntries);
         java.util.List<String> entriesList = allEntries.subList(0, 5);
