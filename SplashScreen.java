@@ -44,7 +44,7 @@ public class SplashScreen extends JDialog {
 
         // Start animation before showing
         animationTimer = new javax.swing.Timer(300, e -> {
-            animationFrame = (animationFrame + 1) % 15; // 15 frames for writing lines
+            animationFrame = (animationFrame + 1) % 6; // 6 frames for writing 5 lines
             panel.repaint();
         });
         animationTimer.start();
@@ -209,12 +209,12 @@ public class SplashScreen extends JDialog {
         }
 
         // Fake log entries
-        java.util.List<String> entriesList = Arrays.asList(
-            "2025-11-20 14:30: Began quest for the holy grail of code",
-            "2025-11-20 14:35: Defeated the dragon of infinite loops",
-            "2025-11-20 14:40: Unleashed the power of recursion",
-            "2025-11-20 14:45: Hacked the matrix with a single line",
-            "2025-11-20 14:50: Became one with the compiler",
+        java.util.List<String> allEntries = Arrays.asList(
+            "2025-11-20 14:30: Started coding",
+            "2025-11-20 14:35: Fixed infinite loop",
+            "2025-11-20 14:40: Added cool feature",
+            "2025-11-20 14:45: Tested the app",
+            "2025-11-20 14:50: Committed to git",
             "2025-11-20 14:55: Debugged the universe",
             "2025-11-20 15:00: Invented time travel in Java",
             "2025-11-20 15:05: Outsmarted the AI overlord",
@@ -226,7 +226,9 @@ public class SplashScreen extends JDialog {
             "2025-11-20 15:35: Bent reality with quantum computing",
             "2025-11-20 15:40: Wrote code that writes code"
         );
-        Collections.shuffle(entriesList);
+        Collections.shuffle(allEntries);
+        java.util.List<String> entriesList = allEntries.subList(0, 5);
+        Collections.sort(entriesList, Comparator.comparing(s -> s.substring(0, 16)));
 
         g2d.setFont(new Font("Monospaced", Font.PLAIN, 8));
         g2d.setColor(Color.BLACK);
