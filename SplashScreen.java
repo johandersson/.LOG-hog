@@ -20,6 +20,10 @@ public class SplashScreen extends JDialog {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
+                // Shadow
+                g2d.setColor(new Color(0, 0, 0, 80));
+                g2d.fillRoundRect(8, 8, getWidth() - 8, getHeight() - 8, 25, 25);
+
                 // Gradient background from blue to cyan
                 GradientPaint gp = new GradientPaint(0, 0, new Color(0, 102, 204), getWidth(), getHeight(), new Color(0, 204, 255));
                 g2d.setPaint(gp);
@@ -236,14 +240,14 @@ public class SplashScreen extends JDialog {
         g2d.setFont(new Font("Monospaced", Font.PLAIN, 8));
         g2d.setColor(Color.BLACK);
         for (int i = 0; i < animationFrame && i < entriesList.size(); i++) {
-            g2d.drawString(entriesList.get(i), notepadX + 10, notepadY + 26 + i * 15);
+            g2d.drawString(entriesList.get(i), notepadX + 10, notepadY + 28 + i * 15);
         }
 
         // Draw pen
         if (animationFrame > 0 && animationFrame <= entriesList.size()) {
             String lastEntry = entriesList.get(animationFrame - 1);
             int penX = notepadX + 10 + g2d.getFontMetrics().stringWidth(lastEntry);
-            int penY = notepadY + 26 + (animationFrame - 1) * 15;
+            int penY = notepadY + 28 + (animationFrame - 1) * 15;
             g2d.setColor(Color.BLACK);
             g2d.setStroke(new BasicStroke(2));
             g2d.drawLine(penX, penY, penX + 8, penY - 4); // pen
