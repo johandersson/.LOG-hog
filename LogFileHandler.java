@@ -33,7 +33,6 @@ public class LogFileHandler {
 
             listModel.addElement(uniqueTimeStamp);
             sortListModel(listModel);
-            System.out.println("Saved log entry: \n" + entry);
         } catch (IOException e) {
             showErrorDialog("Error saving text: " + e.getMessage());
         }
@@ -70,7 +69,6 @@ public class LogFileHandler {
             }
 
             Files.write(FILE_PATH, updatedLines);
-            System.out.println("Updated log entry: " + timeStamp + "\nNew text:\n" + newText);
         } catch (IOException e) {
             showErrorDialog("Error updating log entry: " + e.getMessage());
         }
@@ -106,7 +104,6 @@ public class LogFileHandler {
 
             Files.write(FILE_PATH, normalized);
             listModel.removeElement(timeStamp);
-            System.out.println("Deleted log entry: " + timeStamp);
         } catch (IOException e) {
             showErrorDialog("Error deleting log entry: " + e.getMessage());
         }
@@ -179,7 +176,6 @@ public class LogFileHandler {
 
         listModel.clear();
         sortedEntries.forEach(listModel::addElement);
-        System.out.println("Sorted log entries: " + sortedEntries);
     }
 
     void loadLogEntries(DefaultListModel<String> listModel) {
@@ -202,8 +198,6 @@ public class LogFileHandler {
 
             timestamps.sort(Comparator.comparing(this::parseDate).reversed());
             timestamps.forEach(listModel::addElement);
-
-            System.out.println("Consistently sorted timestamps (newest first): \n" + timestamps);
         } catch (IOException e) {
             showErrorDialog("Error loading log entries: " + e.getMessage());
         }
@@ -236,7 +230,6 @@ public class LogFileHandler {
 
             timestamps.sort(Comparator.comparing(this::parseDate).reversed());
             timestamps.forEach(listModel::addElement);
-            System.out.println("Loaded filtered timestamps for " + year + "-" + String.format("%02d", month) + ": " + timestamps);
         } catch (IOException e) {
             showErrorDialog("Error loading filtered log entries: " + e.getMessage());
         }
@@ -294,8 +287,6 @@ public class LogFileHandler {
             StringBuilder entry = new StringBuilder();
             boolean found = false;
 
-            System.out.println("Searching for entry: " + timeStamp.trim());
-
             for (String line : lines) {
                 if (!found && line.trim().equals(timeStamp.trim())) {
                     found = true;
@@ -311,7 +302,6 @@ public class LogFileHandler {
                 }
             }
 
-            System.out.println("Final entry loaded:\n" + entry.toString().trim());
             return entry.toString().trim();
         } catch (IOException e) {
             showErrorDialog("Error displaying log entry: " + e.getMessage());

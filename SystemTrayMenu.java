@@ -14,7 +14,6 @@ class SystemTrayMenu {
     public static void initSystemTray(){
         try {
             if (!SystemTray.isSupported()) {
-                System.out.println("System tray not supported!");
                 return;
             }
 
@@ -53,7 +52,6 @@ class SystemTrayMenu {
 
             // Add click listener to tray icon
             SystemTrayMenu.trayIcon.addActionListener(e -> {
-                System.out.println("Tray icon clicked!");
             });
 
 
@@ -63,7 +61,6 @@ class SystemTrayMenu {
             });
 
             openItem.addActionListener(e -> {
-                System.out.println("Open selected");
                 logTextEditor.setVisible(true);
                 logTextEditor.setExtendedState(JFrame.NORMAL);
                 logTextEditor.toFront();
@@ -74,7 +71,6 @@ class SystemTrayMenu {
 
 
             exitItem.addActionListener(e -> {
-                System.out.println("Exiting...");
                 System.exit(0);
             });
 
@@ -83,9 +79,6 @@ class SystemTrayMenu {
             tray.add(SystemTrayMenu.trayIcon);
 
         } catch (AWTException e) {
-            System.out.println("Failed to add tray icon.");
-            e.printStackTrace();
-
         }
     }
     public static synchronized SystemTrayMenu getInstance() {
