@@ -620,7 +620,11 @@ public class LogTextEditor extends JFrame {
         if (selectedItem == null) return;
 
         String newDateTime = JOptionPane.showInputDialog(this, "Enter new date and time (format: HH:mm yyyy-MM-dd):", selectedItem);
-        if (newDateTime == null || newDateTime.trim().isEmpty()) return;
+        if (newDateTime == null) return;
+        if (newDateTime.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Date and time cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
         // validate
         try {
