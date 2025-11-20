@@ -301,7 +301,7 @@ public class LogTextEditor extends JFrame {
 
         // Popup and listeners
         JPopupMenu contextMenu = new JPopupMenu();
-        JMenuItem copyItem = new JMenuItem("Copy Entry Text");
+        JMenuItem copyItem = new JMenuItem("Copy Entry to Clipboard");
         copyItem.addActionListener(copyLogEntryTextToClipBoard());
         contextMenu.add(copyItem);
         logList.setComponentPopupMenu(contextMenu);

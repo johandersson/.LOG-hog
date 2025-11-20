@@ -3,6 +3,8 @@
 ## Key Features
 - **Tabbed Interface**: Effortlessly switch between writing new entries and browsing past logs.
 - **Quick Entry**: Add notes instantly with automatic timestamps.
+- **Single-Instance Enforcement**: Only one instance of the application can run at a time to prevent conflicts.
+- **Right-Click Menu in Log Entries**: Right-click on any log entry to access options like copying to clipboard, deleting, or editing the date and time.
 
 ## Keyboard Shortcuts:
 - **Ctrl+S** — Save a new entry
@@ -17,6 +19,11 @@
 ## System tray Integration:
 - View 10 most recent logs, click one and it will open the app and focus that entry.
 - Add quick log entry directly from the tray menu.
+
+## Editing Log Entries:
+- **Edit Date/Time**: Right-click on a log entry and select "Edit Date/Time" to change its timestamp. Enter the new date and time in the format HH:mm yyyy-MM-dd.
+- **Delete Entry**: Right-click and select "Delete Entry" to remove a log entry after confirmation.
+- **Copy to Clipboard**: Right-click and select "Copy Entry to Clipboard" to copy the timestamp and content to the clipboard.
 
 ## Link to URLs and files:
 - Easily create clickable links to websites and local files within your log entries. These are visible in the Full log formatted view of the log file.
