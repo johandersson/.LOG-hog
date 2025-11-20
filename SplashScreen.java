@@ -21,8 +21,8 @@ public class SplashScreen extends JDialog {
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
                 // Shadow
-                g2d.setColor(new Color(0, 0, 0, 80));
-                g2d.fillRoundRect(8, 8, getWidth() - 8, getHeight() - 8, 25, 25);
+                g2d.setColor(new Color(0, 0, 0, 120));
+                g2d.fillRoundRect(12, 12, getWidth() - 12, getHeight() - 12, 30, 30);
 
                 // Gradient background from blue to cyan
                 GradientPaint gp = new GradientPaint(0, 0, new Color(0, 102, 204), getWidth(), getHeight(), new Color(0, 204, 255));
@@ -182,7 +182,7 @@ public class SplashScreen extends JDialog {
 
         // Draw speech bubble
         int bubbleX = 10;
-        int bubbleY = 0;
+        int bubbleY = 15;
         int bubbleW = 220;
         int bubbleH = 40;
         g2d.setColor(Color.WHITE);
