@@ -1,11 +1,17 @@
 import java.awt.*;
 import javax.swing.*;
 
-public class SplashScreen extends JWindow {
+public class SplashScreen extends JDialog {
     private int animationFrame = 0;
     private Timer animationTimer;
+    private JButton okButton;
 
     public SplashScreen() {
+        super((Frame) null, "Splash", true); // modal dialog
+        setUndecorated(true);
+        setSize(450, 300);
+        setLocationRelativeTo(null);
+
         JPanel panel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -50,18 +56,34 @@ public class SplashScreen extends JWindow {
                 g2d.drawString(text2, x2, y2);
             }
         };
-        panel.setPreferredSize(new Dimension(450, 300)); // increased width and height
-        getContentPane().add(panel);
-        pack();
-        setLocationRelativeTo(null);
+        panel.setLayout(null); // for absolute positioning
+
+        okButton = new JButton("OK");
+        okButton.setBounds(200, 250, 50, 30);
+        okButton.addActionListener(e -> {
+            animationTimer.stop();
+            setVisible(false);
+            dispose();
+        });
+        panel.add(okButton);
+
+        setContentPane(panel);
         setVisible(true);
 
         // Start animation
         animationTimer = new Timer(300, e -> {
             animationFrame = (animationFrame + 1) % 15; // 15 frames for writing lines
             panel.repaint();
+            animateButton();
         });
         animationTimer.start();
+    }
+
+    private void animateButton() {
+        // Simple animation: change size
+        int baseSize = 50;
+        int size = (int) (baseSize + 10 * Math.sin(System.currentTimeMillis() / 200.0));
+        okButton.setBounds(200, 250, size, size);
     }
 
     private void drawFrogAndNotepad(Graphics2D g2d) {
