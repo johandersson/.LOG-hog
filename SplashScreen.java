@@ -68,12 +68,12 @@ public class SplashScreen extends JWindow {
         int manX = 50;
         int manY = 50;
         int notepadX = 150;
-        int notepadY = 30;
+        int notepadY = 80;
 
         // Draw man
         g2d.setStroke(new BasicStroke(2));
         Color skin = new Color(255, 218, 185);
-        Color shirt = Color.WHITE;
+        Color shirt = new Color(200, 200, 200); // light gray
         Color pants = Color.BLUE;
 
         // Head
