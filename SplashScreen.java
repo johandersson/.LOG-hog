@@ -76,11 +76,17 @@ public class SplashScreen extends JWindow {
         g2d.setColor(Color.BLACK);
         g2d.drawOval(manX + 10, manY - 10, 40, 20);
 
-        // Beard
-        g2d.setColor(Color.WHITE);
-        g2d.fillOval(manX + 20, manY + 25, 20, 15);
+        // Cap
+        g2d.setColor(Color.BLUE);
+        g2d.fillOval(manX + 8, manY - 15, 44, 15);
         g2d.setColor(Color.BLACK);
-        g2d.drawOval(manX + 20, manY + 25, 20, 15);
+        g2d.drawOval(manX + 8, manY - 15, 44, 15);
+
+        // Beard - fuller
+        g2d.setColor(Color.WHITE);
+        g2d.fillOval(manX + 18, manY + 22, 24, 20);
+        g2d.setColor(Color.BLACK);
+        g2d.drawOval(manX + 18, manY + 22, 24, 20);
 
         // Eyes
         g2d.setColor(Color.WHITE);
@@ -107,13 +113,20 @@ public class SplashScreen extends JWindow {
         g2d.setColor(Color.BLACK);
         g2d.drawRect(manX + 10, manY + 30, 40, 40);
 
-        // Arms
+        // Arms - rectangles with hands
         g2d.setColor(skin);
-        g2d.fillOval(manX + 5, manY + 35, 10, 20);
-        g2d.fillOval(manX + 45, manY + 35, 10, 20);
+        g2d.fillRect(manX, manY + 35, 8, 25); // left arm
+        g2d.fillRect(manX + 52, manY + 35, 8, 25); // right arm
         g2d.setColor(Color.BLACK);
-        g2d.drawOval(manX + 5, manY + 35, 10, 20);
-        g2d.drawOval(manX + 45, manY + 35, 10, 20);
+        g2d.drawRect(manX, manY + 35, 8, 25);
+        g2d.drawRect(manX + 52, manY + 35, 8, 25);
+        // Hands
+        g2d.setColor(skin);
+        g2d.fillOval(manX - 2, manY + 55, 12, 10); // left hand
+        g2d.fillOval(manX + 50, manY + 55, 12, 10); // right hand
+        g2d.setColor(Color.BLACK);
+        g2d.drawOval(manX - 2, manY + 55, 12, 10);
+        g2d.drawOval(manX + 50, manY + 55, 12, 10);
 
         // Legs
         g2d.setColor(pants);
@@ -144,9 +157,9 @@ public class SplashScreen extends JWindow {
 
         // Draw notepad
         g2d.setColor(Color.WHITE);
-        g2d.fillRect(notepadX, notepadY, 120, 80);
+        g2d.fillRect(notepadX, notepadY, 120, 100);
         g2d.setColor(Color.BLACK);
-        g2d.drawRect(notepadX, notepadY, 120, 80);
+        g2d.drawRect(notepadX, notepadY, 120, 100);
 
         // Fake log entries
         String[] entries = {
@@ -164,9 +177,10 @@ public class SplashScreen extends JWindow {
         }
 
         // Draw pen
-        if (animationFrame < entries.length) {
-            int penX = notepadX + 5 + g2d.getFontMetrics().stringWidth(entries[animationFrame < entries.length ? animationFrame : 0]) / 2;
-            int penY = notepadY + 15 + animationFrame * 12;
+        if (animationFrame > 0 && animationFrame <= entries.length) {
+            String lastEntry = entries[animationFrame - 1];
+            int penX = notepadX + 5 + g2d.getFontMetrics().stringWidth(lastEntry);
+            int penY = notepadY + 15 + (animationFrame - 1) * 12;
             g2d.setColor(Color.BLACK);
             g2d.setStroke(new BasicStroke(2));
             g2d.drawLine(penX, penY, penX + 8, penY - 4); // pen
