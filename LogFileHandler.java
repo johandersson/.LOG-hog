@@ -1,10 +1,10 @@
-import javax.swing.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import javax.swing.*;
 
 public class LogFileHandler {
     private static final Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
@@ -73,6 +73,23 @@ public class LogFileHandler {
             System.out.println("Updated log entry: " + timeStamp + "\nNew text:\n" + newText);
         } catch (IOException e) {
             showErrorDialog("Error updating log entry: " + e.getMessage());
+        }
+    }
+
+    void changeTimestamp(String oldTimestamp, String newTimestamp) {
+        if (!Files.exists(FILE_PATH)) return;
+
+        try {
+            List<String> lines = Files.readAllLines(FILE_PATH);
+            for (int i = 0; i < lines.size(); i++) {
+                if (lines.get(i).trim().equals(oldTimestamp.trim())) {
+                    lines.set(i, newTimestamp);
+                    break;
+                }
+            }
+            Files.write(FILE_PATH, lines);
+        } catch (IOException e) {
+            showErrorDialog("Error changing timestamp: " + e.getMessage());
         }
     }
 
