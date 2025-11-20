@@ -1,18 +1,20 @@
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 
 public class NavItem extends JPanel {
     private final JLabel label;
     private final int tabIndex;
     private final JTabbedPane tabPane;
+    private final Runnable onClick;
     private boolean hovered = false;
 
-    public NavItem(String title, int tabIndex, JTabbedPane tabPane) {
+    public NavItem(String title, int tabIndex, JTabbedPane tabPane, Runnable onClick) {
         this.tabIndex = tabIndex;
         this.tabPane = tabPane;
+        this.onClick = onClick;
 
         setLayout(new BorderLayout());
         setOpaque(false); // never fill with an opaque rectangular background by default
@@ -33,7 +35,9 @@ public class NavItem extends JPanel {
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (tabPane != null && tabIndex >= 0 && tabIndex < tabPane.getTabCount()) {
+                if (onClick != null) {
+                    onClick.run();
+                } else if (tabPane != null && tabIndex >= 0 && tabIndex < tabPane.getTabCount()) {
                     tabPane.setSelectedIndex(tabIndex);
                 }
             }
