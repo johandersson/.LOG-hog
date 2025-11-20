@@ -240,14 +240,14 @@ public class SplashScreen extends JDialog {
         g2d.setFont(new Font("Monospaced", Font.PLAIN, 8));
         g2d.setColor(Color.BLACK);
         for (int i = 0; i < animationFrame && i < entriesList.size(); i++) {
-            g2d.drawString(entriesList.get(i), notepadX + 10, notepadY + 28 + i * 15);
+            g2d.drawString(entriesList.get(i), notepadX + 10, notepadY + 30 + i * 15);
         }
 
         // Draw pen
         if (animationFrame > 0 && animationFrame <= entriesList.size()) {
             String lastEntry = entriesList.get(animationFrame - 1);
             int penX = notepadX + 10 + g2d.getFontMetrics().stringWidth(lastEntry);
-            int penY = notepadY + 28 + (animationFrame - 1) * 15;
+            int penY = notepadY + 30 + (animationFrame - 1) * 15;
             g2d.setColor(Color.BLACK);
             g2d.setStroke(new BasicStroke(2));
             g2d.drawLine(penX, penY, penX + 8, penY - 4); // pen
