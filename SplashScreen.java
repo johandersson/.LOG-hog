@@ -155,11 +155,19 @@ public class SplashScreen extends JWindow {
         g2d.setFont(new Font("Arial", Font.BOLD, 12));
         g2d.drawString("I am a .LOG-hog!", bubbleX + 10, bubbleY + 25);
 
-        // Draw notepad
-        g2d.setColor(Color.WHITE);
-        g2d.fillRect(notepadX, notepadY, 120, 100);
+        // Draw notepad - legal pad style
+        g2d.setColor(new Color(255, 255, 204)); // light yellow
+        g2d.fillRect(notepadX, notepadY, 180, 120);
+        g2d.setColor(Color.RED);
+        g2d.fillRect(notepadX, notepadY, 10, 120); // red margin
         g2d.setColor(Color.BLACK);
-        g2d.drawRect(notepadX, notepadY, 120, 100);
+        g2d.drawRect(notepadX, notepadY, 180, 120);
+        // Blue lines
+        g2d.setColor(new Color(173, 216, 230)); // light blue
+        for (int i = 1; i <= 6; i++) {
+            int y = notepadY + 15 + i * 15;
+            g2d.drawLine(notepadX + 15, y, notepadX + 175, y);
+        }
 
         // Fake log entries
         String[] entries = {
@@ -173,14 +181,14 @@ public class SplashScreen extends JWindow {
         g2d.setFont(new Font("Monospaced", Font.PLAIN, 8));
         g2d.setColor(Color.BLACK);
         for (int i = 0; i < animationFrame && i < entries.length; i++) {
-            g2d.drawString(entries[i], notepadX + 5, notepadY + 15 + i * 12);
+            g2d.drawString(entries[i], notepadX + 15, notepadY + 20 + i * 15);
         }
 
         // Draw pen
         if (animationFrame > 0 && animationFrame <= entries.length) {
             String lastEntry = entries[animationFrame - 1];
-            int penX = notepadX + 5 + g2d.getFontMetrics().stringWidth(lastEntry);
-            int penY = notepadY + 15 + (animationFrame - 1) * 12;
+            int penX = notepadX + 15 + g2d.getFontMetrics().stringWidth(lastEntry);
+            int penY = notepadY + 20 + (animationFrame - 1) * 15;
             g2d.setColor(Color.BLACK);
             g2d.setStroke(new BasicStroke(2));
             g2d.drawLine(penX, penY, penX + 8, penY - 4); // pen
