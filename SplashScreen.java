@@ -6,12 +6,41 @@ public class SplashScreen extends JDialog {
     private int animationFrame = 0;
     private javax.swing.Timer animationTimer;
     private JButton okButton;
+    private java.util.List<String> entriesList;
 
     public SplashScreen() {
         super((Frame) null, "Splash", true); // modal dialog
         setUndecorated(true);
         setSize(450, 300);
         setLocationRelativeTo(null);
+
+        // Load and shuffle entries once
+        java.util.List<String> allEntries;
+        try {
+            java.io.InputStream is = SplashScreen.class.getResourceAsStream("/resources/entries.txt");
+            if (is != null) {
+                java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is));
+                allEntries = new java.util.ArrayList<>();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    allEntries.add(line);
+                }
+                reader.close();
+            } else {
+                throw new java.io.IOException("Resource not found");
+            }
+        } catch (java.io.IOException e) {
+            allEntries = Arrays.asList(
+                "2025-11-20 14:30: Started coding",
+                "2025-11-20 14:35: Fixed infinite loop",
+                "2025-11-20 14:40: Added cool feature",
+                "2025-11-20 14:45: Tested the app",
+                "2025-11-20 14:50: Committed to git"
+            );
+        }
+        Collections.shuffle(allEntries);
+        entriesList = allEntries.subList(0, Math.min(5, allEntries.size()));
+        // No sorting, keep random order
 
         JPanel panel = new JPanel() {
             @Override
@@ -214,28 +243,6 @@ public class SplashScreen extends JDialog {
             int y = notepadY + 20 + i * 15;
             g2d.drawLine(notepadX + 10, y, notepadX + 240, y);
         }
-
-        // Fake log entries
-        java.util.List<String> allEntries = Arrays.asList(
-            "2025-11-20 14:30: Started coding",
-            "2025-11-20 14:35: Fixed infinite loop",
-            "2025-11-20 14:40: Added cool feature",
-            "2025-11-20 14:45: Tested the app",
-            "2025-11-20 14:50: Committed to git",
-            "2025-11-20 14:55: Debugged universe",
-            "2025-11-20 15:00: Time travel invented",
-            "2025-11-20 15:05: AI outsmarted",
-            "2025-11-20 15:10: Enlightenment achieved",
-            "2025-11-20 15:15: Stack overflow conquered",
-            "2025-11-20 15:20: Git rebase mastered",
-            "2025-11-20 15:25: Gods communed with",
-            "2025-11-20 15:30: P=NP solved",
-            "2025-11-20 15:35: Reality bent",
-            "2025-11-20 15:40: Meta-code written"
-        );
-        Collections.shuffle(allEntries);
-        java.util.List<String> entriesList = allEntries.subList(0, 5);
-        Collections.sort(entriesList, Comparator.comparing(s -> s.substring(0, 16)));
 
         g2d.setFont(new Font("Monospaced", Font.PLAIN, 8));
         g2d.setColor(Color.BLACK);
