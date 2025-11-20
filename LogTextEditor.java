@@ -308,6 +308,9 @@ public class LogTextEditor extends JFrame {
         JMenuItem deleteItem = new JMenuItem("Delete Entry");
         deleteItem.addActionListener(e -> deleteSelectedEntry());
         contextMenu.add(deleteItem);
+        JMenuItem editDateTimeItem = new JMenuItem("Edit Date/Time");
+        editDateTimeItem.addActionListener(e -> editDateTime());
+        contextMenu.add(editDateTimeItem);
         // Selection handling: clicking or programmatic selection loads entry text
         logList.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
@@ -610,6 +613,30 @@ public class LogTextEditor extends JFrame {
             loadFullLog(); // update full log view after deletion
             SystemTrayMenu.updateRecentLogsMenu();
         }
+    }
+
+    private void editDateTime() {
+        String selectedItem = logList.getSelectedValue();
+        if (selectedItem == null) return;
+
+        String newDateTime = JOptionPane.showInputDialog(this, "Enter new date and time (format: HH:mm yyyy-MM-dd):", selectedItem);
+        if (newDateTime == null || newDateTime.trim().isEmpty()) return;
+
+        // validate
+        try {
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd");
+            java.time.LocalDateTime.parse(newDateTime.trim(), formatter);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Invalid format. Use HH:mm yyyy-MM-dd", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // update
+        logFileHandler.changeTimestamp(selectedItem, newDateTime.trim());
+        // reload list
+        loadLogEntries();
+        loadFullLog();
+        SystemTrayMenu.updateRecentLogsMenu();
     }
 
     private static JTextArea createPreviewArea(String previewFull) {
