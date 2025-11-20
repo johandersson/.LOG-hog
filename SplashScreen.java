@@ -43,8 +43,11 @@ public class SplashScreen extends JDialog {
         setContentPane(panel);
 
         // Start animation before showing
-        animationTimer = new javax.swing.Timer(300, e -> {
-            animationFrame = (animationFrame + 1) % 6; // 6 frames for writing 5 lines
+        animationTimer = new javax.swing.Timer(600, e -> {
+            animationFrame++;
+            if (animationFrame > 5) {
+                animationTimer.stop();
+            }
             panel.repaint();
         });
         animationTimer.start();
