@@ -30,5 +30,18 @@
 - URLs: [Example Site](http://example.com)
 - Local files: [My File](file:///C:/path/to/your/file.txt)
 
+## Markdown Formatting
+The Full Log tab renders your log entries with Markdown formatting for better readability. Supported features include:
+
+- **Headers**: Use # for headings (e.g., # Header 1, ## Header 2)
+- **Bold**: Wrap text with ** (e.g., **bold text**)
+- **Italic**: Wrap text with * (e.g., *italic text*)
+- **Links**: [Link Text](URL) for clickable links
+- **Lists**: Use - or * for unordered lists, 1. for ordered lists
+- **Code**: `inline code` for inline, or ``` for code blocks
+- **Line Breaks**: Use two spaces at the end of a line or a blank line for paragraphs
+
+Formatting is applied in the Full Log window for a polished view of your entries.
+
 ## Github repo:
 [GitHub Repository](http://github.com/johandersson/.LOG-hog)
