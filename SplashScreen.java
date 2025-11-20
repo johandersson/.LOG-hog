@@ -68,22 +68,15 @@ public class SplashScreen extends JDialog {
         panel.add(okButton);
 
         setContentPane(panel);
-        setVisible(true);
 
-        // Start animation
+        // Start animation before showing
         animationTimer = new Timer(300, e -> {
             animationFrame = (animationFrame + 1) % 15; // 15 frames for writing lines
             panel.repaint();
-            animateButton();
         });
         animationTimer.start();
-    }
 
-    private void animateButton() {
-        // Simple animation: change size
-        int baseSize = 50;
-        int size = (int) (baseSize + 10 * Math.sin(System.currentTimeMillis() / 200.0));
-        okButton.setBounds(200, 250, size, size);
+        setVisible(true);
     }
 
     private void drawFrogAndNotepad(Graphics2D g2d) {
