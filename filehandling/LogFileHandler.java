@@ -258,6 +258,7 @@ public class LogFileHandler {
         // Then save to main file
         Files.write(FILE_PATH, encrypted);
         setEncryption(pwd, this.salt);
+        cachedLines = new ArrayList<>(lines);
     }
 
     private void sortListModel(DefaultListModel<String> listModel) {
