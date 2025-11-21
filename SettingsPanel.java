@@ -20,6 +20,8 @@ public class SettingsPanel extends JPanel {
     private JCheckBox encryptionCheckBox;
     private JButton applyButton;
     private JLabel statusLabel;
+    private JSpinner autoClearSpinner;
+    private JTextField reminderField;
 
     public SettingsPanel(LogTextEditor editor, Properties settings, Path settingsPath, LogFileHandler logFileHandler) {
         this.editor = editor;
@@ -85,6 +87,30 @@ public class SettingsPanel extends JPanel {
         contentPanel.add(backupPanel);
         contentPanel.add(Box.createVerticalStrut(20));
 
+        // Auto-clear setting
+        JPanel autoClearPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        autoClearPanel.setBackground(Color.WHITE);
+        autoClearPanel.setBorder(BorderFactory.createTitledBorder("Security"));
+        JLabel autoClearLabel = new JLabel("Auto-clear after inactivity (minutes, 0 to disable): ");
+        autoClearSpinner = new JSpinner(new SpinnerNumberModel(30, 0, 120, 5));
+        autoClearPanel.add(autoClearLabel);
+        autoClearPanel.add(autoClearSpinner);
+
+        contentPanel.add(autoClearPanel);
+        contentPanel.add(Box.createVerticalStrut(20));
+
+        // Password reminder
+        JPanel reminderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        reminderPanel.setBackground(Color.WHITE);
+        reminderPanel.setBorder(BorderFactory.createTitledBorder("Password Reminder"));
+        JLabel reminderLabel = new JLabel("Optional reminder (stored in plain text): ");
+        reminderField = new JTextField(20);
+        reminderPanel.add(reminderLabel);
+        reminderPanel.add(reminderField);
+
+        contentPanel.add(reminderPanel);
+        contentPanel.add(Box.createVerticalStrut(20));
+
         // Apply button
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         buttonPanel.setBackground(Color.WHITE);
@@ -111,7 +137,13 @@ public class SettingsPanel extends JPanel {
     }
 
     private void loadCurrentSettings() {
-        // Already loaded in init
+        String autoClear = settings.getProperty("autoClearMinutes", "30");
+        try {
+            autoClearSpinner.setValue(Integer.parseInt(autoClear));
+        } catch (NumberFormatException e) {
+            autoClearSpinner.setValue(30);
+        }
+        reminderField.setText(settings.getProperty("passwordReminder", ""));
     }
 
     private void applySettings() {
@@ -127,10 +159,17 @@ public class SettingsPanel extends JPanel {
         } else {
             statusLabel.setText("No changes to apply.");
         }
+
+        // Save auto-clear setting
+        int autoClear = (Integer) autoClearSpinner.getValue();
+        settings.setProperty("autoClearMinutes", String.valueOf(autoClear));
+        settings.setProperty("passwordReminder", reminderField.getText());
+        saveSettings();
+        statusLabel.setText("Settings saved.");
     }
 
     private void enableEncryption() {
-        char[] pwd = PasswordDialog.showPasswordDialog(editor, "Enter password");
+        char[] pwd = PasswordDialog.showPasswordDialog(editor, "Enter new password (min 16 chars, 1 uppercase, 1 special char)", reminderField.getText());
         if (pwd == null) return;
 
         if (pwd.length < 16) {
@@ -138,7 +177,18 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
-        char[] confirm = PasswordDialog.showPasswordDialog(editor, "Confirm password");
+        boolean hasUpper = false;
+        boolean hasSpecial = false;
+        for (char c : pwd) {
+            if (Character.isUpperCase(c)) hasUpper = true;
+            if (!Character.isLetterOrDigit(c)) hasSpecial = true;
+        }
+        if (!hasUpper || !hasSpecial) {
+            JOptionPane.showMessageDialog(editor, "Password must contain at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':\",./<>?)");
+            return;
+        }
+
+        char[] confirm = PasswordDialog.showPasswordDialog(editor, "Confirm new password", reminderField.getText());
         if (!java.util.Arrays.equals(pwd, confirm)) {
             JOptionPane.showMessageDialog(editor, "Passwords do not match");
             return;
@@ -162,7 +212,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private void backupLogFile() {
-        int confirm = JOptionPane.showConfirmDialog(editor, "Backups are not encrypted! They will be stored as plain text.\nDo you want to proceed?", "Backup Warning", JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(editor, "Backups are copies of your current log file.\nIf encrypted, the backup will remain encrypted for security.\nDo you want to proceed?", "Backup Info", JOptionPane.YES_NO_OPTION);
         if (confirm != JOptionPane.YES_OPTION) return;
 
         JFileChooser chooser = new JFileChooser();

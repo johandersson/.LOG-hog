@@ -10,9 +10,11 @@ public class PasswordDialog extends JDialog {
     private JButton cancelButton;
     private char[] password;
     private boolean visible = false;
+    private String reminder;
 
-    public PasswordDialog(Frame parent, String title) {
+    public PasswordDialog(Frame parent, String title, String reminder) {
         super(parent, title, true);
+        this.reminder = reminder;
         initComponents();
         pack();
         setLocationRelativeTo(parent);
@@ -23,6 +25,12 @@ public class PasswordDialog extends JDialog {
 
         JPanel centerPanel = new JPanel(new BorderLayout(5, 5));
         centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        if (reminder != null && !reminder.trim().isEmpty()) {
+            JLabel reminderLabel = new JLabel("Reminder: " + reminder);
+            reminderLabel.setForeground(Color.GRAY);
+            centerPanel.add(reminderLabel, BorderLayout.NORTH);
+        }
 
         passwordField = new JPasswordField(20);
 
@@ -85,8 +93,8 @@ public class PasswordDialog extends JDialog {
         return password;
     }
 
-    public static char[] showPasswordDialog(Frame parent, String title) {
-        PasswordDialog dialog = new PasswordDialog(parent, title);
+    public static char[] showPasswordDialog(Frame parent, String title, String reminder) {
+        PasswordDialog dialog = new PasswordDialog(parent, title, reminder);
         dialog.setVisible(true);
         return dialog.getPassword();
     }
