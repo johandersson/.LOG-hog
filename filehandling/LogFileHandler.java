@@ -1,3 +1,5 @@
+package filehandling;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -7,6 +9,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import javax.crypto.*;
 import javax.swing.*;
+import encryption.EncryptionManager;
 
 public class LogFileHandler {
     private static final Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
@@ -18,7 +21,7 @@ public class LogFileHandler {
     private List<String> cachedLines = new ArrayList<>();
 
     void saveText(String text, DefaultListModel<String> listModel) {
-        if (text.isBlank()) return;
+        if (text == null || text.isBlank()) return;
 
         String timeStamp = FORMATTER.format(LocalDateTime.now());
         int count = getDuplicateCount(timeStamp);
@@ -53,8 +56,7 @@ public class LogFileHandler {
         }
     }
 
-    //update log entry
-    void updateEntry(String timeStamp, String newText) {
+    public void updateEntry(String timeStamp, String newText) {
         if (newText.isBlank() || !Files.exists(FILE_PATH)) return;
 
         try {
@@ -89,7 +91,7 @@ public class LogFileHandler {
         }
     }
 
-    void changeTimestamp(String oldTimestamp, String newTimestamp) {
+    public void changeTimestamp(String oldTimestamp, String newTimestamp) {
         if (!Files.exists(FILE_PATH)) return;
 
         try {
@@ -205,9 +207,16 @@ public class LogFileHandler {
     public void enableEncryption(char[] pwd) throws Exception {
         this.salt = EncryptionManager.generateSalt();
         List<String> lines = Files.readAllLines(FILE_PATH);
+        if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
+            lines.remove(0);
+        }
         String fullText = String.join("\n", lines);
         SecretKey key = EncryptionManager.deriveKey(pwd, this.salt);
         byte[] encrypted = EncryptionManager.encrypt(fullText, key);
+        // Save encrypted to backup first
+        Path backupPath = FILE_PATH.resolveSibling(FILE_PATH.getFileName().toString() + ".bak");
+        Files.write(backupPath, encrypted);
+        // Then save to main file
         Files.write(FILE_PATH, encrypted);
         setEncryption(pwd, this.salt);
     }
@@ -221,7 +230,7 @@ public class LogFileHandler {
         sortedEntries.forEach(listModel::addElement);
     }
 
-    void loadLogEntries(DefaultListModel<String> listModel) throws Exception {
+    public void loadLogEntries(DefaultListModel<String> listModel) throws Exception {
         listModel.clear();
         if (!Files.exists(FILE_PATH)) return;
 
@@ -363,7 +372,7 @@ public class LogFileHandler {
         throw new IllegalArgumentException("Unrecognized date format: " + dateStr);
     }
 
-    String loadEntry(String timeStamp) {
+    public String loadEntry(String timeStamp) {
         if (!Files.exists(FILE_PATH)) return "";
 
         try {
@@ -393,7 +402,7 @@ public class LogFileHandler {
         return "";
     }
 
-    void setEncryption(char[] pwd, byte[] slt) {
+    public void setEncryption(char[] pwd, byte[] slt) {
         this.password = pwd.clone();
         this.salt = slt.clone();
         this.encrypted = true;
@@ -409,6 +418,10 @@ public class LogFileHandler {
 
     public byte[] getSalt() {
         return salt;
+    }
+
+    public Path getFilePath() {
+        return FILE_PATH;
     }
 
 
@@ -461,7 +474,7 @@ public class LogFileHandler {
         return recentEntries;
     }
 
-    void showErrorDialog(String message) {
+    public void showErrorDialog(String message) {
         JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 }

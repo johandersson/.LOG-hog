@@ -1,3 +1,5 @@
+package gui;
+
 import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
@@ -6,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import markdown.MarkdownRenderer;
 
 public class InformationPanel extends JPanel {
     public InformationPanel(JTabbedPane tabPane, String fileNameForText, String title) {

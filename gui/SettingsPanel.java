@@ -1,3 +1,5 @@
+package gui;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -10,6 +12,8 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.Properties;
+import main.LogTextEditor;
+import filehandling.LogFileHandler;
 
 public class SettingsPanel extends JPanel {
     private LogTextEditor editor;
@@ -204,7 +208,7 @@ public class SettingsPanel extends JPanel {
 
             statusLabel.setText("Encryption enabled successfully.");
             editor.loadLogEntries();
-            editor.loadFullLog();
+            editor.getFullLogPanel().loadFullLog();
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(editor, "Encryption failed: " + ex.getMessage());

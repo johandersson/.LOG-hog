@@ -1,8 +1,10 @@
+package utils;
+
+import java.util.Timer;
+import java.util.TimerTask;
 import javax.swing.text.*;
 import javax.swing.undo.CompoundEdit;
 import javax.swing.undo.UndoManager;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class CompoundUndoDocumentFilter extends DocumentFilter {
     private final UndoManager undoManager;
