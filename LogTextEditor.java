@@ -788,21 +788,9 @@ public class LogTextEditor extends JFrame {
             clearEditorForNewLoad(logPath);
 
             try {
-                if (logFileHandler.isEncrypted()) {
-                    byte[] data = Files.readAllBytes(logPath);
-                    javax.crypto.SecretKey key = EncryptionManager.deriveKey(logFileHandler.getPassword(), logFileHandler.getSalt());
-                    String decrypted = EncryptionManager.decrypt(data, key);
-                    List<String> lines = Arrays.asList(decrypted.split("\n"));
-                    MarkdownRenderer.renderMarkdown(fullLogPane, lines);
-                    MarkdownRenderer.addLinkListeners(fullLogPane);
-                } else {
-                    List<String> lines = Files.readAllLines(logPath, StandardCharsets.UTF_8);
-                    if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
-                        lines.remove(0);
-                    }
-                    MarkdownRenderer.renderMarkdown(fullLogPane, lines);
-                    MarkdownRenderer.addLinkListeners(fullLogPane);
-                }
+                List<String> lines = logFileHandler.getLines();
+                MarkdownRenderer.renderMarkdown(fullLogPane, lines);
+                MarkdownRenderer.addLinkListeners(fullLogPane);
             } catch (Exception ex) {
                 fallbackReadRaw(logPath);
             }

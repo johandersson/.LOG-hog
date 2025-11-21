@@ -1,3 +1,4 @@
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -239,19 +240,22 @@ public class LogFileHandler {
                 timestamps.sort(Comparator.comparing(this::parseDate).reversed());
                 timestamps.forEach(listModel::addElement);
             } else {
-                List<String> lines = Files.readAllLines(FILE_PATH);
-                if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
-                    lines.remove(0);
-                }
-
                 List<String> timestamps = new ArrayList<>();
-
-                for (String line : lines) {
-                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                        timestamps.add(line.trim());
+                try (BufferedReader reader = Files.newBufferedReader(FILE_PATH)) {
+                    String line;
+                    boolean first = true;
+                    while ((line = reader.readLine()) != null) {
+                        if (first) {
+                            first = false;
+                            if (line.trim().equals(".LOG")) {
+                                continue;
+                            }
+                        }
+                        if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                            timestamps.add(line.trim());
+                        }
                     }
                 }
-
                 timestamps.sort(Comparator.comparing(this::parseDate).reversed());
                 timestamps.forEach(listModel::addElement);
             }
@@ -266,22 +270,45 @@ public class LogFileHandler {
         if (!Files.exists(FILE_PATH)) return;
 
         try {
-            List<String> lines = getLines();
-
             List<String> timestamps = new ArrayList<>();
-            for (String line : lines) {
-                if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                    String trimmed = line.trim();
-                    try {
-                        LocalDateTime dt = parseDate(trimmed);
-                        if (dt.getYear() == year && dt.getMonthValue() == month) {
-                            timestamps.add(trimmed);
+            if (encrypted) {
+                List<String> lines = getLines();
+                for (String line : lines) {
+                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                        String trimmed = line.trim();
+                        try {
+                            LocalDateTime dt = parseDate(trimmed);
+                            if (dt.getYear() == year && dt.getMonthValue() == month) {
+                                timestamps.add(trimmed);
+                            }
+                        } catch (Exception ignored) {
                         }
-                    } catch (Exception ignored) {
+                    }
+                }
+            } else {
+                try (BufferedReader reader = Files.newBufferedReader(FILE_PATH)) {
+                    String line;
+                    boolean first = true;
+                    while ((line = reader.readLine()) != null) {
+                        if (first) {
+                            first = false;
+                            if (line.trim().equals(".LOG")) {
+                                continue;
+                            }
+                        }
+                        if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                            String trimmed = line.trim();
+                            try {
+                                LocalDateTime dt = parseDate(trimmed);
+                                if (dt.getYear() == year && dt.getMonthValue() == month) {
+                                    timestamps.add(trimmed);
+                                }
+                            } catch (Exception ignored) {
+                            }
+                        }
                     }
                 }
             }
-
             timestamps.sort(Comparator.comparing(this::parseDate).reversed());
             timestamps.forEach(listModel::addElement);
         } catch (Exception e) {
@@ -396,15 +423,31 @@ public class LogFileHandler {
         if (!Files.exists(FILE_PATH)) return recentEntries;
 
         try {
-            List<String> lines = getLines();
             List<String> timestamps = new ArrayList<>();
-
-            for (String line : lines) {
-                if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                    timestamps.add(line.trim());
+            if (encrypted) {
+                List<String> lines = getLines();
+                for (String line : lines) {
+                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                        timestamps.add(line.trim());
+                    }
+                }
+            } else {
+                try (BufferedReader reader = Files.newBufferedReader(FILE_PATH)) {
+                    String line;
+                    boolean first = true;
+                    while ((line = reader.readLine()) != null) {
+                        if (first) {
+                            first = false;
+                            if (line.trim().equals(".LOG")) {
+                                continue;
+                            }
+                        }
+                        if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                            timestamps.add(line.trim());
+                        }
+                    }
                 }
             }
-
             timestamps.sort(Comparator.comparing(this::parseDate).reversed());
             for (int j = 0; j < Math.min(i, timestamps.size()); j++) {
                 recentEntries.add(timestamps.get(j));
