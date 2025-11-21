@@ -157,6 +157,11 @@ public class LogTextEditor extends JFrame {
         tabPane.addTab("Settings", new SettingsPanel(this, settings, settingsPath, logFileHandler));
         tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help"));
         tabPane.addTab("About", new InformationPanel(tabPane, "license.md", "About"));
+        tabPane.addChangeListener(e -> {
+            if (tabPane.getSelectedIndex() == 2) {
+                fullLogPanel.loadFullLog();
+            }
+        });
         contentCard.add(tabPane, BorderLayout.CENTER);
 
         center.add(contentCard, BorderLayout.CENTER);
