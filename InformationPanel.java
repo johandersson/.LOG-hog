@@ -64,7 +64,7 @@ public class InformationPanel extends JPanel {
         }
 
         // 2) Try resource from JAR
-        try (InputStream is = getClass().getResourceAsStream("/" + fileName)) {
+        try (InputStream is = getClass().getResourceAsStream("/resources/" + fileName)) {
             if (is != null) {
                 return new String(is.readAllBytes(), StandardCharsets.UTF_8);
             } else {

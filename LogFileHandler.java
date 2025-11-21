@@ -1,13 +1,10 @@
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import javax.crypto.*;
-import javax.crypto.spec.*;
 import javax.swing.*;
 
 public class LogFileHandler {
@@ -33,8 +30,8 @@ public class LogFileHandler {
             if (encrypted) {
                 cachedLines.add(entry.trim()); // add without extra blank
                 String fullText = String.join("\n", cachedLines);
-                SecretKey key = deriveKey(password, salt);
-                byte[] encryptedData = encrypt(fullText, key);
+                SecretKey key = EncryptionManager.deriveKey(password, salt);
+                byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
                 Files.write(FILE_PATH, encryptedData);
             } else {
                 if (Files.exists(FILE_PATH)) {
@@ -186,6 +183,34 @@ public class LogFileHandler {
         }
     }
 
+    public List<String> getLines() throws Exception {
+        if (encrypted) {
+            if (cachedLines == null) {
+                byte[] data = Files.readAllBytes(FILE_PATH);
+                SecretKey key = EncryptionManager.deriveKey(password, salt);
+                String decrypted = EncryptionManager.decrypt(data, key);
+                cachedLines = Arrays.asList(decrypted.split("\n"));
+            }
+            return cachedLines;
+        } else {
+            List<String> lines = Files.readAllLines(FILE_PATH);
+            if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
+                lines.remove(0);
+            }
+            return lines;
+        }
+    }
+
+    public void enableEncryption(char[] pwd) throws Exception {
+        this.salt = EncryptionManager.generateSalt();
+        List<String> lines = Files.readAllLines(FILE_PATH);
+        String fullText = String.join("\n", lines);
+        SecretKey key = EncryptionManager.deriveKey(pwd, this.salt);
+        byte[] encrypted = EncryptionManager.encrypt(fullText, key);
+        Files.write(FILE_PATH, encrypted);
+        setEncryption(pwd, this.salt);
+    }
+
     private void sortListModel(DefaultListModel<String> listModel) {
         List<String> sortedEntries = Collections.list(listModel.elements()).stream()
                 .sorted((a, b) -> parseDate(b).compareTo(parseDate(a)))
@@ -202,8 +227,8 @@ public class LogFileHandler {
         try {
             if (encrypted) {
                 byte[] data = Files.readAllBytes(FILE_PATH);
-                SecretKey key = deriveKey(password, salt);
-                String decrypted = decrypt(data, key);
+                SecretKey key = EncryptionManager.deriveKey(password, salt);
+                String decrypted = EncryptionManager.decrypt(data, key);
                 cachedLines = Arrays.asList(decrypted.split("\n"));
                 List<String> timestamps = new ArrayList<>();
                 for (String line : cachedLines) {
@@ -241,10 +266,7 @@ public class LogFileHandler {
         if (!Files.exists(FILE_PATH)) return;
 
         try {
-            List<String> lines = Files.readAllLines(FILE_PATH);
-            if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
-                lines.remove(0);
-            }
+            List<String> lines = getLines();
 
             List<String> timestamps = new ArrayList<>();
             for (String line : lines) {
@@ -262,7 +284,7 @@ public class LogFileHandler {
 
             timestamps.sort(Comparator.comparing(this::parseDate).reversed());
             timestamps.forEach(listModel::addElement);
-        } catch (IOException e) {
+        } catch (Exception e) {
             showErrorDialog("Error loading filtered log entries: " + e.getMessage());
         }
     }
@@ -315,7 +337,7 @@ public class LogFileHandler {
         if (!Files.exists(FILE_PATH)) return "";
 
         try {
-            List<String> lines = Files.readAllLines(FILE_PATH);
+            List<String> lines = getLines();
             StringBuilder entry = new StringBuilder();
             boolean found = false;
 
@@ -335,7 +357,7 @@ public class LogFileHandler {
             }
 
             return entry.toString().trim();
-        } catch (IOException e) {
+        } catch (Exception e) {
             showErrorDialog("Error displaying log entry: " + e.getMessage());
         }
         return "";
@@ -347,38 +369,19 @@ public class LogFileHandler {
         this.encrypted = true;
     }
 
-    SecretKey deriveKey(char[] password, byte[] salt) throws Exception {
-        PBEKeySpec spec = new PBEKeySpec(password, salt, 65536, 256);
-        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-        byte[] keyBytes = factory.generateSecret(spec).getEncoded();
-        return new SecretKeySpec(keyBytes, "AES");
+    public boolean isEncrypted() {
+        return encrypted;
     }
 
-    byte[] encrypt(String data, SecretKey key) throws Exception {
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        byte[] iv = new byte[12];
-        SecureRandom random = new SecureRandom();
-        random.nextBytes(iv);
-        GCMParameterSpec spec = new GCMParameterSpec(128, iv);
-        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
-        byte[] encrypted = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        byte[] result = new byte[iv.length + encrypted.length];
-        System.arraycopy(iv, 0, result, 0, iv.length);
-        System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
-        return result;
+    public char[] getPassword() {
+        return password;
     }
 
-    private String decrypt(byte[] data, SecretKey key) throws Exception {
-        byte[] iv = new byte[12];
-        System.arraycopy(data, 0, iv, 0, iv.length);
-        byte[] encrypted = new byte[data.length - iv.length];
-        System.arraycopy(data, iv.length, encrypted, 0, encrypted.length);
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        GCMParameterSpec spec = new GCMParameterSpec(128, iv);
-        cipher.init(Cipher.DECRYPT_MODE, key, spec);
-        byte[] decrypted = cipher.doFinal(encrypted);
-        return new String(decrypted, StandardCharsets.UTF_8);
+    public byte[] getSalt() {
+        return salt;
     }
+
+
 
     public void deleteEntry(String selectedItem, DefaultListModel<String> listModel) {
         if (selectedItem != null && !selectedItem.isBlank()) {
@@ -393,7 +396,7 @@ public class LogFileHandler {
         if (!Files.exists(FILE_PATH)) return recentEntries;
 
         try {
-            List<String> lines = Files.readAllLines(FILE_PATH);
+            List<String> lines = getLines();
             List<String> timestamps = new ArrayList<>();
 
             for (String line : lines) {
@@ -406,7 +409,7 @@ public class LogFileHandler {
             for (int j = 0; j < Math.min(i, timestamps.size()); j++) {
                 recentEntries.add(timestamps.get(j));
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             showErrorDialog("Error loading recent log entries: " + e.getMessage());
         }
         return recentEntries;
