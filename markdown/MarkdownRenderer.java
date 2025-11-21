@@ -158,28 +158,39 @@ public class MarkdownRenderer {
         Style tsStyle = styles.get("timestamp");
         Style sepStyle = styles.get("sep");
 
+        boolean lastWasTimestamp = false;
+
         for (String line : lines) {
             if (line.matches(TS_REGEX)) {
+                if (lastWasTimestamp) {
+                    doc.insertString(doc.getLength(), "\n", sepStyle);
+                }
                 doc.insertString(doc.getLength(), line + "\n", tsStyle);
+                lastWasTimestamp = true;
             } else if (line.trim().isEmpty()) {
                 doc.insertString(doc.getLength(), "\n", sepStyle);
+                lastWasTimestamp = false;
             } else if (line.startsWith("- ")) {
                 String text = "• " + line.substring(2);
                 Style listStyle = styles.get("list");
                 appendLineWithInlineLinks(doc, text, listStyle);
                 doc.insertString(doc.getLength(), "\n", listStyle);
+                lastWasTimestamp = false;
             } else if (line.startsWith("# ")) {
                 String text = line.substring(2);
                 appendLineWithInlineLinks(doc, text, styles.get("h1"));
                 doc.insertString(doc.getLength(), "\n", styles.get("h1"));
+                lastWasTimestamp = false;
             } else if (line.startsWith("## ")) {
                 String text = line.substring(3);
                 appendLineWithInlineLinks(doc, text, styles.get("h2"));
                 doc.insertString(doc.getLength(), "\n", styles.get("h2"));
+                lastWasTimestamp = false;
             } else if (line.startsWith("### ")) {
                 String text = line.substring(4);
                 appendLineWithInlineLinks(doc, text, styles.get("h3"));
                 doc.insertString(doc.getLength(), "\n", styles.get("h3"));
+                lastWasTimestamp = false;
             } else {
                 // Parse for inline headings
                 Set<Integer> headingSet = new TreeSet<>();
@@ -220,6 +231,7 @@ public class MarkdownRenderer {
                     appendLineWithInlineLinks(doc, text, partStyle);
                     doc.insertString(doc.getLength(), "\n", partStyle);
                 }
+                lastWasTimestamp = false;
             }
         }
     }

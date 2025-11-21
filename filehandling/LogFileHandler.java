@@ -27,8 +27,9 @@ public class LogFileHandler {
         int count = getDuplicateCount(timeStamp);
         String uniqueTimeStamp = count > 0 ? timeStamp + " (" + count + ")" : timeStamp;
 
-        // Entry ends with one blank line for nicer formatting
-        String entry = uniqueTimeStamp + "\n" + text + "\n\n";
+        String ls = System.lineSeparator();
+        // Entry ends with two blank lines for nicer formatting
+        String entry = uniqueTimeStamp + ls + text + ls + ls;
 
         try {
             if (encrypted) {
@@ -43,7 +44,7 @@ public class LogFileHandler {
                     // Inspect last line to avoid creating multiple blank lines between entries.
                     List<String> existing = Files.readAllLines(FILE_PATH);
                     boolean lastLineIsBlank = !existing.isEmpty() && existing.get(existing.size() - 1).trim().isEmpty();
-                    String toWrite = lastLineIsBlank ? entry : System.lineSeparator() + entry;
+                    String toWrite = lastLineIsBlank ? entry : ls + entry;
                     Files.writeString(FILE_PATH, toWrite, java.nio.file.StandardOpenOption.APPEND);
                 } else {
                     Files.writeString(FILE_PATH, entry, java.nio.file.StandardOpenOption.CREATE);
