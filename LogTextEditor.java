@@ -680,8 +680,16 @@ public class LogTextEditor extends JFrame {
     }
 
     public void loadLogEntries() {
-        logFileHandler.loadLogEntries(listModel);
-        updateLogListView();
+        try {
+            logFileHandler.loadLogEntries(listModel);
+            updateLogListView();
+        } catch (Exception e) {
+            if (e.getMessage().contains("Tag mismatch")) {
+                JOptionPane.showMessageDialog(this, "Incorrect password. Please restart the application and try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
+            } else {
+                logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
+            }
+        }
     }
 
     private void updateLogListView() {
@@ -792,7 +800,11 @@ public class LogTextEditor extends JFrame {
                 MarkdownRenderer.renderMarkdown(fullLogPane, lines);
                 MarkdownRenderer.addLinkListeners(fullLogPane);
             } catch (Exception ex) {
-                fallbackReadRaw(logPath);
+                if (ex.getMessage().contains("Tag mismatch")) {
+                    JOptionPane.showMessageDialog(this, "Incorrect password. Please restart the application and try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
+                } else {
+                    fallbackReadRaw(logPath);
+                }
             }
         });
     }
@@ -915,12 +927,24 @@ public class LogTextEditor extends JFrame {
                     String saltStr = settings.getProperty("salt");
                     if (saltStr != null) {
                         byte[] salt = java.util.Base64.getDecoder().decode(saltStr);
-                        char[] pwd = promptPassword();
-                        if (pwd != null) {
+                        boolean success = false;
+                        while (!success) {
+                            char[] pwd = promptPassword();
+                            if (pwd == null) {
+                                System.exit(0);
+                            }
                             logFileHandler.setEncryption(pwd, salt);
-                            loadLogEntries();
-                        } else {
-                            System.exit(0);
+                            try {
+                                loadLogEntries();
+                                success = true;
+                            } catch (Exception e) {
+                                if (e.getMessage().contains("Tag mismatch")) {
+                                    JOptionPane.showMessageDialog(this, "Incorrect password. Please try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
+                                } else {
+                                    logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
+                                    System.exit(0);
+                                }
+                            }
                         }
                     }
                 }
