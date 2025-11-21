@@ -1,14 +1,23 @@
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import javax.crypto.*;
+import javax.crypto.spec.*;
 import javax.swing.*;
 
 public class LogFileHandler {
     private static final Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.getDefault());
+
+    private boolean encrypted = false;
+    private char[] password;
+    private byte[] salt;
+    private List<String> cachedLines = new ArrayList<>();
 
     void saveText(String text, DefaultListModel<String> listModel) {
         if (text.isBlank()) return;
@@ -21,19 +30,27 @@ public class LogFileHandler {
         String entry = uniqueTimeStamp + "\n" + text + "\n\n";
 
         try {
-            if (Files.exists(FILE_PATH)) {
-                // Inspect last line to avoid creating multiple blank lines between entries.
-                List<String> existing = Files.readAllLines(FILE_PATH);
-                boolean lastLineIsBlank = !existing.isEmpty() && existing.get(existing.size() - 1).trim().isEmpty();
-                String toWrite = lastLineIsBlank ? entry : System.lineSeparator() + entry;
-                Files.writeString(FILE_PATH, toWrite, java.nio.file.StandardOpenOption.APPEND);
+            if (encrypted) {
+                cachedLines.add(entry.trim()); // add without extra blank
+                String fullText = String.join("\n", cachedLines);
+                SecretKey key = deriveKey(password, salt);
+                byte[] encryptedData = encrypt(fullText, key);
+                Files.write(FILE_PATH, encryptedData);
             } else {
-                Files.writeString(FILE_PATH, entry, java.nio.file.StandardOpenOption.CREATE);
+                if (Files.exists(FILE_PATH)) {
+                    // Inspect last line to avoid creating multiple blank lines between entries.
+                    List<String> existing = Files.readAllLines(FILE_PATH);
+                    boolean lastLineIsBlank = !existing.isEmpty() && existing.get(existing.size() - 1).trim().isEmpty();
+                    String toWrite = lastLineIsBlank ? entry : System.lineSeparator() + entry;
+                    Files.writeString(FILE_PATH, toWrite, java.nio.file.StandardOpenOption.APPEND);
+                } else {
+                    Files.writeString(FILE_PATH, entry, java.nio.file.StandardOpenOption.CREATE);
+                }
             }
 
             listModel.addElement(uniqueTimeStamp);
             sortListModel(listModel);
-        } catch (IOException e) {
+        } catch (Exception e) {
             showErrorDialog("Error saving text: " + e.getMessage());
         }
     }
@@ -183,22 +200,37 @@ public class LogFileHandler {
         if (!Files.exists(FILE_PATH)) return;
 
         try {
-            List<String> lines = Files.readAllLines(FILE_PATH);
-            if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
-                lines.remove(0);
-            }
-
-            List<String> timestamps = new ArrayList<>();
-
-            for (String line : lines) {
-                if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                    timestamps.add(line.trim());
+            if (encrypted) {
+                byte[] data = Files.readAllBytes(FILE_PATH);
+                SecretKey key = deriveKey(password, salt);
+                String decrypted = decrypt(data, key);
+                cachedLines = Arrays.asList(decrypted.split("\n"));
+                List<String> timestamps = new ArrayList<>();
+                for (String line : cachedLines) {
+                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                        timestamps.add(line.trim());
+                    }
                 }
-            }
+                timestamps.sort(Comparator.comparing(this::parseDate).reversed());
+                timestamps.forEach(listModel::addElement);
+            } else {
+                List<String> lines = Files.readAllLines(FILE_PATH);
+                if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
+                    lines.remove(0);
+                }
 
-            timestamps.sort(Comparator.comparing(this::parseDate).reversed());
-            timestamps.forEach(listModel::addElement);
-        } catch (IOException e) {
+                List<String> timestamps = new ArrayList<>();
+
+                for (String line : lines) {
+                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                        timestamps.add(line.trim());
+                    }
+                }
+
+                timestamps.sort(Comparator.comparing(this::parseDate).reversed());
+                timestamps.forEach(listModel::addElement);
+            }
+        } catch (Exception e) {
             showErrorDialog("Error loading log entries: " + e.getMessage());
         }
     }
@@ -309,8 +341,43 @@ public class LogFileHandler {
         return "";
     }
 
-    void showErrorDialog(String message) {
-        JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
+    void setEncryption(char[] pwd, byte[] slt) {
+        this.password = pwd.clone();
+        this.salt = slt.clone();
+        this.encrypted = true;
+    }
+
+    SecretKey deriveKey(char[] password, byte[] salt) throws Exception {
+        PBEKeySpec spec = new PBEKeySpec(password, salt, 65536, 256);
+        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+        byte[] keyBytes = factory.generateSecret(spec).getEncoded();
+        return new SecretKeySpec(keyBytes, "AES");
+    }
+
+    byte[] encrypt(String data, SecretKey key) throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        byte[] iv = new byte[12];
+        SecureRandom random = new SecureRandom();
+        random.nextBytes(iv);
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv);
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        byte[] encrypted = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
+        byte[] result = new byte[iv.length + encrypted.length];
+        System.arraycopy(iv, 0, result, 0, iv.length);
+        System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
+        return result;
+    }
+
+    private String decrypt(byte[] data, SecretKey key) throws Exception {
+        byte[] iv = new byte[12];
+        System.arraycopy(data, 0, iv, 0, iv.length);
+        byte[] encrypted = new byte[data.length - iv.length];
+        System.arraycopy(data, iv.length, encrypted, 0, encrypted.length);
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv);
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        byte[] decrypted = cipher.doFinal(encrypted);
+        return new String(decrypted, StandardCharsets.UTF_8);
     }
 
     public void deleteEntry(String selectedItem, DefaultListModel<String> listModel) {
@@ -343,5 +410,9 @@ public class LogFileHandler {
             showErrorDialog("Error loading recent log entries: " + e.getMessage());
         }
         return recentEntries;
+    }
+
+    void showErrorDialog(String message) {
+        JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 }

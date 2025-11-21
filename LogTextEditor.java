@@ -36,6 +36,9 @@ public class LogTextEditor extends JFrame {
 
     private static LogTextEditor instance;
 
+    private final java.util.Properties settings = new java.util.Properties();
+    private final java.nio.file.Path settingsPath = java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
+
     public LogTextEditor() {
         // Ensure the frame is decorated by the OS (native chrome)
         setUndecorated(false);
@@ -46,6 +49,15 @@ public class LogTextEditor extends JFrame {
         setLocationRelativeTo(null);
         addIcon();
         applyLookAndFeelTweaks();
+
+        // Menu bar
+        JMenuBar menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+        JMenuItem settingsItem = new JMenuItem("Settings");
+        settingsItem.addActionListener(e -> showSettingsDialog());
+        fileMenu.add(settingsItem);
+        menuBar.add(fileMenu);
+        setJMenuBar(menuBar);
 
         // Root panel with subtle border to emulate card area (do NOT add a custom title bar)
         JPanel root = new JPanel(new BorderLayout());
@@ -77,6 +89,7 @@ public class LogTextEditor extends JFrame {
         root.add(statusBar, BorderLayout.SOUTH);
 
         setupKeyBindings();
+        loadSettings();
         loadLogEntries();
         loadFullLog();
         //init systemtray menu
@@ -895,5 +908,119 @@ public class LogTextEditor extends JFrame {
             this.setExtendedState(JFrame.NORMAL);
             this.toFront();
         }
+    }
+
+    private void loadSettings() {
+        if (java.nio.file.Files.exists(settingsPath)) {
+            try (java.io.FileInputStream fis = new java.io.FileInputStream(settingsPath.toFile())) {
+                settings.load(fis);
+                String enc = settings.getProperty("encrypted");
+                if ("true".equals(enc)) {
+                    String saltStr = settings.getProperty("salt");
+                    if (saltStr != null) {
+                        byte[] salt = java.util.Base64.getDecoder().decode(saltStr);
+                        char[] pwd = promptPassword();
+                        if (pwd != null) {
+                            logFileHandler.setEncryption(pwd, salt);
+                            loadLogEntries();
+                        } else {
+                            System.exit(0);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logFileHandler.showErrorDialog("Error loading settings: " + e.getMessage());
+            }
+        }
+    }
+
+    private void saveSettings() {
+        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(settingsPath.toFile())) {
+            settings.store(fos, "LogHog settings");
+        } catch (Exception e) {
+            logFileHandler.showErrorDialog("Error saving settings: " + e.getMessage());
+        }
+    }
+
+    private char[] promptPassword() {
+        javax.swing.JPasswordField pwd = new javax.swing.JPasswordField();
+        int ok = javax.swing.JOptionPane.showConfirmDialog(this, pwd, "Enter password", javax.swing.JOptionPane.OK_CANCEL_OPTION);
+        if (ok == javax.swing.JOptionPane.OK_OPTION) {
+            return pwd.getPassword();
+        }
+        return null;
+    }
+
+    private void showSettingsDialog() {
+        javax.swing.JDialog dialog = new javax.swing.JDialog(this, "Settings", true);
+        dialog.setLayout(new java.awt.BorderLayout());
+        javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.GridLayout(0,1));
+        javax.swing.JCheckBox encBox = new javax.swing.JCheckBox("Enable encryption");
+        String enc = settings.getProperty("encrypted");
+        encBox.setSelected("true".equals(enc));
+        panel.add(encBox);
+        javax.swing.JLabel warning = new javax.swing.JLabel("<html><b>Warning:</b> If you lose the password, data is lost forever.</html>");
+        panel.add(warning);
+        javax.swing.JButton ok = new javax.swing.JButton("OK");
+        ok.addActionListener(e -> {
+            boolean enable = encBox.isSelected();
+            if (enable && !"true".equals(enc)) {
+                // enabling
+                char[] pwd = promptPassword();
+                if (pwd == null) return;
+                if (pwd.length < 16) {
+                    javax.swing.JOptionPane.showMessageDialog(dialog, "Password must be at least 16 characters");
+                    return;
+                }
+                char[] confirm = promptPassword();
+                if (!java.util.Arrays.equals(pwd, confirm)) {
+                    javax.swing.JOptionPane.showMessageDialog(dialog, "Passwords do not match");
+                    return;
+                }
+                // ask backup
+                int backup = javax.swing.JOptionPane.showConfirmDialog(dialog, "Do you want to backup the current logfile before encrypting?", "Backup", javax.swing.JOptionPane.YES_NO_OPTION);
+                if (backup == javax.swing.JOptionPane.YES_OPTION) {
+                    javax.swing.JFileChooser chooser = new javax.swing.JFileChooser();
+                    chooser.setFileSelectionMode(javax.swing.JFileChooser.DIRECTORIES_ONLY);
+                    int res = chooser.showSaveDialog(dialog);
+                    if (res == javax.swing.JFileChooser.APPROVE_OPTION) {
+                        java.nio.file.Path backupPath = chooser.getSelectedFile().toPath().resolve("log_backup.txt");
+                        try {
+                            java.nio.file.Files.copy(java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        } catch (Exception ex) {
+                            javax.swing.JOptionPane.showMessageDialog(dialog, "Backup failed: " + ex.getMessage());
+                            return;
+                        }
+                    }
+                }
+                // generate salt
+                byte[] salt = new byte[16];
+                java.security.SecureRandom random = new java.security.SecureRandom();
+                random.nextBytes(salt);
+                // encrypt current file
+                try {
+                    java.util.List<String> lines = java.nio.file.Files.readAllLines(java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt"));
+                    String fullText = String.join("\n", lines);
+                    javax.crypto.SecretKey key = logFileHandler.deriveKey(pwd, salt);
+                    byte[] encrypted = logFileHandler.encrypt(fullText, key);
+                    java.nio.file.Files.write(java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt"), encrypted);
+                    // set
+                    logFileHandler.setEncryption(pwd, salt);
+                    settings.setProperty("encrypted", "true");
+                    settings.setProperty("salt", java.util.Base64.getEncoder().encodeToString(salt));
+                    saveSettings();
+                } catch (Exception ex) {
+                    javax.swing.JOptionPane.showMessageDialog(dialog, "Encryption failed: " + ex.getMessage());
+                    return;
+                }
+            } else if (!enable && "true".equals(enc)) {
+                // disabling, not implemented
+            }
+            dialog.dispose();
+        });
+        dialog.add(panel, java.awt.BorderLayout.CENTER);
+        dialog.add(ok, java.awt.BorderLayout.SOUTH);
+        dialog.pack();
+        dialog.setVisible(true);
     }
 }
