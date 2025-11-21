@@ -1,14 +1,17 @@
+package gui;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.swing.*;
+import main.LogTextEditor;
 
-class SystemTrayMenu {
+public class SystemTrayMenu {
     private static SystemTrayMenu instance = null;
     public static LogTextEditor logTextEditor;
     public static Menu recentLogsMenu;
     public static PopupMenu popup;
     public static TrayIcon trayIcon;
-    SystemTrayMenu(LogTextEditor logTextEditor) {
+    public SystemTrayMenu(LogTextEditor logTextEditor) {
         this.logTextEditor = logTextEditor;
     }
     public static void initSystemTray(){

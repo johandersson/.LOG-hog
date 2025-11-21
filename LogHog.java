@@ -1,6 +1,8 @@
 import javax.swing.*;
+import main.LogTextEditor;
 
-void main(String[] args) {
+public class LogHog {
+    public static void main(String[] args) {
     try {
         for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
             if ("Windows".equals(info.getName())) {
@@ -15,4 +17,5 @@ void main(String[] args) {
     JFrame.setDefaultLookAndFeelDecorated(false);
 
     SwingUtilities.invokeLater(() -> LogTextEditor.main(args));
+    }
 }

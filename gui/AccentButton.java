@@ -1,5 +1,7 @@
-import javax.swing.*;
+package gui;
+
 import java.awt.*;
+import javax.swing.*;
 
 public class AccentButton extends JButton {
     public AccentButton(String text) {

@@ -1,5 +1,7 @@
-import javax.swing.plaf.basic.BasicTabbedPaneUI;
+package gui;
+
 import java.awt.*;
+import javax.swing.plaf.basic.BasicTabbedPaneUI;
 
 public final class HiddenTabUI extends BasicTabbedPaneUI {
     @Override
