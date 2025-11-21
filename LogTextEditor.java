@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.List;
 import java.util.stream.IntStream;
 import javax.swing.*;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.*;
 
@@ -38,6 +39,10 @@ public class LogTextEditor extends JFrame {
 
     private final java.util.Properties settings = new java.util.Properties();
     private final java.nio.file.Path settingsPath = java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
+
+    private Timer inactivityTimer;
+    private int autoClearMinutes;
+    private String passwordReminder = "";
 
     public LogTextEditor() {
         // Ensure the frame is decorated by the OS (native chrome)
@@ -88,6 +93,18 @@ public class LogTextEditor extends JFrame {
        SystemTrayMenu.initSystemTray();
 
         SwingUtilities.invokeLater(() -> textArea.requestFocusInWindow());
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                resetInactivityTimer();
+            }
+        });
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                resetInactivityTimer();
+            }
+        });
         setVisible(true);
     }
 
@@ -923,6 +940,9 @@ public class LogTextEditor extends JFrame {
             try (java.io.FileInputStream fis = new java.io.FileInputStream(settingsPath.toFile())) {
                 settings.load(fis);
                 String enc = settings.getProperty("encrypted");
+                String autoClearStr = settings.getProperty("autoClearMinutes", "30");
+                autoClearMinutes = Integer.parseInt(autoClearStr);
+                passwordReminder = settings.getProperty("passwordReminder", "");
                 if ("true".equals(enc)) {
                     String saltStr = settings.getProperty("salt");
                     if (saltStr != null) {
@@ -946,6 +966,9 @@ public class LogTextEditor extends JFrame {
                                 }
                             }
                         }
+                        if (autoClearMinutes > 0) {
+                            startInactivityTimer();
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -963,8 +986,21 @@ public class LogTextEditor extends JFrame {
     }
 
     private char[] promptPassword() {
-        return PasswordDialog.showPasswordDialog(this, "Enter password");
+        return PasswordDialog.showPasswordDialog(this, "Enter password to decrypt log", passwordReminder);
     }
 
+    private void startInactivityTimer() {
+        inactivityTimer = new Timer(autoClearMinutes * 60 * 1000, e -> {
+            JOptionPane.showMessageDialog(this, "Auto-clear activated: Exiting due to " + autoClearMinutes + " minutes of inactivity for security.", "Security Notice", JOptionPane.INFORMATION_MESSAGE);
+            System.exit(0);
+        });
+        inactivityTimer.start();
+    }
+
+    private void resetInactivityTimer() {
+        if (inactivityTimer != null) {
+            inactivityTimer.restart();
+        }
+    }
 
 }
