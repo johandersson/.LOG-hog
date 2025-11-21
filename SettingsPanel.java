@@ -166,12 +166,25 @@ public class SettingsPanel extends JPanel {
         if (confirm != JOptionPane.YES_OPTION) return;
 
         JFileChooser chooser = new JFileChooser();
-        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        String date = LocalDate.now().toString();
+        chooser.setSelectedFile(new java.io.File("loghog-backup-" + date + ".txt"));
+        javax.swing.filechooser.FileFilter filter = new javax.swing.filechooser.FileFilter() {
+            @Override
+            public boolean accept(java.io.File f) {
+                if (f.isDirectory()) return true;
+                String name = f.getName();
+                return name.startsWith("loghog-backup-") && name.endsWith(".txt");
+            }
+            @Override
+            public String getDescription() {
+                return "LogHog backup files (*.txt)";
+            }
+        };
+        chooser.setFileFilter(filter);
         int res = chooser.showSaveDialog(editor);
         if (res == JFileChooser.APPROVE_OPTION) {
-            Path dir = chooser.getSelectedFile().toPath();
-            String date = LocalDate.now().toString();
-            Path backupPath = dir.resolve("loghog-backup-" + date + ".txt");
+            java.io.File selectedFile = chooser.getSelectedFile();
+            Path backupPath = selectedFile.toPath();
             try {
                 Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 statusLabel.setText("Backup saved to: " + backupPath.toString());

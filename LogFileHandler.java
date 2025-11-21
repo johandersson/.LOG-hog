@@ -221,7 +221,7 @@ public class LogFileHandler {
         sortedEntries.forEach(listModel::addElement);
     }
 
-    void loadLogEntries(DefaultListModel<String> listModel) {
+    void loadLogEntries(DefaultListModel<String> listModel) throws Exception {
         listModel.clear();
         if (!Files.exists(FILE_PATH)) return;
 
@@ -260,7 +260,10 @@ public class LogFileHandler {
                 timestamps.forEach(listModel::addElement);
             }
         } catch (Exception e) {
-            showErrorDialog("Error loading log entries: " + e.getMessage());
+            if (!e.getMessage().contains("Tag mismatch")) {
+                showErrorDialog("Error loading log entries: " + e.getMessage());
+            }
+            throw e;
         }
     }
 
