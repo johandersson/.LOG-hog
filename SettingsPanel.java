@@ -7,8 +7,8 @@ import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.Base64;
-import java.util.List;
 import java.util.Properties;
 
 public class SettingsPanel extends JPanel {
@@ -55,15 +55,34 @@ public class SettingsPanel extends JPanel {
         JLabel performanceLabel = new JLabel("<html><i>Note: Enabling encryption may slow down program loading, especially in the settings tab and full log view.</i></html>");
         performanceLabel.setForeground(Color.GRAY);
 
+        JLabel backupLabel = new JLabel("<html><b>Backup:</b> Make a backup of your log file before enabling encryption for safety.</html>");
+        backupLabel.setForeground(Color.BLUE);
+
         encryptionPanel.add(encryptionCheckBox, BorderLayout.NORTH);
         JPanel warningsPanel = new JPanel();
         warningsPanel.setLayout(new BoxLayout(warningsPanel, BoxLayout.Y_AXIS));
         warningsPanel.setBackground(Color.WHITE);
         warningsPanel.add(warningLabel);
         warningsPanel.add(performanceLabel);
+        warningsPanel.add(backupLabel);
         encryptionPanel.add(warningsPanel, BorderLayout.CENTER);
 
         contentPanel.add(encryptionPanel);
+        contentPanel.add(Box.createVerticalStrut(20));
+
+        // Backup button
+        JPanel backupPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        backupPanel.setBackground(Color.WHITE);
+        JButton backupButton = new JButton("Backup Log File");
+        backupButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                backupLogFile();
+            }
+        });
+        backupPanel.add(backupButton);
+
+        contentPanel.add(backupPanel);
         contentPanel.add(Box.createVerticalStrut(20));
 
         // Apply button
@@ -125,38 +144,12 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
-        // Ask for backup
-        int backup = JOptionPane.showConfirmDialog(editor, "Do you want to backup the current logfile before encrypting?", "Backup", JOptionPane.YES_NO_OPTION);
-        if (backup == JOptionPane.YES_OPTION) {
-            JFileChooser chooser = new JFileChooser();
-            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            int res = chooser.showSaveDialog(editor);
-            if (res == JFileChooser.APPROVE_OPTION) {
-                Path backupPath = chooser.getSelectedFile().toPath().resolve("log_backup.txt");
-                try {
-                    Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(editor, "Backup failed: " + ex.getMessage());
-                    return;
-                }
-            }
-        }
-
-        // Generate salt
-        byte[] salt = EncryptionManager.generateSalt();
-
         // Encrypt current file
         try {
-            List<String> lines = Files.readAllLines(Paths.get(System.getProperty("user.home"), "log.txt"));
-            String fullText = String.join("\n", lines);
-            javax.crypto.SecretKey key = EncryptionManager.deriveKey(pwd, salt);
-            byte[] encrypted = EncryptionManager.encrypt(fullText, key);
-            Files.write(Paths.get(System.getProperty("user.home"), "log.txt"), encrypted);
+            logFileHandler.enableEncryption(pwd);
 
-            // Set encryption
-            logFileHandler.setEncryption(pwd, salt);
             settings.setProperty("encrypted", "true");
-            settings.setProperty("salt", Base64.getEncoder().encodeToString(salt));
+            settings.setProperty("salt", Base64.getEncoder().encodeToString(logFileHandler.getSalt()));
             saveSettings();
 
             statusLabel.setText("Encryption enabled successfully.");
@@ -165,6 +158,26 @@ public class SettingsPanel extends JPanel {
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(editor, "Encryption failed: " + ex.getMessage());
+        }
+    }
+
+    private void backupLogFile() {
+        int confirm = JOptionPane.showConfirmDialog(editor, "Backups are not encrypted! They will be stored as plain text.\nDo you want to proceed?", "Backup Warning", JOptionPane.YES_NO_OPTION);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        int res = chooser.showSaveDialog(editor);
+        if (res == JFileChooser.APPROVE_OPTION) {
+            Path dir = chooser.getSelectedFile().toPath();
+            String date = LocalDate.now().toString();
+            Path backupPath = dir.resolve("loghog-backup-" + date + ".txt");
+            try {
+                Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                statusLabel.setText("Backup saved to: " + backupPath.toString());
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(editor, "Backup failed: " + ex.getMessage());
+            }
         }
     }
 
