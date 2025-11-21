@@ -1,43 +1,30 @@
 package gui;
 
-import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
+import javax.swing.*;
 
 public class PasswordDialog extends JDialog {
     private JPasswordField passwordField;
     private JButton toggleButton;
     private JButton okButton;
     private JButton cancelButton;
+    private JCheckBox alwaysShowCheckBox;
     private char[] password;
     private boolean visible = false;
+    private boolean alwaysShow = false;
     private String reminder;
 
-    public PasswordDialog(Frame parent, String title, String reminder) {
+    public PasswordDialog(Frame parent, String title, String reminder, boolean initialVisible) {
         super(parent, title, true);
         this.reminder = reminder;
+        this.visible = initialVisible;
         initComponents();
+        updateVisibility(visible);
         pack();
         setLocationRelativeTo(parent);
     }
 
-    private void addIcon() {
-        BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = image.createGraphics();
-        g2.setColor(Color.GRAY);
-        g2.fillRect(5, 8, 6, 6); // lock body
-        g2.setColor(Color.BLACK);
-        g2.drawRect(5, 8, 6, 6);
-        g2.fillRect(7, 5, 2, 5); // shackle
-        g2.drawRect(7, 5, 2, 5);
-        g2.dispose();
-        setIconImage(image);
-    }
-
     private void initComponents() {
-        addIcon();
         setLayout(new BorderLayout());
 
         JPanel centerPanel = new JPanel(new BorderLayout(5, 5));
@@ -59,12 +46,7 @@ public class PasswordDialog extends JDialog {
         passwordField = new JPasswordField(20);
 
         toggleButton = new JButton("Show");
-        toggleButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                toggleVisibility();
-            }
-        });
+        toggleButton.addActionListener(e -> updateVisibility(!visible));
 
         JPanel fieldPanel = new JPanel(new BorderLayout());
         fieldPanel.add(passwordField, BorderLayout.CENTER);
@@ -72,26 +54,26 @@ public class PasswordDialog extends JDialog {
 
         centerPanel.add(fieldPanel, BorderLayout.CENTER);
 
+        alwaysShowCheckBox = new JCheckBox("Always show password in plain text");
+        alwaysShowCheckBox.setSelected(visible);
+        alwaysShowCheckBox.addActionListener(e -> updateVisibility(alwaysShowCheckBox.isSelected()));
+        centerPanel.add(alwaysShowCheckBox, BorderLayout.SOUTH);
+
         add(centerPanel, BorderLayout.CENTER);
 
         JPanel buttonPanel = new JPanel(new FlowLayout());
         okButton = new JButton("OK");
         cancelButton = new JButton("Cancel");
 
-        okButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                password = passwordField.getPassword();
-                setVisible(false);
-            }
+        okButton.addActionListener(e -> {
+            password = passwordField.getPassword();
+            alwaysShow = alwaysShowCheckBox.isSelected();
+            setVisible(false);
         });
 
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                password = null;
-                setVisible(false);
-            }
+        cancelButton.addActionListener(e -> {
+            password = null;
+            setVisible(false);
         });
 
         buttonPanel.add(okButton);
@@ -101,8 +83,8 @@ public class PasswordDialog extends JDialog {
         getRootPane().setDefaultButton(okButton);
     }
 
-    private void toggleVisibility() {
-        visible = !visible;
+    private void updateVisibility(boolean newVisible) {
+        visible = newVisible;
         if (visible) {
             passwordField.setEchoChar((char) 0);
             toggleButton.setText("Hide");
@@ -110,6 +92,7 @@ public class PasswordDialog extends JDialog {
             passwordField.setEchoChar('*');
             toggleButton.setText("Show");
         }
+        alwaysShowCheckBox.setSelected(visible);
         passwordField.requestFocusInWindow();
     }
 
@@ -117,9 +100,23 @@ public class PasswordDialog extends JDialog {
         return password;
     }
 
-    public static char[] showPasswordDialog(Frame parent, String title, String reminder) {
-        PasswordDialog dialog = new PasswordDialog(parent, title, reminder);
+    public boolean isAlwaysShow() {
+        return alwaysShow;
+    }
+
+    public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, boolean initialVisible) {
+        PasswordDialog dialog = new PasswordDialog(parent, title, reminder, initialVisible);
         dialog.setVisible(true);
-        return dialog.getPassword();
+        return new PasswordResult(dialog.getPassword(), dialog.isAlwaysShow());
+    }
+
+    public static class PasswordResult {
+        public final char[] password;
+        public final boolean alwaysShow;
+
+        public PasswordResult(char[] password, boolean alwaysShow) {
+            this.password = password;
+            this.alwaysShow = alwaysShow;
+        }
     }
 }

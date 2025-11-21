@@ -173,7 +173,8 @@ public class SettingsPanel extends JPanel {
     }
 
     private void enableEncryption() {
-        char[] pwd = PasswordDialog.showPasswordDialog(editor, "Enter new password (min 16 chars, 1 uppercase, 1 special char)", reminderField.getText());
+        PasswordDialog.PasswordResult pwdResult = PasswordDialog.showPasswordDialog(editor, "Enter new password (min 16 chars, 1 uppercase, 1 special char)", reminderField.getText(), false);
+        char[] pwd = pwdResult.password;
         if (pwd == null) return;
 
         if (pwd.length < 16) {
@@ -192,7 +193,8 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
-        char[] confirm = PasswordDialog.showPasswordDialog(editor, "Confirm new password", reminderField.getText());
+        PasswordDialog.PasswordResult confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm new password", reminderField.getText(), false);
+        char[] confirm = confirmResult.password;
         if (!java.util.Arrays.equals(pwd, confirm)) {
             JOptionPane.showMessageDialog(editor, "Passwords do not match");
             return;

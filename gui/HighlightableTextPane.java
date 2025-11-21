@@ -50,7 +50,7 @@ public class HighlightableTextPane extends JTextPane {
         }
 
         try {
-            Rectangle rect = modelToView(index);
+            Rectangle rect = modelToView2D(index).getBounds();
             if (rect != null) {
                 rect.height = Math.max(rect.height, 20);
                 scrollRectToVisible(rect);

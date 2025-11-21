@@ -50,6 +50,7 @@ public class LogTextEditor extends JFrame {
     private Timer inactivityTimer;
     private int autoClearMinutes;
     private String passwordReminder = "";
+    private boolean alwaysShowPassword = false;
 
     public LogTextEditor() {
         initUI();
@@ -67,6 +68,12 @@ public class LogTextEditor extends JFrame {
         setTitle(".LOG hog");
         setSize(1200, 660);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                logFileHandler.clearSensitiveData();
+            }
+        });
         setLocationRelativeTo(null);
         addIcon();
         applyLookAndFeelTweaks();
@@ -528,6 +535,7 @@ public class LogTextEditor extends JFrame {
                 String autoClearStr = settings.getProperty("autoClearMinutes", "30");
                 autoClearMinutes = Integer.parseInt(autoClearStr);
                 passwordReminder = settings.getProperty("passwordReminder", "");
+                alwaysShowPassword = "true".equals(settings.getProperty("alwaysShowPassword", "false"));
                 boolean dataLoaded = false;
                 if ("true".equals(enc)) {
                     handleEncryptionSetup();
@@ -566,9 +574,14 @@ public class LogTextEditor extends JFrame {
                     JOptionPane.showMessageDialog(this, "Too many failed attempts. Exiting for security.", "Security Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(0);
                 }
-                char[] pwd = PasswordDialog.showPasswordDialog(this, "🔒 Unlock you secret .LOG!", passwordReminder);
+                PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(this, "🔒 Unlock you secret .LOG!", passwordReminder, alwaysShowPassword);
+                char[] pwd = result.password;
                 if (pwd == null) {
                     System.exit(0);
+                }
+                if (result.alwaysShow) {
+                    settings.setProperty("alwaysShowPassword", "true");
+                    saveSettings();
                 }
                 logFileHandler.setEncryption(pwd, salt);
                 try {
@@ -600,6 +613,7 @@ public class LogTextEditor extends JFrame {
 
     private void startInactivityTimer() {
         inactivityTimer = new Timer(autoClearMinutes * 60 * 1000, e -> {
+            logFileHandler.clearSensitiveData();
             JOptionPane.showMessageDialog(this, "Auto-clear activated: Exiting due to " + autoClearMinutes + " minutes of inactivity for security.", "Security Notice", JOptionPane.INFORMATION_MESSAGE);
             System.exit(0);
         });
