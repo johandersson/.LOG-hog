@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
 
 public class PasswordDialog extends JDialog {
     private JPasswordField passwordField;
@@ -20,17 +21,38 @@ public class PasswordDialog extends JDialog {
         setLocationRelativeTo(parent);
     }
 
+    private void addIcon() {
+        BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = image.createGraphics();
+        g2.setColor(Color.GRAY);
+        g2.fillRect(5, 8, 6, 6); // lock body
+        g2.setColor(Color.BLACK);
+        g2.drawRect(5, 8, 6, 6);
+        g2.fillRect(7, 5, 2, 5); // shackle
+        g2.drawRect(7, 5, 2, 5);
+        g2.dispose();
+        setIconImage(image);
+    }
+
     private void initComponents() {
+        addIcon();
         setLayout(new BorderLayout());
 
         JPanel centerPanel = new JPanel(new BorderLayout(5, 5));
         centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
+        JPanel topPanel = new JPanel(new BorderLayout());
+        JLabel welcomeLabel = new JLabel("<html><center>Welcome back!<br>Enter your password to unlock your encrypted log.</center></html>", SwingConstants.CENTER);
+        welcomeLabel.setFont(welcomeLabel.getFont().deriveFont(Font.PLAIN, 12f));
+        topPanel.add(welcomeLabel, BorderLayout.NORTH);
+
         if (reminder != null && !reminder.trim().isEmpty()) {
-            JLabel reminderLabel = new JLabel("Reminder: " + reminder);
+            JLabel reminderLabel = new JLabel("Reminder: " + reminder, SwingConstants.CENTER);
             reminderLabel.setForeground(Color.GRAY);
-            centerPanel.add(reminderLabel, BorderLayout.NORTH);
+            topPanel.add(reminderLabel, BorderLayout.SOUTH);
         }
+
+        centerPanel.add(topPanel, BorderLayout.NORTH);
 
         passwordField = new JPasswordField(20);
 

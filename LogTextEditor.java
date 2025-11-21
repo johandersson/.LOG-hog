@@ -45,6 +45,15 @@ public class LogTextEditor extends JFrame {
     private String passwordReminder = "";
 
     public LogTextEditor() {
+        initUI();
+        setupKeyBindings();
+        loadSettings();
+        initSystemTray();
+        setupActivityListeners();
+        setVisible(true);
+    }
+
+    private void initUI() {
         // Ensure the frame is decorated by the OS (native chrome)
         setUndecorated(false);
 
@@ -84,15 +93,15 @@ public class LogTextEditor extends JFrame {
         root.add(center, BorderLayout.CENTER);
         root.add(statusBar, BorderLayout.SOUTH);
 
-        setupKeyBindings();
-        loadSettings();
-        loadLogEntries();
-        loadFullLog();
-        //init systemtray menu
-       var systemTrayMenu = new SystemTrayMenu(this);
-       SystemTrayMenu.initSystemTray();
-
         SwingUtilities.invokeLater(() -> textArea.requestFocusInWindow());
+    }
+
+    private void initSystemTray() {
+        var systemTrayMenu = new SystemTrayMenu(this);
+        SystemTrayMenu.initSystemTray();
+    }
+
+    private void setupActivityListeners() {
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -105,7 +114,6 @@ public class LogTextEditor extends JFrame {
                 resetInactivityTimer();
             }
         });
-        setVisible(true);
     }
 
     private void addIcon() {
@@ -251,6 +259,19 @@ public class LogTextEditor extends JFrame {
         panel.setBackground(Color.WHITE);
 
         // Top: filter controls
+        JPanel filterPanel = createFilterPanel();
+        panel.add(filterPanel, BorderLayout.NORTH);
+
+        // Center: list and editor pane in a split for a polished layout
+        JSplitPane split = createLogSplitPane();
+        panel.add(split, BorderLayout.CENTER);
+
+        setupLogPanelListeners();
+
+        return panel;
+    }
+
+    private JPanel createFilterPanel() {
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 6));
         filterPanel.setOpaque(false);
         JLabel filterLabel = new JLabel("Filter on date");
@@ -272,10 +293,27 @@ public class LogTextEditor extends JFrame {
         monthCombo.setSelectedIndex(LocalDate.now().getMonthValue() - 1);
         filterPanel.add(monthCombo);
 
+        // Filter actions
+        Action applyFilterAction = new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    Integer year = (Integer) yearCombo.getSelectedItem();
+                    int month = monthCombo.getSelectedIndex() + 1;
+                    if (year != null) {
+                        logFileHandler.loadFilteredEntries(listModel, year, month);
+                    }
+                } catch (Exception ex) {
+                    logFileHandler.showErrorDialog("Error applying date filter: " + ex.getMessage());
+                }
+            }
+        };
+        yearCombo.addActionListener(applyFilterAction);
+        monthCombo.addActionListener(applyFilterAction);
 
-        panel.add(filterPanel, BorderLayout.NORTH);
+        return filterPanel;
+    }
 
-        // Center: list and editor pane in a split for a polished layout
+    private JSplitPane createLogSplitPane() {
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         split.setResizeWeight(0.33);
         split.setBorder(null);
@@ -304,8 +342,6 @@ public class LogTextEditor extends JFrame {
         split.setLeftComponent(listScroll);
         split.setRightComponent(entryContainer);
 
-        panel.add(split, BorderLayout.CENTER);
-
         //Add ctrl+s binding to update entry text
         entryArea.getInputMap(JComponent.WHEN_FOCUSED).put(
                 KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), "saveEntry");
@@ -320,7 +356,6 @@ public class LogTextEditor extends JFrame {
                 KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), "newEntryGlobal");
         getRootPane().getActionMap().put("newEntryGlobal", createNewQuickEntry());
 
-
         // Add save button under the entry area
         JPanel entryBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
         entryBottom.setOpaque(false);
@@ -329,6 +364,10 @@ public class LogTextEditor extends JFrame {
         entryBottom.add(saveEntryBtn);
         entryContainer.add(entryBottom, BorderLayout.SOUTH);
 
+        return split;
+    }
+
+    private void setupLogPanelListeners() {
         // Popup and listeners
         JPopupMenu contextMenu = new JPopupMenu();
         JMenuItem copyItem = new JMenuItem("Copy Entry to Clipboard");
@@ -341,6 +380,7 @@ public class LogTextEditor extends JFrame {
         JMenuItem editDateTimeItem = new JMenuItem("Edit Date/Time");
         editDateTimeItem.addActionListener(e -> editDateTime());
         contextMenu.add(editDateTimeItem);
+
         // Selection handling: clicking or programmatic selection loads entry text
         logList.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
@@ -365,27 +405,8 @@ public class LogTextEditor extends JFrame {
             }
         });
 
-        // Filter actions
-        Action applyFilterAction = new AbstractAction() {
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    Integer year = (Integer) yearCombo.getSelectedItem();
-                    int month = monthCombo.getSelectedIndex() + 1;
-                    if (year != null) {
-                        logFileHandler.loadFilteredEntries(listModel, year, month);
-                    }
-                } catch (Exception ex) {
-                    logFileHandler.showErrorDialog("Error applying date filter: " + ex.getMessage());
-                }
-            }
-        };
-        yearCombo.addActionListener(applyFilterAction);
-        monthCombo.addActionListener(applyFilterAction);
-
         // Ensure initial population selects first item if any
         SwingUtilities.invokeLater(() -> selectFirstLogIfAny());
-
-        return panel;
     }
 
     private ActionListener copyLogEntryTextToClipBoard() {
@@ -944,35 +965,47 @@ public class LogTextEditor extends JFrame {
                 autoClearMinutes = Integer.parseInt(autoClearStr);
                 passwordReminder = settings.getProperty("passwordReminder", "");
                 if ("true".equals(enc)) {
-                    String saltStr = settings.getProperty("salt");
-                    if (saltStr != null) {
-                        byte[] salt = java.util.Base64.getDecoder().decode(saltStr);
-                        boolean success = false;
-                        while (!success) {
-                            char[] pwd = promptPassword();
-                            if (pwd == null) {
-                                System.exit(0);
-                            }
-                            logFileHandler.setEncryption(pwd, salt);
-                            try {
-                                loadLogEntries();
-                                success = true;
-                            } catch (Exception e) {
-                                if (e.getMessage().contains("Tag mismatch")) {
-                                    JOptionPane.showMessageDialog(this, "Incorrect password. Please try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
-                                } else {
-                                    logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
-                                    System.exit(0);
-                                }
-                            }
-                        }
-                        if (autoClearMinutes > 0) {
-                            startInactivityTimer();
-                        }
-                    }
+                    handleEncryptionSetup();
                 }
             } catch (Exception e) {
                 logFileHandler.showErrorDialog("Error loading settings: " + e.getMessage());
+            }
+        }
+        loadLogEntries();
+        loadFullLog();
+    }
+
+    private void handleEncryptionSetup() {
+        String saltStr = settings.getProperty("salt");
+        if (saltStr != null) {
+            byte[] salt = java.util.Base64.getDecoder().decode(saltStr);
+            boolean success = false;
+            int attempts = 0;
+            while (!success) {
+                attempts++;
+                if (attempts > 3) {
+                    JOptionPane.showMessageDialog(this, "Too many failed attempts. Exiting for security.", "Security Error", JOptionPane.ERROR_MESSAGE);
+                    System.exit(0);
+                }
+                char[] pwd = promptPassword();
+                if (pwd == null) {
+                    System.exit(0);
+                }
+                logFileHandler.setEncryption(pwd, salt);
+                try {
+                    loadLogEntries();
+                    success = true;
+                } catch (Exception e) {
+                    if (e.getMessage().contains("Tag mismatch")) {
+                        JOptionPane.showMessageDialog(this, "Incorrect password. Please try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
+                        System.exit(0);
+                    }
+                }
+            }
+            if (autoClearMinutes > 0) {
+                startInactivityTimer();
             }
         }
     }
@@ -986,7 +1019,7 @@ public class LogTextEditor extends JFrame {
     }
 
     private char[] promptPassword() {
-        return PasswordDialog.showPasswordDialog(this, "Enter password to decrypt log", passwordReminder);
+        return PasswordDialog.showPasswordDialog(this, "🔒 Unlock you secret .LOG!", passwordReminder);
     }
 
     private void startInactivityTimer() {
