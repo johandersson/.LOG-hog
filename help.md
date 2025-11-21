@@ -43,5 +43,8 @@ The Full Log tab renders your log entries with Markdown formatting for better re
 
 Formatting is applied in the Full Log window for a polished view of your entries.
 
+## Requirements
+- Java 21 or newer
+
 ## Github repo:
 [GitHub Repository](http://github.com/johandersson/.LOG-hog)

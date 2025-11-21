@@ -1,10 +1,16 @@
 # LogHog - Your Personal Log Management Companion
 
-![LogHog Logo](https://via.placeholder.com/150) <!-- Replace with actual logo if available -->
-
 LogHog is a powerful, user-friendly desktop application designed for efficient log file management and note-taking. Whether you're a developer tracking bugs, a writer journaling ideas, or anyone needing to organize personal logs, LogHog offers an intuitive interface with advanced features to streamline your workflow.
 
-## 🚀 Key Features
+## What is .log?
+
+.log is not a specific file format, but a feature in Windows Notepad. When you save a text file with the .log extension, Notepad automatically prepends the current date and time at the top of the file. This creates a simple log by appending timestamps to your notes.
+
+For more details, see [How to Use Notepad to Create a Dated Log or Journal File](https://www.howtogeek.com/258545/how-to-use-notepad-to-create-a-dated-log-or-journal-file/).
+
+LogHog builds on this concept by providing a dedicated application for managing, editing, and viewing .log files, making it much easier to handle personal logs and notes with advanced features like search, filtering, and markdown rendering.
+
+## Key Features
 
 - **Tabbed Interface**: Seamlessly switch between writing new entries and browsing past logs.
 - **Quick Entry**: Add notes instantly with automatic timestamps.
@@ -16,17 +22,10 @@ LogHog is a powerful, user-friendly desktop application designed for efficient l
 - **Link Support**: Create clickable links to URLs and local files within your logs.
 - **Keyboard Shortcuts**: Boost productivity with shortcuts like Ctrl+S (save), Ctrl+F (search), and more.
 
-## 📸 Screenshots
-
-<!-- Add screenshots here -->
-- Main Interface
-- Log Entries Tab
-- Full Log with Markdown
-
-## 🛠️ Installation & Usage
+## Installation & Usage
 
 ### Prerequisites
-- Java 24 (with preview features enabled)
+- Java 21 or newer
 - Windows (primary support)
 
 ### Running LogHog
@@ -36,11 +35,11 @@ LogHog is a powerful, user-friendly desktop application designed for efficient l
 4. Execute `run.bat` to launch the application.
 
 ### Building from Source
-- Ensure Java 24 is installed.
+- Ensure Java 21 or newer is installed.
 - Run `build.bat` in the `src` folder to build the JAR.
 - The output will be in the project root.
 
-## 🎯 Why Choose LogHog?
+## Why Choose LogHog?
 
 - **Free & Open Source**: No hidden costs, fully customizable.
 - **Lightweight**: Minimal resource usage, fast startup.
@@ -48,19 +47,19 @@ LogHog is a powerful, user-friendly desktop application designed for efficient l
 - **Extensible**: Built with Java, easy to modify and extend.
 - **Cross-Platform Potential**: While currently Windows-focused, can be adapted for other OS.
 
-## 📖 Documentation
+## Documentation
 
 For detailed usage instructions, keyboard shortcuts, and advanced features, see the [Help File](src/help.md).
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please fork the repository and submit pull requests. For major changes, open an issue first to discuss.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](src/license.md) file for details.
 
-## 📞 Contact
+## Contact
 
 - **Author**: Johan Andersson
 - **GitHub**: [johandersson](https://github.com/johandersson)
@@ -68,5 +67,4 @@ This project is licensed under the MIT License - see the [LICENSE](src/license.m
 
 ---
 
-*LogHog - Tame your logs, unleash your productivity!* 🐗</content>
-<parameter name="filePath">C:\Users\Johan\Desktop\code-work\loghog\README.md
+*LogHog - Tame your logs, unleash your productivity!*
