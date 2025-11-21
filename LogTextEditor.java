@@ -50,15 +50,6 @@ public class LogTextEditor extends JFrame {
         addIcon();
         applyLookAndFeelTweaks();
 
-        // Menu bar
-        JMenuBar menuBar = new JMenuBar();
-        JMenu fileMenu = new JMenu("File");
-        JMenuItem settingsItem = new JMenuItem("Settings");
-        settingsItem.addActionListener(e -> showSettingsDialog());
-        fileMenu.add(settingsItem);
-        menuBar.add(fileMenu);
-        setJMenuBar(menuBar);
-
         // Root panel with subtle border to emulate card area (do NOT add a custom title bar)
         JPanel root = new JPanel(new BorderLayout());
         root.setBorder(BorderFactory.createLineBorder(new Color(0xD6DCE0)));
@@ -124,6 +115,7 @@ public class LogTextEditor extends JFrame {
         tabPane.addTab("Entry", createEntryPanel());
         tabPane.addTab("Log Entries", createLogPanel());
         tabPane.addTab("Full Log", createFullLogPanel());
+        tabPane.addTab("Settings", new SettingsPanel(this, settings, settingsPath, logFileHandler));
         tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help"));
         tabPane.addTab("About", new InformationPanel(tabPane, "license.md", "About"));
         contentCard.add(tabPane, BorderLayout.CENTER);
@@ -156,12 +148,13 @@ public class LogTextEditor extends JFrame {
         NavItem n0 = new NavItem("Entry", 0, tabPane, null);
         NavItem n1 = new NavItem("Log Entries", 1, tabPane, null);
         NavItem n2 = new NavItem("Full Log", 2, tabPane, null);
-        NavItem n3 = new NavItem("Help", 3, tabPane, null);
+        NavItem n3 = new NavItem("Settings", 3, tabPane, null);
+        NavItem n4 = new NavItem("Help", 4, tabPane, null);
         Runnable aboutOnClick = () -> {
             new SplashScreen(); // modal, shows splash
-            tabPane.setSelectedIndex(4);
+            tabPane.setSelectedIndex(5);
         };
-        NavItem n4 = new NavItem("About", 4, tabPane, aboutOnClick);
+        NavItem n5 = new NavItem("About", 5, tabPane, aboutOnClick);
 
         navItems.clear();
         navItems.add(n0);
@@ -169,6 +162,7 @@ public class LogTextEditor extends JFrame {
         navItems.add(n2);
         navItems.add(n3);
         navItems.add(n4);
+        navItems.add(n5);
 
         left.add(n0);
         left.add(Box.createVerticalStrut(6));
@@ -179,6 +173,8 @@ public class LogTextEditor extends JFrame {
         left.add(n3);
         left.add(Box.createVerticalStrut(6));
         left.add(n4);
+        left.add(Box.createVerticalStrut(6));
+        left.add(n5);
         left.add(Box.createVerticalGlue());
 
         JLabel ver = new JLabel("v1.0");
@@ -683,7 +679,7 @@ public class LogTextEditor extends JFrame {
         SystemTrayMenu.updateRecentLogsMenu();
     }
 
-    private void loadLogEntries() {
+    public void loadLogEntries() {
         logFileHandler.loadLogEntries(listModel);
         updateLogListView();
     }
@@ -781,22 +777,34 @@ public class LogTextEditor extends JFrame {
 
 
     // Entry point (public or package-private depending on your class)
-    private void loadFullLog() {
+    public void loadFullLog() {
         SwingUtilities.invokeLater(() -> {
-            Path chosen = findLogPath();
-            if (chosen == null) {
+            Path logPath = Path.of(System.getProperty("user.home"), "log.txt");
+            if (!Files.exists(logPath)) {
                 showLogNotFound();
                 return;
             }
 
-            clearEditorForNewLoad(chosen);
+            clearEditorForNewLoad(logPath);
 
             try {
-                List<String> lines = Files.readAllLines(chosen, StandardCharsets.UTF_8);
-                MarkdownRenderer.renderMarkdown(fullLogPane, lines);
-                MarkdownRenderer.addLinkListeners(fullLogPane);
-            } catch (IOException ex) {
-                fallbackReadRaw(chosen);
+                if (logFileHandler.isEncrypted()) {
+                    byte[] data = Files.readAllBytes(logPath);
+                    javax.crypto.SecretKey key = EncryptionManager.deriveKey(logFileHandler.getPassword(), logFileHandler.getSalt());
+                    String decrypted = EncryptionManager.decrypt(data, key);
+                    List<String> lines = Arrays.asList(decrypted.split("\n"));
+                    MarkdownRenderer.renderMarkdown(fullLogPane, lines);
+                    MarkdownRenderer.addLinkListeners(fullLogPane);
+                } else {
+                    List<String> lines = Files.readAllLines(logPath, StandardCharsets.UTF_8);
+                    if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
+                        lines.remove(0);
+                    }
+                    MarkdownRenderer.renderMarkdown(fullLogPane, lines);
+                    MarkdownRenderer.addLinkListeners(fullLogPane);
+                }
+            } catch (Exception ex) {
+                fallbackReadRaw(logPath);
             }
         });
     }
@@ -943,84 +951,8 @@ public class LogTextEditor extends JFrame {
     }
 
     private char[] promptPassword() {
-        javax.swing.JPasswordField pwd = new javax.swing.JPasswordField();
-        int ok = javax.swing.JOptionPane.showConfirmDialog(this, pwd, "Enter password", javax.swing.JOptionPane.OK_CANCEL_OPTION);
-        if (ok == javax.swing.JOptionPane.OK_OPTION) {
-            return pwd.getPassword();
-        }
-        return null;
+        return PasswordDialog.showPasswordDialog(this, "Enter password");
     }
 
-    private void showSettingsDialog() {
-        javax.swing.JDialog dialog = new javax.swing.JDialog(this, "Settings", true);
-        dialog.setLayout(new java.awt.BorderLayout());
-        javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.GridLayout(0,1));
-        javax.swing.JCheckBox encBox = new javax.swing.JCheckBox("Enable encryption");
-        String enc = settings.getProperty("encrypted");
-        encBox.setSelected("true".equals(enc));
-        panel.add(encBox);
-        javax.swing.JLabel warning = new javax.swing.JLabel("<html><b>Warning:</b> If you lose the password, data is lost forever.</html>");
-        panel.add(warning);
-        javax.swing.JButton ok = new javax.swing.JButton("OK");
-        ok.addActionListener(e -> {
-            boolean enable = encBox.isSelected();
-            if (enable && !"true".equals(enc)) {
-                // enabling
-                char[] pwd = promptPassword();
-                if (pwd == null) return;
-                if (pwd.length < 16) {
-                    javax.swing.JOptionPane.showMessageDialog(dialog, "Password must be at least 16 characters");
-                    return;
-                }
-                char[] confirm = promptPassword();
-                if (!java.util.Arrays.equals(pwd, confirm)) {
-                    javax.swing.JOptionPane.showMessageDialog(dialog, "Passwords do not match");
-                    return;
-                }
-                // ask backup
-                int backup = javax.swing.JOptionPane.showConfirmDialog(dialog, "Do you want to backup the current logfile before encrypting?", "Backup", javax.swing.JOptionPane.YES_NO_OPTION);
-                if (backup == javax.swing.JOptionPane.YES_OPTION) {
-                    javax.swing.JFileChooser chooser = new javax.swing.JFileChooser();
-                    chooser.setFileSelectionMode(javax.swing.JFileChooser.DIRECTORIES_ONLY);
-                    int res = chooser.showSaveDialog(dialog);
-                    if (res == javax.swing.JFileChooser.APPROVE_OPTION) {
-                        java.nio.file.Path backupPath = chooser.getSelectedFile().toPath().resolve("log_backup.txt");
-                        try {
-                            java.nio.file.Files.copy(java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                        } catch (Exception ex) {
-                            javax.swing.JOptionPane.showMessageDialog(dialog, "Backup failed: " + ex.getMessage());
-                            return;
-                        }
-                    }
-                }
-                // generate salt
-                byte[] salt = new byte[16];
-                java.security.SecureRandom random = new java.security.SecureRandom();
-                random.nextBytes(salt);
-                // encrypt current file
-                try {
-                    java.util.List<String> lines = java.nio.file.Files.readAllLines(java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt"));
-                    String fullText = String.join("\n", lines);
-                    javax.crypto.SecretKey key = logFileHandler.deriveKey(pwd, salt);
-                    byte[] encrypted = logFileHandler.encrypt(fullText, key);
-                    java.nio.file.Files.write(java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt"), encrypted);
-                    // set
-                    logFileHandler.setEncryption(pwd, salt);
-                    settings.setProperty("encrypted", "true");
-                    settings.setProperty("salt", java.util.Base64.getEncoder().encodeToString(salt));
-                    saveSettings();
-                } catch (Exception ex) {
-                    javax.swing.JOptionPane.showMessageDialog(dialog, "Encryption failed: " + ex.getMessage());
-                    return;
-                }
-            } else if (!enable && "true".equals(enc)) {
-                // disabling, not implemented
-            }
-            dialog.dispose();
-        });
-        dialog.add(panel, java.awt.BorderLayout.CENTER);
-        dialog.add(ok, java.awt.BorderLayout.SOUTH);
-        dialog.pack();
-        dialog.setVisible(true);
-    }
+
 }
