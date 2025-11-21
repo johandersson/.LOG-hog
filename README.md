@@ -49,7 +49,7 @@ LogHog builds on this concept by providing a dedicated application for managing,
 
 ## Documentation
 
-For detailed usage instructions, keyboard shortcuts, and advanced features, see the [Help File](src/help.md).
+For detailed usage instructions, keyboard shortcuts, and advanced features, see the [Help File](help.md).
 
 ## Contributing
 
@@ -57,7 +57,7 @@ We welcome contributions! Please fork the repository and submit pull requests. F
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](src/license.md) file for details.
+This project is licensed under the GPL 3 License - see the [LICENSE](src/license.md) file for details.
 
 ## Contact
 
