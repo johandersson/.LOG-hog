@@ -1,6 +1,5 @@
 package filehandling;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,15 +11,16 @@ import javax.swing.*;
 import encryption.EncryptionManager;
 
 public class LogFileHandler {
-    private static final Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
+    static final Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.getDefault());
 
     private boolean encrypted = false;
     private char[] password;
     private byte[] salt;
-    private List<String> cachedLines = new ArrayList<>();
+    List<String> cachedLines = new ArrayList<>();
+    private final EntryLoader entryLoader = new EntryLoader(this);
 
-    void saveText(String text, DefaultListModel<String> listModel) {
+    public void saveText(String text, DefaultListModel<String> listModel) {
         if (text == null || text.isBlank()) return;
 
         String timeStamp = FORMATTER.format(LocalDateTime.now());
@@ -32,11 +32,12 @@ public class LogFileHandler {
 
         try {
             if (encrypted) {
-                cachedLines.add(entry.trim()); // add without extra blank
+                cachedLines.addAll(Arrays.asList(entry.split("\n", -1)));
                 String fullText = String.join("\n", cachedLines);
                 SecretKey key = EncryptionManager.deriveKey(password, salt);
                 byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
                 Files.write(FILE_PATH, encryptedData);
+                cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\n")));
             } else {
                 if (Files.exists(FILE_PATH)) {
                     // Inspect last line to avoid creating multiple blank lines between entries.
@@ -52,7 +53,7 @@ public class LogFileHandler {
             listModel.addElement(uniqueTimeStamp);
             sortListModel(listModel);
         } catch (Exception e) {
-            showErrorDialog("Error saving text: " + e.getMessage());
+            showErrorDialog("Error saving text: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
         }
     }
 
@@ -60,7 +61,12 @@ public class LogFileHandler {
         if (newText.isBlank() || !Files.exists(FILE_PATH)) return;
 
         try {
-            List<String> lines = Files.readAllLines(FILE_PATH);
+            List<String> lines;
+            if (encrypted) {
+                lines = new ArrayList<>(getLines());
+            } else {
+                lines = Files.readAllLines(FILE_PATH);
+            }
             List<String> updatedLines = new ArrayList<>();
             boolean inTargetEntry = false;
 
@@ -85,8 +91,16 @@ public class LogFileHandler {
                 }
             }
 
-            Files.write(FILE_PATH, updatedLines);
-        } catch (IOException e) {
+            if (encrypted) {
+                cachedLines = new ArrayList<>(updatedLines);
+                String fullText = String.join("\n", cachedLines);
+                SecretKey key = EncryptionManager.deriveKey(password, salt);
+                byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
+                Files.write(FILE_PATH, encryptedData);
+            } else {
+                Files.write(FILE_PATH, updatedLines);
+            }
+        } catch (Exception e) {
             showErrorDialog("Error updating log entry: " + e.getMessage());
         }
     }
@@ -95,15 +109,29 @@ public class LogFileHandler {
         if (!Files.exists(FILE_PATH)) return;
 
         try {
-            List<String> lines = Files.readAllLines(FILE_PATH);
+            List<String> lines;
+            if (encrypted) {
+                lines = new ArrayList<>(getLines());
+            } else {
+                lines = Files.readAllLines(FILE_PATH);
+            }
             for (int i = 0; i < lines.size(); i++) {
                 if (lines.get(i).trim().equals(oldTimestamp.trim())) {
                     lines.set(i, newTimestamp);
                     break;
                 }
             }
-            Files.write(FILE_PATH, lines);
-        } catch (IOException e) {
+
+            if (encrypted) {
+                cachedLines = new ArrayList<>(lines);
+                String fullText = String.join("\n", cachedLines);
+                SecretKey key = EncryptionManager.deriveKey(password, salt);
+                byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
+                Files.write(FILE_PATH, encryptedData);
+            } else {
+                Files.write(FILE_PATH, lines);
+            }
+        } catch (Exception e) {
             showErrorDialog("Error changing timestamp: " + e.getMessage());
         }
     }
@@ -113,15 +141,28 @@ public class LogFileHandler {
         if (!Files.exists(FILE_PATH)) return;
 
         try {
-            List<String> lines = Files.readAllLines(FILE_PATH);
+            List<String> lines;
+            if (encrypted) {
+                lines = new ArrayList<>(getLines());
+            } else {
+                lines = Files.readAllLines(FILE_PATH);
+            }
             List<String> updatedLines = getUpdatedLines(timeStamp, lines);
 
             // Normalize spacing: ensure at most one blank line between entries
             List<String> normalized = getNormalized(updatedLines);
 
-            Files.write(FILE_PATH, normalized);
+            if (encrypted) {
+                cachedLines = new ArrayList<>(normalized);
+                String fullText = String.join("\n", cachedLines);
+                SecretKey key = EncryptionManager.deriveKey(password, salt);
+                byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
+                Files.write(FILE_PATH, encryptedData);
+            } else {
+                Files.write(FILE_PATH, normalized);
+            }
             listModel.removeElement(timeStamp);
-        } catch (IOException e) {
+        } catch (Exception e) {
             showErrorDialog("Error deleting log entry: " + e.getMessage());
         }
     }
@@ -176,23 +217,21 @@ public class LogFileHandler {
         if (!Files.exists(FILE_PATH)) return 0;
 
         try {
-            List<String> lines = Files.readAllLines(FILE_PATH);
+            List<String> lines = getLines();
             return (int) lines.stream()
-                    .filter(line -> line.startsWith(timeStamp))
-                    .count();
-        } catch (IOException e) {
+                .filter(line -> line.startsWith(timeStamp))
+                .count();
+        } catch (Exception e) {
             showErrorDialog("Error checking duplicates: " + e.getMessage());
             return 0;
         }
-    }
-
-    public List<String> getLines() throws Exception {
+    }    public List<String> getLines() throws Exception {
         if (encrypted) {
             if (cachedLines == null) {
                 byte[] data = Files.readAllBytes(FILE_PATH);
                 SecretKey key = EncryptionManager.deriveKey(password, salt);
                 String decrypted = EncryptionManager.decrypt(data, key);
-                cachedLines = Arrays.asList(decrypted.split("\n"));
+                cachedLines = new ArrayList<>(Arrays.asList(decrypted.split("\n")));
             }
             return cachedLines;
         } else {
@@ -223,7 +262,7 @@ public class LogFileHandler {
 
     private void sortListModel(DefaultListModel<String> listModel) {
         List<String> sortedEntries = Collections.list(listModel.elements()).stream()
-                .sorted((a, b) -> parseDate(b).compareTo(parseDate(a)))
+                .sorted((a, b) -> entryLoader.parseDate(b).compareTo(entryLoader.parseDate(a)))
                 .toList();
 
         listModel.clear();
@@ -231,178 +270,35 @@ public class LogFileHandler {
     }
 
     public void loadLogEntries(DefaultListModel<String> listModel) throws Exception {
-        listModel.clear();
-        if (!Files.exists(FILE_PATH)) return;
-
-        try {
-            if (encrypted) {
-                byte[] data = Files.readAllBytes(FILE_PATH);
-                SecretKey key = EncryptionManager.deriveKey(password, salt);
-                String decrypted = EncryptionManager.decrypt(data, key);
-                cachedLines = Arrays.asList(decrypted.split("\n"));
-                List<String> timestamps = new ArrayList<>();
-                for (String line : cachedLines) {
-                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                        timestamps.add(line.trim());
-                    }
-                }
-                timestamps.sort(Comparator.comparing(this::parseDate).reversed());
-                timestamps.forEach(listModel::addElement);
-            } else {
-                List<String> timestamps = new ArrayList<>();
-                try (BufferedReader reader = Files.newBufferedReader(FILE_PATH)) {
-                    String line;
-                    boolean first = true;
-                    while ((line = reader.readLine()) != null) {
-                        if (first) {
-                            first = false;
-                            if (line.trim().equals(".LOG")) {
-                                continue;
-                            }
-                        }
-                        if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                            timestamps.add(line.trim());
-                        }
-                    }
-                }
-                timestamps.sort(Comparator.comparing(this::parseDate).reversed());
-                timestamps.forEach(listModel::addElement);
-            }
-        } catch (Exception e) {
-            if (!e.getMessage().contains("Tag mismatch")) {
-                showErrorDialog("Error loading log entries: " + e.getMessage());
-            }
-            throw e;
-        }
+        entryLoader.loadLogEntries(listModel);
     }
 
     // load only entries matching year and month (1..12)
     public void loadFilteredEntries(DefaultListModel<String> listModel, int year, int month) {
-        listModel.clear();
-        if (!Files.exists(FILE_PATH)) return;
-
-        try {
-            List<String> timestamps = new ArrayList<>();
-            if (encrypted) {
-                List<String> lines = getLines();
-                for (String line : lines) {
-                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                        String trimmed = line.trim();
-                        try {
-                            LocalDateTime dt = parseDate(trimmed);
-                            if (dt.getYear() == year && dt.getMonthValue() == month) {
-                                timestamps.add(trimmed);
-                            }
-                        } catch (Exception ignored) {
-                        }
-                    }
-                }
-            } else {
-                try (BufferedReader reader = Files.newBufferedReader(FILE_PATH)) {
-                    String line;
-                    boolean first = true;
-                    while ((line = reader.readLine()) != null) {
-                        if (first) {
-                            first = false;
-                            if (line.trim().equals(".LOG")) {
-                                continue;
-                            }
-                        }
-                        if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                            String trimmed = line.trim();
-                            try {
-                                LocalDateTime dt = parseDate(trimmed);
-                                if (dt.getYear() == year && dt.getMonthValue() == month) {
-                                    timestamps.add(trimmed);
-                                }
-                            } catch (Exception ignored) {
-                            }
-                        }
-                    }
-                }
-            }
-            timestamps.sort(Comparator.comparing(this::parseDate).reversed());
-            timestamps.forEach(listModel::addElement);
-        } catch (Exception e) {
-            showErrorDialog("Error loading filtered log entries: " + e.getMessage());
-        }
+        entryLoader.loadFilteredEntries(listModel, year, month);
     }
 
     // produce a filtered DefaultListModel from an existing model
     public DefaultListModel<String> filterModelByYearMonth(DefaultListModel<String> sourceModel, int year, int month) {
-        DefaultListModel<String> filtered = new DefaultListModel<>();
-        for (int i = 0; i < sourceModel.getSize(); i++) {
-            String entry = sourceModel.getElementAt(i);
-            try {
-                LocalDateTime dt = parseDate(entry);
-                if (dt.getYear() == year && dt.getMonthValue() == month) {
-                    filtered.addElement(entry);
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        List<String> sorted = Collections.list(filtered.elements()).stream()
-                .sorted((a, b) -> parseDate(b).compareTo(parseDate(a)))
-                .toList();
-        filtered.clear();
-        sorted.forEach(filtered::addElement);
-        return filtered;
-    }
-
-    private LocalDateTime parseDate(String entry) {
-        String dateStr = entry.split("\n")[0].replaceAll(" \\(\\d+\\)", "");
-        List<DateTimeFormatter> formatters = List.of(
-                DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ENGLISH),
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ENGLISH),
-                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.ENGLISH),
-                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm", Locale.ENGLISH),
-                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm", Locale.ENGLISH)
-        );
-        for (DateTimeFormatter fmt : formatters) {
-            try {
-                return LocalDateTime.parse(dateStr, fmt);
-            } catch (Exception ignored) {
-            }
-        }
-        throw new IllegalArgumentException("Unrecognized date format: " + dateStr);
+        return entryLoader.filterModelByYearMonth(sourceModel, year, month);
     }
 
     public String loadEntry(String timeStamp) {
-        if (!Files.exists(FILE_PATH)) return "";
-
-        try {
-            List<String> lines = getLines();
-            StringBuilder entry = new StringBuilder();
-            boolean found = false;
-
-            for (String line : lines) {
-                if (!found && line.trim().equals(timeStamp.trim())) {
-                    found = true;
-                    continue;
-                }
-
-                if (found) {
-                    // stop at next timestamp (accounts for entries with or without blank lines)
-                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                        break;
-                    }
-                    entry.append(line).append("\n");
-                }
-            }
-
-            return entry.toString().trim();
-        } catch (Exception e) {
-            showErrorDialog("Error displaying log entry: " + e.getMessage());
-        }
-        return "";
+        return entryLoader.loadEntry(timeStamp);
     }
 
     public void setEncryption(char[] pwd, byte[] slt) {
+        // Clear old sensitive data before setting new
+        if (password != null) {
+            Arrays.fill(password, '\0');
+        }
+        if (salt != null) {
+            Arrays.fill(salt, (byte) 0);
+        }
+        if (cachedLines != null) {
+            cachedLines.clear();
+            cachedLines = null;
+        }
         this.password = pwd.clone();
         this.salt = slt.clone();
         this.encrypted = true;
@@ -435,43 +331,23 @@ public class LogFileHandler {
     }
 
     public List<String> getRecentLogEntries(int i) {
-        List<String> recentEntries = new ArrayList<>();
-        if (!Files.exists(FILE_PATH)) return recentEntries;
+        return entryLoader.getRecentLogEntries(i);
+    }
 
-        try {
-            List<String> timestamps = new ArrayList<>();
-            if (encrypted) {
-                List<String> lines = getLines();
-                for (String line : lines) {
-                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                        timestamps.add(line.trim());
-                    }
-                }
-            } else {
-                try (BufferedReader reader = Files.newBufferedReader(FILE_PATH)) {
-                    String line;
-                    boolean first = true;
-                    while ((line = reader.readLine()) != null) {
-                        if (first) {
-                            first = false;
-                            if (line.trim().equals(".LOG")) {
-                                continue;
-                            }
-                        }
-                        if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                            timestamps.add(line.trim());
-                        }
-                    }
-                }
-            }
-            timestamps.sort(Comparator.comparing(this::parseDate).reversed());
-            for (int j = 0; j < Math.min(i, timestamps.size()); j++) {
-                recentEntries.add(timestamps.get(j));
-            }
-        } catch (Exception e) {
-            showErrorDialog("Error loading recent log entries: " + e.getMessage());
+    public void clearSensitiveData() {
+        if (password != null) {
+            Arrays.fill(password, '\0');
+            password = null;
         }
-        return recentEntries;
+        if (salt != null) {
+            Arrays.fill(salt, (byte) 0);
+            salt = null;
+        }
+        if (cachedLines != null) {
+            cachedLines.clear();
+            cachedLines = null;
+        }
+        encrypted = false;
     }
 
     public void showErrorDialog(String message) {
