@@ -5,6 +5,7 @@
 - **Quick Entry**: Add notes instantly with automatic timestamps.
 - **Single-Instance Enforcement**: Only one instance of the application can run at a time to prevent conflicts.
 - **Right-Click Menu in Log Entries**: Right-click on any log entry to access options like copying to clipboard, deleting, or editing the date and time.
+- **Encryption**: Secure your log file with AES encryption. Enable via File > Settings, set a strong password, and backup your data. The password is required on startup and is never stored on disk.
 
 ## Keyboard Shortcuts:
 - **Ctrl+S** — Save a new entry
@@ -19,6 +20,12 @@
 ## System tray Integration:
 - View 10 most recent logs, click one and it will open the app and focus that entry.
 - Add quick log entry directly from the tray menu.
+
+## Encryption
+- **Enabling Encryption**: Access File > Settings to enable encryption. You'll need to set a password (at least 16 characters) and confirm it. Optionally, backup your unencrypted log file before proceeding.
+- **Security Notes**: Your log file is encrypted using AES with a key derived from your password. The password is only kept in memory while the app runs and is never saved to disk. If you forget your password, your data cannot be recovered.
+- **Usage**: When encryption is enabled, you'll be prompted for your password each time you start the app. If decryption fails, you can retry or abort loading the logs.
+- **Performance**: Encryption adds a small delay to saving and loading, but decrypted content is cached in memory for fast access during your session.
 
 ## Editing Log Entries:
 - **Edit Date/Time**: Right-click on a log entry and select "Edit Date/Time" to change its timestamp. Enter the new date and time in the format HH:mm yyyy-MM-dd.
