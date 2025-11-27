@@ -1,11 +1,13 @@
 package gui;
 
+import filehandling.LogFileHandler;
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.*;
-import filehandling.LogFileHandler;
 import main.LogTextEditor;
 import markdown.MarkdownRenderer;
 import notepad.NotepadOpener;
@@ -30,7 +32,9 @@ public class FullLogPanel extends JPanel {
 
         fullLogPane.setEditable(false);
         fullLogPane.setBackground(Color.WHITE);
-        fullLogPane.setFont(new Font("Georgia", Font.PLAIN, 14));
+        fullLogPane.setContentType("text/plain");
+        fullLogPane.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        // fullLogPane.setFont(new Font("Georgia", Font.PLAIN, 14)); // Remove to let document styles control font
         JScrollPane scroll = new JScrollPane(fullLogPane);
         scroll.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
         add(scroll, BorderLayout.CENTER);
@@ -115,6 +119,7 @@ public class FullLogPanel extends JPanel {
 
             try {
                 var lines = logFileHandler.getLines();
+                lines = getNormalized(lines);
                 MarkdownRenderer.renderMarkdown(fullLogPane, lines);
                 MarkdownRenderer.addLinkListeners(fullLogPane);
             } catch (Exception ex) {
@@ -145,6 +150,24 @@ public class FullLogPanel extends JPanel {
             fullLogPathLabel.setText("Log file: error reading file");
             fullLogPane.clearHighlights();
         }
+    }
+
+    private static List<String> getNormalized(List<String> updatedLines) {
+        List<String> normalized = new ArrayList<>();
+        boolean prevBlank = false;
+        for (String l : updatedLines) {
+            boolean isBlank = l.trim().isEmpty();
+            if (isBlank) {
+                if (!prevBlank) {
+                    normalized.add(""); // keep single blank line
+                    prevBlank = true;
+                } // else skip additional blank lines
+            } else {
+                normalized.add(l);
+                prevBlank = false;
+            }
+        }
+        return normalized;
     }
 
     private void showLogNotFound() {
