@@ -175,6 +175,8 @@ public class MarkdownRenderer {
         Style codeStyle = doc.addStyle("code", defaultStyle);
         StyleConstants.setFontFamily(codeStyle, "Consolas");
         StyleConstants.setBackground(codeStyle, new Color(180, 220, 250)); // Lighter and more blue background
+        StyleConstants.setLeftIndent(codeStyle, 5); // Add left padding
+        StyleConstants.setRightIndent(codeStyle, 5); // Add right padding
         styles.put("code", codeStyle);
 
         return styles;
