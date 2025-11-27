@@ -28,7 +28,7 @@ public class MarkdownRenderer {
             for (String line : lines) {
                 String trimmed = line.trim();
                 if (trimmed.equalsIgnoreCase(".LOG")) continue;
-                if (tsPattern.matcher(line).matches()) {
+                if (tsPattern.matcher(trimmed).matches()) {
                     if (!currentEntry.isEmpty()) {
                         entries.add(new ArrayList<>(currentEntry));
                         currentEntry.clear();
@@ -186,7 +186,7 @@ public class MarkdownRenderer {
             firstEntry = false;
             for (int i = 0; i < entry.size(); i++) {
                 String line = entry.get(i);
-                if (i == 0 && line.matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
+                if (i == 0 && line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
                     doc.insertString(doc.getLength(), line + "\n", tsStyle);
                 } else if (line.trim().isEmpty()) {
                     // Only preserve blank lines within an entry, not between entries
@@ -331,3 +331,4 @@ public class MarkdownRenderer {
         }
     }
 }
+

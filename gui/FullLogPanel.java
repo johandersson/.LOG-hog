@@ -1,12 +1,15 @@
 package gui;
 
+import encryption.EncryptionManager;
 import filehandling.LogFileHandler;
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import javax.crypto.SecretKey;
 import javax.swing.*;
 import main.LogTextEditor;
 import markdown.MarkdownRenderer;
@@ -118,7 +121,15 @@ public class FullLogPanel extends JPanel {
             clearEditorForNewLoad(logPath);
 
             try {
-                var lines = logFileHandler.getLines();
+                List<String> lines;
+                if (logFileHandler.isEncrypted()) {
+                    byte[] data = Files.readAllBytes(logPath);
+                    SecretKey key = EncryptionManager.deriveKey(logFileHandler.getPassword(), logFileHandler.getSalt());
+                    String decrypted = EncryptionManager.decrypt(data, key);
+                    lines = Arrays.asList(decrypted.split("\n", -1));
+                } else {
+                    lines = Files.readAllLines(logPath);
+                }
                 lines = getNormalized(lines);
                 MarkdownRenderer.renderMarkdown(fullLogPane, lines);
                 MarkdownRenderer.addLinkListeners(fullLogPane);
