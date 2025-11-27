@@ -69,7 +69,7 @@ public class EntryLoader {
                 try {
                     LocalDateTime dateA = parseDate(a.get(0));
                     LocalDateTime dateB = parseDate(b.get(0));
-                    return dateB.compareTo(dateA);
+                    return dateA.compareTo(dateB);
                 } catch (Exception e) {
                     return 0; // keep original order if parsing fails
                 }
@@ -87,7 +87,7 @@ public class EntryLoader {
             if (!e.getMessage().contains("Tag mismatch")) {
                 logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
             }
-            throw e;
+            // Do not throw, continue with empty list
         }
     }
 
