@@ -15,6 +15,7 @@ public class MarkdownRenderer {
     private static final Pattern LINK_PATTERN = Pattern.compile("\\[([^\\]]+)\\]\\(([^\\)]+)\\)");
     private static final Pattern BOLD_PATTERN = Pattern.compile("\\*\\*(.*?)\\*\\*");
     private static final Pattern ITALIC_PATTERN = Pattern.compile("\\*(.*?)\\*");
+    private static final Pattern INLINE_CODE_PATTERN = Pattern.compile("`([^`]*)`");
 
     private record TextElement(int start, int end, String type, String text, String href) {}
 
@@ -171,6 +172,11 @@ public class MarkdownRenderer {
         StyleConstants.setLeftIndent(listStyle, 20);
         styles.put("list", listStyle);
 
+        Style codeStyle = doc.addStyle("code", defaultStyle);
+        StyleConstants.setFontFamily(codeStyle, "Consolas");
+        StyleConstants.setBackground(codeStyle, new Color(173, 216, 230)); // Light blue
+        styles.put("code", codeStyle);
+
         return styles;
     }
 
@@ -179,6 +185,7 @@ public class MarkdownRenderer {
         Style tsStyle = styles.get("timestamp");
         Style sepStyle = styles.get("sep");
         boolean firstEntry = true;
+        boolean inCodeBlock = false;
         for (List<String> entry : entries) {
             if (!firstEntry) {
                 doc.insertString(doc.getLength(), "\n", sepStyle); // Only one blank line between entries
@@ -186,7 +193,14 @@ public class MarkdownRenderer {
             firstEntry = false;
             for (int i = 0; i < entry.size(); i++) {
                 String line = entry.get(i);
-                if (i == 0 && line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
+                if (line.trim().equals("```")) {
+                    inCodeBlock = !inCodeBlock;
+                    continue;
+                }
+                if (inCodeBlock) {
+                    doc.insertString(doc.getLength(), line, styles.get("code"));
+                    doc.insertString(doc.getLength(), "\n", styles.get("code"));
+                } else if (i == 0 && line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
                     doc.insertString(doc.getLength(), line + "\n", tsStyle);
                 } else if (line.trim().isEmpty()) {
                     // Only preserve blank lines within an entry, not between entries
@@ -194,19 +208,19 @@ public class MarkdownRenderer {
                 } else if (line.startsWith("- ")) {
                     String text = "• " + line.substring(2);
                     Style listStyle = styles.get("list");
-                    appendLineWithInlineLinks(doc, text, listStyle);
+                    appendLineWithFormatting(doc, text, listStyle, styles);
                     doc.insertString(doc.getLength(), "\n", listStyle);
                 } else if (line.startsWith("# ")) {
                     String text = line.substring(2);
-                    appendLineWithInlineLinks(doc, text, styles.get("h1"));
+                    appendLineWithFormatting(doc, text, styles.get("h1"), styles);
                     doc.insertString(doc.getLength(), "\n", styles.get("h1"));
                 } else if (line.startsWith("## ")) {
                     String text = line.substring(3);
-                    appendLineWithInlineLinks(doc, text, styles.get("h2"));
+                    appendLineWithFormatting(doc, text, styles.get("h2"), styles);
                     doc.insertString(doc.getLength(), "\n", styles.get("h2"));
                 } else if (line.startsWith("### ")) {
                     String text = line.substring(4);
-                    appendLineWithInlineLinks(doc, text, styles.get("h3"));
+                    appendLineWithFormatting(doc, text, styles.get("h3"), styles);
                     doc.insertString(doc.getLength(), "\n", styles.get("h3"));
                 } else {
                     // Parse for inline headings
@@ -245,7 +259,7 @@ public class MarkdownRenderer {
                             };
                             text = part.substring(marker.length());
                         }
-                        appendLineWithInlineLinks(doc, text, partStyle);
+                        appendLineWithFormatting(doc, text, partStyle, styles);
                         doc.insertString(doc.getLength(), "\n", partStyle);
                     }
                 }
@@ -253,7 +267,7 @@ public class MarkdownRenderer {
         }
     }
 
-    private static void appendLineWithInlineLinks(StyledDocument doc, String line, Style baseStyle) throws BadLocationException {
+    private static void appendLineWithFormatting(StyledDocument doc, String line, Style baseStyle, Map<String, Style> styles) throws BadLocationException {
         List<TextElement> elements = new ArrayList<>();
 
         // Find bold
@@ -277,6 +291,12 @@ public class MarkdownRenderer {
             elements.add(new TextElement(linkMatcher.start(), linkMatcher.end(), "link", textToShow, target));
         }
 
+        // Find inline code
+        Matcher codeMatcher = INLINE_CODE_PATTERN.matcher(line);
+        while (codeMatcher.find()) {
+            elements.add(new TextElement(codeMatcher.start(), codeMatcher.end(), "inlineCode", codeMatcher.group(1), null));
+        }
+
         // Sort by start position
         elements.sort(Comparator.comparingInt(TextElement::start));
 
@@ -295,6 +315,17 @@ public class MarkdownRenderer {
                     StyleConstants.setUnderline(linkAttr, true);
                     linkAttr.addAttribute("href", elem.href);
                     doc.insertString(doc.getLength(), elem.text, linkAttr);
+                    last = elem.end;
+                    lastEnd = elem.end;
+                }
+            } else if (elem.type.equals("inlineCode")) {
+                if (elem.start >= lastEnd && elem.start > last) {
+                    String before = line.substring(last, elem.start);
+                    doc.insertString(doc.getLength(), before, baseStyle);
+                }
+                if (elem.start >= lastEnd) {
+                    AttributeSet codeAttr = styles.get("code");
+                    doc.insertString(doc.getLength(), elem.text, codeAttr);
                     last = elem.end;
                     lastEnd = elem.end;
                 }
@@ -331,4 +362,3 @@ public class MarkdownRenderer {
         }
     }
 }
-
