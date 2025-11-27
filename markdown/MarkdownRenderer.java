@@ -22,9 +22,30 @@ public class MarkdownRenderer {
         StyledDocument doc = pane.getStyledDocument();
         Map<String, Style> styles = createStyles(doc);
         try {
-            renderLines(lines, doc, styles);
+            List<List<String>> entries = new ArrayList<>();
+            List<String> currentEntry = new ArrayList<>();
+            Pattern tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$", Pattern.MULTILINE);
+            for (String line : lines) {
+                String trimmed = line.trim();
+                if (trimmed.equalsIgnoreCase(".LOG")) continue;
+                if (tsPattern.matcher(line).matches()) {
+                    if (!currentEntry.isEmpty()) {
+                        entries.add(new ArrayList<>(currentEntry));
+                        currentEntry.clear();
+                    }
+                    currentEntry.add(line);
+                } else {
+                    // Only add non-blank lines, but preserve blank lines within an entry
+                    if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
+                        currentEntry.add(line);
+                    }
+                }
+            }
+            if (!currentEntry.isEmpty()) {
+                entries.add(currentEntry);
+            }
+            renderEntries(entries, doc, styles);
         } catch (BadLocationException e) {
-            // This should not happen in normal operation
             throw new RuntimeException("Error rendering markdown", e);
         }
         pane.setCaretPosition(pane.getDocument().getLength());
@@ -106,19 +127,21 @@ public class MarkdownRenderer {
         Map<String, Style> styles = new HashMap<>();
 
         Style defaultStyle = doc.addStyle("default", null);
-        StyleConstants.setFontFamily(defaultStyle, "Georgia");
+        StyleConstants.setFontFamily(defaultStyle, "Segoe UI");
         StyleConstants.setFontSize(defaultStyle, 14);
         StyleConstants.setForeground(defaultStyle, Color.DARK_GRAY);
         styles.put("default", defaultStyle);
 
-        Style tsStyle = doc.addStyle("timestamp", defaultStyle);
+        Style tsStyle = doc.addStyle("timestamp", null);
+        StyleConstants.setFontFamily(tsStyle, "Segoe UI");
         StyleConstants.setFontSize(tsStyle, 16);
         StyleConstants.setBold(tsStyle, true);
         StyleConstants.setForeground(tsStyle, Color.BLACK);
         styles.put("timestamp", tsStyle);
 
-        Style sepStyle = doc.addStyle("sep", defaultStyle);
-        StyleConstants.setFontSize(sepStyle, 10);
+        Style sepStyle = doc.addStyle("sep", null);
+        StyleConstants.setFontFamily(sepStyle, "Segoe UI");
+        StyleConstants.setFontSize(sepStyle, 14);
         styles.put("sep", sepStyle);
 
         Style boldStyle = doc.addStyle("bold", defaultStyle);
@@ -151,87 +174,81 @@ public class MarkdownRenderer {
         return styles;
     }
 
-    private static final String TS_REGEX = "^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?$";
-
-    private static void renderLines(List<String> lines, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
+    private static void renderEntries(List<List<String>> entries, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
         Style defaultStyle = styles.get("default");
         Style tsStyle = styles.get("timestamp");
         Style sepStyle = styles.get("sep");
-
-        boolean lastWasTimestamp = false;
-
-        for (String line : lines) {
-            if (line.matches(TS_REGEX)) {
-                if (lastWasTimestamp) {
+        boolean firstEntry = true;
+        for (List<String> entry : entries) {
+            if (!firstEntry) {
+                doc.insertString(doc.getLength(), "\n", sepStyle); // Only one blank line between entries
+            }
+            firstEntry = false;
+            for (int i = 0; i < entry.size(); i++) {
+                String line = entry.get(i);
+                if (i == 0 && line.matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
+                    doc.insertString(doc.getLength(), line + "\n", tsStyle);
+                } else if (line.trim().isEmpty()) {
+                    // Only preserve blank lines within an entry, not between entries
                     doc.insertString(doc.getLength(), "\n", sepStyle);
-                }
-                doc.insertString(doc.getLength(), line + "\n", tsStyle);
-                lastWasTimestamp = true;
-            } else if (line.trim().isEmpty()) {
-                doc.insertString(doc.getLength(), "\n", sepStyle);
-                lastWasTimestamp = false;
-            } else if (line.startsWith("- ")) {
-                String text = "• " + line.substring(2);
-                Style listStyle = styles.get("list");
-                appendLineWithInlineLinks(doc, text, listStyle);
-                doc.insertString(doc.getLength(), "\n", listStyle);
-                lastWasTimestamp = false;
-            } else if (line.startsWith("# ")) {
-                String text = line.substring(2);
-                appendLineWithInlineLinks(doc, text, styles.get("h1"));
-                doc.insertString(doc.getLength(), "\n", styles.get("h1"));
-                lastWasTimestamp = false;
-            } else if (line.startsWith("## ")) {
-                String text = line.substring(3);
-                appendLineWithInlineLinks(doc, text, styles.get("h2"));
-                doc.insertString(doc.getLength(), "\n", styles.get("h2"));
-                lastWasTimestamp = false;
-            } else if (line.startsWith("### ")) {
-                String text = line.substring(4);
-                appendLineWithInlineLinks(doc, text, styles.get("h3"));
-                doc.insertString(doc.getLength(), "\n", styles.get("h3"));
-                lastWasTimestamp = false;
-            } else {
-                // Parse for inline headings
-                Set<Integer> headingSet = new TreeSet<>();
-                headingSet.add(0);
-                Matcher h3Matcher = Pattern.compile("### ").matcher(line);
-                while (h3Matcher.find()) {
-                    headingSet.add(h3Matcher.start());
-                }
-                Matcher h2Matcher = Pattern.compile("## ").matcher(line);
-                while (h2Matcher.find()) {
-                    headingSet.add(h2Matcher.start());
-                }
-                Matcher h1Matcher = Pattern.compile("# ").matcher(line);
-                while (h1Matcher.find()) {
-                    headingSet.add(h1Matcher.start());
-                }
-                List<Integer> headingStarts = new ArrayList<>(headingSet);
-                headingStarts.add(line.length());
-                for (int i = 0; i < headingStarts.size() - 1; i++) {
-                    int start = headingStarts.get(i);
-                    int end = headingStarts.get(i + 1);
-                    String part = line.substring(start, end);
-                    Style partStyle = defaultStyle;
-                    String text = part;
-                    String marker = null;
-                    if (part.startsWith("### ")) marker = "### ";
-                    else if (part.startsWith("## ")) marker = "## ";
-                    else if (part.startsWith("# ")) marker = "# ";
-                    if (marker != null) {
-                        partStyle = switch (marker) {
-                            case "### " -> styles.get("h3");
-                            case "## " -> styles.get("h2");
-                            case "# " -> styles.get("h1");
-                            default -> defaultStyle;
-                        };
-                        text = part.substring(marker.length());
+                } else if (line.startsWith("- ")) {
+                    String text = "• " + line.substring(2);
+                    Style listStyle = styles.get("list");
+                    appendLineWithInlineLinks(doc, text, listStyle);
+                    doc.insertString(doc.getLength(), "\n", listStyle);
+                } else if (line.startsWith("# ")) {
+                    String text = line.substring(2);
+                    appendLineWithInlineLinks(doc, text, styles.get("h1"));
+                    doc.insertString(doc.getLength(), "\n", styles.get("h1"));
+                } else if (line.startsWith("## ")) {
+                    String text = line.substring(3);
+                    appendLineWithInlineLinks(doc, text, styles.get("h2"));
+                    doc.insertString(doc.getLength(), "\n", styles.get("h2"));
+                } else if (line.startsWith("### ")) {
+                    String text = line.substring(4);
+                    appendLineWithInlineLinks(doc, text, styles.get("h3"));
+                    doc.insertString(doc.getLength(), "\n", styles.get("h3"));
+                } else {
+                    // Parse for inline headings
+                    Set<Integer> headingSet = new TreeSet<>();
+                    headingSet.add(0);
+                    Matcher h3Matcher = Pattern.compile("### ").matcher(line);
+                    while (h3Matcher.find()) {
+                        headingSet.add(h3Matcher.start());
                     }
-                    appendLineWithInlineLinks(doc, text, partStyle);
-                    doc.insertString(doc.getLength(), "\n", partStyle);
+                    Matcher h2Matcher = Pattern.compile("## ").matcher(line);
+                    while (h2Matcher.find()) {
+                        headingSet.add(h2Matcher.start());
+                    }
+                    Matcher h1Matcher = Pattern.compile("# ").matcher(line);
+                    while (h1Matcher.find()) {
+                        headingSet.add(h1Matcher.start());
+                    }
+                    List<Integer> headingStarts = new ArrayList<>(headingSet);
+                    headingStarts.add(line.length());
+                    for (int j = 0; j < headingStarts.size() - 1; j++) {
+                        int start = headingStarts.get(j);
+                        int end = headingStarts.get(j + 1);
+                        String part = line.substring(start, end);
+                        Style partStyle = defaultStyle;
+                        String text = part;
+                        String marker = null;
+                        if (part.startsWith("### ")) marker = "### ";
+                        else if (part.startsWith("## ")) marker = "## ";
+                        else if (part.startsWith("# ")) marker = "# ";
+                        if (marker != null) {
+                            partStyle = switch (marker) {
+                                case "### " -> styles.get("h3");
+                                case "## " -> styles.get("h2");
+                                case "# " -> styles.get("h1");
+                                default -> defaultStyle;
+                            };
+                            text = part.substring(marker.length());
+                        }
+                        appendLineWithInlineLinks(doc, text, partStyle);
+                        doc.insertString(doc.getLength(), "\n", partStyle);
+                    }
                 }
-                lastWasTimestamp = false;
             }
         }
     }
@@ -269,7 +286,7 @@ public class MarkdownRenderer {
         for (TextElement elem : elements) {
             if (elem.type.equals("link")) {
                 if (elem.start >= lastEnd && elem.start > last) {
-                    String before = line.substring(last, elem.start - 1);
+                    String before = line.substring(last, elem.start);
                     doc.insertString(doc.getLength(), before, baseStyle);
                 }
                 if (elem.start >= lastEnd) {

@@ -1,14 +1,14 @@
 package filehandling;
 
-import java.io.IOException;
+import encryption.EncryptionManager;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.*;
 import javax.crypto.*;
 import javax.swing.*;
-import encryption.EncryptionManager;
 
 public class LogFileHandler {
     static final Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
@@ -28,8 +28,8 @@ public class LogFileHandler {
         String uniqueTimeStamp = count > 0 ? timeStamp + " (" + count + ")" : timeStamp;
 
         String ls = System.lineSeparator();
-        // Entry ends with two blank lines for nicer formatting
-        String entry = uniqueTimeStamp + ls + text + ls + ls;
+        // Entry ends with exactly one blank line for correct grouping
+        String entry = uniqueTimeStamp + ls + text + ls;
 
         try {
             if (encrypted) {
@@ -44,7 +44,7 @@ public class LogFileHandler {
                     // Inspect last line to avoid creating multiple blank lines between entries.
                     List<String> existing = Files.readAllLines(FILE_PATH);
                     boolean lastLineIsBlank = !existing.isEmpty() && existing.get(existing.size() - 1).trim().isEmpty();
-                    String toWrite = lastLineIsBlank ? entry : ls + entry;
+                    String toWrite = lastLineIsBlank ? uniqueTimeStamp + ls + text + ls : ls + uniqueTimeStamp + ls + text + ls;
                     Files.writeString(FILE_PATH, toWrite, java.nio.file.StandardOpenOption.APPEND);
                 } else {
                     Files.writeString(FILE_PATH, entry, java.nio.file.StandardOpenOption.CREATE);
@@ -53,8 +53,34 @@ public class LogFileHandler {
 
             listModel.addElement(uniqueTimeStamp);
             sortListModel(listModel);
+
+            // Normalize the entire file to ensure consistent blank lines
+            normalizeFile();
         } catch (Exception e) {
             showErrorDialog("Error saving text: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
+        }
+    }
+
+    //normalize file
+    private void normalizeFile() throws Exception {
+        if (!Files.exists(FILE_PATH)) return;
+
+        List<String> lines;
+        if (encrypted) {
+            lines = new ArrayList<>(getLines());
+        } else {
+            lines = Files.readAllLines(FILE_PATH);
+        }
+        List<String> normalized = getNormalized(lines);
+
+        if (encrypted) {
+            cachedLines = new ArrayList<>(normalized);
+            String fullText = String.join("\n", cachedLines);
+            SecretKey key = EncryptionManager.deriveKey(password, salt);
+            byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
+            Files.write(FILE_PATH, encryptedData);
+        } else {
+            Files.write(FILE_PATH, normalized);
         }
     }
 
@@ -150,8 +176,11 @@ public class LogFileHandler {
             }
             List<String> updatedLines = getUpdatedLines(timeStamp, lines);
 
+            // Sort entries by timestamp before normalizing
+            List<String> sortedLines = sortEntriesByTimestamp(updatedLines);
+
             // Normalize spacing: ensure at most one blank line between entries
-            List<String> normalized = getNormalized(updatedLines);
+            List<String> normalized = getNormalized(sortedLines);
 
             if (encrypted) {
                 cachedLines = new ArrayList<>(normalized);
@@ -184,6 +213,71 @@ public class LogFileHandler {
             }
         }
         return normalized;
+    }
+
+    private static List<String> sortEntriesByTimestamp(List<String> lines) {
+        List<List<String>> entries = new ArrayList<>();
+        List<String> currentEntry = new ArrayList<>();
+        java.util.regex.Pattern tsPattern = java.util.regex.Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", java.util.regex.Pattern.MULTILINE);
+
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.equalsIgnoreCase(".LOG")) continue;
+            if (tsPattern.matcher(line).matches()) {
+                if (!currentEntry.isEmpty()) {
+                    entries.add(new ArrayList<>(currentEntry));
+                    currentEntry.clear();
+                }
+                currentEntry.add(line);
+            } else {
+                if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
+                    currentEntry.add(line);
+                }
+            }
+        }
+        if (!currentEntry.isEmpty()) {
+            entries.add(currentEntry);
+        }
+
+        // Separate timestamp entries from non-timestamp entries
+        List<List<String>> timestampEntries = new ArrayList<>();
+        List<List<String>> nonTimestampEntries = new ArrayList<>();
+        for (List<String> entry : entries) {
+            if (!entry.isEmpty() && tsPattern.matcher(entry.get(0)).matches()) {
+                timestampEntries.add(entry);
+            } else {
+                nonTimestampEntries.add(entry);
+            }
+        }
+
+        // Sort timestamp entries by date descending (newest first)
+        timestampEntries.sort((a, b) -> {
+            try {
+                LocalDateTime dateA = parseDateForSorting(a.get(0));
+                LocalDateTime dateB = parseDateForSorting(b.get(0));
+                return dateB.compareTo(dateA);
+            } catch (Exception e) {
+                return 0; // keep original order if parsing fails
+            }
+        });
+
+        // Combine: non-timestamp entries first, then sorted timestamp entries
+        List<List<String>> sortedEntries = new ArrayList<>();
+        sortedEntries.addAll(nonTimestampEntries);
+        sortedEntries.addAll(timestampEntries);
+
+        // Flatten back to lines
+        List<String> sortedLines = new ArrayList<>();
+        for (List<String> entry : sortedEntries) {
+            sortedLines.addAll(entry);
+        }
+
+        return sortedLines;
+    }
+
+    private static LocalDateTime parseDateForSorting(String timestampLine) {
+        String dateStr = timestampLine.trim().replaceAll(" \\(\\d+\\)", "");
+        return LocalDateTime.parse(dateStr, FORMATTER);
     }
 
     private static List<String> getUpdatedLines(String timeStamp, List<String> lines) {
@@ -232,7 +326,7 @@ public class LogFileHandler {
                 byte[] data = Files.readAllBytes(FILE_PATH);
                 SecretKey key = EncryptionManager.deriveKey(password, salt);
                 String decrypted = EncryptionManager.decrypt(data, key);
-                cachedLines = new ArrayList<>(Arrays.asList(decrypted.split("\n")));
+                cachedLines = Arrays.stream(decrypted.split("\n")).map(String::trim).collect(Collectors.toList());
             }
             return cachedLines;
         } else {
@@ -240,7 +334,7 @@ public class LogFileHandler {
             if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
                 lines.remove(0);
             }
-            return lines;
+            return lines.stream().map(String::trim).collect(Collectors.toList());
         }
     }
 
