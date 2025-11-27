@@ -32,7 +32,7 @@
 ## Encryption
 - **Enabling Encryption**: Access the Settings tab to enable encryption. You'll need to set a password (at least 16 characters, including at least one uppercase letter and one special character from: !@#$%^&*()_+-=[]{}|;':",./<>?). Optionally, backup your unencrypted log file before proceeding.
 - **Password Visibility**: When prompted for your password at startup, you can choose to always show the password in plain text by checking the "Always show password in plain text" box. This setting is saved and will apply to future password prompts.
-- **Security Notes**: Your log file is encrypted using AES with a key derived from your password. The password is only kept in memory while the app runs and is never saved to disk. If you forget your password, your data cannot be recovered.
+- **Security Notes**: Your log file is encrypted using AES with a key derived from your password. The password is only kept in memory while the app runs and is never saved to disk. <span style="color:red">If you forget your password, your data cannot be recovered.</span>
 - **Usage**: When encryption is enabled, you'll be prompted for your password each time you start the app. If the password is incorrect, you'll see a clear error message and can retry immediately.
 - **Auto-Clear**: For added security, you can set the app to automatically exit after a period of inactivity (default 30 minutes). This clears decrypted data from memory. Configure in Settings.
 - **Performance**: Encryption adds a small delay to saving and loading, but decrypted content is cached in memory for fast access during your session. **Note**: Enabling encryption may cause the program to load slower, especially in the settings tab when applying changes and in the full log view.
