@@ -9,6 +9,7 @@ import java.util.*;
 import java.util.List;
 import javax.crypto.SecretKey;
 import encryption.EncryptionManager;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class EntryLoader {
@@ -65,7 +66,20 @@ public class EntryLoader {
                     nonTimestampEntries.add(entry);
                 }
             }
-            timestampEntries.sort((a, b) -> {
+            // Filter to current month
+            LocalDateTime now = LocalDateTime.now();
+            int currentYear = now.getYear();
+            int currentMonth = now.getMonthValue();
+            List<List<String>> filteredTimestampEntries = new ArrayList<>();
+            for (List<String> entry : timestampEntries) {
+                try {
+                    LocalDateTime dt = parseDate(entry.get(0));
+                    if (dt.getYear() == currentYear && dt.getMonthValue() == currentMonth) {
+                        filteredTimestampEntries.add(entry);
+                    }
+                } catch (Exception ignored) {}
+            }
+            filteredTimestampEntries.sort((a, b) -> {
                 try {
                     LocalDateTime dateA = parseDate(a.get(0));
                     LocalDateTime dateB = parseDate(b.get(0));
@@ -76,7 +90,7 @@ public class EntryLoader {
             });
             List<List<String>> sortedEntries = new ArrayList<>();
             sortedEntries.addAll(nonTimestampEntries); // preamble notes at top
-            sortedEntries.addAll(timestampEntries);
+            sortedEntries.addAll(filteredTimestampEntries);
             for (List<String> entry : sortedEntries) {
                 // For the list view, show only the timestamp line (or first line for non-timestamp entries)
                 if (!entry.isEmpty()) {
@@ -239,7 +253,13 @@ public class EntryLoader {
     }
 
     public LocalDateTime parseDate(String entry) {
-        String dateStr = entry.split("\n")[0].replaceAll(" \\(\\d+\\)", "");
+        // Extract the timestamp from the beginning of the line
+        Pattern tsPattern = Pattern.compile("^(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})( \\([0-9]+\\))?");
+        Matcher matcher = tsPattern.matcher(entry.trim());
+        if (!matcher.find()) {
+            throw new IllegalArgumentException("No timestamp found in: " + entry);
+        }
+        String dateStr = matcher.group(1);
         List<DateTimeFormatter> formatters = List.of(
                 DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.getDefault()),
                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.getDefault()),

@@ -188,16 +188,19 @@ public class MarkdownRenderer {
         Style tsStyle = styles.get("timestamp");
         Style sepStyle = styles.get("sep");
         boolean firstEntry = true;
-        boolean inCodeBlock = false;
+        boolean previousHadCode = false;
         for (List<String> entry : entries) {
-            if (!firstEntry) {
+            if (!firstEntry && !previousHadCode) {
                 doc.insertString(doc.getLength(), "\n", sepStyle); // Only one blank line between entries
             }
             firstEntry = false;
+            boolean inCodeBlock = false;
+            boolean currentHasCode = false;
             for (int i = 0; i < entry.size(); i++) {
                 String line = entry.get(i);
                 if (line.trim().equals("```")) {
                     inCodeBlock = !inCodeBlock;
+                    currentHasCode = true;
                     continue;
                 }
                 if (inCodeBlock) {
@@ -267,6 +270,7 @@ public class MarkdownRenderer {
                     }
                 }
             }
+            previousHadCode = currentHasCode;
         }
     }
 
