@@ -16,6 +16,7 @@ public class MarkdownRenderer {
     private static final Pattern BOLD_PATTERN = Pattern.compile("\\*\\*(.*?)\\*\\*");
     private static final Pattern ITALIC_PATTERN = Pattern.compile("\\*(.*?)\\*");
     private static final Pattern INLINE_CODE_PATTERN = Pattern.compile("`([^`]*)`");
+    private static final Pattern RED_PATTERN = Pattern.compile("<span style=\"color:red\">(.*?)</span>", Pattern.DOTALL);
 
     private record TextElement(int start, int end, String type, String text, String href) {}
 
@@ -299,6 +300,12 @@ public class MarkdownRenderer {
             elements.add(new TextElement(codeMatcher.start(), codeMatcher.end(), "inlineCode", codeMatcher.group(1), null));
         }
 
+        // Find red text spans
+        Matcher redMatcher = RED_PATTERN.matcher(line);
+        while (redMatcher.find()) {
+            elements.add(new TextElement(redMatcher.start(), redMatcher.end(), "red", redMatcher.group(1), null));
+        }
+
         // Sort by start position
         elements.sort(Comparator.comparingInt(TextElement::start));
 
@@ -328,6 +335,18 @@ public class MarkdownRenderer {
                 if (elem.start >= lastEnd) {
                     AttributeSet codeAttr = styles.get("code");
                     doc.insertString(doc.getLength(), elem.text, codeAttr);
+                    last = elem.end;
+                    lastEnd = elem.end;
+                }
+            } else if (elem.type.equals("red")) {
+                if (elem.start >= lastEnd && elem.start > last) {
+                    String before = line.substring(last, elem.start);
+                    doc.insertString(doc.getLength(), before, baseStyle);
+                }
+                if (elem.start >= lastEnd) {
+                    SimpleAttributeSet redAttr = new SimpleAttributeSet(baseStyle);
+                    StyleConstants.setForeground(redAttr, Color.RED);
+                    doc.insertString(doc.getLength(), elem.text, redAttr);
                     last = elem.end;
                     lastEnd = elem.end;
                 }

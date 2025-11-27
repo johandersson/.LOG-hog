@@ -69,9 +69,9 @@ public class EntryLoader {
                 try {
                     LocalDateTime dateA = parseDate(a.get(0));
                     LocalDateTime dateB = parseDate(b.get(0));
-                    return dateA.compareTo(dateB);
+                    return dateB.compareTo(dateA);
                 } catch (Exception e) {
-                    return 0; // keep original order if parsing fails
+                    return b.get(0).compareTo(a.get(0));
                 }
             });
             List<List<String>> sortedEntries = new ArrayList<>();
@@ -143,7 +143,7 @@ public class EntryLoader {
                     LocalDateTime dateB = parseDate(b.get(0));
                     return dateB.compareTo(dateA);
                 } catch (Exception e) {
-                    return 0; // keep original order if parsing fails
+                    return b.get(0).compareTo(a.get(0));
                 }
             });
             for (List<String> entry : filteredEntries) {
