@@ -45,6 +45,7 @@ The Full Log tab renders your log entries with Markdown formatting for better re
 - **Italic**: Wrap text with * (e.g., *italic text*)
 - **Links**: [Link Text](URL) for clickable links
 - **Lists**: Use - for unordered lists
+- **Code**: `inline code` for inline, or ``` for code blocks
 - **Line Breaks**: Use two spaces at the end of a line or a blank line for paragraphs
 
 Formatting is applied in the Full Log window for a polished view of your entries.
