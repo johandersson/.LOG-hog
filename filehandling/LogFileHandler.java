@@ -158,6 +158,7 @@ public class LogFileHandler {
             } else {
                 Files.write(FILE_PATH, lines);
             }
+            normalizeFile();
         } catch (Exception e) {
             showErrorDialog("Error changing timestamp: " + e.getMessage());
         }
@@ -250,12 +251,12 @@ public class LogFileHandler {
             }
         }
 
-        // Sort timestamp entries by date descending (newest first)
+        // Sort timestamp entries by date ascending (oldest first)
         timestampEntries.sort((a, b) -> {
             try {
                 LocalDateTime dateA = parseDateForSorting(a.get(0));
                 LocalDateTime dateB = parseDateForSorting(b.get(0));
-                return dateB.compareTo(dateA);
+                return dateA.compareTo(dateB);
             } catch (Exception e) {
                 return 0; // keep original order if parsing fails
             }
@@ -358,7 +359,13 @@ public class LogFileHandler {
 
     private void sortListModel(DefaultListModel<String> listModel) {
         List<String> sortedEntries = Collections.list(listModel.elements()).stream()
-                .sorted((a, b) -> entryLoader.parseDate(b).compareTo(entryLoader.parseDate(a)))
+                .sorted((a, b) -> {
+                    try {
+                        return entryLoader.parseDate(b).compareTo(entryLoader.parseDate(a));
+                    } catch (Exception e) {
+                        return 0; // keep original order if parsing fails
+                    }
+                })
                 .toList();
 
         listModel.clear();
