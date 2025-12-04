@@ -66,7 +66,6 @@ public class LogTextEditor extends JFrame {
     private Timer inactivityTimer;
     private int autoClearMinutes;
     private String passwordReminder = "";
-    private boolean alwaysShowPassword = false;
     private boolean isLocked = false;
 
     public boolean isLocked() {
@@ -604,7 +603,6 @@ public class LogTextEditor extends JFrame {
                 String autoClearStr = settings.getProperty("autoClearMinutes", "30");
                 autoClearMinutes = Integer.parseInt(autoClearStr);
                 passwordReminder = settings.getProperty("passwordReminder", "");
-                alwaysShowPassword = "true".equals(settings.getProperty("alwaysShowPassword", "false"));
                 boolean dataLoaded = false;
                 if ("true".equals(enc)) {
                     handleEncryptionSetup();
@@ -643,14 +641,10 @@ public class LogTextEditor extends JFrame {
                     JOptionPane.showMessageDialog(this, "Too many failed attempts. Exiting for security.", "Security Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(0);
                 }
-                PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(this, "🔒 Unlock you secret .LOG!", passwordReminder, alwaysShowPassword);
+                PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(this, "🔒 Unlock you secret .LOG!", passwordReminder);
                 char[] pwd = result.password;
                 if (pwd == null) {
                     System.exit(0);
-                }
-                if (result.alwaysShow) {
-                    settings.setProperty("alwaysShowPassword", "true");
-                    saveSettings();
                 }
                 logFileHandler.setEncryption(pwd, salt);
                 try {
@@ -729,7 +723,7 @@ public class LogTextEditor extends JFrame {
     private void reloadEncryptedLog() {
         boolean success = false;
         while (!success) {
-            PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(this, "Reload Encrypted Log", settings.getProperty("passwordReminder", ""), settings.getProperty("alwaysShowPassword", "false").equals("true"));
+            PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(this, "Reload Encrypted Log", settings.getProperty("passwordReminder", ""));
             char[] pwd = result.password;
             if (pwd == null) {
                 // User cancelled, exit
@@ -737,10 +731,6 @@ public class LogTextEditor extends JFrame {
                 return;
             }
             byte[] salt = Base64.getDecoder().decode(settings.getProperty("salt"));
-            if (result.alwaysShow) {
-                settings.setProperty("alwaysShowPassword", "true");
-                saveSettings();
-            }
             logFileHandler.setEncryption(pwd, salt);
             try {
                 loadLogEntries();
