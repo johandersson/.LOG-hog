@@ -21,6 +21,8 @@ public class FullLogPanel extends JPanel {
     private final LogFileHandler logFileHandler;
     private final LogTextEditor editor;
     private final JButton lockFileButton;
+    private final JButton copyFullLogButton;
+    private final JButton openInNotepadButton;
 
     public FullLogPanel(LogTextEditor editor, LogFileHandler logFileHandler) {
         this.editor = editor;
@@ -28,6 +30,8 @@ public class FullLogPanel extends JPanel {
         this.fullLogPane = new HighlightableTextPane();
         this.fullLogPathLabel = new JLabel("Log file: (not loaded)");
         this.lockFileButton = new AccentButton(editor.isLocked() ? "Unlock File" : "Lock File");
+        this.copyFullLogButton = new AccentButton("Copy Full Log to Clipboard");
+        this.openInNotepadButton = new AccentButton("Open in Notepad");
         initPanel();
     }
 
@@ -52,10 +56,8 @@ public class FullLogPanel extends JPanel {
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         bottom.setOpaque(false);
-        JButton copyFullLogButton = new AccentButton("Copy Full Log to Clipboard");
         copyFullLogButton.addActionListener(e -> copyFullLogToClipboard());
         bottom.add(copyFullLogButton);
-        JButton openInNotepadButton = new AccentButton("Open in Notepad");
         openInNotepadButton.addActionListener(e -> NotepadOpener.openLogInNotepad());
         bottom.add(openInNotepadButton);
         lockFileButton.addActionListener(e -> {
@@ -97,6 +99,12 @@ public class FullLogPanel extends JPanel {
         lockFileButton.setText(editor.isLocked() ? "Unlock File" : "Lock File");
     }
 
+    private void updateButtonStates(boolean locked) {
+        copyFullLogButton.setEnabled(!locked);
+        openInNotepadButton.setEnabled(!locked);
+        updateLockButton();
+    }
+
     public void performSearchInFullLog(String query) {
         if (!fullLogPane.highlightText(query)) {
             JOptionPane.showMessageDialog(this, "Text not found", "Find", JOptionPane.INFORMATION_MESSAGE);
@@ -127,11 +135,13 @@ public class FullLogPanel extends JPanel {
     public void loadFullLog() {
         SwingUtilities.invokeLater(() -> {
             if (editor.isLocked()) {
-                fullLogPane.setText("");
+                fullLogPane.setText("File locked. Press Unlock file in Full log view to unlock it again.");
+                fullLogPane.setForeground(Color.GRAY);
                 fullLogPathLabel.setText("Log file: (locked)");
-                updateLockButton();
+                updateButtonStates(true);
                 return;
             }
+            updateButtonStates(false);
             Path logPath = Path.of(System.getProperty("user.home"), "log.txt");
             if (!Files.exists(logPath)) {
                 showLogNotFound();
