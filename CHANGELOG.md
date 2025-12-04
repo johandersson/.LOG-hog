@@ -13,22 +13,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manual file locking/unlocking feature with security UI
 - Lock state prevents all file operations and shows lock messages
 - Plain text rendering for lock messages to prevent link artifacts
+- Backup directory setting to centralize all backup locations
+- Improved single instance enforcement that brings existing window to front
+- IPC communication between application instances
 
 ### Changed
 - Manual lock no longer prompts user, instantly locks and disables UI
 - Lock messages displayed in all relevant views when file is locked
 - Full log lock message ensures no HTML/markdown processing
+- Password visibility toggle now requires holding button (press to show, release to hide)
+- Removed "Always show password" setting for better security
+- Improved decryption error messages to show user-friendly "Incorrect password" instead of technical errors
 
 ### Fixed
 - LogListPanel now shows lock message and disables editing when locked
 - All save/load/delete/edit operations blocked when file is locked
 - Lock message in Full Log view no longer appears as clickable links
 - Security: No file access or memory reading possible in locked state
+- Backup operations now use configured default directory
+- Password dialog compilation and method declaration issues
 
 ### Security
 - Removed debug.log from repository and added to .gitignore
 - Eliminated all salt logging for security
 - Comprehensive operation blocking in locked state
+- Password visibility requires active user interaction
 
 ## [1.0.0] - 2025-12-04
 
