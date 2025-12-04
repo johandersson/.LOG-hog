@@ -39,6 +39,7 @@ public class LogTextEditor extends JFrame {
 
     private EntryPanel entryPanel;
     private LogListPanel logListPanel;
+    private SettingsPanel settingsPanel;
 
     private static LogTextEditor instance;
 
@@ -152,7 +153,7 @@ public class LogTextEditor extends JFrame {
         tabPane.addTab("Entry", entryPanel = new EntryPanel(this));
         tabPane.addTab("Log Entries", logListPanel = new LogListPanel(this, logFileHandler, listModel, logList));
         tabPane.addTab("Full Log", fullLogPanel = new FullLogPanel(this, logFileHandler));
-        tabPane.addTab("Settings", new SettingsPanel(this, settings, settingsPath, logFileHandler));
+        tabPane.addTab("Settings", settingsPanel = new SettingsPanel(this, settings, settingsPath, logFileHandler));
         tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help"));
         tabPane.addTab("About", new InformationPanel(tabPane, "license.md", "About"));
         tabPane.addChangeListener(e -> {
@@ -612,10 +613,61 @@ public class LogTextEditor extends JFrame {
     private void startInactivityTimer() {
         inactivityTimer = new Timer(autoClearMinutes * 60 * 1000, e -> {
             logFileHandler.clearSensitiveData();
-            JOptionPane.showMessageDialog(this, "Auto-clear activated: Exiting due to " + autoClearMinutes + " minutes of inactivity for security.", "Security Notice", JOptionPane.INFORMATION_MESSAGE);
-            System.exit(0);
+            // Clear UI
+            listModel.clear();
+            fullLogPanel.loadFullLog(); // This will show encrypted or empty
+
+            int choice = JOptionPane.showConfirmDialog(this,
+                "Auto-clear activated due to " + autoClearMinutes + " minutes of inactivity.\n" +
+                "The log file has been unloaded for security.\n\n" +
+                "Do you want to exit the program, or stay and reload the encrypted log?",
+                "Security Notice",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
+
+            if (choice == JOptionPane.YES_OPTION) {
+                // Stay and reload
+                reloadEncryptedLog();
+            } else {
+                // Exit
+                System.exit(0);
+            }
         });
         inactivityTimer.start();
+    }
+
+    private void reloadEncryptedLog() {
+        boolean success = false;
+        while (!success) {
+            PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(this, "Reload Encrypted Log", settings.getProperty("passwordReminder", ""), settings.getProperty("alwaysShowPassword", "false").equals("true"));
+            char[] pwd = result.password;
+            if (pwd == null) {
+                // User cancelled, exit
+                System.exit(0);
+                return;
+            }
+            byte[] salt = Base64.getDecoder().decode(settings.getProperty("salt"));
+            if (result.alwaysShow) {
+                settings.setProperty("alwaysShowPassword", "true");
+                saveSettings();
+            }
+            logFileHandler.setEncryption(pwd, salt);
+            try {
+                loadLogEntries();
+                success = true;
+                if (autoClearMinutes > 0) {
+                    startInactivityTimer();
+                }
+            } catch (Exception e) {
+                System.out.println("Decryption failed: " + e.getMessage());
+                if (e.getMessage().contains("Tag mismatch")) {
+                    JOptionPane.showMessageDialog(this, "Incorrect password. Please try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
+                } else {
+                    logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
+                    System.exit(0);
+                }
+            }
+        }
     }
 
     private void resetInactivityTimer() {
