@@ -29,9 +29,6 @@ public class EncryptionManager {
         byte[] salt = new byte[16];
         SecureRandom random = new SecureRandom();
         random.nextBytes(salt);
-        logToFile("EncryptionManager.generateSalt() called");
-        logToFile("  Salt array created: " + java.util.Arrays.toString(salt));
-        logToFile("  Salt Base64: " + java.util.Base64.getEncoder().encodeToString(salt));
         return salt;
     }
 
