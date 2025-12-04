@@ -6,6 +6,7 @@
 - **Single-Instance Enforcement**: Only one instance of the application can run at a time to prevent conflicts.
 - **Right-Click Menu in Log Entries**: Right-click on any log entry to access options like copying to clipboard, deleting, or editing the date and time.
 - **Encryption**: Secure your log file with AES encryption. Enable via Settings tab, set a strong password, and backup your data. The password is required on startup and is never stored on disk.
+- **Manual Lock/Unlock**: Instantly lock your encrypted log file for security, clearing all data from memory and disabling all operations. Unlock by clicking the button and re-entering your password.
 - **Backup and Restore**: Easily backup your log file with encryption preservation. Backups are filtered to show only LogHog files.
 - **Auto-Clear for Security**: For encrypted logs, automatically exit after a configurable period of inactivity to protect sensitive data.
 - **Performance Optimizations**: Streaming I/O for non-encrypted logs reduces memory usage for large files.
@@ -35,6 +36,7 @@
 - **Security Notes**: Your log file is encrypted using AES with a key derived from your password. The password is only kept in memory while the app runs and is never saved to disk. <span style="color:red">If you forget your password, your data cannot be recovered.</span>
 - **Usage**: When encryption is enabled, you'll be prompted for your password each time you start the app. If the password is incorrect, you'll see a clear error message and can retry immediately.
 - **Auto-Clear**: For added security, you can set the app to automatically exit after a period of inactivity (default 30 minutes). This clears decrypted data from memory. Configure in Settings.
+- **Manual Lock/Unlock**: For immediate security, click the "Lock File" button in the Full Log tab to instantly lock your encrypted log. This clears all decrypted data from memory, empties all views, and disables all editing operations. A lock message will appear in all relevant areas. To unlock, click the "Unlock File" button and re-enter your password.
 - **Performance**: Encryption adds a small delay to saving and loading, but decrypted content is cached in memory for fast access during your session. **Note**: Enabling encryption may cause the program to load slower, especially in the settings tab when applying changes and in the full log view.
 
 ## Editing Log Entries:
@@ -59,6 +61,12 @@ The Full Log tab renders your log entries with Markdown formatting for better re
 - **Line Breaks**: Use two spaces at the end of a line or a blank line for paragraphs
 
 Formatting is applied in the Full Log window for a polished view of your entries.
+
+## License
+LogHog is licensed under the GNU General Public License version 3 (GPL3). See the license.md file for full license text.
+
+## Changelog
+See CHANGELOG.md for a detailed history of changes and new features.
 
 ## Github repo:
 [GitHub Repository](http://github.com/johandersson/.LOG-hog)
