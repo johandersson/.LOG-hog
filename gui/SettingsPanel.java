@@ -42,6 +42,8 @@ public class SettingsPanel extends JPanel {
     private JTextField reminderField;
     private JSpinner autoClearSpinner;
     private JLabel statusLabel;
+    private JTextField backupDirField;
+    private JButton browseBackupButton;
 
     private void logToFile(String message) {
         try (FileWriter fw = new FileWriter("debug.log", true)) {
@@ -127,6 +129,21 @@ public class SettingsPanel extends JPanel {
         contentPanel.add(backupPanel);
         contentPanel.add(Box.createVerticalStrut(20));
 
+        // Backup directory
+        JPanel backupDirPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        backupDirPanel.setBackground(Color.WHITE);
+        backupDirPanel.setBorder(BorderFactory.createTitledBorder("Backup Directory"));
+        JLabel backupDirLabel = new JLabel("Default backup directory: ");
+        backupDirField = new JTextField(20);
+        browseBackupButton = new JButton("Browse...");
+        browseBackupButton.addActionListener(e -> browseBackupDirectory());
+        backupDirPanel.add(backupDirLabel);
+        backupDirPanel.add(backupDirField);
+        backupDirPanel.add(browseBackupButton);
+
+        contentPanel.add(backupDirPanel);
+        contentPanel.add(Box.createVerticalStrut(20));
+
         // Auto-clear setting
         JPanel autoClearPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         autoClearPanel.setBackground(Color.WHITE);
@@ -179,6 +196,7 @@ public class SettingsPanel extends JPanel {
             autoClearSpinner.setValue(30);
         }
         reminderField.setText(settings.getProperty("passwordReminder", ""));
+        backupDirField.setText(settings.getProperty("backupDirectory", ""));
     }
 
     private void applySettings() {
@@ -202,6 +220,7 @@ public class SettingsPanel extends JPanel {
         int autoClear = (Integer) autoClearSpinner.getValue();
         settings.setProperty("autoClearMinutes", String.valueOf(autoClear));
         settings.setProperty("passwordReminder", reminderField.getText());
+        settings.setProperty("backupDirectory", backupDirField.getText());
         saveSettings();
         statusLabel.setText("Settings saved.");
         statusLabel.setForeground(Color.BLUE);
@@ -273,11 +292,28 @@ public class SettingsPanel extends JPanel {
         }
     }
 
+    private void browseBackupDirectory() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        String current = backupDirField.getText();
+        if (!current.isEmpty()) {
+            chooser.setCurrentDirectory(new java.io.File(current));
+        }
+        int res = chooser.showOpenDialog(editor);
+        if (res == JFileChooser.APPROVE_OPTION) {
+            backupDirField.setText(chooser.getSelectedFile().getAbsolutePath());
+        }
+    }
+
     private void backupLogFile() {
         int confirm = JOptionPane.showConfirmDialog(editor, "Backups are copies of your current log file.\nIf encrypted, the backup will remain encrypted for security.\nDo you want to proceed?", "Backup Info", JOptionPane.YES_NO_OPTION);
         if (confirm != JOptionPane.YES_OPTION) return;
 
         JFileChooser chooser = new JFileChooser();
+        String backupDir = backupDirField.getText();
+        if (!backupDir.isEmpty()) {
+            chooser.setCurrentDirectory(new java.io.File(backupDir));
+        }
         String date = LocalDate.now().toString();
         chooser.setSelectedFile(new java.io.File("loghog-backup-" + date + ".txt"));
         javax.swing.filechooser.FileFilter filter = new javax.swing.filechooser.FileFilter() {

@@ -21,11 +21,10 @@
 - View 10 most recent logs, click one and it will open the app and focus that entry.
 - Add quick log entry directly from the tray menu.
 
-## Encryption
-- **Enabling Encryption**: Access File > Settings to enable encryption. You'll need to set a password (at least 16 characters, including at least one uppercase letter and one special character like !@#$%^&*()_+-=[]{}|;':",./<>?) and confirm it. Optionally, backup your unencrypted log file before proceeding.
-- **Security Notes**: Your log file is encrypted using AES with a key derived from your password. The password is only kept in memory while the app runs and is never saved to disk. If you forget your password, your data cannot be recovered.
-- **Usage**: When encryption is enabled, you'll be prompted for your password each time you start the app. If decryption fails, you can retry or abort loading the logs.
-- **Performance**: Encryption adds a small delay to saving and loading, but decrypted content is cached in memory for fast access during your session.
+## Backups
+- **Manual Backup**: In Settings, click "Backup Log File" to save a copy of your current log file. If encrypted, the backup remains encrypted for security.
+- **Backup Directory**: Set a default directory for all backups in Settings > Backup Directory. Browse to select a folder where backups will be saved. If no directory is set, backups are saved next to the log file.
+- **Automatic Backups**: When enabling or disabling encryption, a backup is automatically created in the specified backup directory (or next to the log file if none is set).
 
 ## Editing Log Entries:
 - **Edit Date/Time**: Right-click on a log entry and select "Edit Date/Time" to change its timestamp. Enter the new date and time in the format HH:mm yyyy-MM-dd.

@@ -529,7 +529,7 @@ public class LogTextEditor extends JFrame {
 
     public static void main(String[] args) {
         if (SingleInstanceManager.isAnotherInstanceRunning()) {
-            SingleInstanceManager.showAlreadyRunningDialog();
+            SingleInstanceManager.notifyExistingInstance();
             System.exit(0);
         }
 
@@ -537,6 +537,7 @@ public class LogTextEditor extends JFrame {
             LogTextEditor editor = new LogTextEditor();
             instance = editor;
             editor.setVisible(true);
+            editor.startSingleInstanceListener();
         });
     }
 
@@ -568,10 +569,37 @@ public class LogTextEditor extends JFrame {
         }
     }
 
+    private void startSingleInstanceListener() {
+        Thread listenerThread = new Thread(() -> {
+            try {
+                while (true) {
+                    java.net.Socket clientSocket = SingleInstanceManager.getServerSocket().accept();
+                    java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(clientSocket.getInputStream()));
+                    String message = in.readLine();
+                    if ("BRING_TO_FRONT".equals(message)) {
+                        SwingUtilities.invokeLater(() -> {
+                            checkIfWindowIsVisible();
+                            this.toFront();
+                            this.requestFocus();
+                        });
+                    }
+                    in.close();
+                    clientSocket.close();
+                }
+            } catch (java.io.IOException e) {
+                // Socket closed, which is expected when the application exits
+            }
+        });
+        listenerThread.setDaemon(true);
+        listenerThread.start();
+    }
+
     private void loadSettings() {
         if (java.nio.file.Files.exists(settingsPath)) {
             try (java.io.FileInputStream fis = new java.io.FileInputStream(settingsPath.toFile())) {
                 settings.load(fis);
+                String backupDir = settings.getProperty("backupDirectory", "");
+                logFileHandler.setBackupDirectory(backupDir);
                 String enc = settings.getProperty("encrypted");
                 String autoClearStr = settings.getProperty("autoClearMinutes", "30");
                 autoClearMinutes = Integer.parseInt(autoClearStr);

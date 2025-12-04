@@ -18,7 +18,9 @@
 package main;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
+import java.net.Socket;
 import javax.swing.JOptionPane;
 
 public class SingleInstanceManager {
@@ -36,5 +38,22 @@ public class SingleInstanceManager {
 
     public static void showAlreadyRunningDialog() {
         JOptionPane.showMessageDialog(null, "Another instance is already running.");
+    }
+
+    public static ServerSocket getServerSocket() {
+        return serverSocket;
+    }
+
+    public static void notifyExistingInstance() {
+        try {
+            Socket socket = new Socket("localhost", PORT);
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            out.println("BRING_TO_FRONT");
+            out.close();
+            socket.close();
+        } catch (IOException e) {
+            // If we can't connect, just show the dialog
+            showAlreadyRunningDialog();
+        }
     }
 }
