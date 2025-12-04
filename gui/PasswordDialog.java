@@ -25,24 +25,16 @@ public class PasswordDialog extends JDialog {
     private JButton toggleButton;
     private JButton okButton;
     private JButton cancelButton;
-    private JCheckBox alwaysShowCheckBox;
     private char[] password;
     private boolean visible = false;
-    private boolean alwaysShow = false;
     private String reminder;
     private String customMessage;
 
-    public PasswordDialog(Frame parent, String title, String reminder, boolean initialVisible) {
-        this(parent, title, reminder, initialVisible, null);
-    }
-
-    public PasswordDialog(Frame parent, String title, String reminder, boolean initialVisible, String customMessage) {
+    public PasswordDialog(Frame parent, String title, String reminder, String customMessage) {
         super(parent, title, true);
         this.reminder = reminder;
-        this.visible = initialVisible;
         this.customMessage = customMessage;
         initComponents();
-        updateVisibility(visible);
         pack();
         setLocationRelativeTo(parent);
     }
@@ -70,18 +62,22 @@ public class PasswordDialog extends JDialog {
         passwordField = new JPasswordField(20);
 
         toggleButton = new JButton("Show");
-        toggleButton.addActionListener(e -> updateVisibility(!visible));
+        toggleButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                updateVisibility(true);
+            }
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                updateVisibility(false);
+            }
+        });
 
         JPanel fieldPanel = new JPanel(new BorderLayout());
         fieldPanel.add(passwordField, BorderLayout.CENTER);
         fieldPanel.add(toggleButton, BorderLayout.EAST);
 
         centerPanel.add(fieldPanel, BorderLayout.CENTER);
-
-        alwaysShowCheckBox = new JCheckBox("Always show password in plain text");
-        alwaysShowCheckBox.setSelected(visible);
-        alwaysShowCheckBox.addActionListener(e -> updateVisibility(alwaysShowCheckBox.isSelected()));
-        centerPanel.add(alwaysShowCheckBox, BorderLayout.SOUTH);
 
         add(centerPanel, BorderLayout.CENTER);
 
@@ -91,7 +87,6 @@ public class PasswordDialog extends JDialog {
 
         okButton.addActionListener(e -> {
             password = passwordField.getPassword();
-            alwaysShow = alwaysShowCheckBox.isSelected();
             setVisible(false);
         });
 
@@ -116,7 +111,6 @@ public class PasswordDialog extends JDialog {
             passwordField.setEchoChar('*');
             toggleButton.setText("Show");
         }
-        alwaysShowCheckBox.setSelected(visible);
         passwordField.requestFocusInWindow();
     }
 
@@ -124,29 +118,23 @@ public class PasswordDialog extends JDialog {
         return password;
     }
 
-    public boolean isAlwaysShow() {
-        return alwaysShow;
+    public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder) {
+        PasswordDialog dialog = new PasswordDialog(parent, title, reminder, null);
+        dialog.setVisible(true);
+        return new PasswordResult(dialog.getPassword());
     }
 
-    public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, boolean initialVisible) {
-        PasswordDialog dialog = new PasswordDialog(parent, title, reminder, initialVisible);
+    public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, String customMessage) {
+        PasswordDialog dialog = new PasswordDialog(parent, title, reminder, customMessage);
         dialog.setVisible(true);
-        return new PasswordResult(dialog.getPassword(), dialog.isAlwaysShow());
-    }
-
-    public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, boolean initialVisible, String customMessage) {
-        PasswordDialog dialog = new PasswordDialog(parent, title, reminder, initialVisible, customMessage);
-        dialog.setVisible(true);
-        return new PasswordResult(dialog.getPassword(), dialog.isAlwaysShow());
+        return new PasswordResult(dialog.getPassword());
     }
 
     public static class PasswordResult {
         public final char[] password;
-        public final boolean alwaysShow;
 
-        public PasswordResult(char[] password, boolean alwaysShow) {
+        public PasswordResult(char[] password) {
             this.password = password;
-            this.alwaysShow = alwaysShow;
         }
     }
 }
