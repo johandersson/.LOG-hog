@@ -296,7 +296,9 @@ public class SettingsPanel extends JPanel {
     private void saveSettings() {
         try (FileOutputStream fos = new FileOutputStream(settingsPath.toFile())) {
             settings.store(fos, "LogHog settings");
+            logToFile("Settings saved successfully.");
         } catch (Exception e) {
+            logToFile("Error saving settings: " + e.getMessage());
             JOptionPane.showMessageDialog(editor, "Error saving settings: " + e.getMessage());
         }
     }
