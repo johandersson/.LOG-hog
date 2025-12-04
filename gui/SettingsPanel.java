@@ -1,31 +1,38 @@
 package gui;
 
-import javax.swing.*;
+import filehandling.LogFileHandler;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.Properties;
+import javax.swing.*;
 import main.LogTextEditor;
-import filehandling.LogFileHandler;
 
 public class SettingsPanel extends JPanel {
-    private LogTextEditor editor;
-    private Properties settings;
-    private Path settingsPath;
-    private LogFileHandler logFileHandler;
+    private final LogTextEditor editor;
+    private final Properties settings;
+    private final Path settingsPath;
+    private final LogFileHandler logFileHandler;
 
     private JCheckBox encryptionCheckBox;
     private JButton applyButton;
-    private JLabel statusLabel;
-    private JSpinner autoClearSpinner;
     private JTextField reminderField;
+    private JSpinner autoClearSpinner;
+    private JLabel statusLabel;
+
+    private void logToFile(String message) {
+        try (FileWriter fw = new FileWriter("debug.log", true)) {
+            fw.write(message + "\n");
+        } catch (IOException e) {
+            // Optionally log to a logger or ignore
+        }
+    }
 
     public SettingsPanel(LogTextEditor editor, Properties settings, Path settingsPath, LogFileHandler logFileHandler) {
         this.editor = editor;
@@ -82,12 +89,7 @@ public class SettingsPanel extends JPanel {
         decryptPanel.setBorder(BorderFactory.createTitledBorder("Decrypt File"));
         
         JButton decryptButton = new JButton("Decrypt Log File");
-        decryptButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                decryptLogFile();
-            }
-        });
+        decryptButton.addActionListener(e -> decryptLogFile());
         
         JLabel decryptWarning = new JLabel("<html><b>Warning:</b> This will permanently decrypt your log file and store it in plain text.</html>");
         decryptWarning.setForeground(Color.RED);
@@ -102,12 +104,7 @@ public class SettingsPanel extends JPanel {
         JPanel backupPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         backupPanel.setBackground(Color.WHITE);
         JButton backupButton = new JButton("Backup Log File");
-        backupButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                backupLogFile();
-            }
-        });
+        backupButton.addActionListener(e -> backupLogFile());
         backupPanel.add(backupButton);
 
         contentPanel.add(backupPanel);
@@ -141,12 +138,7 @@ public class SettingsPanel extends JPanel {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         buttonPanel.setBackground(Color.WHITE);
         applyButton = new JButton("Apply Changes");
-        applyButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                applySettings();
-            }
-        });
+        applyButton.addActionListener(e -> applySettings());
         buttonPanel.add(applyButton);
 
         contentPanel.add(buttonPanel);
@@ -165,7 +157,7 @@ public class SettingsPanel extends JPanel {
     private void loadCurrentSettings() {
         String autoClear = settings.getProperty("autoClearMinutes", "30");
         try {
-            autoClearSpinner.setValue(Integer.parseInt(autoClear));
+            autoClearSpinner.setValue(Integer.valueOf(autoClear));
         } catch (NumberFormatException e) {
             autoClearSpinner.setValue(30);
         }
@@ -230,14 +222,20 @@ public class SettingsPanel extends JPanel {
         try {
             logFileHandler.enableEncryption(pwd);
 
+            byte[] saltBytes = logFileHandler.getSalt();
+            String saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
+            logToFile("Salt saved to settings: " + java.util.Arrays.toString(saltBytes));
             settings.setProperty("encrypted", "true");
-            settings.setProperty("salt", Base64.getEncoder().encodeToString(logFileHandler.getSalt()));
+            settings.setProperty("salt", saltBase64);
             saveSettings();
-            
+
             // Verify the settings were saved correctly
             String savedSalt = settings.getProperty("salt");
             if (savedSalt == null || savedSalt.isEmpty()) {
                 throw new Exception("Failed to save encryption salt to settings");
+            }
+            if (!savedSalt.equals(saltBase64)) {
+                throw new Exception("Salt mismatch after save! Expected: " + saltBase64 + ", Got: " + savedSalt);
             }
 
             statusLabel.setText("Encryption enabled successfully.");
@@ -279,7 +277,7 @@ public class SettingsPanel extends JPanel {
             try {
                 Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 statusLabel.setText("Backup saved to: " + backupPath.toString());
-            } catch (Exception ex) {
+            } catch (java.io.IOException | SecurityException ex) {
                 JOptionPane.showMessageDialog(editor, "Backup failed: " + ex.getMessage());
             }
         }

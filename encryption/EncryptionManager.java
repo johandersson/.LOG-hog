@@ -1,5 +1,7 @@
 package encryption;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
@@ -14,12 +16,22 @@ public class EncryptionManager {
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
     private static final int PBKDF2_ITERATIONS = 65536;
-    private static final int AES_KEY_LENGTH = 256;
+    private static final int AES_KEY_LENGTH = 256; // bits
+    private static void logToFile(String message) {
+        try (FileWriter fw = new FileWriter("debug.log", true)) {
+            fw.write(message + "\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static byte[] generateSalt() {
         byte[] salt = new byte[16];
         SecureRandom random = new SecureRandom();
         random.nextBytes(salt);
+        logToFile("EncryptionManager.generateSalt() called");
+        logToFile("  Salt array created: " + java.util.Arrays.toString(salt));
+        logToFile("  Salt Base64: " + java.util.Base64.getEncoder().encodeToString(salt));
         return salt;
     }
 

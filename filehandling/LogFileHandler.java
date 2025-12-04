@@ -384,7 +384,8 @@ public class LogFileHandler {
         // Then save to main file
         Files.write(FILE_PATH, encrypted);
         setEncryption(pwd, this.salt);
-        cachedLines = new ArrayList<>(lines);
+        // Clear cached lines so they'll be re-read from encrypted file
+        cachedLines = null;
     }
 
     public void disableEncryption() throws Exception {
