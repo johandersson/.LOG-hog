@@ -396,14 +396,13 @@ public class LogFileHandler {
         byte[] data = Files.readAllBytes(FILE_PATH);
         SecretKey key = EncryptionManager.deriveKey(password, salt);
         String decrypted = EncryptionManager.decrypt(data, key);
-        List<String> lines = Arrays.asList(decrypted.split("\n"));
         
-        // Save decrypted to backup first
+        // Save decrypted to backup first (as encrypted bytes)
         Path backupPath = FILE_PATH.resolveSibling(FILE_PATH.getFileName().toString() + ".bak");
-        Files.write(backupPath, lines);
+        Files.write(backupPath, data);
         
-        // Then save to main file
-        Files.write(FILE_PATH, lines);
+        // Write decrypted content as plain text (using writeString to preserve encoding)
+        Files.writeString(FILE_PATH, decrypted);
         
         // Clear encryption state
         clearSensitiveData();
