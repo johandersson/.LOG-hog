@@ -340,6 +340,10 @@ public class LogTextEditor extends JFrame {
 
 
     public void deleteSelectedEntry() {
+        if (isLocked) {
+            JOptionPane.showMessageDialog(this, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         String selectedItem = logList.getSelectedValue();
         if (selectedItem == null) return;
 
@@ -381,6 +385,10 @@ public class LogTextEditor extends JFrame {
     }
 
     public void editDateTime() {
+        if (isLocked) {
+            JOptionPane.showMessageDialog(this, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         String selectedItem = logList.getSelectedValue();
         if (selectedItem == null) return;
 
@@ -423,6 +431,10 @@ public class LogTextEditor extends JFrame {
 
 
     public void saveLogEntry() {
+        if (isLocked) {
+            JOptionPane.showMessageDialog(this, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         logFileHandler.saveText(entryPanel.getTextArea().getText(), listModel);
         entryPanel.getTextArea().setText("");
         updateLogListView();
@@ -456,6 +468,10 @@ public class LogTextEditor extends JFrame {
         });
         actionMap.put("load", new AbstractAction() {
             public void actionPerformed(ActionEvent e) {
+                if (isLocked) {
+                    JOptionPane.showMessageDialog(LogTextEditor.this, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
                 try {
                     loadLogEntries();
                     fullLogPanel.loadFullLog();

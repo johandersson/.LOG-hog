@@ -10,12 +10,14 @@ public class EntryPanel extends JPanel {
     private final LogTextEditor editor;
     private final JButton saveBtn;
     private final JLabel lockLabel;
+    private final JScrollPane scrollPane;
 
     public EntryPanel(LogTextEditor editor) {
         this.editor = editor;
         this.textArea = new UndoRedoTextArea();
         this.saveBtn = new AccentButton("Save");
         this.lockLabel = new JLabel("File locked. Press Unlock file in Full log view to unlock it again.", SwingConstants.CENTER);
+        this.scrollPane = new JScrollPane(textArea);
         initPanel();
     }
 
@@ -27,13 +29,10 @@ public class EntryPanel extends JPanel {
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
         textArea.setEditable(true);
-        JScrollPane sp = new JScrollPane(textArea);
-        sp.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
-        add(sp, BorderLayout.CENTER);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
+        add(scrollPane, BorderLayout.CENTER);
 
         lockLabel.setForeground(Color.GRAY);
-        lockLabel.setVisible(false);
-        add(lockLabel, BorderLayout.CENTER);
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
         bottom.setBackground(Color.WHITE);
@@ -49,9 +48,15 @@ public class EntryPanel extends JPanel {
     public void setLocked(boolean locked) {
         textArea.setEditable(!locked);
         saveBtn.setEnabled(!locked);
-        lockLabel.setVisible(locked);
         if (locked) {
             textArea.setText("");
+            remove(scrollPane);
+            add(lockLabel, BorderLayout.CENTER);
+        } else {
+            remove(lockLabel);
+            add(scrollPane, BorderLayout.CENTER);
         }
+        revalidate();
+        repaint();
     }
 }
