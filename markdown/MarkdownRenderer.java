@@ -50,7 +50,7 @@ public class MarkdownRenderer {
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
-        pane.setCaretPosition(pane.getDocument().getLength());
+        // Removed: pane.setCaretPosition(pane.getDocument().getLength()); to prevent auto-scroll to bottom
     }
 
     public static void addLinkListeners(JTextPane pane) {
