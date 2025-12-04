@@ -20,12 +20,14 @@ public class FullLogPanel extends JPanel {
     private final JLabel fullLogPathLabel;
     private final LogFileHandler logFileHandler;
     private final LogTextEditor editor;
+    private final JButton lockFileButton;
 
     public FullLogPanel(LogTextEditor editor, LogFileHandler logFileHandler) {
         this.editor = editor;
         this.logFileHandler = logFileHandler;
         this.fullLogPane = new HighlightableTextPane();
         this.fullLogPathLabel = new JLabel("Log file: (not loaded)");
+        this.lockFileButton = new AccentButton(editor.isLocked() ? "Unlock File" : "Lock File");
         initPanel();
     }
 
@@ -56,6 +58,14 @@ public class FullLogPanel extends JPanel {
         JButton openInNotepadButton = new AccentButton("Open in Notepad");
         openInNotepadButton.addActionListener(e -> NotepadOpener.openLogInNotepad());
         bottom.add(openInNotepadButton);
+        lockFileButton.addActionListener(e -> {
+            if (editor.isLocked()) {
+                editor.manualUnlock();
+            } else {
+                editor.manualLock();
+            }
+        });
+        bottom.add(lockFileButton);
 
         JPanel rightBottomPanel = getRightBottomPanel();
         bottom.add(rightBottomPanel, 0);
@@ -81,6 +91,10 @@ public class FullLogPanel extends JPanel {
         rightBottomSearchPanel.add(prevHighlightBtn);
         rightBottomSearchPanel.add(nextHighlightBtn);
         return rightBottomSearchPanel;
+    }
+
+    public void updateLockButton() {
+        lockFileButton.setText(editor.isLocked() ? "Unlock File" : "Lock File");
     }
 
     public void performSearchInFullLog(String query) {
@@ -112,6 +126,12 @@ public class FullLogPanel extends JPanel {
 
     public void loadFullLog() {
         SwingUtilities.invokeLater(() -> {
+            if (editor.isLocked()) {
+                fullLogPane.setText("");
+                fullLogPathLabel.setText("Log file: (locked)");
+                updateLockButton();
+                return;
+            }
             Path logPath = Path.of(System.getProperty("user.home"), "log.txt");
             if (!Files.exists(logPath)) {
                 showLogNotFound();
@@ -140,6 +160,7 @@ public class FullLogPanel extends JPanel {
                     fallbackReadRaw(logPath);
                 }
             }
+            updateLockButton();
         });
     }
 
