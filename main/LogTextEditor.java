@@ -652,7 +652,14 @@ public class LogTextEditor extends JFrame {
                     success = true;
                 } catch (Exception e) {
                     System.out.println("Decryption failed: " + e.getMessage());
-                    if (e.getMessage().contains("Tag mismatch")) {
+                    String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+                    if (errorMsg.contains("tag mismatch") || 
+                        errorMsg.contains("bad tag") ||
+                        errorMsg.contains("badpadding") || 
+                        errorMsg.contains("illegal block size") ||
+                        errorMsg.contains("aeadbadtag") ||
+                        errorMsg.contains("integrity check failed") ||
+                        errorMsg.contains("mac check failed")) {
                         JOptionPane.showMessageDialog(this, "Incorrect password. Please try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
                     } else {
                         logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
@@ -742,7 +749,14 @@ public class LogTextEditor extends JFrame {
                 }
             } catch (Exception e) {
                 System.out.println("Decryption failed: " + e.getMessage());
-                if (e.getMessage().contains("Tag mismatch")) {
+                String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+                if (errorMsg.contains("tag mismatch") || 
+                    errorMsg.contains("bad tag") ||
+                    errorMsg.contains("badpadding") || 
+                    errorMsg.contains("illegal block size") ||
+                    errorMsg.contains("aeadbadtag") ||
+                    errorMsg.contains("integrity check failed") ||
+                    errorMsg.contains("mac check failed")) {
                     JOptionPane.showMessageDialog(this, "Incorrect password. Please try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
                 } else {
                     logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
