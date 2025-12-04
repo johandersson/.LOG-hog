@@ -13,11 +13,17 @@ public class PasswordDialog extends JDialog {
     private boolean visible = false;
     private boolean alwaysShow = false;
     private String reminder;
+    private String customMessage;
 
     public PasswordDialog(Frame parent, String title, String reminder, boolean initialVisible) {
+        this(parent, title, reminder, initialVisible, null);
+    }
+
+    public PasswordDialog(Frame parent, String title, String reminder, boolean initialVisible, String customMessage) {
         super(parent, title, true);
         this.reminder = reminder;
         this.visible = initialVisible;
+        this.customMessage = customMessage;
         initComponents();
         updateVisibility(visible);
         pack();
@@ -31,7 +37,8 @@ public class PasswordDialog extends JDialog {
         centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         JPanel topPanel = new JPanel(new BorderLayout());
-        JLabel welcomeLabel = new JLabel("<html><center>Welcome back!<br>Enter your password to unlock your encrypted log.</center></html>", SwingConstants.CENTER);
+        String welcomeText = customMessage != null ? customMessage : "Welcome back! Enter your password to unlock your encrypted log.";
+        JLabel welcomeLabel = new JLabel("<html><center>" + welcomeText + "</center></html>", SwingConstants.CENTER);
         welcomeLabel.setFont(welcomeLabel.getFont().deriveFont(Font.PLAIN, 12f));
         topPanel.add(welcomeLabel, BorderLayout.NORTH);
 
@@ -106,6 +113,12 @@ public class PasswordDialog extends JDialog {
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, boolean initialVisible) {
         PasswordDialog dialog = new PasswordDialog(parent, title, reminder, initialVisible);
+        dialog.setVisible(true);
+        return new PasswordResult(dialog.getPassword(), dialog.isAlwaysShow());
+    }
+
+    public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, boolean initialVisible, String customMessage) {
+        PasswordDialog dialog = new PasswordDialog(parent, title, reminder, initialVisible, customMessage);
         dialog.setVisible(true);
         return new PasswordResult(dialog.getPassword(), dialog.isAlwaysShow());
     }
