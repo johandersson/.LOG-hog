@@ -444,19 +444,22 @@ public class LogFileHandler {
 
     public void setEncryption(char[] pwd, byte[] slt) {
         // Clear old sensitive data before setting new
-        if (password != null) {
-            Arrays.fill(password, '\0');
-        }
-        if (salt != null) {
-            Arrays.fill(salt, (byte) 0);
-        }
+        char[] oldPassword = this.password;
+        byte[] oldSalt = this.salt;
+        this.password = pwd.clone();
+        this.salt = slt.clone();
+        this.encrypted = true;
         if (cachedLines != null) {
             cachedLines.clear();
             cachedLines = null;
         }
-        this.password = pwd.clone();
-        this.salt = slt.clone();
-        this.encrypted = true;
+        // Now clear old
+        if (oldPassword != null) {
+            Arrays.fill(oldPassword, '\0');
+        }
+        if (oldSalt != null) {
+            Arrays.fill(oldSalt, (byte) 0);
+        }
     }
 
     public boolean isEncrypted() {

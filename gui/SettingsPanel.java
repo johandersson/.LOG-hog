@@ -222,19 +222,29 @@ public class SettingsPanel extends JPanel {
         try {
             logFileHandler.enableEncryption(pwd);
 
+            // Backup settings file before modifying
+            if (java.nio.file.Files.exists(settingsPath)) {
+                java.nio.file.Path backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+                java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                logToFile("Settings file backed up to: " + backupSettingsPath.toString());
+            }
+
             byte[] saltBytes = logFileHandler.getSalt();
             String saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
-            logToFile("Salt saved to settings: " + java.util.Arrays.toString(saltBytes));
+            logToFile("Salt from handler: " + java.util.Arrays.toString(saltBytes));
+            logToFile("Salt Base64: " + saltBase64);
             settings.setProperty("encrypted", "true");
             settings.setProperty("salt", saltBase64);
             saveSettings();
 
             // Verify the settings were saved correctly
             String savedSalt = settings.getProperty("salt");
+            logToFile("Salt read back from settings: " + savedSalt);
             if (savedSalt == null || savedSalt.isEmpty()) {
                 throw new Exception("Failed to save encryption salt to settings");
             }
             if (!savedSalt.equals(saltBase64)) {
+                logToFile("Salt mismatch! Expected: " + saltBase64 + ", Got: " + savedSalt);
                 throw new Exception("Salt mismatch after save! Expected: " + saltBase64 + ", Got: " + savedSalt);
             }
 
@@ -315,6 +325,13 @@ public class SettingsPanel extends JPanel {
         try {
             // Decrypt the file
             logFileHandler.disableEncryption();
+            
+            // Backup settings file before modifying
+            if (java.nio.file.Files.exists(settingsPath)) {
+                java.nio.file.Path backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+                java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                logToFile("Settings file backed up to: " + backupSettingsPath.toString());
+            }
             
             // Update settings - but save BEFORE clearing in case something goes wrong
             String oldEncrypted = settings.getProperty("encrypted");
