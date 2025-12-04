@@ -50,6 +50,11 @@ public class LogTextEditor extends JFrame {
     private int autoClearMinutes;
     private String passwordReminder = "";
     private boolean alwaysShowPassword = false;
+    private boolean isLocked = false;
+
+    public boolean isLocked() {
+        return isLocked;
+    }
 
     public LogTextEditor() {
         initUI();
@@ -612,29 +617,48 @@ public class LogTextEditor extends JFrame {
 
     private void startInactivityTimer() {
         inactivityTimer = new Timer(autoClearMinutes * 60 * 1000, e -> {
-            logFileHandler.clearSensitiveData();
-            // Clear UI
-            listModel.clear();
-            fullLogPanel.loadFullLog(); // This will show encrypted or empty
-
-            int choice = JOptionPane.showOptionDialog(this,
-                "Auto-clear activated due to " + autoClearMinutes + " minutes of inactivity.\n" +
+            performAutoLock("Auto-clear activated due to " + autoClearMinutes + " minutes of inactivity.\n" +
                 "The log file has been unloaded for security.\n\n" +
-                "Do you want to stay and reload the encrypted log, or exit the program?",
-                "Security Notice",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                new String[]{"Stay and reload file", "Exit program"},
-                "Stay and reload file");
-
-            if (choice == 0) { // Stay and reload
-                reloadEncryptedLog();
-            } else { // Exit or closed
-                System.exit(0);
-            }
+                "Do you want to stay and reload the encrypted log, or exit the program?");
         });
         inactivityTimer.start();
+    }
+
+    public void manualLock() {
+        logFileHandler.clearSensitiveData();
+        // Clear UI
+        listModel.clear();
+        fullLogPanel.loadFullLog(); // This will show empty since locked
+        isLocked = true;
+        updateUILockState();
+    }
+
+    public void manualUnlock() {
+        reloadEncryptedLog();
+    }
+
+    private void performAutoLock(String message) {
+        logFileHandler.clearSensitiveData();
+        // Clear UI
+        listModel.clear();
+        fullLogPanel.loadFullLog(); // This will show encrypted or empty
+        isLocked = true;
+        updateUILockState();
+
+        int choice = JOptionPane.showOptionDialog(this,
+            message,
+            "Security Notice",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            new String[]{"Stay and reload file", "Exit program"},
+            "Stay and reload file");
+
+        if (choice == 0) { // Stay and reload
+            reloadEncryptedLog();
+        } else { // Exit or closed
+            System.exit(0);
+        }
     }
 
     private void reloadEncryptedLog() {
@@ -656,6 +680,8 @@ public class LogTextEditor extends JFrame {
             try {
                 loadLogEntries();
                 success = true;
+                isLocked = false;
+                updateUILockState();
                 if (autoClearMinutes > 0) {
                     startInactivityTimer();
                 }
@@ -669,6 +695,12 @@ public class LogTextEditor extends JFrame {
                 }
             }
         }
+    }
+
+    private void updateUILockState() {
+        entryPanel.setLocked(isLocked);
+        fullLogPanel.updateLockButton();
+        // Also disable logListPanel if needed, but since listModel is cleared, maybe not necessary
     }
 
     private void resetInactivityTimer() {
