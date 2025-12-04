@@ -76,6 +76,28 @@ public class SettingsPanel extends JPanel {
         contentPanel.add(encryptionPanel);
         contentPanel.add(Box.createVerticalStrut(20));
 
+        // Decrypt button
+        JPanel decryptPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        decryptPanel.setBackground(Color.WHITE);
+        decryptPanel.setBorder(BorderFactory.createTitledBorder("Decrypt File"));
+        
+        JButton decryptButton = new JButton("Decrypt Log File");
+        decryptButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                decryptLogFile();
+            }
+        });
+        
+        JLabel decryptWarning = new JLabel("<html><b>Warning:</b> This will permanently decrypt your log file and store it in plain text.</html>");
+        decryptWarning.setForeground(Color.RED);
+        
+        decryptPanel.add(decryptButton);
+        decryptPanel.add(decryptWarning);
+        
+        contentPanel.add(decryptPanel);
+        contentPanel.add(Box.createVerticalStrut(20));
+
         // Backup button
         JPanel backupPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         backupPanel.setBackground(Color.WHITE);
@@ -158,10 +180,13 @@ public class SettingsPanel extends JPanel {
             // Enabling encryption
             enableEncryption();
         } else if (!enable && "true".equals(currentEnc)) {
-            // Disabling encryption - not implemented yet
-            statusLabel.setText("Disabling encryption is not yet implemented.");
+            // User unchecked the box but file is still encrypted
+            statusLabel.setText("Use the 'Decrypt Log File' button to decrypt the file.");
+            statusLabel.setForeground(Color.ORANGE);
+            encryptionCheckBox.setSelected(true); // Keep it checked until they decrypt
+            return;
         } else {
-            statusLabel.setText("No changes to apply.");
+            statusLabel.setText("No encryption changes to apply.");
         }
 
         // Save auto-clear setting
@@ -170,6 +195,7 @@ public class SettingsPanel extends JPanel {
         settings.setProperty("passwordReminder", reminderField.getText());
         saveSettings();
         statusLabel.setText("Settings saved.");
+        statusLabel.setForeground(Color.BLUE);
     }
 
     private void enableEncryption() {
@@ -255,6 +281,60 @@ public class SettingsPanel extends JPanel {
             settings.store(fos, "LogHog settings");
         } catch (Exception e) {
             JOptionPane.showMessageDialog(editor, "Error saving settings: " + e.getMessage());
+        }
+    }
+
+    private void decryptLogFile() {
+        if (!logFileHandler.isEncrypted()) {
+            JOptionPane.showMessageDialog(editor, "The log file is not currently encrypted.", "Not Encrypted", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Show security warning
+        int confirm = JOptionPane.showConfirmDialog(editor,
+            "<html><b>WARNING: Security Risk</b><br><br>" +
+            "This will permanently decrypt your log file and save it as plain text.<br>" +
+            "Anyone with access to your computer will be able to read the file.<br><br>" +
+            "A backup of the encrypted file will be saved as log.txt.bak<br><br>" +
+            "Are you sure you want to proceed?</html>",
+            "Decrypt Log File - Security Warning",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+        
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try {
+            // Decrypt the file
+            logFileHandler.disableEncryption();
+            
+            // Update settings
+            settings.setProperty("encrypted", "false");
+            settings.remove("salt");
+            saveSettings();
+            
+            // Update UI
+            encryptionCheckBox.setSelected(false);
+            statusLabel.setText("File decrypted successfully. Encryption disabled.");
+            statusLabel.setForeground(new Color(0, 128, 0)); // Green
+            
+            // Reload data
+            editor.loadLogEntries();
+            editor.getFullLogPanel().loadFullLog();
+            
+            JOptionPane.showMessageDialog(editor,
+                "Log file has been decrypted successfully.\nA backup of the encrypted file was saved as log.txt.bak",
+                "Decryption Complete",
+                JOptionPane.INFORMATION_MESSAGE);
+                
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(editor,
+                "Decryption failed: " + ex.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            statusLabel.setText("Decryption failed.");
+            statusLabel.setForeground(Color.RED);
         }
     }
 }

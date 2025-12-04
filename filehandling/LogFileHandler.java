@@ -54,15 +54,15 @@ public class LogFileHandler {
             listModel.addElement(uniqueTimeStamp);
             sortListModel(listModel);
 
-            // Normalize the entire file to ensure consistent blank lines
-            normalizeFile();
+            // Sort and normalize the entire file to ensure consistent blank lines and ordering
+            sortAndNormalizeFile();
         } catch (Exception e) {
             showErrorDialog("Error saving text: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
         }
     }
 
-    //normalize file
-    private void normalizeFile() throws Exception {
+    //sort and normalize file
+    private void sortAndNormalizeFile() throws Exception {
         if (!Files.exists(FILE_PATH)) return;
 
         List<String> lines;
@@ -71,7 +71,12 @@ public class LogFileHandler {
         } else {
             lines = Files.readAllLines(FILE_PATH);
         }
-        List<String> normalized = getNormalized(lines);
+        
+        // Sort entries by timestamp
+        List<String> sortedLines = sortEntriesByTimestamp(lines);
+        
+        // Normalize spacing
+        List<String> normalized = getNormalized(sortedLines);
 
         if (encrypted) {
             cachedLines = new ArrayList<>(normalized);
@@ -132,7 +137,7 @@ public class LogFileHandler {
         }
     }
 
-    public void changeTimestamp(String oldTimestamp, String newTimestamp) {
+    public void changeTimestamp(String oldTimestamp, String newTimestamp, DefaultListModel<String> listModel) {
         if (!Files.exists(FILE_PATH)) return;
 
         try {
@@ -149,16 +154,29 @@ public class LogFileHandler {
                 }
             }
 
+            // Sort entries by timestamp
+            List<String> sortedLines = sortEntriesByTimestamp(lines);
+            
+            // Normalize spacing
+            List<String> normalized = getNormalized(sortedLines);
+
             if (encrypted) {
-                cachedLines = new ArrayList<>(lines);
+                cachedLines = new ArrayList<>(normalized);
                 String fullText = String.join("\n", cachedLines);
                 SecretKey key = EncryptionManager.deriveKey(password, salt);
                 byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
                 Files.write(FILE_PATH, encryptedData);
             } else {
-                Files.write(FILE_PATH, lines);
+                Files.write(FILE_PATH, normalized);
             }
-            normalizeFile();
+            
+            // Update the list model
+            int index = listModel.indexOf(oldTimestamp);
+            if (index != -1) {
+                listModel.remove(index);
+                listModel.addElement(newTimestamp);
+                sortListModel(listModel);
+            }
         } catch (Exception e) {
             showErrorDialog("Error changing timestamp: " + e.getMessage());
         }
@@ -224,7 +242,7 @@ public class LogFileHandler {
         for (String line : lines) {
             String trimmed = line.trim();
             if (trimmed.equalsIgnoreCase(".LOG")) continue;
-            if (tsPattern.matcher(line).matches()) {
+            if (tsPattern.matcher(trimmed).matches()) {
                 if (!currentEntry.isEmpty()) {
                     entries.add(new ArrayList<>(currentEntry));
                     currentEntry.clear();
@@ -244,19 +262,19 @@ public class LogFileHandler {
         List<List<String>> timestampEntries = new ArrayList<>();
         List<List<String>> nonTimestampEntries = new ArrayList<>();
         for (List<String> entry : entries) {
-            if (!entry.isEmpty() && tsPattern.matcher(entry.get(0)).matches()) {
+            if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
                 timestampEntries.add(entry);
             } else {
                 nonTimestampEntries.add(entry);
             }
         }
 
-        // Sort timestamp entries by date ascending (oldest first)
+        // Sort timestamp entries by date descending (newest first)
         timestampEntries.sort((a, b) -> {
             try {
                 LocalDateTime dateA = parseDateForSorting(a.get(0));
                 LocalDateTime dateB = parseDateForSorting(b.get(0));
-                return dateA.compareTo(dateB);
+                return dateB.compareTo(dateA);
             } catch (Exception e) {
                 return 0; // keep original order if parsing fails
             }
@@ -267,10 +285,22 @@ public class LogFileHandler {
         sortedEntries.addAll(nonTimestampEntries);
         sortedEntries.addAll(timestampEntries);
 
-        // Flatten back to lines
+        // Flatten back to lines with consistent spacing
         List<String> sortedLines = new ArrayList<>();
-        for (List<String> entry : sortedEntries) {
+        for (int i = 0; i < sortedEntries.size(); i++) {
+            List<String> entry = sortedEntries.get(i);
+            
+            // Remove trailing blank lines from entry
+            while (!entry.isEmpty() && entry.get(entry.size() - 1).trim().isEmpty()) {
+                entry.remove(entry.size() - 1);
+            }
+            
             sortedLines.addAll(entry);
+            
+            // Add exactly one blank line after each entry except the last one
+            if (i < sortedEntries.size() - 1) {
+                sortedLines.add("");
+            }
         }
 
         return sortedLines;
@@ -355,6 +385,28 @@ public class LogFileHandler {
         Files.write(FILE_PATH, encrypted);
         setEncryption(pwd, this.salt);
         cachedLines = new ArrayList<>(lines);
+    }
+
+    public void disableEncryption() throws Exception {
+        if (!encrypted) {
+            throw new IllegalStateException("File is not encrypted");
+        }
+        
+        // Read and decrypt the current file
+        byte[] data = Files.readAllBytes(FILE_PATH);
+        SecretKey key = EncryptionManager.deriveKey(password, salt);
+        String decrypted = EncryptionManager.decrypt(data, key);
+        List<String> lines = Arrays.asList(decrypted.split("\n"));
+        
+        // Save decrypted to backup first
+        Path backupPath = FILE_PATH.resolveSibling(FILE_PATH.getFileName().toString() + ".bak");
+        Files.write(backupPath, lines);
+        
+        // Then save to main file
+        Files.write(FILE_PATH, lines);
+        
+        // Clear encryption state
+        clearSensitiveData();
     }
 
     private void sortListModel(DefaultListModel<String> listModel) {

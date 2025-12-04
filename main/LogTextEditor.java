@@ -1,7 +1,8 @@
 package main;
 
+import filehandling.LogFileHandler;
+import gui.*;
 import java.awt.*;
-import java.awt.datatransfer.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.util.*;
@@ -9,9 +10,6 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
-import gui.*;
-import filehandling.LogFileHandler;
-import gui.SystemTrayMenu;
 
 public class LogTextEditor extends JFrame {
 
@@ -397,15 +395,10 @@ public class LogTextEditor extends JFrame {
         }
 
         // update
-        logFileHandler.changeTimestamp(selectedItem, newDateTime.trim());
-        // reload list
-        try {
-            loadLogEntries();
-            fullLogPanel.loadFullLog();
-            SystemTrayMenu.updateRecentLogsMenu();
-        } catch (Exception ex) {
-            logFileHandler.showErrorDialog("Error reloading data: " + ex.getMessage());
-        }
+        logFileHandler.changeTimestamp(selectedItem, newDateTime.trim(), listModel);
+        // reload full log and update menu
+        fullLogPanel.loadFullLog();
+        SystemTrayMenu.updateRecentLogsMenu();
     }
 
     private static JTextArea createPreviewArea(String previewFull) {
