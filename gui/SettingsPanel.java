@@ -231,20 +231,16 @@ public class SettingsPanel extends JPanel {
 
             byte[] saltBytes = logFileHandler.getSalt();
             String saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
-            logToFile("Salt from handler: " + java.util.Arrays.toString(saltBytes));
-            logToFile("Salt Base64: " + saltBase64);
             settings.setProperty("encrypted", "true");
             settings.setProperty("salt", saltBase64);
             saveSettings();
 
             // Verify the settings were saved correctly
             String savedSalt = settings.getProperty("salt");
-            logToFile("Salt read back from settings: " + savedSalt);
             if (savedSalt == null || savedSalt.isEmpty()) {
                 throw new Exception("Failed to save encryption salt to settings");
             }
             if (!savedSalt.equals(saltBase64)) {
-                logToFile("Salt mismatch! Expected: " + saltBase64 + ", Got: " + savedSalt);
                 throw new Exception("Salt mismatch after save! Expected: " + saltBase64 + ", Got: " + savedSalt);
             }
 
