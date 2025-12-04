@@ -4,6 +4,8 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
 import java.util.regex.*;
@@ -46,6 +48,21 @@ public class MarkdownRenderer {
             if (!currentEntry.isEmpty()) {
                 entries.add(currentEntry);
             }
+
+            // Sort entries oldest first
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.getDefault());
+            entries.sort((a, b) -> {
+                try {
+                    String dateStrA = a.get(0).trim().replaceAll(" \\(\\d+\\)", "");
+                    String dateStrB = b.get(0).trim().replaceAll(" \\(\\d+\\)", "");
+                    LocalDateTime dateA = LocalDateTime.parse(dateStrA, formatter);
+                    LocalDateTime dateB = LocalDateTime.parse(dateStrB, formatter);
+                    return dateA.compareTo(dateB);
+                } catch (Exception e) {
+                    return 0;
+                }
+            });
+
             renderEntries(entries, doc, styles);
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
