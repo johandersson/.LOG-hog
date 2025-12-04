@@ -152,6 +152,8 @@ public class FullLogPanel extends JPanel {
     public void loadFullLog() {
         SwingUtilities.invokeLater(() -> {
             if (editor.isLocked()) {
+                fullLogPane.setText("");
+                fullLogPane.clearHighlights();
                 fullLogPane.setContentType("text/plain");
                 fullLogPane.setText("File locked. Press Unlock file in Full log view to unlock it again.");
                 fullLogPane.setForeground(Color.GRAY);
