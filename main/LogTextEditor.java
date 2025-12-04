@@ -319,6 +319,10 @@ public class LogTextEditor extends JFrame {
     }
 
     public void saveEditedLogEntry() {
+        if (isLocked) {
+            JOptionPane.showMessageDialog(this, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         String selectedItem = logList.getSelectedValue();
         if (selectedItem == null) return;
 
@@ -732,6 +736,7 @@ public class LogTextEditor extends JFrame {
 
     private void updateUILockState() {
         entryPanel.setLocked(isLocked);
+        logListPanel.setLocked(isLocked);
         fullLogPanel.updateLockButton();
         // Also disable logListPanel if needed, but since listModel is cleared, maybe not necessary
     }
