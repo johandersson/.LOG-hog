@@ -20,6 +20,7 @@ package filehandling;
 import encryption.EncryptionManager;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -34,6 +35,7 @@ public class LogFileHandler {
     private boolean encrypted = false;
     private char[] password;
     private byte[] salt;
+    private String backupDirectory = "";
     List<String> cachedLines = new ArrayList<>();
     private final EntryLoader entryLoader = new EntryLoader(this);
 
@@ -396,7 +398,7 @@ public class LogFileHandler {
         SecretKey key = EncryptionManager.deriveKey(pwd, this.salt);
         byte[] encrypted = EncryptionManager.encrypt(fullText, key);
         // Save encrypted to backup first
-        Path backupPath = FILE_PATH.resolveSibling(FILE_PATH.getFileName().toString() + ".bak");
+        Path backupPath = getBackupPath(FILE_PATH.getFileName().toString() + ".bak");
         Files.write(backupPath, encrypted);
         // Then save to main file
         Files.write(FILE_PATH, encrypted);
@@ -416,7 +418,7 @@ public class LogFileHandler {
         String decrypted = EncryptionManager.decrypt(data, key);
         
         // Save decrypted to backup first (as encrypted bytes)
-        Path backupPath = FILE_PATH.resolveSibling(FILE_PATH.getFileName().toString() + ".bak");
+        Path backupPath = getBackupPath(FILE_PATH.getFileName().toString() + ".bak");
         Files.write(backupPath, data);
         
         // Write decrypted content as plain text (using writeString to preserve encoding)
@@ -493,6 +495,25 @@ public class LogFileHandler {
 
     public Path getFilePath() {
         return FILE_PATH;
+    }
+
+    public void setBackupDirectory(String backupDirectory) {
+        this.backupDirectory = backupDirectory != null ? backupDirectory : "";
+    }
+
+    private Path getBackupPath(String filename) {
+        if (backupDirectory != null && !backupDirectory.isEmpty()) {
+            Path dir = Paths.get(backupDirectory);
+            try {
+                Files.createDirectories(dir);
+            } catch (Exception e) {
+                // If can't create, fall back to sibling
+                return FILE_PATH.resolveSibling(filename);
+            }
+            return dir.resolve(filename);
+        } else {
+            return FILE_PATH.resolveSibling(filename);
+        }
     }
 
 
