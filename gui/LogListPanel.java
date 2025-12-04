@@ -17,14 +17,14 @@
 
 package gui;
 
+import filehandling.LogFileHandler;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.stream.IntStream;
 import javax.swing.*;
-import utils.UndoRedoTextArea;
-import filehandling.LogFileHandler;
 import main.LogTextEditor;
+import utils.UndoRedoTextArea;
 
 public class LogListPanel extends JPanel {
     private final JList<String> logList;
@@ -32,6 +32,9 @@ public class LogListPanel extends JPanel {
     private final JTextArea entryArea;
     private final LogFileHandler logFileHandler;
     private final LogTextEditor editor;
+    private final JScrollPane entryScroll;
+    private final JLabel lockLabel;
+    private final JPanel entryContainer;
 
     public LogListPanel(LogTextEditor editor, LogFileHandler logFileHandler, DefaultListModel<String> listModel, JList<String> logList) {
         this.editor = editor;
@@ -39,6 +42,9 @@ public class LogListPanel extends JPanel {
         this.listModel = listModel;
         this.logList = logList;
         this.entryArea = new UndoRedoTextArea();
+        this.entryScroll = new JScrollPane(entryArea);
+        this.lockLabel = new JLabel("File locked. Press Unlock file in Full log view to unlock it again.", SwingConstants.CENTER);
+        this.entryContainer = new JPanel(new BorderLayout());
         initPanel();
     }
 
@@ -113,14 +119,16 @@ public class LogListPanel extends JPanel {
                 BorderFactory.createEmptyBorder(6, 6, 6, 6)
         ));
 
-        JPanel entryContainer = new JPanel(new BorderLayout());
+        JPanel entryContainer = this.entryContainer;
         entryContainer.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
         entryArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         entryArea.setLineWrap(true);
         entryArea.setWrapStyleWord(true);
-        JScrollPane entryScroll = new JScrollPane(entryArea);
         entryScroll.setPreferredSize(new Dimension(600, 220));
         entryContainer.add(entryScroll, BorderLayout.CENTER);
+
+        lockLabel.setForeground(Color.GRAY);
+        // Initially not added
 
         split.setLeftComponent(listScroll);
         split.setRightComponent(entryContainer);
@@ -215,5 +223,19 @@ public class LogListPanel extends JPanel {
 
     public JTextArea getEntryArea() {
         return entryArea;
+    }
+
+    public void setLocked(boolean locked) {
+        entryArea.setEditable(!locked);
+        if (locked) {
+            entryArea.setText("");
+            entryContainer.remove(entryScroll);
+            entryContainer.add(lockLabel, BorderLayout.CENTER);
+        } else {
+            entryContainer.remove(lockLabel);
+            entryContainer.add(entryScroll, BorderLayout.CENTER);
+        }
+        entryContainer.revalidate();
+        entryContainer.repaint();
     }
 }
