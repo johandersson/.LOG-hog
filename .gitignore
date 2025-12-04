@@ -35,3 +35,6 @@ bin/
 manifest.txt
 build.bat
 run.bat
+
+### Logs ###
+debug.log
