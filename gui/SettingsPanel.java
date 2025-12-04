@@ -233,13 +233,22 @@ public class SettingsPanel extends JPanel {
             settings.setProperty("encrypted", "true");
             settings.setProperty("salt", Base64.getEncoder().encodeToString(logFileHandler.getSalt()));
             saveSettings();
+            
+            // Verify the settings were saved correctly
+            String savedSalt = settings.getProperty("salt");
+            if (savedSalt == null || savedSalt.isEmpty()) {
+                throw new Exception("Failed to save encryption salt to settings");
+            }
 
             statusLabel.setText("Encryption enabled successfully.");
+            statusLabel.setForeground(Color.BLUE);
             editor.loadLogEntries();
             editor.getFullLogPanel().loadFullLog();
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(editor, "Encryption failed: " + ex.getMessage());
+            statusLabel.setText("Encryption failed: " + ex.getMessage());
+            statusLabel.setForeground(Color.RED);
         }
     }
 
@@ -309,10 +318,26 @@ public class SettingsPanel extends JPanel {
             // Decrypt the file
             logFileHandler.disableEncryption();
             
-            // Update settings
+            // Update settings - but save BEFORE clearing in case something goes wrong
+            String oldEncrypted = settings.getProperty("encrypted");
+            String oldSalt = settings.getProperty("salt");
+            
             settings.setProperty("encrypted", "false");
             settings.remove("salt");
             saveSettings();
+            
+            // Verify decryption worked by trying to read the file
+            try {
+                editor.loadLogEntries();
+            } catch (Exception verifyEx) {
+                // Rollback settings
+                settings.setProperty("encrypted", oldEncrypted);
+                if (oldSalt != null) {
+                    settings.setProperty("salt", oldSalt);
+                }
+                saveSettings();
+                throw new Exception("Decryption verification failed: " + verifyEx.getMessage());
+            }
             
             // Update UI
             encryptionCheckBox.setSelected(false);
@@ -320,7 +345,6 @@ public class SettingsPanel extends JPanel {
             statusLabel.setForeground(new Color(0, 128, 0)); // Green
             
             // Reload data
-            editor.loadLogEntries();
             editor.getFullLogPanel().loadFullLog();
             
             JOptionPane.showMessageDialog(editor,
