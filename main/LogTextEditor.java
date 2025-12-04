@@ -617,19 +617,20 @@ public class LogTextEditor extends JFrame {
             listModel.clear();
             fullLogPanel.loadFullLog(); // This will show encrypted or empty
 
-            int choice = JOptionPane.showConfirmDialog(this,
+            int choice = JOptionPane.showOptionDialog(this,
                 "Auto-clear activated due to " + autoClearMinutes + " minutes of inactivity.\n" +
                 "The log file has been unloaded for security.\n\n" +
-                "Do you want to exit the program, or stay and reload the encrypted log?",
+                "Do you want to stay and reload the encrypted log, or exit the program?",
                 "Security Notice",
                 JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE);
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                new String[]{"Stay and reload file", "Exit program"},
+                "Stay and reload file");
 
-            if (choice == JOptionPane.YES_OPTION) {
-                // Stay and reload
+            if (choice == 0) { // Stay and reload
                 reloadEncryptedLog();
-            } else {
-                // Exit
+            } else { // Exit or closed
                 System.exit(0);
             }
         });
