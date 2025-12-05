@@ -38,3 +38,6 @@ run.bat
 
 ### Logs ###
 debug.log
+
+### Copilot ###
+copilot_instructions.md

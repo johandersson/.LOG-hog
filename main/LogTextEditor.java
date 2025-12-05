@@ -178,6 +178,8 @@ public class LogTextEditor extends JFrame {
         tabPane.addChangeListener(e -> {
             if (tabPane.getSelectedIndex() == 2) {
                 fullLogPanel.loadFullLog();
+            } else if (tabPane.getSelectedIndex() == 3) {
+                settingsPanel.loadCurrentSettings();
             }
         });
         contentCard.add(tabPane, BorderLayout.CENTER);
@@ -400,6 +402,7 @@ public class LogTextEditor extends JFrame {
             selectFirstLogIfAny();
             fullLogPanel.loadFullLog(); // update full log view after deletion
             SystemTrayMenu.updateRecentLogsMenu();
+            Toast.showToast(this, "Entry deleted successfully!");
         }
     }
 
@@ -597,6 +600,7 @@ public class LogTextEditor extends JFrame {
         if (java.nio.file.Files.exists(settingsPath)) {
             try (java.io.FileInputStream fis = new java.io.FileInputStream(settingsPath.toFile())) {
                 settings.load(fis);
+                settingsPanel.loadCurrentSettings();
                 String backupDir = settings.getProperty("backupDirectory", "");
                 logFileHandler.setBackupDirectory(backupDir);
                 String enc = settings.getProperty("encrypted");
@@ -649,7 +653,6 @@ public class LogTextEditor extends JFrame {
                     loadLogEntries();
                     success = true;
                 } catch (Exception e) {
-                    System.out.println("Decryption failed: " + e.getMessage());
                     String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
                     if (errorMsg.contains("tag mismatch") || 
                         errorMsg.contains("bad tag") ||
@@ -708,7 +711,6 @@ public class LogTextEditor extends JFrame {
                 updateUILockState();
                 fullLogPanel.loadFullLog(); // Refresh full log view after successful decryption
             } catch (Exception e) {
-                System.out.println("Decryption failed: " + e.getMessage());
                 String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
                 if (errorMsg.contains("tag mismatch") || 
                     errorMsg.contains("bad tag") ||

@@ -30,6 +30,7 @@ import java.util.Base64;
 import java.util.Properties;
 import javax.swing.*;
 import main.LogTextEditor;
+import utils.Toast;
 
 public class SettingsPanel extends JPanel {
     private final LogTextEditor editor;
@@ -175,7 +176,7 @@ public class SettingsPanel extends JPanel {
         add(contentPanel, BorderLayout.NORTH);
     }
 
-    private void loadCurrentSettings() {
+    public void loadCurrentSettings() {
         reminderField.setText(settings.getProperty("passwordReminder", ""));
         backupDirField.setText(settings.getProperty("backupDirectory", ""));
     }
@@ -205,6 +206,7 @@ public class SettingsPanel extends JPanel {
         loadCurrentSettings(); // Refresh fields with saved values
         statusLabel.setText("Settings saved.");
         statusLabel.setForeground(Color.BLUE);
+        Toast.showToast(editor, "Settings saved!");
     }
 
     private void enableEncryption() {
