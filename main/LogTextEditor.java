@@ -26,6 +26,7 @@ import java.util.*;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import utils.Toast;
 
 public class LogTextEditor extends JFrame {
 
@@ -327,7 +328,7 @@ public class LogTextEditor extends JFrame {
         logList.setSelectedValue(selectedItem, true);
         fullLogPanel.loadFullLog();
         SystemTrayMenu.updateRecentLogsMenu();
-        showToast("Entry updated successfully!");
+        Toast.showToast(this, "Entry updated successfully!");
     }
 
     // Helper: choose and show first log if list has any entries
@@ -458,7 +459,7 @@ public class LogTextEditor extends JFrame {
         updateLogListView();
         fullLogPanel.loadFullLog(); // update full log view after save
         SystemTrayMenu.updateRecentLogsMenu();
-        showToast("Entry saved successfully!");
+        Toast.showToast(this, "Entry saved successfully!");
     }
 
     public void loadLogEntries() throws Exception {
@@ -734,60 +735,6 @@ public class LogTextEditor extends JFrame {
 
     public void updatePasswordReminder(String reminder) {
         this.passwordReminder = reminder;
-    }
-
-    private void showToast(String message) {
-        JWindow toast = new JWindow();
-        toast.setBackground(new Color(0, 0, 0, 0)); // Transparent background
-
-        // Create a panel with rounded corners
-        JPanel panel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(0, 0, 0, 150));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
-                g2.dispose();
-            }
-        };
-        panel.setOpaque(false);
-        panel.setLayout(new BorderLayout());
-
-        JLabel label = new JLabel(message);
-        label.setOpaque(false);
-        label.setForeground(Color.WHITE);
-        label.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        panel.add(label, BorderLayout.CENTER);
-
-        toast.add(panel);
-        toast.pack();
-
-        // Position at center of the main window
-        Dimension windowSize = getSize();
-        Point windowLocation = getLocationOnScreen();
-        int x = windowLocation.x + (windowSize.width - toast.getWidth()) / 2;
-        int y = windowLocation.y + (windowSize.height - toast.getHeight()) / 2;
-        toast.setLocation(x, y);
-
-        toast.setVisible(true);
-
-        // Fade out after 1 second
-        javax.swing.Timer timer = new javax.swing.Timer(1000, e -> {
-            javax.swing.Timer fadeTimer = new javax.swing.Timer(25, null);
-            fadeTimer.addActionListener(ev -> {
-                float opacity = toast.getOpacity();
-                if (opacity > 0) {
-                    toast.setOpacity(Math.max(0.0f, opacity - 0.1f));
-                } else {
-                    fadeTimer.stop();
-                    toast.dispose();
-                }
-            });
-            fadeTimer.start();
-        });
-        timer.setRepeats(false);
-        timer.start();
     }
 
 }
