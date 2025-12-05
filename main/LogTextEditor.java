@@ -732,6 +732,10 @@ public class LogTextEditor extends JFrame {
         // Also disable logListPanel if needed, but since listModel is cleared, maybe not necessary
     }
 
+    public void updatePasswordReminder(String reminder) {
+        this.passwordReminder = reminder;
+    }
+
     private void showToast(String message) {
         JWindow toast = new JWindow();
         toast.setBackground(new Color(0, 0, 0, 0)); // Transparent background
