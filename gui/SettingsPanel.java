@@ -185,23 +185,37 @@ public class SettingsPanel extends JPanel {
         boolean enable = encryptionCheckBox.isSelected();
         String currentEnc = settings.getProperty("encrypted");
 
+        // Check if encryption setting changed
         if (enable && !"true".equals(currentEnc)) {
             // Enabling encryption
             enableEncryption();
+            return; // enableEncryption handles its own saving
         } else if (!enable && "true".equals(currentEnc)) {
             // User unchecked the box but file is still encrypted
             statusLabel.setText("Use the 'Decrypt Log File' button to decrypt the file.");
             statusLabel.setForeground(Color.ORANGE);
             encryptionCheckBox.setSelected(true); // Keep it checked until they decrypt
             return;
-        } else {
-            statusLabel.setText("No encryption changes to apply.");
+        }
+
+        // Check if any settings actually changed
+        String currentReminder = settings.getProperty("passwordReminder", "");
+        String currentBackupDir = settings.getProperty("backupDirectory", "");
+        String newReminder = reminderField.getText();
+        String newBackupDir = backupDirField.getText();
+
+        boolean settingsChanged = !currentReminder.equals(newReminder) || !currentBackupDir.equals(newBackupDir);
+
+        if (!settingsChanged) {
+            statusLabel.setText("No changes to apply.");
+            statusLabel.setForeground(Color.BLUE);
+            return;
         }
 
         // Save settings
-        settings.setProperty("passwordReminder", reminderField.getText());
-        editor.updatePasswordReminder(reminderField.getText());
-        settings.setProperty("backupDirectory", backupDirField.getText());
+        settings.setProperty("passwordReminder", newReminder);
+        editor.updatePasswordReminder(newReminder);
+        settings.setProperty("backupDirectory", newBackupDir);
         saveSettings();
         loadCurrentSettings(); // Refresh fields with saved values
         statusLabel.setText("Settings saved.");
