@@ -744,6 +744,7 @@ public class LogTextEditor extends JFrame {
                 success = true;
                 isLocked = false;
                 updateUILockState();
+                fullLogPanel.loadFullLog(); // Refresh full log view after successful decryption
                 if (autoClearMinutes > 0) {
                     startInactivityTimer();
                 }
