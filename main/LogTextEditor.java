@@ -739,12 +739,28 @@ public class LogTextEditor extends JFrame {
     private void showToast(String message) {
         JWindow toast = new JWindow();
         toast.setBackground(new Color(0, 0, 0, 0)); // Transparent background
+
+        // Create a panel with rounded corners
+        JPanel panel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(0, 0, 0, 150));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+                g2.dispose();
+            }
+        };
+        panel.setOpaque(false);
+        panel.setLayout(new BorderLayout());
+
         JLabel label = new JLabel(message);
-        label.setOpaque(true);
-        label.setBackground(new Color(0, 0, 0, 150)); // Semi-transparent black
+        label.setOpaque(false);
         label.setForeground(Color.WHITE);
         label.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        toast.add(label);
+        panel.add(label, BorderLayout.CENTER);
+
+        toast.add(panel);
         toast.pack();
 
         // Position at center of the main window
@@ -756,13 +772,13 @@ public class LogTextEditor extends JFrame {
 
         toast.setVisible(true);
 
-        // Fade out after 2 seconds
-        javax.swing.Timer timer = new javax.swing.Timer(2000, e -> {
-            javax.swing.Timer fadeTimer = new javax.swing.Timer(50, null);
+        // Fade out after 1 second
+        javax.swing.Timer timer = new javax.swing.Timer(1000, e -> {
+            javax.swing.Timer fadeTimer = new javax.swing.Timer(25, null);
             fadeTimer.addActionListener(ev -> {
                 float opacity = toast.getOpacity();
                 if (opacity > 0) {
-                    toast.setOpacity(Math.max(0.0f, opacity - 0.05f));
+                    toast.setOpacity(Math.max(0.0f, opacity - 0.1f));
                 } else {
                     fadeTimer.stop();
                     toast.dispose();
