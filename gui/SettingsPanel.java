@@ -199,6 +199,7 @@ public class SettingsPanel extends JPanel {
 
         // Save settings
         settings.setProperty("passwordReminder", reminderField.getText());
+        editor.updatePasswordReminder(reminderField.getText());
         settings.setProperty("backupDirectory", backupDirField.getText());
         saveSettings();
         loadCurrentSettings(); // Refresh fields with saved values
