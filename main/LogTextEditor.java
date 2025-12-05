@@ -327,6 +327,7 @@ public class LogTextEditor extends JFrame {
         logList.setSelectedValue(selectedItem, true);
         fullLogPanel.loadFullLog();
         SystemTrayMenu.updateRecentLogsMenu();
+        showToast("Entry updated successfully!");
     }
 
     // Helper: choose and show first log if list has any entries
