@@ -111,7 +111,7 @@ public class LogListPanel extends JPanel {
 
         logList.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         logList.setModel(listModel);
-        logList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        logList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
         JScrollPane listScroll = new JScrollPane(logList);
         listScroll.setBorder(BorderFactory.createCompoundBorder(
@@ -165,7 +165,7 @@ public class LogListPanel extends JPanel {
         copyItem.addActionListener(editor.copyLogEntryTextToClipBoard());
         contextMenu.add(copyItem);
         logList.setComponentPopupMenu(contextMenu);
-        JMenuItem deleteItem = new JMenuItem("Delete Entry");
+        JMenuItem deleteItem = new JMenuItem("Delete Selected Entries");
         deleteItem.addActionListener(e -> editor.deleteSelectedEntry());
         contextMenu.add(deleteItem);
         JMenuItem editDateTimeItem = new JMenuItem("Edit Date/Time");
