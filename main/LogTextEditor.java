@@ -742,10 +742,11 @@ public class LogTextEditor extends JFrame {
         toast.add(label);
         toast.pack();
 
-        // Position at bottom center
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        int x = (screenSize.width - toast.getWidth()) / 2;
-        int y = screenSize.height - toast.getHeight() - 50;
+        // Position at center of the main window
+        Dimension windowSize = getSize();
+        Point windowLocation = getLocationOnScreen();
+        int x = windowLocation.x + (windowSize.width - toast.getWidth()) / 2;
+        int y = windowLocation.y + (windowSize.height - toast.getHeight()) / 2;
         toast.setLocation(x, y);
 
         toast.setVisible(true);
@@ -756,7 +757,7 @@ public class LogTextEditor extends JFrame {
             fadeTimer.addActionListener(ev -> {
                 float opacity = toast.getOpacity();
                 if (opacity > 0) {
-                    toast.setOpacity(opacity - 0.05f);
+                    toast.setOpacity(Math.max(0.0f, opacity - 0.05f));
                 } else {
                     fadeTimer.stop();
                     toast.dispose();
