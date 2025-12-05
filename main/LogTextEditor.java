@@ -25,7 +25,6 @@ import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
-import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 
 public class LogTextEditor extends JFrame {
@@ -63,8 +62,6 @@ public class LogTextEditor extends JFrame {
     private final java.util.Properties settings = new java.util.Properties();
     private final java.nio.file.Path settingsPath = java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
 
-    private Timer inactivityTimer;
-    private int autoClearMinutes;
     private String passwordReminder = "";
     private boolean isLocked = false;
 
@@ -139,13 +136,13 @@ public class LogTextEditor extends JFrame {
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                resetInactivityTimer();
+                // Activity detected, but no auto-lock
             }
         });
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                resetInactivityTimer();
+                // Activity detected, but no auto-lock
             }
         });
     }
@@ -460,6 +457,7 @@ public class LogTextEditor extends JFrame {
         updateLogListView();
         fullLogPanel.loadFullLog(); // update full log view after save
         SystemTrayMenu.updateRecentLogsMenu();
+        showToast("Entry saved successfully!");
     }
 
     public void loadLogEntries() throws Exception {
@@ -600,8 +598,6 @@ public class LogTextEditor extends JFrame {
                 String backupDir = settings.getProperty("backupDirectory", "");
                 logFileHandler.setBackupDirectory(backupDir);
                 String enc = settings.getProperty("encrypted");
-                String autoClearStr = settings.getProperty("autoClearMinutes", "30");
-                autoClearMinutes = Integer.parseInt(autoClearStr);
                 passwordReminder = settings.getProperty("passwordReminder", "");
                 boolean dataLoaded = false;
                 if ("true".equals(enc)) {
@@ -667,9 +663,6 @@ public class LogTextEditor extends JFrame {
                     }
                 }
             }
-            if (autoClearMinutes > 0) {
-                startInactivityTimer();
-            }
         }
     }
 
@@ -679,15 +672,6 @@ public class LogTextEditor extends JFrame {
         } catch (Exception e) {
             logFileHandler.showErrorDialog("Error saving settings: " + e.getMessage());
         }
-    }
-
-    private void startInactivityTimer() {
-        inactivityTimer = new Timer(autoClearMinutes * 60 * 1000, e -> {
-            performAutoLock("Auto-clear activated due to " + autoClearMinutes + " minutes of inactivity.\n" +
-                "The log file has been unloaded for security.\n\n" +
-                "Do you want to stay and reload the encrypted log, or exit the program?");
-        });
-        inactivityTimer.start();
     }
 
     public void manualLock() {
@@ -701,30 +685,6 @@ public class LogTextEditor extends JFrame {
 
     public void manualUnlock() {
         reloadEncryptedLog();
-    }
-
-    private void performAutoLock(String message) {
-        logFileHandler.clearSensitiveData();
-        // Clear UI
-        listModel.clear();
-        fullLogPanel.loadFullLog(); // This will show encrypted or empty
-        isLocked = true;
-        updateUILockState();
-
-        int choice = JOptionPane.showOptionDialog(this,
-            message,
-            "Security Notice",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE,
-            null,
-            new String[]{"Stay and reload file", "Exit program"},
-            "Stay and reload file");
-
-        if (choice == 0) { // Stay and reload
-            reloadEncryptedLog();
-        } else { // Exit or closed
-            System.exit(0);
-        }
     }
 
     private void reloadEncryptedLog() {
@@ -745,9 +705,6 @@ public class LogTextEditor extends JFrame {
                 isLocked = false;
                 updateUILockState();
                 fullLogPanel.loadFullLog(); // Refresh full log view after successful decryption
-                if (autoClearMinutes > 0) {
-                    startInactivityTimer();
-                }
             } catch (Exception e) {
                 System.out.println("Decryption failed: " + e.getMessage());
                 String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
@@ -774,10 +731,41 @@ public class LogTextEditor extends JFrame {
         // Also disable logListPanel if needed, but since listModel is cleared, maybe not necessary
     }
 
-    private void resetInactivityTimer() {
-        if (inactivityTimer != null) {
-            inactivityTimer.restart();
-        }
+    private void showToast(String message) {
+        JWindow toast = new JWindow();
+        toast.setBackground(new Color(0, 0, 0, 0)); // Transparent background
+        JLabel label = new JLabel(message);
+        label.setOpaque(true);
+        label.setBackground(new Color(0, 0, 0, 150)); // Semi-transparent black
+        label.setForeground(Color.WHITE);
+        label.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        toast.add(label);
+        toast.pack();
+
+        // Position at bottom center
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int x = (screenSize.width - toast.getWidth()) / 2;
+        int y = screenSize.height - toast.getHeight() - 50;
+        toast.setLocation(x, y);
+
+        toast.setVisible(true);
+
+        // Fade out after 2 seconds
+        javax.swing.Timer timer = new javax.swing.Timer(2000, e -> {
+            javax.swing.Timer fadeTimer = new javax.swing.Timer(50, null);
+            fadeTimer.addActionListener(ev -> {
+                float opacity = toast.getOpacity();
+                if (opacity > 0) {
+                    toast.setOpacity(opacity - 0.05f);
+                } else {
+                    fadeTimer.stop();
+                    toast.dispose();
+                }
+            });
+            fadeTimer.start();
+        });
+        timer.setRepeats(false);
+        timer.start();
     }
 
 }

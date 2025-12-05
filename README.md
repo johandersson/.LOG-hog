@@ -11,7 +11,6 @@ A secure, feature-rich Java Swing logging application.
 - System tray integration with quick entry
 - Markdown rendering in full log view with search
 - Backup and restore with encryption preservation
-- Auto-clear for security (inactivity timeout for encrypted logs)
 - Performance optimizations (streaming I/O for large non-encrypted files)
 - Single-instance enforcement
 - Right-click menus for editing and managing entries
@@ -19,7 +18,7 @@ A secure, feature-rich Java Swing logging application.
 - GPL3 licensed
 
 ## Encryption Warning
-If you enable encryption, the program may load slower, especially in the settings tab when applying changes and in the full log view. This is due to the encryption/decryption process for the log file. For security, encrypted logs can auto-clear after inactivity or be manually locked.
+If you enable encryption, the program may load slower, especially in the settings tab when applying changes and in the full log view. This is due to the encryption/decryption process for the log file.
 
 ## Installation
 Build with `javac *.java` and `jar cvfe loghog.jar LogHog *.class resources/`

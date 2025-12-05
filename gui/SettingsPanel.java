@@ -40,7 +40,6 @@ public class SettingsPanel extends JPanel {
     private JCheckBox encryptionCheckBox;
     private JButton applyButton;
     private JTextField reminderField;
-    private JSpinner autoClearSpinner;
     private JLabel statusLabel;
     private JTextField backupDirField;
     private JButton browseBackupButton;
@@ -144,18 +143,6 @@ public class SettingsPanel extends JPanel {
         contentPanel.add(backupDirPanel);
         contentPanel.add(Box.createVerticalStrut(20));
 
-        // Auto-clear setting
-        JPanel autoClearPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        autoClearPanel.setBackground(Color.WHITE);
-        autoClearPanel.setBorder(BorderFactory.createTitledBorder("Security"));
-        JLabel autoClearLabel = new JLabel("Auto-clear after inactivity (minutes, 0 to disable): ");
-        autoClearSpinner = new JSpinner(new SpinnerNumberModel(30, 0, 120, 5));
-        autoClearPanel.add(autoClearLabel);
-        autoClearPanel.add(autoClearSpinner);
-
-        contentPanel.add(autoClearPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
         // Password reminder
         JPanel reminderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         reminderPanel.setBackground(Color.WHITE);
@@ -189,12 +176,6 @@ public class SettingsPanel extends JPanel {
     }
 
     private void loadCurrentSettings() {
-        String autoClear = settings.getProperty("autoClearMinutes", "30");
-        try {
-            autoClearSpinner.setValue(Integer.valueOf(autoClear));
-        } catch (NumberFormatException e) {
-            autoClearSpinner.setValue(30);
-        }
         reminderField.setText(settings.getProperty("passwordReminder", ""));
         backupDirField.setText(settings.getProperty("backupDirectory", ""));
     }
@@ -216,12 +197,11 @@ public class SettingsPanel extends JPanel {
             statusLabel.setText("No encryption changes to apply.");
         }
 
-        // Save auto-clear setting
-        int autoClear = (Integer) autoClearSpinner.getValue();
-        settings.setProperty("autoClearMinutes", String.valueOf(autoClear));
+        // Save settings
         settings.setProperty("passwordReminder", reminderField.getText());
         settings.setProperty("backupDirectory", backupDirField.getText());
         saveSettings();
+        loadCurrentSettings(); // Refresh fields with saved values
         statusLabel.setText("Settings saved.");
         statusLabel.setForeground(Color.BLUE);
     }
