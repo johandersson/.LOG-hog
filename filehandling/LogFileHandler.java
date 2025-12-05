@@ -29,14 +29,21 @@ import javax.crypto.*;
 import javax.swing.*;
 
 public class LogFileHandler {
-    static final Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
+    static Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.getDefault());
+
+    // For testing only
+    public static void setTestFilePath(Path testPath) {
+        FILE_PATH = testPath;
+    }
 
     private boolean encrypted = false;
     private char[] password;
     private byte[] salt;
     private String backupDirectory = "";
     List<String> cachedLines = new ArrayList<>();
+    private List<List<String>> cachedEntries = null;
+    private long cachedEntriesLastModified = 0;
     private final EntryLoader entryLoader = new EntryLoader(this);
 
     public void saveText(String text, DefaultListModel<String> listModel) {
@@ -75,6 +82,7 @@ public class LogFileHandler {
 
             // Sort and normalize the entire file to ensure consistent blank lines and ordering
             sortAndNormalizeFile();
+            invalidateEntryCache();
         } catch (Exception e) {
             showErrorDialog("Error saving text: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
         }
@@ -405,6 +413,50 @@ public class LogFileHandler {
         setEncryption(pwd, this.salt);
         // Clear cached lines so they'll be re-read from encrypted file
         cachedLines = null;
+    }
+
+    private void invalidateEntryCache() {
+        cachedEntries = null;
+        cachedEntriesLastModified = 0;
+    }
+
+    public List<List<String>> getParsedEntries() throws Exception {
+        if (!Files.exists(FILE_PATH)) {
+            return new ArrayList<>();
+        }
+
+        long currentModified = Files.getLastModifiedTime(FILE_PATH).toMillis();
+        if (cachedEntries == null || currentModified > cachedEntriesLastModified) {
+            List<String> lines = getLines();
+            cachedEntries = parseEntriesFromLines(lines);
+            cachedEntriesLastModified = currentModified;
+        }
+
+        return cachedEntries;
+    }
+
+    private List<List<String>> parseEntriesFromLines(List<String> lines) {
+        List<List<String>> entries = new ArrayList<>();
+        List<String> currentEntry = new ArrayList<>();
+        java.util.regex.Pattern tsPattern = java.util.regex.Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", java.util.regex.Pattern.MULTILINE);
+
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.equalsIgnoreCase(".LOG")) continue;
+            if (tsPattern.matcher(trimmed).matches()) {
+                if (!currentEntry.isEmpty()) {
+                    entries.add(new ArrayList<>(currentEntry));
+                    currentEntry.clear();
+                }
+                currentEntry.add(line);
+            } else if (!currentEntry.isEmpty()) {
+                currentEntry.add(line);
+            }
+        }
+        if (!currentEntry.isEmpty()) {
+            entries.add(currentEntry);
+        }
+        return entries;
     }
 
     public void disableEncryption() throws Exception {
