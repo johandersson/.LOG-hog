@@ -39,5 +39,8 @@ run.bat
 ### Logs ###
 debug.log
 
+### Backup files ###
+*.bak
+
 ### Copilot ###
 copilot_instructions.md
