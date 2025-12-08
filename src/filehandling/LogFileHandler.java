@@ -593,6 +593,11 @@ public class LogFileHandler {
             cachedLines.clear();
             cachedLines = null;
         }
+        if (cachedEntries != null) {
+            cachedEntries.clear();
+            cachedEntries = null;
+            cachedEntriesLastModified = 0;
+        }
         encrypted = false;
     }
 
