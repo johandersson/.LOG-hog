@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Backup directory setting to centralize all backup locations
 - Improved single instance enforcement that brings existing window to front
 - IPC communication between application instances
+- Backward compatibility for encrypted files created with old PBKDF2 iterations
+- Comprehensive encryption compatibility across all decryption operations
 
 ### Changed
 - Updated splash screen entries to remove movie references and focus on themes of mom, coding, coca cola, AI, and pizza
@@ -26,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Password visibility toggle now requires holding button (press to show, release to hide)
 - Removed "Always show password" setting for better security
 - Improved decryption error messages to show user-friendly "Incorrect password" instead of technical errors
+- Modernized codebase with 'var' declarations for local variables (Java 17 feature)
+- Refactored SettingsPanel.java for better maintainability with extracted methods
+- Moved .gitignore to project root for proper repository-wide coverage
+- Enhanced .gitignore with additional patterns for logs, backups, and AI files
 
 ### Fixed
 - LogListPanel now shows lock message and disables editing when locked
@@ -34,6 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Security: No file access or memory reading possible in locked state
 - Backup operations now use configured default directory
 - Password dialog compilation and method declaration issues
+- NullPointerException in SettingsPanel when backupDirField was not initialized
+- Encryption compatibility issue when PBKDF2 iterations were increased
+- All decryption operations now support both old (65,536) and new (100,000) PBKDF2 iterations
+- Repository cleanup: removed debug.log and backup files from version control
 
 ### Security
 - Removed debug.log from repository and added to .gitignore
@@ -41,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive operation blocking in locked state
 - Password visibility requires active user interaction
 - Increased PBKDF2 iterations from 65,536 to 100,000 for enhanced password-based key derivation security
+- Maintained backward compatibility for existing encrypted files
 
 ## [1.0.0] - 2025-12-04
 

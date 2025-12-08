@@ -6,7 +6,7 @@ A secure, feature-rich Java Swing logging application.
 - Tabbed interface for writing and browsing logs
 - Encryption support with AES-GCM (password retry on incorrect entry)
   - Password requirements: at least 16 characters, including at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':",./<>?)
-  - Option to always show password in plain text at startup
+  - Secure password visibility toggle (hold to show, release to hide)
 - Manual lock/unlock for immediate security
 - System tray integration with quick entry
 - Markdown rendering in full log view with search
