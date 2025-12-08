@@ -208,12 +208,15 @@ public class MarkdownRenderer {
         styles.put("list", listStyle);
 
         Style quoteStyle = doc.addStyle("quote", defaultStyle);
-        StyleConstants.setLeftIndent(quoteStyle, 30); // More indent for quote marks
+        StyleConstants.setLeftIndent(quoteStyle, 10); // Less indentation since we have the bar
+        StyleConstants.setBackground(quoteStyle, new Color(47, 128, 237, 20)); // Very light button blue background
         styles.put("quote", quoteStyle);
 
-        Style quoteCharStyle = doc.addStyle("quoteChar", defaultStyle);
-        StyleConstants.setFontSize(quoteCharStyle, 24); // Larger font for quote characters
-        styles.put("quoteChar", quoteCharStyle);
+        Style quoteBorderStyle = doc.addStyle("quoteBorder", defaultStyle);
+        StyleConstants.setForeground(quoteBorderStyle, new Color(47, 128, 237)); // Button blue color
+        StyleConstants.setFontFamily(quoteBorderStyle, "Monospaced");
+        StyleConstants.setFontSize(quoteBorderStyle, 14);
+        styles.put("quoteBorder", quoteBorderStyle);
 
         Style codeStyle = doc.addStyle("code", defaultStyle);
         StyleConstants.setFontFamily(codeStyle, "Consolas");
@@ -261,13 +264,11 @@ public class MarkdownRenderer {
                 } else if (line.startsWith("> ")) {
                     String text = line.substring(2);
                     Style quoteStyle = styles.get("quote");
-                    Style quoteCharStyle = styles.get("quoteChar");
-                    // Insert opening quote
-                    doc.insertString(doc.getLength(), "\"", quoteCharStyle);
+                    Style quoteBorderStyle = styles.get("quoteBorder");
+                    // Insert vertical bar as border
+                    doc.insertString(doc.getLength(), "║ ", quoteBorderStyle);
                     // Insert the text with formatting
                     appendLineWithFormatting(doc, text, quoteStyle, styles);
-                    // Insert closing quote
-                    doc.insertString(doc.getLength(), "\"", quoteCharStyle);
                     doc.insertString(doc.getLength(), "\n", quoteStyle);
                 } else if (line.startsWith("# ")) {
                     String text = line.substring(2);
