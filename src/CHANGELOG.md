@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - IPC communication between application instances
 - Backward compatibility for encrypted files created with old PBKDF2 iterations
 - Comprehensive encryption compatibility across all decryption operations
+- Blockquote support in markdown rendering (> for quoted text)
 
 ### Changed
 - Updated splash screen entries to remove movie references and focus on themes of mom, coding, coca cola, AI, and pizza
