@@ -191,8 +191,7 @@ public class FullLogPanel extends JPanel {
                 List<String> lines;
                 if (logFileHandler.isEncrypted()) {
                     var data = Files.readAllBytes(logPath);
-                    var key = EncryptionManager.deriveKey(logFileHandler.getPassword(), logFileHandler.getSalt());
-                    var decrypted = EncryptionManager.decrypt(data, key);
+                    var decrypted = EncryptionManager.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
                     lines = Arrays.asList(decrypted.split("\n", -1));
                 } else {
                     lines = Files.readAllLines(logPath);
