@@ -36,9 +36,9 @@ public class SplashScreen extends JDialog {
         // Load and shuffle entries once
         java.util.List<String> allEntries;
         try {
-            java.io.InputStream is = SplashScreen.class.getResourceAsStream("/resources/entries.txt");
+            var is = SplashScreen.class.getResourceAsStream("/resources/entries.txt");
             if (is != null) {
-                java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is));
+                var reader = new java.io.BufferedReader(new java.io.InputStreamReader(is));
                 allEntries = new java.util.ArrayList<>();
                 String line;
                 while ((line = reader.readLine()) != null) {
@@ -61,11 +61,11 @@ public class SplashScreen extends JDialog {
         entriesList = allEntries.subList(0, Math.min(5, allEntries.size()));
         Collections.sort(entriesList, Comparator.comparing(s -> java.time.LocalDateTime.parse(s.substring(0, 16), java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
 
-        JPanel panel = new JPanel() {
+        var panel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
+                var g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
                 // Shadow
@@ -73,7 +73,7 @@ public class SplashScreen extends JDialog {
                 g2d.fillRoundRect(12, 12, getWidth() - 12, getHeight() - 12, 30, 30);
 
                 // Gradient background from blue to cyan
-                GradientPaint gp = new GradientPaint(0, 0, new Color(0, 102, 204), getWidth(), getHeight(), new Color(0, 204, 255));
+                var gp = new GradientPaint(0, 0, new Color(0, 102, 204), getWidth(), getHeight(), new Color(0, 204, 255));
                 g2d.setPaint(gp);
                 g2d.fillRect(0, 0, getWidth(), getHeight());
 
@@ -108,16 +108,16 @@ public class SplashScreen extends JDialog {
     }
 
     private void drawFrogAndNotepad(Graphics2D g2d) {
-        int manX = 50;
-        int manY = 50;
-        int notepadX = 150;
-        int notepadY = 80;
+        var manX = 50;
+        var manY = 50;
+        var notepadX = 150;
+        var notepadY = 80;
 
         // Draw man
         g2d.setStroke(new BasicStroke(2));
-        Color skin = new Color(255, 218, 185);
-        Color shirt = Color.RED; // red shirt
-        Color pants = Color.BLUE;
+        var skin = new Color(255, 218, 185);
+        var shirt = Color.RED; // red shirt
+        var pants = Color.BLUE;
 
         // Head
         g2d.setColor(skin);
@@ -160,7 +160,7 @@ public class SplashScreen extends JDialog {
         g2d.drawArc(manX + 25, manY + 18, 10, 5, 0, -120);
 
         // Mustache
-        GradientPaint mustacheGradient = new GradientPaint(manX + 22, manY + 15, new Color(139, 69, 19), manX + 22, manY + 18, new Color(101, 67, 33));
+        var mustacheGradient = new GradientPaint(manX + 22, manY + 15, new Color(139, 69, 19), manX + 22, manY + 18, new Color(101, 67, 33));
         g2d.setPaint(mustacheGradient);
         g2d.drawLine(manX + 22, manY + 17, manX + 28, manY + 16);
         g2d.drawLine(manX + 32, manY + 17, manX + 38, manY + 16);
@@ -175,7 +175,7 @@ public class SplashScreen extends JDialog {
         g2d.drawOval(manX + 25, manY + 35, 10, 10);
 
         // Body - gradient white shirt
-        GradientPaint shirtGradient = new GradientPaint(manX + 10, manY + 30, Color.WHITE, manX + 10, manY + 50, new Color(200, 200, 200));
+        var shirtGradient = new GradientPaint(manX + 10, manY + 30, Color.WHITE, manX + 10, manY + 50, new Color(200, 200, 200));
         g2d.setPaint(shirtGradient);
         g2d.fillRect(manX + 10, manY + 30, 40, 40);
         g2d.setColor(Color.BLACK);

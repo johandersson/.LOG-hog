@@ -53,35 +53,35 @@ public class LogListPanel extends JPanel {
         setBackground(Color.WHITE);
 
         // Top: filter controls
-        JPanel filterPanel = createFilterPanel();
+        var filterPanel = createFilterPanel();
         add(filterPanel, BorderLayout.NORTH);
 
         // Center: list and editor pane in a split
-        JSplitPane split = createLogSplitPane();
+        var split = createLogSplitPane();
         add(split, BorderLayout.CENTER);
 
         setupListeners(split);
     }
 
     private JPanel createFilterPanel() {
-        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 6));
+        var filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 6));
         filterPanel.setOpaque(false);
-        JLabel filterLabel = new JLabel("Filter on date");
+        var filterLabel = new JLabel("Filter on date");
         filterLabel.setFont(filterLabel.getFont().deriveFont(Font.BOLD));
         filterPanel.add(filterLabel);
 
-        int currentYear = Year.now().getValue();
-        Integer[] years = IntStream.rangeClosed(2000, currentYear).boxed().toArray(Integer[]::new);
-        JComboBox<Integer> yearCombo = new JComboBox<>(years);
+        var currentYear = Year.now().getValue();
+        var years = IntStream.rangeClosed(2000, currentYear).boxed().toArray(Integer[]::new);
+        var yearCombo = new JComboBox<>(years);
         yearCombo.setSelectedItem(currentYear);
         filterPanel.add(yearCombo);
 
-        String[] months = new String[]{
+        var months = new String[]{
                 "01 - Jan", "02 - Feb", "03 - Mar", "04 - Apr",
                 "05 - May", "06 - Jun", "07 - Jul", "08 - Aug",
                 "09 - Sep", "10 - Oct", "11 - Nov", "12 - Dec"
         };
-        JComboBox<String> monthCombo = new JComboBox<>(months);
+        var monthCombo = new JComboBox<>(months);
         monthCombo.setSelectedIndex(LocalDate.now().getMonthValue() - 1);
         filterPanel.add(monthCombo);
 
@@ -94,8 +94,8 @@ public class LogListPanel extends JPanel {
 
     private void applyFilter(JComboBox<Integer> yearCombo, JComboBox<String> monthCombo) {
         try {
-            Integer year = (Integer) yearCombo.getSelectedItem();
-            int month = monthCombo.getSelectedIndex() + 1;
+            var year = (Integer) yearCombo.getSelectedItem();
+            var month = monthCombo.getSelectedIndex() + 1;
             if (year != null) {
                 logFileHandler.loadFilteredEntries(listModel, year, month);
             }
@@ -105,7 +105,7 @@ public class LogListPanel extends JPanel {
     }
 
     private JSplitPane createLogSplitPane() {
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        var split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         split.setResizeWeight(0.33);
         split.setBorder(null);
 
@@ -113,13 +113,13 @@ public class LogListPanel extends JPanel {
         logList.setModel(listModel);
         logList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
-        JScrollPane listScroll = new JScrollPane(logList);
+        var listScroll = new JScrollPane(logList);
         listScroll.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(0xE6E9EB)),
                 BorderFactory.createEmptyBorder(6, 6, 6, 6)
         ));
 
-        JPanel entryContainer = this.entryContainer;
+        var entryContainer = this.entryContainer;
         entryContainer.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
         entryArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         entryArea.setLineWrap(true);
@@ -148,9 +148,9 @@ public class LogListPanel extends JPanel {
         editor.getRootPane().getActionMap().put("newEntryGlobal", editor.createNewQuickEntry());
 
         // Save button
-        JPanel entryBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        var entryBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
         entryBottom.setOpaque(false);
-        JButton saveEntryBtn = new AccentButton("Save Entry");
+        var saveEntryBtn = new AccentButton("Save Entry");
         saveEntryBtn.addActionListener(e -> editor.saveEditedLogEntry());
         entryBottom.add(saveEntryBtn);
         entryContainer.add(entryBottom, BorderLayout.SOUTH);
@@ -160,24 +160,24 @@ public class LogListPanel extends JPanel {
 
     private void setupListeners(JSplitPane split) {
         // Popup menu
-        JPopupMenu contextMenu = new JPopupMenu();
-        JMenuItem copyItem = new JMenuItem("Copy Entry to Clipboard");
+        var contextMenu = new JPopupMenu();
+        var copyItem = new JMenuItem("Copy Entry to Clipboard");
         copyItem.addActionListener(editor.copyLogEntryTextToClipBoard());
         contextMenu.add(copyItem);
         logList.setComponentPopupMenu(contextMenu);
-        JMenuItem deleteItem = new JMenuItem("Delete Selected Entries");
+        var deleteItem = new JMenuItem("Delete Selected Entries");
         deleteItem.addActionListener(e -> editor.deleteSelectedEntry());
         contextMenu.add(deleteItem);
-        JMenuItem editDateTimeItem = new JMenuItem("Edit Date/Time");
+        var editDateTimeItem = new JMenuItem("Edit Date/Time");
         editDateTimeItem.addActionListener(e -> editor.editDateTime());
         contextMenu.add(editDateTimeItem);
 
         // Selection listeners
         logList.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent e) {
-                String selectedItem = logList.getSelectedValue();
+                var selectedItem = logList.getSelectedValue();
                 if (selectedItem != null) {
-                    String logContent = logFileHandler.loadEntry(selectedItem);
+                    var logContent = logFileHandler.loadEntry(selectedItem);
                     entryArea.setText(logContent);
                 }
             }
@@ -185,9 +185,9 @@ public class LogListPanel extends JPanel {
 
         logList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                String selectedItem = logList.getSelectedValue();
+                var selectedItem = logList.getSelectedValue();
                 if (selectedItem != null) {
-                    String logContent = logFileHandler.loadEntry(selectedItem);
+                    var logContent = logFileHandler.loadEntry(selectedItem);
                     entryArea.setText(logContent);
                 } else {
                     entryArea.setText("");
@@ -202,9 +202,9 @@ public class LogListPanel extends JPanel {
         if (listModel.getSize() > 0) {
             logList.setSelectedIndex(0);
             logList.ensureIndexIsVisible(0);
-            String item = listModel.getElementAt(0);
+            var item = listModel.getElementAt(0);
             if (item != null) {
-                String content = logFileHandler.loadEntry(item);
+                var content = logFileHandler.loadEntry(item);
                 entryArea.setText(content);
             }
         } else {

@@ -21,7 +21,7 @@ import main.LogTextEditor;
 public class LogHog {
     public static void main(String[] args) {
     try {
-        for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+        for (var info : UIManager.getInstalledLookAndFeels()) {
             if ("Windows".equals(info.getName())) {
                 UIManager.setLookAndFeel(info.getClassName());
                 break;

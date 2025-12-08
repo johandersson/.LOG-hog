@@ -38,8 +38,8 @@ public class SystemTrayMenu {
             }
 
             //add standard java icon as tray icon
-            BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2 = image.createGraphics();
+            var image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+            var g2 = image.createGraphics();
             g2.setColor(Color.BLUE);
             g2.fillRect(0, 0, 16, 16);
             g2.setColor(Color.WHITE);
@@ -50,9 +50,9 @@ public class SystemTrayMenu {
             SystemTrayMenu.popup = new PopupMenu();
 
             // Create menu items
-            MenuItem addNoteItem = new MenuItem("Add Quick Note");
-            MenuItem openItem = new MenuItem("Open");
-            MenuItem exitItem = new MenuItem("Exit");
+            var addNoteItem = new MenuItem("Add Quick Note");
+            var openItem = new MenuItem("Open");
+            var exitItem = new MenuItem("Exit");
             //Recent logs item with submenu with the 5 most recent logs
             SystemTrayMenu.recentLogsMenu = new Menu("Recent Logs");
 
@@ -95,7 +95,7 @@ public class SystemTrayMenu {
             });
 
             // Add tray icon to system tray
-            SystemTray tray = SystemTray.getSystemTray();
+            var tray = SystemTray.getSystemTray();
             tray.add(SystemTrayMenu.trayIcon);
 
         } catch (AWTException e) {

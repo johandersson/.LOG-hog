@@ -81,7 +81,7 @@ public class NavItem extends JPanel {
     }
 
     private void updateVisualState() {
-        boolean active = tabPane != null && tabPane.getSelectedIndex() == tabIndex;
+        var active = tabPane != null && tabPane.getSelectedIndex() == tabIndex;
         label.setFont(label.getFont().deriveFont(active ? Font.BOLD : Font.PLAIN, 13f));
         label.setForeground(active ? new Color(0x2B3A42) : new Color(0x5E6A70));
         repaint();
@@ -90,15 +90,15 @@ public class NavItem extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         // Paint nothing when not active/hovered to avoid any rectangular artifacts
-        boolean active = tabPane != null && tabPane.getSelectedIndex() == tabIndex;
+        var active = tabPane != null && tabPane.getSelectedIndex() == tabIndex;
         if (active || hovered) {
-            Graphics2D g2 = (Graphics2D) g.create();
+            var g2 = (Graphics2D) g.create();
             try {
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Color fill = active ? new Color(0xEAF3FF) : new Color(0xEEF6FF);
+                var fill = active ? new Color(0xEAF3FF) : new Color(0xEEF6FF);
                 g2.setColor(fill);
-                int arc = 10;
-                int pad = 2;
+                var arc = 10;
+                var pad = 2;
                 g2.fillRoundRect(pad, pad, getWidth() - pad * 2, getHeight() - pad * 2, arc, arc);
             } finally {
                 g2.dispose();
