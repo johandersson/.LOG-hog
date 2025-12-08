@@ -262,14 +262,18 @@ public class MarkdownRenderer {
                     appendLineWithFormatting(doc, text, listStyle, styles);
                     doc.insertString(doc.getLength(), "\n", listStyle);
                 } else if (line.startsWith("> ")) {
-                    String text = line.substring(2);
-                    Style quoteStyle = styles.get("quote");
-                    Style quoteBorderStyle = styles.get("quoteBorder");
-                    // Insert vertical bar as border
-                    doc.insertString(doc.getLength(), "║ ", quoteBorderStyle);
-                    // Insert the text with formatting
-                    appendLineWithFormatting(doc, text, quoteStyle, styles);
-                    doc.insertString(doc.getLength(), "\n", quoteStyle);
+                    // Handle multi-line blockquotes
+                    List<String> quoteLines = new ArrayList<>();
+                    quoteLines.add(line);
+                    int j = i + 1;
+                    while (j < entry.size() && entry.get(j).startsWith("> ")) {
+                        quoteLines.add(entry.get(j));
+                        j++;
+                    }
+                    // Render the blockquote block
+                    renderBlockquote(doc, quoteLines, styles);
+                    i = j - 1; // Skip the processed lines
+                    currentHasCode = true; // Prevent extra spacing
                 } else if (line.startsWith("# ")) {
                     String text = line.substring(2);
                     appendLineWithFormatting(doc, text, styles.get("h1"), styles);
@@ -326,6 +330,25 @@ public class MarkdownRenderer {
             }
             previousHadCode = currentHasCode;
         }
+    }
+
+    private static void renderBlockquote(StyledDocument doc, List<String> quoteLines, Map<String, Style> styles) throws BadLocationException {
+        Style quoteStyle = styles.get("quote");
+        Style quoteBorderStyle = styles.get("quoteBorder");
+        
+        for (int k = 0; k < quoteLines.size(); k++) {
+            String line = quoteLines.get(k);
+            String text = line.substring(2);
+            
+            // Insert vertical bar as border
+            doc.insertString(doc.getLength(), "│ ", quoteBorderStyle);
+            // Insert the text with formatting
+            appendLineWithFormatting(doc, text, quoteStyle, styles);
+            if (k < quoteLines.size() - 1) {
+                doc.insertString(doc.getLength(), "\n", quoteStyle);
+            }
+        }
+        doc.insertString(doc.getLength(), "\n", quoteStyle);
     }
 
     private static void appendLineWithFormatting(StyledDocument doc, String line, Style baseStyle, Map<String, Style> styles) throws BadLocationException {
