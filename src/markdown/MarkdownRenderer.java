@@ -208,9 +208,12 @@ public class MarkdownRenderer {
         styles.put("list", listStyle);
 
         Style quoteStyle = doc.addStyle("quote", defaultStyle);
-        StyleConstants.setLeftIndent(quoteStyle, 20);
-        StyleConstants.setBackground(quoteStyle, new Color(240, 248, 255)); // Very light blue background
+        StyleConstants.setLeftIndent(quoteStyle, 30); // More indent for quote marks
         styles.put("quote", quoteStyle);
+
+        Style quoteCharStyle = doc.addStyle("quoteChar", defaultStyle);
+        StyleConstants.setFontSize(quoteCharStyle, 24); // Larger font for quote characters
+        styles.put("quoteChar", quoteCharStyle);
 
         Style codeStyle = doc.addStyle("code", defaultStyle);
         StyleConstants.setFontFamily(codeStyle, "Consolas");
@@ -258,7 +261,13 @@ public class MarkdownRenderer {
                 } else if (line.startsWith("> ")) {
                     String text = line.substring(2);
                     Style quoteStyle = styles.get("quote");
+                    Style quoteCharStyle = styles.get("quoteChar");
+                    // Insert opening quote
+                    doc.insertString(doc.getLength(), "\"", quoteCharStyle);
+                    // Insert the text with formatting
                     appendLineWithFormatting(doc, text, quoteStyle, styles);
+                    // Insert closing quote
+                    doc.insertString(doc.getLength(), "\"", quoteCharStyle);
                     doc.insertString(doc.getLength(), "\n", quoteStyle);
                 } else if (line.startsWith("# ")) {
                     String text = line.substring(2);
