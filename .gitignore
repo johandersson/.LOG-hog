@@ -35,9 +35,3 @@ bin/
 manifest.txt
 build.bat
 run.bat
-
-### Logs ###
-debug.log
-
-### Copilot ###
-copilot_instructions.md
