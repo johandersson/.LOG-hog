@@ -364,7 +364,8 @@ public class LogTextEditor extends JFrame {
                         errorMsg.contains("illegal block size") ||
                         errorMsg.contains("aeadbadtag") ||
                         errorMsg.contains("integrity check failed") ||
-                        errorMsg.contains("mac check failed")) {
+                        errorMsg.contains("mac check failed") ||
+                        errorMsg.contains("decryption failed")) {
                         JOptionPane.showMessageDialog(this, "Incorrect password. Please try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
                     } else {
                         logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
