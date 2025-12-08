@@ -80,6 +80,9 @@ public class SettingsPanel extends JPanel {
         // Backup section
         contentPanel.add(createBackupPanel());
 
+        // Backup directory section
+        contentPanel.add(createBackupDirPanel());
+
         // Reminder section
         contentPanel.add(createReminderPanel());
 
