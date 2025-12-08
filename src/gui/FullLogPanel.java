@@ -200,7 +200,8 @@ public class FullLogPanel extends JPanel {
                 MarkdownRenderer.renderMarkdown(fullLogPane, lines);
                 MarkdownRenderer.addLinkListeners(fullLogPane);
             } catch (Exception ex) {
-                if (ex.getMessage().contains("Tag mismatch")) {
+                String errorMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+                if (errorMsg.contains("tag mismatch") || errorMsg.contains("decryption failed")) {
                     JOptionPane.showMessageDialog(this, "Incorrect password. Please restart the application and try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
                 } else {
                     fallbackReadRaw(logPath);
