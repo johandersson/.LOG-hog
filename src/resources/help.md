@@ -55,7 +55,7 @@ The Full Log tab renders your log entries with Markdown formatting for better re
 - **Italic**: Wrap text with * (e.g., *italic text*)
 - **Links**: [Link Text](URL) for clickable links
 - **Lists**: Use - for unordered lists
-- **Blockquotes**: Use > for quoted text (e.g., > This is a quote)
+- **Blockquotes**: Use > for quoted text (e.g., > This is a quote) - displays with large quote marks and indentation
 - **Code**: `inline code` for inline, or ``` for code blocks
 - **Line Breaks**: Use two spaces at the end of a line or a blank line for paragraphs
 
