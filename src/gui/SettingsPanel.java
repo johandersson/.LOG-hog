@@ -191,6 +191,9 @@ public class SettingsPanel extends JPanel {
     public void loadCurrentSettings() {
         reminderField.setText(settings.getProperty("passwordReminder", ""));
         backupDirField.setText(settings.getProperty("backupDirectory", ""));
+        var isEncrypted = "true".equals(settings.getProperty("encrypted"));
+        encryptionCheckBox.setSelected(isEncrypted);
+        encryptionCheckBox.setEnabled(!isEncrypted); // Disable if already encrypted
     }
 
     private void applySettings() {
