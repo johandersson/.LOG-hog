@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Password visibility requires active user interaction
 - Increased PBKDF2 iterations from 65,536 to 100,000 for enhanced password-based key derivation security
 - Maintained backward compatibility for existing encrypted files
+- Fixed memory leak: cachedEntries now cleared during manual lock to prevent decrypted content from remaining in memory
 
 ## [1.0.0] - 2025-12-04
 
