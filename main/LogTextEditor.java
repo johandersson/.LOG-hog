@@ -277,6 +277,23 @@ public class LogTextEditor extends JFrame {
         return e -> {
             String selectedItem = logList.getSelectedValue();
             if (selectedItem != null) {
+                // Check if file is encrypted and warn user
+                if (logFileHandler.isEncrypted()) {
+                    int confirm = JOptionPane.showConfirmDialog(
+                        LogTextEditor.this,
+                        "<html><b>Security Warning:</b><br><br>" +
+                        "You are about to copy a log entry to the clipboard.<br>" +
+                        "Clipboard contents may be accessible to other applications.<br><br>" +
+                        "Are you sure you want to copy this entry to the clipboard?</html>",
+                        "Copy to Clipboard - Security Warning",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE);
+
+                    if (confirm != JOptionPane.YES_OPTION) {
+                        return; // User chose not to copy
+                    }
+                }
+
                 //Copy both timestamp and entry text
                 String logContent = logFileHandler.loadEntry(selectedItem);
                 clipboard.ClipboardManager.copyLogEntryToClipboard(selectedItem, logContent, LogTextEditor.this);

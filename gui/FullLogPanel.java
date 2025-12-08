@@ -139,6 +139,24 @@ public class FullLogPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Log is empty or not loaded.", "Copy Failed", JOptionPane.WARNING_MESSAGE);
             return;
         }
+
+        // Check if file is encrypted and warn user
+        if (logFileHandler.isEncrypted()) {
+            int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "<html><b>Security Warning:</b><br><br>" +
+                "You are about to copy the entire log file to the clipboard.<br>" +
+                "Clipboard contents may be accessible to other applications.<br><br>" +
+                "Are you sure you want to copy the full log to the clipboard?</html>",
+                "Copy Full Log to Clipboard - Security Warning",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+            if (confirm != JOptionPane.YES_OPTION) {
+                return; // User chose not to copy
+            }
+        }
+
         StringSelection selection = new StringSelection(text);
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         try {
