@@ -207,6 +207,12 @@ public class MarkdownRenderer {
         StyleConstants.setLeftIndent(listStyle, 20);
         styles.put("list", listStyle);
 
+        Style quoteStyle = doc.addStyle("quote", defaultStyle);
+        StyleConstants.setLeftIndent(quoteStyle, 20);
+        StyleConstants.setItalic(quoteStyle, true);
+        StyleConstants.setForeground(quoteStyle, new Color(100, 100, 100)); // Gray color for quotes
+        styles.put("quote", quoteStyle);
+
         Style codeStyle = doc.addStyle("code", defaultStyle);
         StyleConstants.setFontFamily(codeStyle, "Consolas");
         StyleConstants.setBackground(codeStyle, new Color(180, 220, 250)); // Lighter and more blue background
@@ -250,6 +256,11 @@ public class MarkdownRenderer {
                     Style listStyle = styles.get("list");
                     appendLineWithFormatting(doc, text, listStyle, styles);
                     doc.insertString(doc.getLength(), "\n", listStyle);
+                } else if (line.startsWith("> ")) {
+                    String text = line.substring(2);
+                    Style quoteStyle = styles.get("quote");
+                    appendLineWithFormatting(doc, text, quoteStyle, styles);
+                    doc.insertString(doc.getLength(), "\n", quoteStyle);
                 } else if (line.startsWith("# ")) {
                     String text = line.substring(2);
                     appendLineWithFormatting(doc, text, styles.get("h1"), styles);
