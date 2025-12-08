@@ -60,7 +60,6 @@ public class SettingsPanel extends JPanel {
         this.logFileHandler = logFileHandler;
 
         initComponents();
-        loadCurrentSettings();
     }
 
     private void initComponents() {
@@ -73,107 +72,117 @@ public class SettingsPanel extends JPanel {
         contentPanel.setBackground(Color.WHITE);
 
         // Encryption section
-        var encryptionPanel = new JPanel(new BorderLayout());
-        encryptionPanel.setBorder(BorderFactory.createTitledBorder("Encryption"));
-        encryptionPanel.setBackground(Color.WHITE);
+        contentPanel.add(createEncryptionPanel());
 
-        encryptionCheckBox = new JCheckBox("Enable encryption for log file");
-        var enc = settings.getProperty("encrypted");
-        encryptionCheckBox.setSelected("true".equals(enc));
+        // Decrypt section
+        contentPanel.add(createDecryptPanel());
 
-        var warningLabel = new JLabel("<html><b>Warning:</b> If you lose the password, data is lost forever.</html>");
-        warningLabel.setForeground(Color.RED);
+        // Backup section
+        contentPanel.add(createBackupPanel());
 
-        var performanceLabel = new JLabel("<html><i>Note: Enabling encryption may slow down program loading, especially in the settings tab and full log view.</i></html>");
-        performanceLabel.setForeground(Color.GRAY);
+        // Reminder section
+        contentPanel.add(createReminderPanel());
 
-        var backupLabel = new JLabel("<html><b>Backup:</b> Make a backup of your log file before enabling encryption for safety.</html>");
-        backupLabel.setForeground(Color.BLUE);
+        // Button section
+        contentPanel.add(createButtonPanel());
 
-        encryptionPanel.add(encryptionCheckBox, BorderLayout.NORTH);
-        var warningsPanel = new JPanel();
-        warningsPanel.setLayout(new BoxLayout(warningsPanel, BoxLayout.Y_AXIS));
-        warningsPanel.setBackground(Color.WHITE);
-        warningsPanel.add(warningLabel);
-        warningsPanel.add(performanceLabel);
-        warningsPanel.add(backupLabel);
-        encryptionPanel.add(warningsPanel, BorderLayout.CENTER);
+        // Status section
+        contentPanel.add(createStatusPanel());
 
-        contentPanel.add(encryptionPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
+        add(contentPanel, BorderLayout.NORTH);
 
-        // Decrypt button
-        var decryptPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        decryptPanel.setBackground(Color.WHITE);
-        decryptPanel.setBorder(BorderFactory.createTitledBorder("Decrypt File"));
-        
+        loadCurrentSettings();
+    }
+
+    private JPanel createEncryptionPanel() {
+        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createTitledBorder("Encryption"));
+
+        encryptionCheckBox = new JCheckBox("Enable encryption");
+        encryptionCheckBox.setBackground(Color.WHITE);
+        encryptionCheckBox.setSelected("true".equals(settings.getProperty("encrypted")));
+
+        panel.add(encryptionCheckBox);
+        return panel;
+    }
+
+    private JPanel createDecryptPanel() {
+        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createTitledBorder("Decrypt File"));
+
         var decryptButton = new JButton("Decrypt Log File");
         decryptButton.addActionListener(e -> decryptLogFile());
-        
+
         var decryptWarning = new JLabel("<html><b>Warning:</b> This will permanently decrypt your log file and store it in plain text.</html>");
         decryptWarning.setForeground(Color.RED);
-        
-        decryptPanel.add(decryptButton);
-        decryptPanel.add(decryptWarning);
-        
-        contentPanel.add(decryptPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
 
-        // Backup button
-        var backupPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        backupPanel.setBackground(Color.WHITE);
+        panel.add(decryptButton);
+        panel.add(decryptWarning);
+        return panel;
+    }
+
+    private JPanel createBackupPanel() {
+        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBackground(Color.WHITE);
+
         var backupButton = new JButton("Backup Log File");
         backupButton.addActionListener(e -> backupLogFile());
-        backupPanel.add(backupButton);
 
-        contentPanel.add(backupPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
+        panel.add(backupButton);
+        return panel;
+    }
 
-        // Backup directory
-        var backupDirPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        backupDirPanel.setBackground(Color.WHITE);
-        backupDirPanel.setBorder(BorderFactory.createTitledBorder("Backup Directory"));
+    private JPanel createBackupDirPanel() {
+        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createTitledBorder("Backup Directory"));
+
         var backupDirLabel = new JLabel("Default backup directory: ");
         backupDirField = new JTextField(20);
         var browseBackupButton = new JButton("Browse...");
         browseBackupButton.addActionListener(e -> browseBackupDirectory());
-        backupDirPanel.add(backupDirLabel);
-        backupDirPanel.add(backupDirField);
-        backupDirPanel.add(browseBackupButton);
 
-        contentPanel.add(backupDirPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
+        panel.add(backupDirLabel);
+        panel.add(backupDirField);
+        panel.add(browseBackupButton);
+        return panel;
+    }
 
-        // Password reminder
-        var reminderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        reminderPanel.setBackground(Color.WHITE);
-        reminderPanel.setBorder(BorderFactory.createTitledBorder("Password Reminder"));
+    private JPanel createReminderPanel() {
+        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createTitledBorder("Password Reminder"));
+
         var reminderLabel = new JLabel("Optional reminder (stored in plain text): ");
         reminderField = new JTextField(20);
-        reminderPanel.add(reminderLabel);
-        reminderPanel.add(reminderField);
 
-        contentPanel.add(reminderPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
+        panel.add(reminderLabel);
+        panel.add(reminderField);
+        return panel;
+    }
 
-        // Apply button
-        var buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(Color.WHITE);
+    private JPanel createButtonPanel() {
+        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBackground(Color.WHITE);
+
         applyButton = new JButton("Apply Changes");
         applyButton.addActionListener(e -> applySettings());
-        buttonPanel.add(applyButton);
 
-        contentPanel.add(buttonPanel);
+        panel.add(applyButton);
+        return panel;
+    }
 
-        // Status label
+    private JPanel createStatusPanel() {
+        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBackground(Color.WHITE);
+
         statusLabel = new JLabel("");
         statusLabel.setForeground(Color.BLUE);
-        var statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        statusPanel.setBackground(Color.WHITE);
-        statusPanel.add(statusLabel);
-        contentPanel.add(statusPanel);
 
-        add(contentPanel, BorderLayout.NORTH);
+        panel.add(statusLabel);
+        return panel;
     }
 
     public void loadCurrentSettings() {
@@ -355,7 +364,36 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
-        // Show security warning
+        if (!showDecryptionWarning()) {
+            return;
+        }
+
+        try {
+            // Decrypt the file
+            logFileHandler.disableEncryption();
+
+            // Backup settings file before modifying
+            backupSettingsFile();
+
+            // Update settings - but save BEFORE clearing in case something goes wrong
+            var oldEncrypted = settings.getProperty("encrypted");
+            var oldSalt = settings.getProperty("salt");
+
+            updateSettingsForDecryption();
+
+            // Verify decryption worked by trying to read the file
+            verifyDecryptionSuccess(oldEncrypted, oldSalt);
+
+            // Update UI and show success
+            updateUIAfterSuccessfulDecryption();
+            showDecryptionSuccessMessage();
+
+        } catch (Exception ex) {
+            handleDecryptionError(ex);
+        }
+    }
+
+    private boolean showDecryptionWarning() {
         var confirm = JOptionPane.showConfirmDialog(editor,
             "<html><b>WARNING: Security Risk</b><br><br>" +
             "This will permanently decrypt your log file and save it as plain text.<br>" +
@@ -365,63 +403,61 @@ public class SettingsPanel extends JPanel {
             "Decrypt Log File - Security Warning",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE);
-        
-        if (confirm != JOptionPane.YES_OPTION) {
-            return;
-        }
+        return confirm == JOptionPane.YES_OPTION;
+    }
 
-        try {
-            // Decrypt the file
-            logFileHandler.disableEncryption();
-            
-            // Backup settings file before modifying
-            if (java.nio.file.Files.exists(settingsPath)) {
-                var backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+    private void backupSettingsFile() {
+        if (java.nio.file.Files.exists(settingsPath)) {
+            var backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+            try {
                 java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 logToFile("Settings file backed up to: " + backupSettingsPath.toString());
+            } catch (Exception e) {
+                logToFile("Failed to backup settings file: " + e.getMessage());
             }
-            
-            // Update settings - but save BEFORE clearing in case something goes wrong
-            var oldEncrypted = settings.getProperty("encrypted");
-            var oldSalt = settings.getProperty("salt");
-            
-            settings.setProperty("encrypted", "false");
-            settings.remove("salt");
-            saveSettings();
-            
-            // Verify decryption worked by trying to read the file
-            try {
-                editor.loadLogEntries();
-            } catch (Exception verifyEx) {
-                // Rollback settings
-                settings.setProperty("encrypted", oldEncrypted);
-                if (oldSalt != null) {
-                    settings.setProperty("salt", oldSalt);
-                }
-                saveSettings();
-                throw new Exception("Decryption verification failed: " + verifyEx.getMessage());
-            }
-            
-            // Update UI
-            encryptionCheckBox.setSelected(false);
-            statusLabel.setText("File decrypted successfully. Encryption disabled.");
-            statusLabel.setForeground(new Color(0, 128, 0)); // Green
-            
-            // Reload data
-            editor.getFullLogPanel().loadFullLog();
-            
-            JOptionPane.showMessageDialog(editor,
-                "Log file has been decrypted successfully.\nA backup of the encrypted file was saved as log.txt.bak",
-                "Decryption Complete",
-                JOptionPane.INFORMATION_MESSAGE);
-                
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(editor,
-                "Decryption failed: " + ex.getMessage(),
-                "Error",
-                JOptionPane.ERROR_MESSAGE);
-            statusLabel.setText("Decryption failed.");
-            statusLabel.setForeground(Color.RED);
         }
+    }
+
+    private void updateSettingsForDecryption() {
+        settings.setProperty("encrypted", "false");
+        settings.remove("salt");
+        saveSettings();
+    }
+
+    private void verifyDecryptionSuccess(String oldEncrypted, String oldSalt) throws Exception {
+        try {
+            editor.loadLogEntries();
+        } catch (Exception verifyEx) {
+            // Rollback settings
+            settings.setProperty("encrypted", oldEncrypted);
+            if (oldSalt != null) {
+                settings.setProperty("salt", oldSalt);
+            }
+            saveSettings();
+            throw new Exception("Decryption verification failed: " + verifyEx.getMessage());
+        }
+    }
+
+    private void updateUIAfterSuccessfulDecryption() {
+        encryptionCheckBox.setSelected(false);
+        statusLabel.setText("File decrypted successfully. Encryption disabled.");
+        statusLabel.setForeground(new Color(0, 128, 0)); // Green
+        editor.getFullLogPanel().loadFullLog();
+    }
+
+    private void showDecryptionSuccessMessage() {
+        JOptionPane.showMessageDialog(editor,
+            "Log file has been decrypted successfully.\nA backup of the encrypted file was saved as log.txt.bak",
+            "Decryption Complete",
+            JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void handleDecryptionError(Exception ex) {
+        JOptionPane.showMessageDialog(editor,
+            "Decryption failed: " + ex.getMessage(),
+            "Error",
+            JOptionPane.ERROR_MESSAGE);
+        statusLabel.setText("Decryption failed.");
+        statusLabel.setForeground(Color.RED);
     }
 }
