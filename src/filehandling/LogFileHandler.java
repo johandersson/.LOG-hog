@@ -382,8 +382,7 @@ public class LogFileHandler {
         if (encrypted) {
             if (cachedLines == null) {
                 byte[] data = Files.readAllBytes(FILE_PATH);
-                SecretKey key = EncryptionManager.deriveKey(password, salt);
-                String decrypted = EncryptionManager.decrypt(data, key);
+                String decrypted = EncryptionManager.decryptWithFallback(data, password, salt);
                 cachedLines = Arrays.stream(decrypted.split("\n")).map(String::trim).collect(Collectors.toList());
             }
             return cachedLines;
@@ -466,8 +465,7 @@ public class LogFileHandler {
         
         // Read and decrypt the current file
         byte[] data = Files.readAllBytes(FILE_PATH);
-        SecretKey key = EncryptionManager.deriveKey(password, salt);
-        String decrypted = EncryptionManager.decrypt(data, key);
+        String decrypted = EncryptionManager.decryptWithFallback(data, password, salt);
         
         // Save decrypted to backup first (as encrypted bytes)
         Path backupPath = getBackupPath(FILE_PATH.getFileName().toString() + ".bak");

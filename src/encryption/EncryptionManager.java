@@ -32,6 +32,7 @@ public class EncryptionManager {
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
     private static final int PBKDF2_ITERATIONS = 100000;
+    private static final int PBKDF2_ITERATIONS_LEGACY = 65536; // For backward compatibility
     private static final int AES_KEY_LENGTH = 256; // bits
     private static void logToFile(String message) {
         try (FileWriter fw = new FileWriter("debug.log", true)) {
@@ -51,6 +52,13 @@ public class EncryptionManager {
     public static SecretKey deriveKey(char[] password, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException {
         var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
         var spec = new PBEKeySpec(password, salt, PBKDF2_ITERATIONS, AES_KEY_LENGTH);
+        var tmp = factory.generateSecret(spec);
+        return new SecretKeySpec(tmp.getEncoded(), "AES");
+    }
+
+    public static SecretKey deriveKeyLegacy(char[] password, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+        var spec = new PBEKeySpec(password, salt, PBKDF2_ITERATIONS_LEGACY, AES_KEY_LENGTH);
         var tmp = factory.generateSecret(spec);
         return new SecretKeySpec(tmp.getEncoded(), "AES");
     }
@@ -79,5 +87,23 @@ public class EncryptionManager {
         cipher.init(Cipher.DECRYPT_MODE, key, spec);
         var decrypted = cipher.doFinal(encrypted);
         return new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    public static String decryptWithFallback(byte[] encryptedData, char[] password, byte[] salt) throws Exception {
+        try {
+            // Try with current iterations first
+            SecretKey key = deriveKey(password, salt);
+            return decrypt(encryptedData, key);
+        } catch (Exception e) {
+            logToFile("Decryption failed with current iterations, trying legacy iterations");
+            try {
+                // Fallback to legacy iterations for backward compatibility
+                SecretKey legacyKey = deriveKeyLegacy(password, salt);
+                return decrypt(encryptedData, legacyKey);
+            } catch (Exception legacyException) {
+                logToFile("Decryption failed with legacy iterations too");
+                throw new Exception("Decryption failed with both current and legacy key derivation methods");
+            }
+        }
     }
 }
