@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced .gitignore with additional patterns for logs, backups, and AI files
 
 ### Fixed
-- LogListPanel now shows lock message and disables editing when locked
+- Improved password error handling to catch decryption failures from both current and legacy key derivation methods, showing user-friendly messages instead of technical details
 - All save/load/delete/edit operations blocked when file is locked
 - Lock message in Full Log view no longer appears as clickable links
 - Security: No file access or memory reading possible in locked state
