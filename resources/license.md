@@ -1,53 +1,37 @@
-# .LOG-hog License
+# .LOG-hog - The Ultimate Log Muncher!
 
-.LOG-hog is a simple .log notepad files viewer and editor with syntax highlighting and search functionality.
+**Version 1.0** - Because logs need love too! 🐷
 
-Perfect for developers, diary writers, and log analysts who need to quickly view and edit log files in the .log format.
+A whimsical log file viewer and editor that turns boring log files into delightful reading experiences. Perfect for developers who speak fluent binary and diary writers who code in their sleep.
 
-Use an existing .log file or create a new one.
+## Features That Will Blow Your Mind:
+- 📝 **Edit logs** like they're your diary
+- 🔍 **Search** through time and space
+- 🎨 **Syntax highlighting** for that extra pizzazz
+- 🔒 **Encryption** because secrets are fun
+- 🐸 **Frog mascot** included free!
 
-See more about .log-format in notepad here: [How to Use Notepad to Create a Dated Log or Journal File](https://www.howtogeek.com/258545/how-to-use-notepad-to-create-a-dated-log-or-journal-file/)
+## Why .LOG-hog?
+- Eats log files for breakfast
+- Never complains about stack traces
+- Friends with all programming languages
+- Has a PhD in debugging
+
+## Quick Start:
+1. Open a .log file
+2. Watch the magic happen
+3. Profit! 💰
+
+## Disclaimer:
+May cause excessive logging, spontaneous code reviews, and unexplained urges to refactor everything.
 
 **Copyright (C) 2025, Johan Andersson**
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is free software under the GNU GPL v3. Share, modify, and enjoy! But please, don't feed it after midnight.
 
-                    GNU GENERAL PUBLIC LICENSE
-                       Version 3, 29 June 2007
+---
 
- Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
- Everyone is permitted to copy and distribute verbatim copies
- of this license document, but changing it is not allowed.
-
-                            Preamble
-
-  The GNU General Public License is a free, copyleft license for
-software and other kinds of works.
-
-  The licenses for most software and other practical works are designed
-to take away your freedom to share and change the works.  By contrast,
-the GNU General Public License is intended to guarantee your freedom to
-share and change all versions of a program--to make sure it remains free
-software for all its users.  We, the Free Software Foundation, use the
-GNU General Public License for most of our software; it applies also to
-any other work released this way by its authors.  You can apply it to
-your programs, too.
-
-  When we speak of free software, we are referring to freedom, not
-price.  Our General Public Licenses are designed to make sure that you
-have the freedom to distribute copies of free software (and charge for
-them if you wish), that you receive source code or can get it if you
-want it, that you can change the software or use pieces of it in new
-free programs, and that you know you can do these things.
-
-  To protect your rights, we need to prevent others from denying you
-these rights or asking you to surrender the rights.  Therefore, you have
-certain responsibilities if you distribute copies of the software, or if
-you modify it: responsibilities to respect the freedom of others.
-
-  For example, if you distribute copies of such a program, whether
-gratis or for a fee, you must pass on to the recipients the same
-freedoms that you received.  You must make sure that they, too, receive
+*Made with ❤️, ☕, and questionable life choices*
 or can get the source code.  And you must show them these terms so they
 know their rights.
 

@@ -21,12 +21,9 @@ import filehandling.LogFileHandler;
 import gui.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import utils.Toast;
 
 public class LogTextEditor extends JFrame {
 
@@ -40,6 +37,18 @@ public class LogTextEditor extends JFrame {
 
     public FullLogPanel getFullLogPanel() {
         return fullLogPanel;
+    }
+
+    public EntryPanel getEntryPanel() {
+        return entryPanel;
+    }
+
+    public LogListPanel getLogListPanel() {
+        return logListPanel;
+    }
+
+    public SettingsPanel getSettingsPanel() {
+        return settingsPanel;
     }
 
     @Override
@@ -70,288 +79,60 @@ public class LogTextEditor extends JFrame {
         return isLocked;
     }
 
+    private UIInitializer uiInitializer;
+    private ActionHandler actionHandler;
+    private SystemInitializer systemInitializer;
+
     public LogTextEditor() {
-        initUI();
+        // Initialize action handler first (needed by components)
+        actionHandler = new ActionHandler(this, logFileHandler, logList, listModel);
+
+        // Initialize components (they may depend on actionHandler)
+        initializeComponents();
+
+        // Set panels on action handler
+        actionHandler.setPanels(logListPanel, fullLogPanel);
+
+        // Initialize UI using extracted class
+        uiInitializer = new UIInitializer(this, tabPane, navItems);
+        uiInitializer.initializeUI();
+
+        // Setup key bindings and system components
         setupKeyBindings();
         loadSettings();
-        initSystemTray();
-        setupActivityListeners();
+
+        systemInitializer = new SystemInitializer(this);
+        systemInitializer.initializeSystemComponents();
+
         setVisible(true);
     }
 
-    private void initUI() {
-        // Ensure the frame is decorated by the OS (native chrome)
-        setUndecorated(false);
-
-        setTitle(".LOG hog");
-        setSize(1200, 660);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                logFileHandler.clearSensitiveData();
-            }
-        });
-        setLocationRelativeTo(null);
-        addIcon();
-        applyLookAndFeelTweaks();
-
-        // Root panel with subtle border to emulate card area (do NOT add a custom title bar)
-        JPanel root = new JPanel(new BorderLayout());
-        root.setBorder(BorderFactory.createLineBorder(new Color(0xD6DCE0)));
-        root.setBackground(new Color(0xF3F6F9));
-        setContentPane(root);
-
-        // Main content area with left rail + center cards
-        JPanel center = new JPanel(new BorderLayout());
-        center.setBackground(new Color(0xF7FAFC));
-        center.setBorder(new EmptyBorder(12, 12, 12, 12));
-
-        JPanel leftRail = createLeftRail();
-        center.add(leftRail, BorderLayout.WEST);
-
-        // content area (tabs wrapped in a card-like panel)
-        createContentCardWithTabs(center);
-
-        // small status/footer area
-        JPanel statusBar = new JPanel(new BorderLayout());
-        statusBar.setBorder(new EmptyBorder(8, 12, 8, 12));
-        statusBar.setBackground(new Color(0xFFFFFF));
-        JLabel footer = new JLabel("Write something and hit Ctrl+S! Search with Ctrl+F. For a quick short entry, use Ctrl+N anywhere.");
-        footer.setFont(footer.getFont().deriveFont(Font.PLAIN, 12f));
-        footer.setForeground(new Color(0x394B54));
-        statusBar.add(footer, BorderLayout.WEST);
-
-        root.add(center, BorderLayout.CENTER);
-        root.add(statusBar, BorderLayout.SOUTH);
-
-        SwingUtilities.invokeLater(() -> entryPanel.getTextArea().requestFocusInWindow());
+    private void initializeComponents() {
+        // Initialize panels
+        entryPanel = new EntryPanel(this);
+        logListPanel = new LogListPanel(this, logFileHandler, listModel, logList);
+        fullLogPanel = new FullLogPanel(this, logFileHandler);
+        settingsPanel = new SettingsPanel(this, settings, settingsPath, logFileHandler);
     }
-
-    private void initSystemTray() {
-        var systemTrayMenu = new SystemTrayMenu(this);
-        SystemTrayMenu.initSystemTray();
-    }
-
-    private void setupActivityListeners() {
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                // Activity detected, but no auto-lock
-            }
-        });
-        addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                // Activity detected, but no auto-lock
-            }
-        });
-    }
-
-    private void addIcon() {
-        //add same L icon as in system tray
-        BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = image.createGraphics();
-        g2.setColor(Color.BLUE);
-        g2.fillRect(0, 0, 16, 16);
-        g2.setColor(Color.WHITE);
-        g2.drawString("L", 4, 12);
-        g2.dispose();
-        setIconImage(image);
-    }
-
-    private void createContentCardWithTabs(JPanel center) {
-        JPanel contentCard = new JPanel(new BorderLayout());
-        contentCard.setBackground(Color.WHITE);
-        contentCard.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(0xE7EBEF)),
-                new EmptyBorder(12, 12, 12, 12)
-        ));
-
-        tabPane.setUI(new HiddenTabUI());
-        tabPane.addTab("Entry", entryPanel = new EntryPanel(this));
-        tabPane.addTab("Log Entries", logListPanel = new LogListPanel(this, logFileHandler, listModel, logList));
-        tabPane.addTab("Full Log", fullLogPanel = new FullLogPanel(this, logFileHandler));
-        tabPane.addTab("Settings", settingsPanel = new SettingsPanel(this, settings, settingsPath, logFileHandler));
-        tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help"));
-        tabPane.addTab("About", new InformationPanel(tabPane, "license.md", "About"));
-        tabPane.addChangeListener(e -> {
-            if (tabPane.getSelectedIndex() == 2) {
-                fullLogPanel.loadFullLog();
-            } else if (tabPane.getSelectedIndex() == 3) {
-                settingsPanel.loadCurrentSettings();
-            }
-        });
-        contentCard.add(tabPane, BorderLayout.CENTER);
-
-        center.add(contentCard, BorderLayout.CENTER);
-    }
-
-    private void applyLookAndFeelTweaks() {
-        UIManager.put("control", new Color(0xF3F6F9));
-        UIManager.put("nimbusBase", new Color(0x2E3A3F));
-        UIManager.put("text", new Color(0x22282B));
-        Font uiFont = new Font("Segoe UI", Font.PLAIN, 13);
-        UIManager.put("Label.font", uiFont);
-        UIManager.put("Button.font", uiFont);
-        UIManager.put("ComboBox.font", uiFont);
-        UIManager.put("TabbedPane.font", uiFont);
-    }
-
-
-    private JPanel createLeftRail() {
-        JPanel left = new JPanel();
-        left.setPreferredSize(new Dimension(170, 0));
-        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
-        left.setOpaque(true);
-        left.setBackground(new Color(0xF7FAFC));
-        left.setBorder(new EmptyBorder(12, 10, 12, 10));
-
-
-        // create NavItems bound to tab indices using the extracted NavItem class (title, tabIndex, tabPane)
-        NavItem n0 = new NavItem("Entry", 0, tabPane, null);
-        NavItem n1 = new NavItem("Log Entries", 1, tabPane, null);
-        NavItem n2 = new NavItem("Full Log", 2, tabPane, null);
-        NavItem n3 = new NavItem("Settings", 3, tabPane, null);
-        NavItem n4 = new NavItem("Help", 4, tabPane, null);
-        Runnable aboutOnClick = () -> {
-            new gui.SplashScreen(); // modal, shows splash
-            tabPane.setSelectedIndex(5);
-        };
-        NavItem n5 = new NavItem("About", 5, tabPane, aboutOnClick);
-
-        navItems.clear();
-        navItems.add(n0);
-        navItems.add(n1);
-        navItems.add(n2);
-        navItems.add(n3);
-        navItems.add(n4);
-        navItems.add(n5);
-
-        left.add(n0);
-        left.add(Box.createVerticalStrut(6));
-        left.add(n1);
-        left.add(Box.createVerticalStrut(6));
-        left.add(n2);
-        left.add(Box.createVerticalStrut(6));
-        left.add(n3);
-        left.add(Box.createVerticalStrut(6));
-        left.add(n4);
-        left.add(Box.createVerticalStrut(6));
-        left.add(n5);
-        left.add(Box.createVerticalGlue());
-
-        JLabel ver = new JLabel("v1.0");
-        ver.setFont(ver.getFont().deriveFont(11f));
-        ver.setForeground(new Color(0x6B7A80));
-        ver.setAlignmentX(Component.LEFT_ALIGNMENT);
-        ver.setOpaque(false);
-        left.add(ver);
-
-        // ensure nav visuals update when user changes tabs programmatically
-        tabPane.addChangeListener(e -> updateNavActiveStates());
-        updateNavActiveStates(); // sync visuals initially
-
-        return left;
-    }
-
-
-    private void updateNavActiveStates() {
-        // NavItem instances listen to tabPane changes themselves; just repaint to force visual refresh
-        int sel = tabPane.getSelectedIndex();
-        for (NavItem ni : navItems) {
-            ni.repaint();
-            // ensure accessibility/visual sync for the selected item
-            if (navItems.indexOf(ni) == sel) {
-                ni.getAccessibleContext().firePropertyChange(
-                        javax.accessibility.AccessibleContext.ACCESSIBLE_STATE_PROPERTY,
-                        null, null);
-            }
-        }
-    }
-
-
-
 
     public ActionListener copyLogEntryTextToClipBoard() {
-        return e -> {
-            String selectedItem = logList.getSelectedValue();
-            if (selectedItem != null) {
-                // Check if file is encrypted and warn user
-                if (logFileHandler.isEncrypted()) {
-                    int confirm = JOptionPane.showConfirmDialog(
-                        LogTextEditor.this,
-                        "<html><b>Security Warning:</b><br><br>" +
-                        "You are about to copy a log entry to the clipboard.<br>" +
-                        "Clipboard contents may be accessible to other applications.<br><br>" +
-                        "Are you sure you want to copy this entry to the clipboard?</html>",
-                        "Copy to Clipboard - Security Warning",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE);
-
-                    if (confirm != JOptionPane.YES_OPTION) {
-                        return; // User chose not to copy
-                    }
-                }
-
-                //Copy both timestamp and entry text
-                String logContent = logFileHandler.loadEntry(selectedItem);
-                clipboard.ClipboardManager.copyLogEntryToClipboard(selectedItem, logContent, LogTextEditor.this);
-                //show a small popup message "Copied to clipboard"
-                JOptionPane.showMessageDialog(
-                        LogTextEditor.this,
-                        "Log entry copied to clipboard.",
-                        "Copied",
-                        JOptionPane.INFORMATION_MESSAGE);
-            }
-        };
+        return actionHandler.createCopyLogEntryAction();
     }
 
     public void quickEntry() {
-        createNewQuickEntry().actionPerformed(null);
+        actionHandler.createNewQuickEntryAction().actionPerformed(null);
     }
 
     public AbstractAction createNewQuickEntry() {
-        return new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String newEntry = JOptionPane.showInputDialog(
-                        LogTextEditor.this,
-                        "Enter new log entry:",
-                        "New Log Entry",
-                        JOptionPane.PLAIN_MESSAGE);
-                if (newEntry != null && !newEntry.isBlank()) {
-                    logFileHandler.saveText(newEntry, listModel);
-                    try {
-                        loadLogEntries();
-                        fullLogPanel.loadFullLog();
-                        SystemTrayMenu.updateRecentLogsMenu();
-                    } catch (Exception ex) {
-                        logFileHandler.showErrorDialog("Error refreshing data: " + ex.getMessage());
-                    }
-                }
-            }
-        };
+        return (AbstractAction) actionHandler.createNewQuickEntryAction();
     }
 
     public void saveEditedLogEntry() {
-        if (isLocked) {
-            JOptionPane.showMessageDialog(this, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        String selectedItem = logList.getSelectedValue();
-        if (selectedItem == null) return;
-
-        logFileHandler.updateEntry(selectedItem, logListPanel.getEntryArea().getText());
-        updateLogListView();
-        logList.setSelectedValue(selectedItem, true);
-        fullLogPanel.loadFullLog();
-        SystemTrayMenu.updateRecentLogsMenu();
-        Toast.showToast(this, "Entry updated successfully!");
+        actionHandler.saveEditedLogEntry();
     }
 
     // Helper: choose and show first log if list has any entries
-    private void selectFirstLogIfAny() {
+    public void selectFirstLogIfAny() {
         if (listModel.getSize() > 0) {
             // choose index 0 (first in model). If your model is sorted newest-first,
             // index 0 will be the newest; adjust if your model ordering differs.
@@ -378,126 +159,15 @@ public class LogTextEditor extends JFrame {
 
 
     public void deleteSelectedEntry() {
-        if (isLocked) {
-            JOptionPane.showMessageDialog(this, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        java.util.List<String> selectedItems = logList.getSelectedValuesList();
-        if (selectedItems.isEmpty()) return;
-
-        int numEntries = selectedItems.size();
-        String title = numEntries == 1 ? "Delete Entry" : "Delete " + numEntries + " Entries";
-        String questionText = numEntries == 1 ?
-            "Are you sure you want to delete this entry?" :
-            "Are you sure you want to delete these " + numEntries + " entries?";
-
-        // Build preview for all selected entries
-        StringBuilder previewBuilder = new StringBuilder();
-        for (int i = 0; i < selectedItems.size(); i++) {
-            String selectedItem = selectedItems.get(i);
-            String entryText = logFileHandler.loadEntry(selectedItem);
-            String previewBody;
-            if (entryText == null || entryText.isBlank()) {
-                previewBody = "(no content)";
-            } else {
-                String trimmed = entryText.length() > 200 ? entryText.substring(0, 200) + "..." : entryText;
-                previewBody = trimmed;
-            }
-
-            if (i > 0) previewBuilder.append("\n\n---\n\n");
-            previewBuilder.append(selectedItem).append("\n\n").append(previewBody);
-        }
-
-        JTextArea previewArea = createPreviewArea(previewBuilder.toString());
-
-        // Compose dialog content: question label above preview
-        JPanel panel = new JPanel(new BorderLayout(6, 6));
-        JLabel question = new JLabel(questionText);
-        panel.add(question, BorderLayout.NORTH);
-        JScrollPane scrollPane = new JScrollPane(previewArea,
-                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setPreferredSize(new Dimension(600, Math.min(400, 200 + numEntries * 50))); // Adjust height based on number of entries
-        panel.add(scrollPane, BorderLayout.CENTER);
-
-        int confirm = JOptionPane.showConfirmDialog(this,
-                panel,
-                title,
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE);
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            // Delete all selected entries
-            for (String selectedItem : selectedItems) {
-                logFileHandler.deleteEntry(selectedItem, listModel);
-            }
-            updateLogListView();
-            //select top if any
-            selectFirstLogIfAny();
-            fullLogPanel.loadFullLog(); // update full log view after deletion
-            SystemTrayMenu.updateRecentLogsMenu();
-            String successMessage = numEntries == 1 ? "Entry deleted successfully!" : numEntries + " entries deleted successfully!";
-            Toast.showToast(this, successMessage);
-        }
+        actionHandler.deleteSelectedEntry();
     }
 
     public void editDateTime() {
-        if (isLocked) {
-            JOptionPane.showMessageDialog(this, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        String selectedItem = logList.getSelectedValue();
-        if (selectedItem == null) return;
-
-        String newDateTime = JOptionPane.showInputDialog(this, "Enter new date and time (format: HH:mm yyyy-MM-dd):", selectedItem);
-        if (newDateTime == null) return;
-        if (newDateTime.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Date and time cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // validate
-        try {
-            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd");
-            java.time.LocalDateTime.parse(newDateTime.trim(), formatter);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Invalid format. Use HH:mm yyyy-MM-dd", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // update
-        logFileHandler.changeTimestamp(selectedItem, newDateTime.trim(), listModel);
-        // reload full log and update menu
-        fullLogPanel.loadFullLog();
-        SystemTrayMenu.updateRecentLogsMenu();
+        actionHandler.editDateTime();
     }
-
-    private static JTextArea createPreviewArea(String previewFull) {
-        // Create a small preview component
-        JTextArea previewArea = new JTextArea(previewFull);
-        previewArea.setEditable(false);
-        previewArea.setLineWrap(true);
-        previewArea.setWrapStyleWord(true);
-        previewArea.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        previewArea.setBackground(UIManager.getColor("Panel.background"));
-        previewArea.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
-        previewArea.setRows(6);
-        previewArea.setColumns(40);
-        return previewArea;
-    }
-
 
     public void saveLogEntry() {
-        if (isLocked) {
-            JOptionPane.showMessageDialog(this, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        logFileHandler.saveText(entryPanel.getTextArea().getText(), listModel);
-        entryPanel.getTextArea().setText("");
-        updateLogListView();
-        fullLogPanel.loadFullLog(); // update full log view after save
-        SystemTrayMenu.updateRecentLogsMenu();
-        Toast.showToast(this, "Entry saved successfully!");
+        actionHandler.saveLogEntry();
     }
 
     public void loadLogEntries() throws Exception {
@@ -505,7 +175,7 @@ public class LogTextEditor extends JFrame {
         updateLogListView();
     }
 
-    private void updateLogListView() {
+    public void updateLogListView() {
         logList.setModel(listModel);
     }
 
