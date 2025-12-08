@@ -22,7 +22,6 @@ import gui.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
-import java.util.List;
 import javax.swing.*;
 
 public class LogTextEditor extends JFrame {
@@ -251,13 +250,13 @@ public class LogTextEditor extends JFrame {
     public void updateRecentLogsMenu(Menu recentLogsMenu) {
         //return 5 most recent log entries as menu items
         recentLogsMenu.removeAll();
-        List<String> recentLogs = logFileHandler.getRecentLogEntries(10);
+        var recentLogs = logFileHandler.getRecentLogEntries(10);
         checkIfWindowIsVisible();
 
-        for (String logEntry : recentLogs) {
-            MenuItem logItem = new MenuItem(logEntry);
+        for (var logEntry : recentLogs) {
+            var logItem = new MenuItem(logEntry);
             logItem.addActionListener(e -> {
-                String logContent = logFileHandler.loadEntry(logEntry);
+                var logContent = logFileHandler.loadEntry(logEntry);
                 logListPanel.getEntryArea().setText(logContent);
                 tabPane.setSelectedIndex(1); // switch to Log Entries tab
                 logList.setSelectedValue(logEntry, true); // select the log entry in the list
@@ -277,12 +276,12 @@ public class LogTextEditor extends JFrame {
     }
 
     private void startSingleInstanceListener() {
-        Thread listenerThread = new Thread(() -> {
+        var listenerThread = new Thread(() -> {
             try {
                 while (true) {
-                    java.net.Socket clientSocket = SingleInstanceManager.getServerSocket().accept();
-                    java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(clientSocket.getInputStream()));
-                    String message = in.readLine();
+                    var clientSocket = SingleInstanceManager.getServerSocket().accept();
+                    var in = new java.io.BufferedReader(new java.io.InputStreamReader(clientSocket.getInputStream()));
+                    var message = in.readLine();
                     if ("BRING_TO_FRONT".equals(message)) {
                         SwingUtilities.invokeLater(() -> {
                             checkIfWindowIsVisible();
@@ -303,14 +302,14 @@ public class LogTextEditor extends JFrame {
 
     private void loadSettings() {
         if (java.nio.file.Files.exists(settingsPath)) {
-            try (java.io.FileInputStream fis = new java.io.FileInputStream(settingsPath.toFile())) {
+            try (var fis = new java.io.FileInputStream(settingsPath.toFile())) {
                 settings.load(fis);
                 settingsPanel.loadCurrentSettings();
-                String backupDir = settings.getProperty("backupDirectory", "");
+                var backupDir = settings.getProperty("backupDirectory", "");
                 logFileHandler.setBackupDirectory(backupDir);
-                String enc = settings.getProperty("encrypted");
+                var enc = settings.getProperty("encrypted");
                 passwordReminder = settings.getProperty("passwordReminder", "");
-                boolean dataLoaded = false;
+                var dataLoaded = false;
                 if ("true".equals(enc)) {
                     handleEncryptionSetup();
                     dataLoaded = true;

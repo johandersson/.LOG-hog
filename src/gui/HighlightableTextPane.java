@@ -17,7 +17,6 @@
 
 package gui;
 
-import java.awt.Rectangle;
 import java.awt.Toolkit;
 import javax.swing.*;
 import javax.swing.text.*;
@@ -30,15 +29,15 @@ public class HighlightableTextPane extends JTextPane {
     }
 
     public boolean highlightText(String query) {
-        Highlighter highlighter = getHighlighter();
+        var highlighter = getHighlighter();
         highlighter.removeAllHighlights();
 
         if (query == null || query.isBlank()) {
             return false;
         }
 
-        Document doc = getDocument();
-        int len = doc.getLength();
+        var doc = getDocument();
+        var len = doc.getLength();
         String text;
         try {
             text = doc.getText(0, len);
@@ -47,18 +46,18 @@ public class HighlightableTextPane extends JTextPane {
             return false;
         }
 
-        String lower = text.toLowerCase();
-        String qLower = query.toLowerCase();
+        var lower = text.toLowerCase();
+        var qLower = query.toLowerCase();
 
-        int index = lower.indexOf(qLower);
+        var index = lower.indexOf(qLower);
         if (index == -1) {
             return false;
         }
 
-        int start = 0;
+        var start = 0;
         try {
             while ((start = lower.indexOf(qLower, start)) >= 0) {
-                int end = start + qLower.length();
+                var end = start + qLower.length();
                 highlighter.addHighlight(start, end, highlightPainter);
                 start = end;
             }
@@ -67,7 +66,7 @@ public class HighlightableTextPane extends JTextPane {
         }
 
         try {
-            Rectangle rect = modelToView2D(index).getBounds();
+            var rect = modelToView2D(index).getBounds();
             if (rect != null) {
                 rect.height = Math.max(rect.height, 20);
                 scrollRectToVisible(rect);
@@ -80,18 +79,18 @@ public class HighlightableTextPane extends JTextPane {
     }
 
     public void navigateHighlights(boolean next) {
-        Highlighter highlighter = getHighlighter();
-        Highlighter.Highlight[] highlights = highlighter.getHighlights();
+        var highlighter = getHighlighter();
+        var highlights = highlighter.getHighlights();
         if (highlights.length == 0) {
             Toolkit.getDefaultToolkit().beep();
             return;
         }
 
-        int caretPos = getCaretPosition();
-        int targetIndex = -1;
+        var caretPos = getCaretPosition();
+        var targetIndex = -1;
 
         if (next) {
-            for (int i = 0; i < highlights.length; i++) {
+            for (var i = 0; i < highlights.length; i++) {
                 if (highlights[i].getStartOffset() > caretPos) {
                     targetIndex = i;
                     break;
@@ -99,7 +98,7 @@ public class HighlightableTextPane extends JTextPane {
             }
             if (targetIndex == -1) targetIndex = 0;
         } else {
-            for (int i = highlights.length - 1; i >= 0; i--) {
+            for (var i = highlights.length - 1; i >= 0; i--) {
                 if (highlights[i].getEndOffset() < caretPos) {
                     targetIndex = i;
                     break;
@@ -109,10 +108,10 @@ public class HighlightableTextPane extends JTextPane {
         }
 
         if (targetIndex != -1) {
-            Highlighter.Highlight h = highlights[targetIndex];
-            int start = h.getStartOffset();
+            var h = highlights[targetIndex];
+            var start = h.getStartOffset();
             try {
-                Rectangle rect = modelToView2D(start).getBounds();
+                var rect = modelToView2D(start).getBounds();
                 rect.height = Math.max(rect.height, 20);
                 scrollRectToVisible(rect);
                 setCaretPosition(start);

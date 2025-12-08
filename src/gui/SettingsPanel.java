@@ -67,31 +67,31 @@ public class SettingsPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
 
-        JPanel contentPanel = new JPanel();
+        var contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         contentPanel.setBackground(Color.WHITE);
 
         // Encryption section
-        JPanel encryptionPanel = new JPanel(new BorderLayout());
+        var encryptionPanel = new JPanel(new BorderLayout());
         encryptionPanel.setBorder(BorderFactory.createTitledBorder("Encryption"));
         encryptionPanel.setBackground(Color.WHITE);
 
         encryptionCheckBox = new JCheckBox("Enable encryption for log file");
-        String enc = settings.getProperty("encrypted");
+        var enc = settings.getProperty("encrypted");
         encryptionCheckBox.setSelected("true".equals(enc));
 
-        JLabel warningLabel = new JLabel("<html><b>Warning:</b> If you lose the password, data is lost forever.</html>");
+        var warningLabel = new JLabel("<html><b>Warning:</b> If you lose the password, data is lost forever.</html>");
         warningLabel.setForeground(Color.RED);
 
-        JLabel performanceLabel = new JLabel("<html><i>Note: Enabling encryption may slow down program loading, especially in the settings tab and full log view.</i></html>");
+        var performanceLabel = new JLabel("<html><i>Note: Enabling encryption may slow down program loading, especially in the settings tab and full log view.</i></html>");
         performanceLabel.setForeground(Color.GRAY);
 
-        JLabel backupLabel = new JLabel("<html><b>Backup:</b> Make a backup of your log file before enabling encryption for safety.</html>");
+        var backupLabel = new JLabel("<html><b>Backup:</b> Make a backup of your log file before enabling encryption for safety.</html>");
         backupLabel.setForeground(Color.BLUE);
 
         encryptionPanel.add(encryptionCheckBox, BorderLayout.NORTH);
-        JPanel warningsPanel = new JPanel();
+        var warningsPanel = new JPanel();
         warningsPanel.setLayout(new BoxLayout(warningsPanel, BoxLayout.Y_AXIS));
         warningsPanel.setBackground(Color.WHITE);
         warningsPanel.add(warningLabel);
@@ -103,14 +103,14 @@ public class SettingsPanel extends JPanel {
         contentPanel.add(Box.createVerticalStrut(20));
 
         // Decrypt button
-        JPanel decryptPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        var decryptPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         decryptPanel.setBackground(Color.WHITE);
         decryptPanel.setBorder(BorderFactory.createTitledBorder("Decrypt File"));
         
-        JButton decryptButton = new JButton("Decrypt Log File");
+        var decryptButton = new JButton("Decrypt Log File");
         decryptButton.addActionListener(e -> decryptLogFile());
         
-        JLabel decryptWarning = new JLabel("<html><b>Warning:</b> This will permanently decrypt your log file and store it in plain text.</html>");
+        var decryptWarning = new JLabel("<html><b>Warning:</b> This will permanently decrypt your log file and store it in plain text.</html>");
         decryptWarning.setForeground(Color.RED);
         
         decryptPanel.add(decryptButton);
@@ -120,9 +120,9 @@ public class SettingsPanel extends JPanel {
         contentPanel.add(Box.createVerticalStrut(20));
 
         // Backup button
-        JPanel backupPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        var backupPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         backupPanel.setBackground(Color.WHITE);
-        JButton backupButton = new JButton("Backup Log File");
+        var backupButton = new JButton("Backup Log File");
         backupButton.addActionListener(e -> backupLogFile());
         backupPanel.add(backupButton);
 
@@ -130,12 +130,12 @@ public class SettingsPanel extends JPanel {
         contentPanel.add(Box.createVerticalStrut(20));
 
         // Backup directory
-        JPanel backupDirPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        var backupDirPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         backupDirPanel.setBackground(Color.WHITE);
         backupDirPanel.setBorder(BorderFactory.createTitledBorder("Backup Directory"));
-        JLabel backupDirLabel = new JLabel("Default backup directory: ");
+        var backupDirLabel = new JLabel("Default backup directory: ");
         backupDirField = new JTextField(20);
-        browseBackupButton = new JButton("Browse...");
+        var browseBackupButton = new JButton("Browse...");
         browseBackupButton.addActionListener(e -> browseBackupDirectory());
         backupDirPanel.add(backupDirLabel);
         backupDirPanel.add(backupDirField);
@@ -145,10 +145,10 @@ public class SettingsPanel extends JPanel {
         contentPanel.add(Box.createVerticalStrut(20));
 
         // Password reminder
-        JPanel reminderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        var reminderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         reminderPanel.setBackground(Color.WHITE);
         reminderPanel.setBorder(BorderFactory.createTitledBorder("Password Reminder"));
-        JLabel reminderLabel = new JLabel("Optional reminder (stored in plain text): ");
+        var reminderLabel = new JLabel("Optional reminder (stored in plain text): ");
         reminderField = new JTextField(20);
         reminderPanel.add(reminderLabel);
         reminderPanel.add(reminderField);
@@ -157,7 +157,7 @@ public class SettingsPanel extends JPanel {
         contentPanel.add(Box.createVerticalStrut(20));
 
         // Apply button
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        var buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         buttonPanel.setBackground(Color.WHITE);
         applyButton = new JButton("Apply Changes");
         applyButton.addActionListener(e -> applySettings());
@@ -168,7 +168,7 @@ public class SettingsPanel extends JPanel {
         // Status label
         statusLabel = new JLabel("");
         statusLabel.setForeground(Color.BLUE);
-        JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        var statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         statusPanel.setBackground(Color.WHITE);
         statusPanel.add(statusLabel);
         contentPanel.add(statusPanel);
@@ -182,8 +182,8 @@ public class SettingsPanel extends JPanel {
     }
 
     private void applySettings() {
-        boolean enable = encryptionCheckBox.isSelected();
-        String currentEnc = settings.getProperty("encrypted");
+        var enable = encryptionCheckBox.isSelected();
+        var currentEnc = settings.getProperty("encrypted");
 
         // Check if encryption setting changed
         if (enable && !"true".equals(currentEnc)) {
@@ -199,12 +199,12 @@ public class SettingsPanel extends JPanel {
         }
 
         // Check if any settings actually changed
-        String currentReminder = settings.getProperty("passwordReminder", "");
-        String currentBackupDir = settings.getProperty("backupDirectory", "");
-        String newReminder = reminderField.getText();
-        String newBackupDir = backupDirField.getText();
+        var currentReminder = settings.getProperty("passwordReminder", "");
+        var currentBackupDir = settings.getProperty("backupDirectory", "");
+        var newReminder = reminderField.getText();
+        var newBackupDir = backupDirField.getText();
 
-        boolean settingsChanged = !currentReminder.equals(newReminder) || !currentBackupDir.equals(newBackupDir);
+        var settingsChanged = !currentReminder.equals(newReminder) || !currentBackupDir.equals(newBackupDir);
 
         if (!settingsChanged) {
             statusLabel.setText("No changes to apply.");
@@ -224,8 +224,8 @@ public class SettingsPanel extends JPanel {
     }
 
     private void enableEncryption() {
-        PasswordDialog.PasswordResult pwdResult = PasswordDialog.showPasswordDialog(editor, "Enter new password (min 16 chars, 1 uppercase, 1 special char)", reminderField.getText(), "Create a new password for your log.");
-        char[] pwd = pwdResult.password;
+        var pwdResult = PasswordDialog.showPasswordDialog(editor, "Enter new password (min 16 chars, 1 uppercase, 1 special char)", reminderField.getText(), "Create a new password for your log.");
+        var pwd = pwdResult.password;
         if (pwd == null) return;
 
         if (pwd.length < 16) {
@@ -233,8 +233,8 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
-        boolean hasUpper = false;
-        boolean hasSpecial = false;
+        var hasUpper = false;
+        var hasSpecial = false;
         for (char c : pwd) {
             if (Character.isUpperCase(c)) hasUpper = true;
             if (!Character.isLetterOrDigit(c)) hasSpecial = true;
@@ -244,8 +244,8 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
-        PasswordDialog.PasswordResult confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm new password", reminderField.getText(), "Confirm your new password.");
-        char[] confirm = confirmResult.password;
+        var confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm new password", reminderField.getText(), "Confirm your new password.");
+        var confirm = confirmResult.password;
         if (!java.util.Arrays.equals(pwd, confirm)) {
             JOptionPane.showMessageDialog(editor, "Passwords do not match");
             return;
@@ -257,19 +257,19 @@ public class SettingsPanel extends JPanel {
 
             // Backup settings file before modifying
             if (java.nio.file.Files.exists(settingsPath)) {
-                java.nio.file.Path backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+                var backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
                 java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 logToFile("Settings file backed up to: " + backupSettingsPath.toString());
             }
 
-            byte[] saltBytes = logFileHandler.getSalt();
-            String saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
+            var saltBytes = logFileHandler.getSalt();
+            var saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
             settings.setProperty("encrypted", "true");
             settings.setProperty("salt", saltBase64);
             saveSettings();
 
             // Verify the settings were saved correctly
-            String savedSalt = settings.getProperty("salt");
+            var savedSalt = settings.getProperty("salt");
             if (savedSalt == null || savedSalt.isEmpty()) {
                 throw new Exception("Failed to save encryption salt to settings");
             }
@@ -290,34 +290,34 @@ public class SettingsPanel extends JPanel {
     }
 
     private void browseBackupDirectory() {
-        JFileChooser chooser = new JFileChooser();
+        var chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        String current = backupDirField.getText();
+        var current = backupDirField.getText();
         if (!current.isEmpty()) {
             chooser.setCurrentDirectory(new java.io.File(current));
         }
-        int res = chooser.showOpenDialog(editor);
+        var res = chooser.showOpenDialog(editor);
         if (res == JFileChooser.APPROVE_OPTION) {
             backupDirField.setText(chooser.getSelectedFile().getAbsolutePath());
         }
     }
 
     private void backupLogFile() {
-        int confirm = JOptionPane.showConfirmDialog(editor, "Backups are copies of your current log file.\nIf encrypted, the backup will remain encrypted for security.\nDo you want to proceed?", "Backup Info", JOptionPane.YES_NO_OPTION);
+        var confirm = JOptionPane.showConfirmDialog(editor, "Backups are copies of your current log file.\nIf encrypted, the backup will remain encrypted for security.\nDo you want to proceed?", "Backup Info", JOptionPane.YES_NO_OPTION);
         if (confirm != JOptionPane.YES_OPTION) return;
 
-        JFileChooser chooser = new JFileChooser();
-        String backupDir = backupDirField.getText();
+        var chooser = new JFileChooser();
+        var backupDir = backupDirField.getText();
         if (!backupDir.isEmpty()) {
             chooser.setCurrentDirectory(new java.io.File(backupDir));
         }
-        String date = LocalDate.now().toString();
+        var date = LocalDate.now().toString();
         chooser.setSelectedFile(new java.io.File("loghog-backup-" + date + ".txt"));
-        javax.swing.filechooser.FileFilter filter = new javax.swing.filechooser.FileFilter() {
+        var filter = new javax.swing.filechooser.FileFilter() {
             @Override
             public boolean accept(java.io.File f) {
                 if (f.isDirectory()) return true;
-                String name = f.getName();
+                var name = f.getName();
                 return name.startsWith("loghog-backup-") && name.endsWith(".txt");
             }
             @Override
@@ -326,10 +326,10 @@ public class SettingsPanel extends JPanel {
             }
         };
         chooser.setFileFilter(filter);
-        int res = chooser.showSaveDialog(editor);
+        var res = chooser.showSaveDialog(editor);
         if (res == JFileChooser.APPROVE_OPTION) {
-            java.io.File selectedFile = chooser.getSelectedFile();
-            Path backupPath = selectedFile.toPath();
+            var selectedFile = chooser.getSelectedFile();
+            var backupPath = selectedFile.toPath();
             try {
                 Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 statusLabel.setText("Backup saved to: " + backupPath.toString());
@@ -340,7 +340,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private void saveSettings() {
-        try (FileOutputStream fos = new FileOutputStream(settingsPath.toFile())) {
+        try (var fos = new FileOutputStream(settingsPath.toFile())) {
             settings.store(fos, "LogHog settings");
             logToFile("Settings saved successfully.");
         } catch (Exception e) {
@@ -356,7 +356,7 @@ public class SettingsPanel extends JPanel {
         }
 
         // Show security warning
-        int confirm = JOptionPane.showConfirmDialog(editor,
+        var confirm = JOptionPane.showConfirmDialog(editor,
             "<html><b>WARNING: Security Risk</b><br><br>" +
             "This will permanently decrypt your log file and save it as plain text.<br>" +
             "Anyone with access to your computer will be able to read the file.<br><br>" +
@@ -376,14 +376,14 @@ public class SettingsPanel extends JPanel {
             
             // Backup settings file before modifying
             if (java.nio.file.Files.exists(settingsPath)) {
-                java.nio.file.Path backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+                var backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
                 java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 logToFile("Settings file backed up to: " + backupSettingsPath.toString());
             }
             
             // Update settings - but save BEFORE clearing in case something goes wrong
-            String oldEncrypted = settings.getProperty("encrypted");
-            String oldSalt = settings.getProperty("salt");
+            var oldEncrypted = settings.getProperty("encrypted");
+            var oldSalt = settings.getProperty("salt");
             
             settings.setProperty("encrypted", "false");
             settings.remove("salt");

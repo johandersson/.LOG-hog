@@ -51,7 +51,7 @@ public class EntryPanel extends JPanel {
 
         lockLabel.setForeground(Color.GRAY);
 
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
         bottom.setBackground(Color.WHITE);
         saveBtn.addActionListener(e -> editor.saveLogEntry());
         bottom.add(saveBtn);

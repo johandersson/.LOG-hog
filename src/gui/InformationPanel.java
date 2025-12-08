@@ -19,7 +19,6 @@ package gui;
 
 import java.awt.*;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,20 +34,20 @@ public class InformationPanel extends JPanel {
 
     private void createPanel(JTabbedPane tabPanel, String fileNameForText, String title) {
         // Load license text
-        String informationTextToDisplay = loadPanelText(fileNameForText);
+        var informationTextToDisplay = loadPanelText(fileNameForText);
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(12, 12, 12, 12));
 
         createHeader(title);
 
 
-        JTextPane tp = new JTextPane();
+        var tp = new JTextPane();
         tp.setEditable(false);
         tp.setBackground(Color.WHITE);
         MarkdownRenderer.renderMarkdown(tp, informationTextToDisplay.lines().toList());
         MarkdownRenderer.addLinkListeners(tp);
 
-        JScrollPane sp = new JScrollPane(tp);
+        var sp = new JScrollPane(tp);
         sp.setOpaque(false);
         sp.getViewport().setOpaque(false);
         sp.setBorder(BorderFactory.createEmptyBorder());
@@ -56,9 +55,9 @@ public class InformationPanel extends JPanel {
         add(sp, BorderLayout.CENTER);
 
         // Bottom: OK button returns to Entry tab (index 0)
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         bottom.setOpaque(false);
-        JButton ok = new AccentButton("OK");
+        var ok = new AccentButton("OK");
         ok.addActionListener(e -> {
             if (tabPanel != null && tabPanel.getTabCount() > 0) tabPanel.setSelectedIndex(0);
         });
@@ -68,7 +67,7 @@ public class InformationPanel extends JPanel {
 
     private void createHeader(String title) {
         // Header
-        JLabel header = new JLabel(title);
+        var header = new JLabel(title);
         header.setFont(header.getFont().deriveFont(Font.BOLD, 16f));
         header.setForeground(new Color(0x2B3A42));
         add(header, BorderLayout.NORTH);
@@ -76,7 +75,7 @@ public class InformationPanel extends JPanel {
 
     private String loadPanelText(String fileName) {
         // 1) Try file in current working directory
-        Path p = Path.of(fileName);
+        var p = Path.of(fileName);
         try {
             if (Files.exists(p)) return Files.readString(p, StandardCharsets.UTF_8);
         } catch (IOException couldNotReadFile) {
@@ -84,7 +83,7 @@ public class InformationPanel extends JPanel {
         }
 
         // 2) Try resource from JAR
-        try (InputStream is = getClass().getResourceAsStream("/resources/" + fileName)) {
+        try (var is = getClass().getResourceAsStream("/resources/" + fileName)) {
             if (is != null) {
                 return new String(is.readAllBytes(), StandardCharsets.UTF_8);
             } else {

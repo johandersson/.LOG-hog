@@ -26,7 +26,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import javax.crypto.SecretKey;
 import javax.swing.*;
 import main.LogTextEditor;
 import markdown.MarkdownRenderer;
@@ -61,17 +60,17 @@ public class FullLogPanel extends JPanel {
         fullLogPane.setContentType("text/plain");
         fullLogPane.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         // fullLogPane.setFont(new Font("Georgia", Font.PLAIN, 14)); // Remove to let document styles control font
-        JScrollPane scroll = new JScrollPane(fullLogPane);
+        var scroll = new JScrollPane(fullLogPane);
         scroll.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
         add(scroll, BorderLayout.CENTER);
 
-        JPanel pathPanel = new JPanel(new BorderLayout());
+        var pathPanel = new JPanel(new BorderLayout());
         pathPanel.setOpaque(false);
         fullLogPathLabel.setForeground(new Color(0x3A4A52));
         pathPanel.add(fullLogPathLabel, BorderLayout.WEST);
         add(pathPanel, BorderLayout.NORTH);
 
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         bottom.setOpaque(false);
         copyFullLogButton.addActionListener(e -> copyFullLogToClipboard());
         bottom.add(copyFullLogButton);
@@ -86,25 +85,25 @@ public class FullLogPanel extends JPanel {
         });
         bottom.add(lockFileButton);
 
-        JPanel rightBottomPanel = getRightBottomPanel();
+        var rightBottomPanel = getRightBottomPanel();
         bottom.add(rightBottomPanel, 0);
         add(bottom, BorderLayout.SOUTH);
     }
 
     private JPanel getRightBottomPanel() {
-        JPanel rightBottomSearchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        var rightBottomSearchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         rightBottomSearchPanel.setOpaque(false);
-        JLabel searchLabel = new JLabel("Search:");
+        var searchLabel = new JLabel("Search:");
         rightBottomSearchPanel.add(searchLabel);
-        JTextField searchField = new JTextField(15);
+        var searchField = new JTextField(15);
         searchField.addActionListener(e -> performSearchInFullLog(searchField.getText()));
         rightBottomSearchPanel.add(searchField);
-        JButton searchBtn = new AccentButton("Find");
+        var searchBtn = new AccentButton("Find");
         searchBtn.addActionListener(e -> performSearchInFullLog(searchField.getText()));
         rightBottomSearchPanel.add(searchBtn);
 
-        JButton prevHighlightBtn = new AccentButton("<-");
-        JButton nextHighlightBtn = new AccentButton("->");
+        var prevHighlightBtn = new AccentButton("<-");
+        var nextHighlightBtn = new AccentButton("->");
         prevHighlightBtn.addActionListener(e -> navigateToHighlight(false));
         nextHighlightBtn.addActionListener(e -> navigateToHighlight(true));
         rightBottomSearchPanel.add(prevHighlightBtn);
@@ -133,7 +132,7 @@ public class FullLogPanel extends JPanel {
     }
 
     private void copyFullLogToClipboard() {
-        String text = fullLogPane.getText();
+        var text = fullLogPane.getText();
         if (text == null || text.isEmpty()) {
             Toolkit.getDefaultToolkit().beep();
             JOptionPane.showMessageDialog(this, "Log is empty or not loaded.", "Copy Failed", JOptionPane.WARNING_MESSAGE);
@@ -142,7 +141,7 @@ public class FullLogPanel extends JPanel {
 
         // Check if file is encrypted and warn user
         if (logFileHandler.isEncrypted()) {
-            int confirm = JOptionPane.showConfirmDialog(
+            var confirm = JOptionPane.showConfirmDialog(
                 this,
                 "<html><b>Security Warning:</b><br><br>" +
                 "You are about to copy the entire log file to the clipboard.<br>" +
@@ -157,8 +156,8 @@ public class FullLogPanel extends JPanel {
             }
         }
 
-        StringSelection selection = new StringSelection(text);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        var selection = new StringSelection(text);
+        var clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         try {
             clipboard.setContents(selection, selection);
             JOptionPane.showMessageDialog(this, "Full log copied to clipboard.", "Copied", JOptionPane.INFORMATION_MESSAGE);
@@ -180,7 +179,7 @@ public class FullLogPanel extends JPanel {
                 return;
             }
             updateButtonStates(false);
-            Path logPath = Path.of(System.getProperty("user.home"), "log.txt");
+            var logPath = Path.of(System.getProperty("user.home"), "log.txt");
             if (!Files.exists(logPath)) {
                 showLogNotFound();
                 return;
@@ -191,9 +190,9 @@ public class FullLogPanel extends JPanel {
             try {
                 List<String> lines;
                 if (logFileHandler.isEncrypted()) {
-                    byte[] data = Files.readAllBytes(logPath);
-                    SecretKey key = EncryptionManager.deriveKey(logFileHandler.getPassword(), logFileHandler.getSalt());
-                    String decrypted = EncryptionManager.decrypt(data, key);
+                    var data = Files.readAllBytes(logPath);
+                    var key = EncryptionManager.deriveKey(logFileHandler.getPassword(), logFileHandler.getSalt());
+                    var decrypted = EncryptionManager.decrypt(data, key);
                     lines = Arrays.asList(decrypted.split("\n", -1));
                 } else {
                     lines = Files.readAllLines(logPath);
@@ -220,8 +219,8 @@ public class FullLogPanel extends JPanel {
 
     private void fallbackReadRaw(Path chosen) {
         try {
-            byte[] bytes = Files.readAllBytes(chosen);
-            String content = new String(bytes);
+            var bytes = Files.readAllBytes(chosen);
+            var content = new String(bytes);
             fullLogPane.setText(content);
             fullLogPane.clearHighlights();
             fullLogPane.setCaretPosition(0);
@@ -233,10 +232,10 @@ public class FullLogPanel extends JPanel {
     }
 
     private static List<String> getNormalized(List<String> updatedLines) {
-        List<String> normalized = new ArrayList<>();
-        boolean prevBlank = false;
-        for (String l : updatedLines) {
-            boolean isBlank = l.trim().isEmpty();
+        var normalized = new ArrayList<String>();
+        var prevBlank = false;
+        for (var l : updatedLines) {
+            var isBlank = l.trim().isEmpty();
             if (isBlank) {
                 if (!prevBlank) {
                     normalized.add(""); // keep single blank line
@@ -251,7 +250,7 @@ public class FullLogPanel extends JPanel {
     }
 
     private void showLogNotFound() {
-        String userHome = System.getProperty("user.home");
+        var userHome = System.getProperty("user.home");
         fullLogPane.setText("log.txt not found in user home or current working directory.\n"
                 + "Checked paths:\n"
                 + userHome + "\\log.txt\n"

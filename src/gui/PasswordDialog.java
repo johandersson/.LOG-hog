@@ -42,17 +42,17 @@ public class PasswordDialog extends JDialog {
     private void initComponents() {
         setLayout(new BorderLayout());
 
-        JPanel centerPanel = new JPanel(new BorderLayout(5, 5));
+        var centerPanel = new JPanel(new BorderLayout(5, 5));
         centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JPanel topPanel = new JPanel(new BorderLayout());
-        String welcomeText = customMessage != null ? customMessage : "Welcome back! Enter your password to unlock your encrypted log.";
-        JLabel welcomeLabel = new JLabel("<html><center>" + welcomeText + "</center></html>", SwingConstants.CENTER);
+        var topPanel = new JPanel(new BorderLayout());
+        var welcomeText = customMessage != null ? customMessage : "Welcome back! Enter your password to unlock your encrypted log.";
+        var welcomeLabel = new JLabel("<html><center>" + welcomeText + "</center></html>", SwingConstants.CENTER);
         welcomeLabel.setFont(welcomeLabel.getFont().deriveFont(Font.PLAIN, 12f));
         topPanel.add(welcomeLabel, BorderLayout.NORTH);
 
         if (reminder != null && !reminder.trim().isEmpty()) {
-            JLabel reminderLabel = new JLabel("Reminder: " + reminder, SwingConstants.CENTER);
+            var reminderLabel = new JLabel("Reminder: " + reminder, SwingConstants.CENTER);
             reminderLabel.setForeground(Color.GRAY);
             topPanel.add(reminderLabel, BorderLayout.SOUTH);
         }
@@ -73,7 +73,7 @@ public class PasswordDialog extends JDialog {
             }
         });
 
-        JPanel fieldPanel = new JPanel(new BorderLayout());
+        var fieldPanel = new JPanel(new BorderLayout());
         fieldPanel.add(passwordField, BorderLayout.CENTER);
         fieldPanel.add(toggleButton, BorderLayout.EAST);
 
@@ -81,7 +81,7 @@ public class PasswordDialog extends JDialog {
 
         add(centerPanel, BorderLayout.CENTER);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout());
+        var buttonPanel = new JPanel(new FlowLayout());
         okButton = new JButton("OK");
         cancelButton = new JButton("Cancel");
 
@@ -119,13 +119,13 @@ public class PasswordDialog extends JDialog {
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder) {
-        PasswordDialog dialog = new PasswordDialog(parent, title, reminder, null);
+        var dialog = new PasswordDialog(parent, title, reminder, null);
         dialog.setVisible(true);
         return new PasswordResult(dialog.getPassword());
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, String customMessage) {
-        PasswordDialog dialog = new PasswordDialog(parent, title, reminder, customMessage);
+        var dialog = new PasswordDialog(parent, title, reminder, customMessage);
         dialog.setVisible(true);
         return new PasswordResult(dialog.getPassword());
     }

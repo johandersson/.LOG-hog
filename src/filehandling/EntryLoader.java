@@ -43,20 +43,24 @@ public class EntryLoader {
 
         List<String> lines;
         if (logFileHandler.isEncrypted()) {
-            byte[] data = Files.readAllBytes(LogFileHandler.FILE_PATH);
-            SecretKey key = EncryptionManager.deriveKey(logFileHandler.getPassword(), logFileHandler.getSalt());
-            String decrypted = EncryptionManager.decrypt(data, key);
-            lines = Arrays.asList(decrypted.split("\n", -1));
+            try {
+                var data = Files.readAllBytes(LogFileHandler.FILE_PATH);
+                var key = EncryptionManager.deriveKey(logFileHandler.getPassword(), logFileHandler.getSalt());
+                var decrypted = EncryptionManager.decrypt(data, key);
+                lines = Arrays.asList(decrypted.split("\n", -1));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         } else {
             lines = Files.readAllLines(LogFileHandler.FILE_PATH);
         }
 
         try {
-            List<List<String>> entries = new ArrayList<>();
-            List<String> currentEntry = new ArrayList<>();
-            Pattern tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", Pattern.MULTILINE);
+            var entries = new ArrayList<List<String>>();
+            var currentEntry = new ArrayList<String>();
+            var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", Pattern.MULTILINE);
             for (String line : lines) {
-                String trimmed = line.trim();
+                var trimmed = line.trim();
                 if (trimmed.equalsIgnoreCase(".LOG")) continue;
                 if (tsPattern.matcher(trimmed).matches()) {
                     if (!currentEntry.isEmpty()) {
@@ -74,8 +78,8 @@ public class EntryLoader {
                 entries.add(currentEntry);
             }
             // Sort only entries that start with a timestamp
-            List<List<String>> timestampEntries = new ArrayList<>();
-            List<List<String>> nonTimestampEntries = new ArrayList<>();
+            var timestampEntries = new ArrayList<List<String>>();
+            var nonTimestampEntries = new ArrayList<List<String>>();
             for (List<String> entry : entries) {
                 if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
                     timestampEntries.add(entry);
@@ -84,13 +88,13 @@ public class EntryLoader {
                 }
             }
             // Filter to current month
-            LocalDateTime now = LocalDateTime.now();
-            int currentYear = now.getYear();
-            int currentMonth = now.getMonthValue();
-            List<List<String>> filteredTimestampEntries = new ArrayList<>();
+            var now = LocalDateTime.now();
+            var currentYear = now.getYear();
+            var currentMonth = now.getMonthValue();
+            var filteredTimestampEntries = new ArrayList<List<String>>();
             for (List<String> entry : timestampEntries) {
                 try {
-                    LocalDateTime dt = parseDate(entry.get(0));
+                    var dt = parseDate(entry.get(0));
                     if (dt.getYear() == currentYear && dt.getMonthValue() == currentMonth) {
                         filteredTimestampEntries.add(entry);
                     }

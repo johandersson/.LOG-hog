@@ -83,17 +83,18 @@ public class AccentButton extends JButton {
 
     @Override
     protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
+        var g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        int width = getWidth();
-        int height = getHeight();
+        var width = getWidth();
+        var height = getHeight();
 
         // Draw Material Design shadows (multiple layers)
-        for (int i = shadowOffset; i >= 1; i--) {
-            int alpha = 70 - (i * 10); // Adjusted for more shadow layers with increased offsets
+        for (var i = shadowOffset; i >= 1; i--) {
+            var alpha = 70 - (i * 10); // Adjusted for more shadow layers with increased offsets
             if (alpha > 0) {
-                g2.setColor(new Color(47, 128, 237, Math.max(3, alpha)));
+                var shadowColor = new Color(47, 128, 237, Math.max(3, alpha));
+                g2.setColor(shadowColor);
                 g2.fillRoundRect(i, i, width - 2*i, height - 2*i, cornerRadius, cornerRadius);
             }
         }

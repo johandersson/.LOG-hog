@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Eliminated all salt logging for security
 - Comprehensive operation blocking in locked state
 - Password visibility requires active user interaction
+- Increased PBKDF2 iterations from 65,536 to 100,000 for enhanced password-based key derivation security
 
 ## [1.0.0] - 2025-12-04
 
