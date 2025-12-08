@@ -27,6 +27,7 @@ import java.util.*;
 import java.util.List;
 import java.util.regex.*;
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.text.*;
 
 public class MarkdownRenderer {
@@ -208,9 +209,9 @@ public class MarkdownRenderer {
         styles.put("list", listStyle);
 
         Style quoteStyle = doc.addStyle("quote", defaultStyle);
-        StyleConstants.setLeftIndent(quoteStyle, 20);
-        StyleConstants.setItalic(quoteStyle, true);
-        StyleConstants.setForeground(quoteStyle, new Color(100, 100, 100)); // Gray color for quotes
+        StyleConstants.setLeftIndent(quoteStyle, 15);
+        Border leftBorder = BorderFactory.createMatteBorder(0, 4, 0, 0, new Color(173, 216, 230)); // Light blue left border
+        StyleConstants.setBorder(quoteStyle, leftBorder);
         styles.put("quote", quoteStyle);
 
         Style codeStyle = doc.addStyle("code", defaultStyle);
