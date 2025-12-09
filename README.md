@@ -1,6 +1,6 @@
 # LogHog
 
-A secure, feature-rich Java Swing logging application. Perfect for users already familiar with Notepad's .LOG journal feature and their existing log files, and ideal for anyone who hasn't used it before but needs a simple, secure logging or diary tool.
+A secure, feature-rich Java Swing logging application. Perfect for users already familiar with [Notepad's .LOG journal feature](https://www.howtogeek.com/359463/what-is-a-log-file/) and their existing log files, and ideal for anyone who hasn't used it before but needs a simple, secure logging or diary tool.
 
 ## Features
 - Tabbed interface for writing and browsing logs
