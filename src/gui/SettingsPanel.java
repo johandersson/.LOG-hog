@@ -239,30 +239,34 @@ public class SettingsPanel extends JPanel {
     }
 
     private void enableEncryption() {
-        while (true) {
-            PasswordDialog.PasswordResult pwdResult = PasswordDialog.showPasswordDialog(editor, "Enter new password (min 16 chars, 1 uppercase, 1 special char)", reminderField.getText(), "Create a new password for your log.");
-            char[] pwd = pwdResult.password;
-            if (pwd == null) return; // Canceled
-
+        String requirements = "<b>Password Requirements:</b><br>At least 16 characters<br>At least one uppercase letter<br>At least one lowercase letter<br>At least one special character (e.g., !@#$%^&*())";
+        java.util.function.Function<char[], String> validator = (char[] pwd) -> {
             if (pwd.length < 16) {
-                JOptionPane.showMessageDialog(editor, "Password must be at least 16 characters. Please try again.");
-                continue;
+                return "Password must be at least 16 characters.";
             }
-
             boolean hasUpper = false;
+            boolean hasLower = false;
             boolean hasSpecial = false;
             for (char c : pwd) {
                 if (Character.isUpperCase(c)) hasUpper = true;
+                if (Character.isLowerCase(c)) hasLower = true;
                 if (!Character.isLetterOrDigit(c)) hasSpecial = true;
             }
-            if (!hasUpper || !hasSpecial) {
-                JOptionPane.showMessageDialog(editor, "Password must contain at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':\",./<>?). Please try again.");
-                continue;
-            }
+            if (!hasUpper) return "Password must include at least one uppercase letter.";
+            if (!hasLower) return "Password must include at least one lowercase letter.";
+            if (!hasSpecial) return "Password must include at least one special character.";
+            return null; // valid
+        };
 
-            PasswordDialog.PasswordResult confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm new password", reminderField.getText(), "Confirm your new password.");
+        while (true) {
+            PasswordDialog.PasswordResult pwdResult = PasswordDialog.showPasswordDialog(editor, "Create Password for Encryption", reminderField.getText(), "Enter a strong password to protect your log file.", requirements, validator);
+            char[] pwd = pwdResult.password;
+            if (pwd == null) return; // Canceled
+
+            // If validator passed, proceed
+            PasswordDialog.PasswordResult confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm Password", reminderField.getText(), "Re-enter your password to confirm.");
             char[] confirm = confirmResult.password;
-            if (confirm == null) return; // Canceled
+            if (confirm == null) continue; // Back to enter password
             if (!java.util.Arrays.equals(pwd, confirm)) {
                 JOptionPane.showMessageDialog(editor, "Passwords do not match. Please try again.");
                 continue;
@@ -310,34 +314,34 @@ public class SettingsPanel extends JPanel {
     }
 
     private void browseBackupDirectory() {
-        var chooser = new JFileChooser();
+        JFileChooser chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        var current = backupDirField.getText();
+        String current = backupDirField.getText();
         if (!current.isEmpty()) {
             chooser.setCurrentDirectory(new java.io.File(current));
         }
-        var res = chooser.showOpenDialog(editor);
+        int res = chooser.showOpenDialog(editor);
         if (res == JFileChooser.APPROVE_OPTION) {
             backupDirField.setText(chooser.getSelectedFile().getAbsolutePath());
         }
     }
 
     private void backupLogFile() {
-        var confirm = JOptionPane.showConfirmDialog(editor, "Backups are copies of your current log file.\nIf encrypted, the backup will remain encrypted for security.\nDo you want to proceed?", "Backup Info", JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(editor, "Backups are copies of your current log file.\nIf encrypted, the backup will remain encrypted for security.\nDo you want to proceed?", "Backup Info", JOptionPane.YES_NO_OPTION);
         if (confirm != JOptionPane.YES_OPTION) return;
 
-        var chooser = new JFileChooser();
-        var backupDir = backupDirField.getText();
+        JFileChooser chooser = new JFileChooser();
+        String backupDir = backupDirField.getText();
         if (!backupDir.isEmpty()) {
             chooser.setCurrentDirectory(new java.io.File(backupDir));
         }
-        var date = LocalDate.now().toString();
+        String date = LocalDate.now().toString();
         chooser.setSelectedFile(new java.io.File("loghog-backup-" + date + ".txt"));
-        var filter = new javax.swing.filechooser.FileFilter() {
+        javax.swing.filechooser.FileFilter filter = new javax.swing.filechooser.FileFilter() {
             @Override
             public boolean accept(java.io.File f) {
                 if (f.isDirectory()) return true;
-                var name = f.getName();
+                String name = f.getName();
                 return name.startsWith("loghog-backup-") && name.endsWith(".txt");
             }
             @Override
@@ -346,10 +350,10 @@ public class SettingsPanel extends JPanel {
             }
         };
         chooser.setFileFilter(filter);
-        var res = chooser.showSaveDialog(editor);
+        int res = chooser.showSaveDialog(editor);
         if (res == JFileChooser.APPROVE_OPTION) {
-            var selectedFile = chooser.getSelectedFile();
-            var backupPath = selectedFile.toPath();
+            java.io.File selectedFile = chooser.getSelectedFile();
+            java.nio.file.Path backupPath = selectedFile.toPath();
             try {
                 Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 statusLabel.setText("Backup saved to: " + backupPath.toString());
@@ -360,7 +364,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private void saveSettings() {
-        try (var fos = new FileOutputStream(settingsPath.toFile())) {
+        try (FileOutputStream fos = new FileOutputStream(settingsPath.toFile())) {
             settings.store(fos, "LogHog settings");
             logToFile("Settings saved successfully.");
         } catch (Exception e) {
@@ -405,7 +409,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private boolean showDecryptionWarning() {
-        var confirm = JOptionPane.showConfirmDialog(editor,
+        int confirm = JOptionPane.showConfirmDialog(editor,
             "<html><b>WARNING: Security Risk</b><br><br>" +
             "This will permanently decrypt your log file and save it as plain text.<br>" +
             "Anyone with access to your computer will be able to read the file.<br><br>" +
@@ -419,7 +423,7 @@ public class SettingsPanel extends JPanel {
 
     private void backupSettingsFile() {
         if (java.nio.file.Files.exists(settingsPath)) {
-            var backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+            java.nio.file.Path backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
             try {
                 java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 logToFile("Settings file backed up to: " + backupSettingsPath.toString());

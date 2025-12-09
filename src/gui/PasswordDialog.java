@@ -29,11 +29,17 @@ public class PasswordDialog extends JDialog {
     private boolean visible = false;
     private String reminder;
     private String customMessage;
+    private String requirements;
+    private JLabel errorLabel;
 
-    public PasswordDialog(Frame parent, String title, String reminder, String customMessage) {
+    private java.util.function.Function<char[], String> validator;
+
+    public PasswordDialog(Frame parent, String title, String reminder, String customMessage, String requirements, java.util.function.Function<char[], String> validator) {
         super(parent, title, true);
         this.reminder = reminder;
         this.customMessage = customMessage;
+        this.requirements = requirements;
+        this.validator = validator;
         initComponents();
         pack();
         setLocationRelativeTo(parent);
@@ -42,17 +48,24 @@ public class PasswordDialog extends JDialog {
     private void initComponents() {
         setLayout(new BorderLayout());
 
-        var centerPanel = new JPanel(new BorderLayout(5, 5));
+        JPanel centerPanel = new JPanel(new BorderLayout(5, 5));
         centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        var topPanel = new JPanel(new BorderLayout());
-        var welcomeText = customMessage != null ? customMessage : "Welcome back! Enter your password to unlock your encrypted log.";
-        var welcomeLabel = new JLabel("<html><center>" + welcomeText + "</center></html>", SwingConstants.CENTER);
+        JPanel topPanel = new JPanel(new BorderLayout());
+        String welcomeText = customMessage != null ? customMessage : "Welcome back! Enter your password to unlock your encrypted log.";
+        JLabel welcomeLabel = new JLabel("<html><center>" + welcomeText + "</center></html>", SwingConstants.CENTER);
         welcomeLabel.setFont(welcomeLabel.getFont().deriveFont(Font.PLAIN, 12f));
         topPanel.add(welcomeLabel, BorderLayout.NORTH);
 
+        if (requirements != null && !requirements.trim().isEmpty()) {
+            JLabel reqLabel = new JLabel("<html><center>" + requirements + "</center></html>", SwingConstants.CENTER);
+            reqLabel.setForeground(Color.BLUE);
+            reqLabel.setFont(reqLabel.getFont().deriveFont(Font.PLAIN, 11f));
+            topPanel.add(reqLabel, BorderLayout.CENTER);
+        }
+
         if (reminder != null && !reminder.trim().isEmpty()) {
-            var reminderLabel = new JLabel("Reminder: " + reminder, SwingConstants.CENTER);
+            JLabel reminderLabel = new JLabel("Reminder: " + reminder, SwingConstants.CENTER);
             reminderLabel.setForeground(Color.GRAY);
             topPanel.add(reminderLabel, BorderLayout.SOUTH);
         }
@@ -73,20 +86,36 @@ public class PasswordDialog extends JDialog {
             }
         });
 
-        var fieldPanel = new JPanel(new BorderLayout());
+        JPanel fieldPanel = new JPanel(new BorderLayout());
         fieldPanel.add(passwordField, BorderLayout.CENTER);
         fieldPanel.add(toggleButton, BorderLayout.EAST);
 
-        centerPanel.add(fieldPanel, BorderLayout.CENTER);
+        errorLabel = new JLabel("", SwingConstants.CENTER);
+        errorLabel.setForeground(Color.RED);
+        errorLabel.setFont(errorLabel.getFont().deriveFont(Font.PLAIN, 11f));
+
+        JPanel inputPanel = new JPanel(new BorderLayout());
+        inputPanel.add(fieldPanel, BorderLayout.CENTER);
+        inputPanel.add(errorLabel, BorderLayout.SOUTH);
+
+        centerPanel.add(inputPanel, BorderLayout.CENTER);
 
         add(centerPanel, BorderLayout.CENTER);
 
-        var buttonPanel = new JPanel(new FlowLayout());
+        JPanel buttonPanel = new JPanel(new FlowLayout());
         okButton = new JButton("OK");
         cancelButton = new JButton("Cancel");
 
         okButton.addActionListener(e -> {
-            password = passwordField.getPassword();
+            char[] pwd = passwordField.getPassword();
+            if (validator != null) {
+                String error = validator.apply(pwd);
+                if (error != null) {
+                    setErrorMessage(error);
+                    return;
+                }
+            }
+            password = pwd;
             setVisible(false);
         });
 
@@ -114,18 +143,35 @@ public class PasswordDialog extends JDialog {
         passwordField.requestFocusInWindow();
     }
 
+    public void setErrorMessage(String message) {
+        errorLabel.setText(message);
+        pack();
+    }
+
     public char[] getPassword() {
         return password;
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder) {
-        var dialog = new PasswordDialog(parent, title, reminder, null);
+        PasswordDialog dialog = new PasswordDialog(parent, title, reminder, null, null, null);
         dialog.setVisible(true);
         return new PasswordResult(dialog.getPassword());
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, String customMessage) {
-        var dialog = new PasswordDialog(parent, title, reminder, customMessage);
+        PasswordDialog dialog = new PasswordDialog(parent, title, reminder, customMessage, null, null);
+        dialog.setVisible(true);
+        return new PasswordResult(dialog.getPassword());
+    }
+
+    public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, String customMessage, String requirements) {
+        PasswordDialog dialog = new PasswordDialog(parent, title, reminder, customMessage, requirements, null);
+        dialog.setVisible(true);
+        return new PasswordResult(dialog.getPassword());
+    }
+
+    public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, String customMessage, String requirements, java.util.function.Function<char[], String> validator) {
+        PasswordDialog dialog = new PasswordDialog(parent, title, reminder, customMessage, requirements, validator);
         dialog.setVisible(true);
         return new PasswordResult(dialog.getPassword());
     }

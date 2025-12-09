@@ -91,11 +91,21 @@ public class AccentButton extends JButton {
 
         // Draw Material Design shadows (multiple layers)
         for (var i = shadowOffset; i >= 1; i--) {
-            var alpha = 70 - (i * 10); // Adjusted for more shadow layers with increased offsets
+            var alpha = 90 - (i * 10); // Increased for lighter, more visible shadow
             if (alpha > 0) {
                 var shadowColor = new Color(47, 128, 237, Math.max(3, alpha));
                 g2.setColor(shadowColor);
                 g2.fillRoundRect(i, i, width - 2*i, height - 2*i, cornerRadius, cornerRadius);
+            }
+        }
+
+        // Add white highlight shadow for shiny effect
+        for (int i = shadowOffset + 1; i >= shadowOffset; i--) {
+            int alpha = 50 - ((i - shadowOffset) * 10); // Increased for more visible white shadow
+            if (alpha > 0) {
+                Color whiteShadow = new Color(255, 255, 255, Math.max(3, alpha));
+                g2.setColor(whiteShadow);
+                g2.fillRoundRect(i - 1, i - 1, width - 2*(i - 1), height - 2*(i - 1), cornerRadius, cornerRadius);
             }
         }
 

@@ -46,11 +46,8 @@ public class EntryPanel extends JPanel {
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
         textArea.setEditable(true);
-        scrollPane.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(0x2F80ED), 2),
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)
-        ));
-        scrollPane.getViewport().setBorder(null);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
+        add(scrollPane, BorderLayout.CENTER);
 
         lockLabel.setForeground(Color.GRAY);
 
@@ -59,6 +56,9 @@ public class EntryPanel extends JPanel {
         saveBtn.addActionListener(e -> editor.saveLogEntry());
         bottom.add(saveBtn);
         add(bottom, BorderLayout.SOUTH);
+
+        // Ensure the text area gets focus for immediate typing
+        SwingUtilities.invokeLater(() -> textArea.requestFocusInWindow());
     }
 
     public JTextArea getTextArea() {

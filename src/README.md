@@ -22,8 +22,7 @@ A secure, feature-rich Java Swing logging application.
 - Clipboard integration for copying entries
 - Open entries in external notepad or browser
 - Toast notifications for user feedback
-- Comprehensive help documentation
-- GPL3 licensed
+- Automatic timestamping with .LOG feature (compatible with Notepad's journal mode)
 
 ## Encryption Warning
 If you enable encryption, the program may load slower with really large logs, especially in the settings tab when applying changes and in the full log view. This is due to the encryption/decryption process for the log file.
