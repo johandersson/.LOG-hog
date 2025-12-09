@@ -37,7 +37,7 @@ public class ClipboardManager {
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         try {
             clipboard.setContents(selection, selection);
-            Toast.showToast(parent, successMessage);
+            Toast.showToast(SwingUtilities.getWindowAncestor(parent), successMessage);
         } catch (IllegalStateException ise) {
             JOptionPane.showMessageDialog(parent, "Unable to access clipboard right now. Try again.", "Clipboard Error", JOptionPane.ERROR_MESSAGE);
         }
