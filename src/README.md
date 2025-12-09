@@ -1,6 +1,6 @@
 # LogHog
 
-A secure, feature-rich Java Swing logging application.
+A secure, feature-rich Java Swing logging application. Perfect for users already familiar with Notepad's .LOG journal feature and their existing log files, and ideal for anyone who hasn't used it before but needs a simple, secure logging or diary tool.
 
 ## Features
 - Tabbed interface for writing and browsing logs
@@ -31,7 +31,7 @@ If you enable encryption, the program may load slower with really large logs, es
 Encryption is an optional feature that protects your log files with strong security using AES encryption. When enabled, your password must be at least 16 characters long and include uppercase letters, lowercase letters, and special characters. This keeps your data safe, but remember that security depends on using a strong, unique password.
 
 ## .LOG Journal Mode
-LogHog supports Notepad's built-in .LOG journal feature. A text file acts as a log when it starts with '.LOG' in uppercase letters on the first line. When you save and reopen the file in Notepad, it automatically appends the current date and time at the end, placing the cursor on the next line for your entry. Each time you reopen the file, a new timestamp is added, making it easy to maintain a journal or log.
+LogHog fully supports and enhances Notepad's built-in .LOG journal feature. If you already have .LOG files from Notepad, LogHog can seamlessly work with them, providing a more powerful interface for viewing, editing, and managing your logs. Even if you've never used .LOG before, it's an excellent starting point for simple logging or diary keeping. A text file acts as a log when it starts with '.LOG' in uppercase letters on the first line. When you save and reopen the file in Notepad, it automatically appends the current date and time at the end, placing the cursor on the next line for your entry. Each time you reopen the file, a new timestamp is added, making it easy to maintain a journal or log.
 
 ## Installation
 Build with `javac *.java` and `jar cvfe loghog.jar LogHog *.class resources/`

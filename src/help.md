@@ -1,5 +1,7 @@
 # Welcome to the Help File for .LOG-hog!
 
+LogHog is especially great if you're already using Notepad's .LOG feature for journaling, as it seamlessly integrates with your existing .LOG files. If you've never tried .LOG before, it's perfect for simple logging or diary needs.
+
 ## Key Features
 - **Tabbed Interface**: Effortlessly switch between writing new entries and browsing past logs.
 - **Quick Entry**: Add notes instantly with automatic timestamps.
@@ -51,7 +53,7 @@ The Full Log tab renders your log entries with Markdown formatting for better re
 Formatting is applied in the Full Log window for a polished view of your entries.
 
 ## Using .LOG for Automatic Timestamps
-Notepad has a special feature where a text file acts as a log when it starts with '.LOG' in uppercase letters on the first line. When you save and reopen the file, Notepad automatically appends the current date and time at the end, placing the cursor on the next line for your entry. Each time you reopen the file, a new timestamp is added, making it easy to maintain a journal or log.
+Notepad has a special feature where a text file acts as a log when it starts with '.LOG' in uppercase letters on the first line. LogHog fully supports this, so if you already have .LOG files from Notepad, you can import and manage them here for a better experience. Even if you're new to .LOG, it's a simple way to start logging—when you save and reopen the file in Notepad, it automatically appends the current date and time at the end, placing the cursor on the next line for your entry. Each time you reopen the file, a new timestamp is added, making it easy to maintain a journal or log.
 
 ## Github repo:
 [GitHub Repository](http://github.com/johandersson/.LOG-hog)
