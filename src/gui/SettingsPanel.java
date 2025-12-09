@@ -239,68 +239,73 @@ public class SettingsPanel extends JPanel {
     }
 
     private void enableEncryption() {
-        var pwdResult = PasswordDialog.showPasswordDialog(editor, "Enter new password (min 16 chars, 1 uppercase, 1 special char)", reminderField.getText(), "Create a new password for your log.");
-        var pwd = pwdResult.password;
-        if (pwd == null) return;
+        while (true) {
+            PasswordDialog.PasswordResult pwdResult = PasswordDialog.showPasswordDialog(editor, "Enter new password (min 16 chars, 1 uppercase, 1 special char)", reminderField.getText(), "Create a new password for your log.");
+            char[] pwd = pwdResult.password;
+            if (pwd == null) return; // Canceled
 
-        if (pwd.length < 16) {
-            JOptionPane.showMessageDialog(editor, "Password must be at least 16 characters");
-            return;
-        }
-
-        var hasUpper = false;
-        var hasSpecial = false;
-        for (char c : pwd) {
-            if (Character.isUpperCase(c)) hasUpper = true;
-            if (!Character.isLetterOrDigit(c)) hasSpecial = true;
-        }
-        if (!hasUpper || !hasSpecial) {
-            JOptionPane.showMessageDialog(editor, "Password must contain at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':\",./<>?)");
-            return;
-        }
-
-        var confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm new password", reminderField.getText(), "Confirm your new password.");
-        var confirm = confirmResult.password;
-        if (!java.util.Arrays.equals(pwd, confirm)) {
-            JOptionPane.showMessageDialog(editor, "Passwords do not match");
-            return;
-        }
-
-        // Encrypt current file
-        try {
-            logFileHandler.enableEncryption(pwd);
-
-            // Backup settings file before modifying
-            if (java.nio.file.Files.exists(settingsPath)) {
-                var backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
-                java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                logToFile("Settings file backed up to: " + backupSettingsPath.toString());
+            if (pwd.length < 16) {
+                JOptionPane.showMessageDialog(editor, "Password must be at least 16 characters. Please try again.");
+                continue;
             }
 
-            var saltBytes = logFileHandler.getSalt();
-            var saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
-            settings.setProperty("encrypted", "true");
-            settings.setProperty("salt", saltBase64);
-            saveSettings();
-
-            // Verify the settings were saved correctly
-            var savedSalt = settings.getProperty("salt");
-            if (savedSalt == null || savedSalt.isEmpty()) {
-                throw new Exception("Failed to save encryption salt to settings");
+            boolean hasUpper = false;
+            boolean hasSpecial = false;
+            for (char c : pwd) {
+                if (Character.isUpperCase(c)) hasUpper = true;
+                if (!Character.isLetterOrDigit(c)) hasSpecial = true;
             }
-            if (!savedSalt.equals(saltBase64)) {
-                throw new Exception("Salt mismatch after save! Expected: " + saltBase64 + ", Got: " + savedSalt);
+            if (!hasUpper || !hasSpecial) {
+                JOptionPane.showMessageDialog(editor, "Password must contain at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':\",./<>?). Please try again.");
+                continue;
             }
 
-            statusLabel.setText("Encryption enabled successfully.");
-            statusLabel.setForeground(Color.BLUE);
-            editor.loadLogEntries();
-            editor.getFullLogPanel().loadFullLog();
+            PasswordDialog.PasswordResult confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm new password", reminderField.getText(), "Confirm your new password.");
+            char[] confirm = confirmResult.password;
+            if (confirm == null) return; // Canceled
+            if (!java.util.Arrays.equals(pwd, confirm)) {
+                JOptionPane.showMessageDialog(editor, "Passwords do not match. Please try again.");
+                continue;
+            }
 
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(editor, "Encryption failed: " + ex.getMessage());
-            statusLabel.setText("Encryption failed: " + ex.getMessage());
-            statusLabel.setForeground(Color.RED);
+            // Password is valid, proceed with encryption
+            try {
+                logFileHandler.enableEncryption(pwd);
+
+                // Backup settings file before modifying
+                if (java.nio.file.Files.exists(settingsPath)) {
+                    java.nio.file.Path backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+                    java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    logToFile("Settings file backed up to: " + backupSettingsPath.toString());
+                }
+
+                byte[] saltBytes = logFileHandler.getSalt();
+                String saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
+                settings.setProperty("encrypted", "true");
+                settings.setProperty("salt", saltBase64);
+                saveSettings();
+
+                // Verify the settings were saved correctly
+                String savedSalt = settings.getProperty("salt");
+                if (savedSalt == null || savedSalt.isEmpty()) {
+                    throw new Exception("Failed to save encryption salt to settings");
+                }
+                if (!savedSalt.equals(saltBase64)) {
+                    throw new Exception("Salt mismatch after save! Expected: " + saltBase64 + ", Got: " + savedSalt);
+                }
+
+                statusLabel.setText("Encryption enabled successfully.");
+                statusLabel.setForeground(Color.BLUE);
+                editor.loadLogEntries();
+                editor.getFullLogPanel().loadFullLog();
+                break; // Success, exit loop
+
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(editor, "Encryption failed: " + ex.getMessage());
+                statusLabel.setText("Encryption failed: " + ex.getMessage());
+                statusLabel.setForeground(Color.RED);
+                return;
+            }
         }
     }
 

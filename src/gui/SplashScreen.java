@@ -24,7 +24,7 @@ import javax.swing.*;
 public class SplashScreen extends JDialog {
     private int animationFrame = 0;
     private javax.swing.Timer animationTimer;
-    private JButton okButton;
+    private AccentButton okButton;
     private java.util.List<String> entriesList;
 
     public SplashScreen() {
@@ -83,8 +83,8 @@ public class SplashScreen extends JDialog {
         };
         panel.setLayout(null); // for absolute positioning
 
-        okButton = new JButton("OK");
-        okButton.setBounds(200, 250, 50, 30);
+        okButton = new AccentButton("OK");
+        okButton.setBounds(185, 250, 80, 35);
         okButton.addActionListener(e -> {
             animationTimer.stop();
             setVisible(false);

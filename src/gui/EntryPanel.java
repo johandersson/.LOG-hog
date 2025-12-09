@@ -46,12 +46,15 @@ public class EntryPanel extends JPanel {
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
         textArea.setEditable(true);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
-        add(scrollPane, BorderLayout.CENTER);
+        scrollPane.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(0x2F80ED), 2),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+        scrollPane.getViewport().setBorder(null);
 
         lockLabel.setForeground(Color.GRAY);
 
-        var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
         bottom.setBackground(Color.WHITE);
         saveBtn.addActionListener(e -> editor.saveLogEntry());
         bottom.add(saveBtn);
