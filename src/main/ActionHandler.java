@@ -75,12 +75,6 @@ public class ActionHandler {
                 //Copy both timestamp and entry text
                 String logContent = logFileHandler.loadEntry(selectedItem);
                 clipboard.ClipboardManager.copyLogEntryToClipboard(selectedItem, logContent, editor);
-                //show a small popup message "Copied to clipboard"
-                JOptionPane.showMessageDialog(
-                        editor,
-                        "Log entry copied to clipboard.",
-                        "Copied",
-                        JOptionPane.INFORMATION_MESSAGE);
             }
         };
     }
