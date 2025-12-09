@@ -51,7 +51,7 @@ The Full Log tab renders your log entries with Markdown formatting for better re
 Formatting is applied in the Full Log window for a polished view of your entries.
 
 ## Using .LOG for Automatic Timestamps
-Notepad has a special feature where typing .LOG in uppercase on the first line of a new text file enables automatic timestamping. Save the file, close it, and reopen it—Notepad will insert the current date and time at the end, placing the cursor on the next line for your entry. Each time you reopen the file, a new timestamp is added, making it easy to maintain a journal or log.
+Notepad has a special feature where a text file acts as a log when it starts with '.LOG' in uppercase letters on the first line. When you save and reopen the file, Notepad automatically appends the current date and time at the end, placing the cursor on the next line for your entry. Each time you reopen the file, a new timestamp is added, making it easy to maintain a journal or log.
 
 ## Github repo:
 [GitHub Repository](http://github.com/johandersson/.LOG-hog)

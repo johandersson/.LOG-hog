@@ -22,13 +22,16 @@ A secure, feature-rich Java Swing logging application.
 - Clipboard integration for copying entries
 - Open entries in external notepad or browser
 - Toast notifications for user feedback
-- Automatic timestamping with .LOG feature (compatible with Notepad's journal mode)
+- Automatic timestamping with .LOG journal mode (compatible with Notepad's built-in log feature)
 
 ## Encryption Warning
 If you enable encryption, the program may load slower with really large logs, especially in the settings tab when applying changes and in the full log view. This is due to the encryption/decryption process for the log file.
 
 ## Encryption Details
 Encryption is an optional feature that protects your log files with strong security using AES encryption. When enabled, your password must be at least 16 characters long and include uppercase letters, lowercase letters, and special characters. This keeps your data safe, but remember that security depends on using a strong, unique password.
+
+## .LOG Journal Mode
+LogHog supports Notepad's built-in .LOG journal feature. A text file acts as a log when it starts with '.LOG' in uppercase letters on the first line. When you save and reopen the file in Notepad, it automatically appends the current date and time at the end, placing the cursor on the next line for your entry. Each time you reopen the file, a new timestamp is added, making it easy to maintain a journal or log.
 
 ## Installation
 Build with `javac *.java` and `jar cvfe loghog.jar LogHog *.class resources/`
