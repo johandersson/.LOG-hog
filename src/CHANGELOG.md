@@ -21,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Blockquote support in markdown rendering (> for quoted text)
 
 ### Changed
-- Updated splash screen entries to remove movie references and focus on themes of mom, coding, coca cola, AI, and pizza
 - Removed duplicate entries from splash screen log
 - Manual lock no longer prompts user, instantly locks and disables UI
 - Lock messages displayed in all relevant views when file is locked
