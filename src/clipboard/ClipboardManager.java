@@ -20,9 +20,14 @@ package clipboard;
 import java.awt.*;
 import java.awt.datatransfer.*;
 import javax.swing.*;
+import utils.Toast;
 
 public class ClipboardManager {
     public static void copyTextToClipboard(String text, Component parent) {
+        copyTextToClipboard(text, parent, "Text copied to clipboard.");
+    }
+
+    public static void copyTextToClipboard(String text, Component parent, String successMessage) {
         if (text == null || text.isEmpty()) {
             Toolkit.getDefaultToolkit().beep();
             JOptionPane.showMessageDialog(parent, "Text is empty.", "Copy Failed", JOptionPane.WARNING_MESSAGE);
@@ -32,7 +37,7 @@ public class ClipboardManager {
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         try {
             clipboard.setContents(selection, selection);
-            JOptionPane.showMessageDialog(parent, "Text copied to clipboard.", "Copied", JOptionPane.INFORMATION_MESSAGE);
+            Toast.showToast(parent, successMessage);
         } catch (IllegalStateException ise) {
             JOptionPane.showMessageDialog(parent, "Unable to access clipboard right now. Try again.", "Clipboard Error", JOptionPane.ERROR_MESSAGE);
         }

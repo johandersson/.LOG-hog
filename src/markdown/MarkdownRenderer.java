@@ -17,6 +17,7 @@
 
 package markdown;
 
+import clipboard.ClipboardManager;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -105,6 +106,20 @@ public class MarkdownRenderer {
             public void mouseClicked(MouseEvent e) {
                 handleLinkClick(pane, e);
             }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showLinkPopup(pane, e);
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showLinkPopup(pane, e);
+                }
+            }
         });
 
         pane.addMouseMotionListener(new MouseMotionAdapter() {
@@ -156,6 +171,26 @@ public class MarkdownRenderer {
             pane.setCursor(hrefObj instanceof String ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
         } catch (Exception ex) {
             pane.setCursor(Cursor.getDefaultCursor());
+        }
+    }
+
+    private static void showLinkPopup(JTextPane pane, MouseEvent e) {
+        try {
+            int pos = pane.viewToModel2D(e.getPoint());
+            if (pos < 0) return;
+            StyledDocument doc = pane.getStyledDocument();
+            AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
+            Object hrefObj = attrs.getAttribute("href");
+            if (hrefObj instanceof String) {
+                String href = (String) hrefObj;
+                JPopupMenu popup = new JPopupMenu();
+                JMenuItem copyItem = new JMenuItem("Copy Link");
+                copyItem.addActionListener(ae -> ClipboardManager.copyTextToClipboard(href, pane, "Link copied to clipboard!"));
+                popup.add(copyItem);
+                popup.show(pane, e.getX(), e.getY());
+            }
+        } catch (Exception ex) {
+            // swallow
         }
     }
 
