@@ -20,7 +20,6 @@ package main;
 import gui.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -47,11 +46,28 @@ public class UIInitializer {
         editor.setUndecorated(false);
         editor.setTitle(".LOG hog");
         editor.setSize(1200, 660);
-        editor.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        editor.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         editor.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
-                editor.getLogFileHandler().clearSensitiveData();
+                int option = JOptionPane.showOptionDialog(
+                    editor,
+                    "Do you want to exit the program or just lock the file?",
+                    "Exit or Lock",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    new String[]{"Lock file instead", "Exit program"},
+                    "Lock file instead"
+                );
+                if (option == JOptionPane.YES_OPTION) {
+                    // Lock file instead
+                    editor.manualLock();
+                } else if (option == JOptionPane.NO_OPTION) {
+                    // Exit program
+                    editor.getLogFileHandler().clearSensitiveData();
+                    System.exit(0);
+                }
             }
         });
         editor.setLocationRelativeTo(null);
