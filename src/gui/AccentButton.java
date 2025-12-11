@@ -81,6 +81,30 @@ public class AccentButton extends JButton {
         });
     }
 
+    {
+        // Add mouse listener to show tooltip on disabled buttons
+        addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                if (!isEnabled()) {
+                    javax.swing.ToolTipManager.sharedInstance().mouseEntered(e);
+                }
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                if (!isEnabled()) {
+                    javax.swing.ToolTipManager.sharedInstance().mouseExited(e);
+                }
+            }
+            @Override
+            public void mouseMoved(java.awt.event.MouseEvent e) {
+                if (!isEnabled()) {
+                    javax.swing.ToolTipManager.sharedInstance().mouseMoved(e);
+                }
+            }
+        });
+    }
+
     @Override
     public void setEnabled(boolean b) {
         super.setEnabled(b);
@@ -94,6 +118,14 @@ public class AccentButton extends JButton {
             return "Disabled in locked mode";
         }
         return super.getToolTipText();
+    }
+
+    @Override
+    public String getToolTipText(java.awt.event.MouseEvent event) {
+        if (!isEnabled()) {
+            return "Disabled in locked mode";
+        }
+        return super.getToolTipText(event);
     }
 
     @Override
