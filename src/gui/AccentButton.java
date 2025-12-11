@@ -21,6 +21,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
+import utils.TooltipHelper;
 
 public class AccentButton extends JButton {
     private static final Color NORMAL_COLOR = new Color(0x2F80ED);
@@ -86,7 +87,7 @@ public class AccentButton extends JButton {
         super.setEnabled(b);
         setForeground(b ? Color.WHITE : new Color(0x202020)); // Even darker gray for disabled text
         if (!b) {
-            enableTooltipOnDisabled(this, "Disabled in locked mode");
+            TooltipHelper.enableTooltipOnDisabled(this, "Disabled in locked mode");
         } else {
             setToolTipText(null);
         }
@@ -130,34 +131,5 @@ public class AccentButton extends JButton {
     @Override
     protected void paintBorder(Graphics g) {
         // Don't paint default border, we handle shadows in paintComponent
-    }
-
-    /**
-     * Enables tooltips on disabled components by adding a mouse listener that manually triggers ToolTipManager.
-     * @param comp the component to enable tooltips on when disabled
-     * @param tooltip the tooltip text to show
-     */
-    public static void enableTooltipOnDisabled(javax.swing.JComponent comp, String tooltip) {
-        comp.setToolTipText(tooltip);
-        comp.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                if (!comp.isEnabled()) {
-                    javax.swing.ToolTipManager.sharedInstance().mouseEntered(e);
-                }
-            }
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                if (!comp.isEnabled()) {
-                    javax.swing.ToolTipManager.sharedInstance().mouseExited(e);
-                }
-            }
-            @Override
-            public void mouseMoved(java.awt.event.MouseEvent e) {
-                if (!comp.isEnabled()) {
-                    javax.swing.ToolTipManager.sharedInstance().mouseMoved(e);
-                }
-            }
-        });
     }
 }
