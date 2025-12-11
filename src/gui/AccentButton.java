@@ -84,7 +84,8 @@ public class AccentButton extends JButton {
     @Override
     public void setEnabled(boolean b) {
         super.setEnabled(b);
-        setForeground(b ? Color.WHITE : Color.BLACK);
+        setForeground(b ? Color.WHITE : new Color(0x202020)); // Even darker gray for disabled text
+        setToolTipText(b ? null : "Disabled in locked mode");
     }
 
     @Override
