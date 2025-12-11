@@ -82,6 +82,12 @@ public class AccentButton extends JButton {
     }
 
     @Override
+    public void setEnabled(boolean b) {
+        super.setEnabled(b);
+        setForeground(b ? Color.WHITE : Color.BLACK);
+    }
+
+    @Override
     protected void paintComponent(Graphics g) {
         var g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -89,18 +95,25 @@ public class AccentButton extends JButton {
         var width = getWidth();
         var height = getHeight();
 
-        // Draw Material Design shadows (multiple layers)
-        for (var i = shadowOffset; i >= 1; i--) {
-            var alpha = 70 - (i * 10); // Adjusted for more shadow layers with increased offsets
-            if (alpha > 0) {
-                var shadowColor = new Color(47, 128, 237, Math.max(3, alpha));
-                g2.setColor(shadowColor);
-                g2.fillRoundRect(i, i, width - 2*i, height - 2*i, cornerRadius, cornerRadius);
+        Color bgColor = getBackground();
+        if (!isEnabled()) {
+            bgColor = new Color(0xB0B0B0); // Light gray for disabled
+        }
+
+        // Draw Material Design shadows (multiple layers) only if enabled
+        if (isEnabled()) {
+            for (var i = shadowOffset; i >= 1; i--) {
+                var alpha = 70 - (i * 10); // Adjusted for more shadow layers with increased offsets
+                if (alpha > 0) {
+                    var shadowColor = new Color(47, 128, 237, Math.max(3, alpha));
+                    g2.setColor(shadowColor);
+                    g2.fillRoundRect(i, i, width - 2*i, height - 2*i, cornerRadius, cornerRadius);
+                }
             }
         }
 
         // Draw main button background
-        g2.setColor(getBackground());
+        g2.setColor(bgColor);
         g2.fillRoundRect(0, 0, width, height, cornerRadius, cornerRadius);
 
         g2.dispose();
