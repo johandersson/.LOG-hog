@@ -89,6 +89,14 @@ public class AccentButton extends JButton {
     }
 
     @Override
+    public String getToolTipText() {
+        if (!isEnabled()) {
+            return "Disabled in locked mode";
+        }
+        return super.getToolTipText();
+    }
+
+    @Override
     protected void paintComponent(Graphics g) {
         var g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
