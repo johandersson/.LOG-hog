@@ -111,8 +111,11 @@ public class ActionHandler {
         if (selectedItem == null) return;
 
         logFileHandler.updateEntry(selectedItem, logListPanel.getEntryArea().getText());
-        editor.updateLogListView();
-        logList.setSelectedValue(selectedItem, true);
+        try {
+            editor.loadLogEntries();
+        } catch (Exception e) {
+            logFileHandler.showErrorDialog("Error reloading log entries: " + e.getMessage());
+        }
         fullLogPanel.loadFullLog();
         SystemTrayMenu.updateRecentLogsMenu();
         Toast.showToast(editor, "Entry updated successfully!");
