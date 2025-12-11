@@ -81,51 +81,15 @@ public class AccentButton extends JButton {
         });
     }
 
-    {
-        // Add mouse listener to show tooltip on disabled buttons
-        addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                if (!isEnabled()) {
-                    javax.swing.ToolTipManager.sharedInstance().mouseEntered(e);
-                }
-            }
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                if (!isEnabled()) {
-                    javax.swing.ToolTipManager.sharedInstance().mouseExited(e);
-                }
-            }
-            @Override
-            public void mouseMoved(java.awt.event.MouseEvent e) {
-                if (!isEnabled()) {
-                    javax.swing.ToolTipManager.sharedInstance().mouseMoved(e);
-                }
-            }
-        });
-    }
-
     @Override
     public void setEnabled(boolean b) {
         super.setEnabled(b);
         setForeground(b ? Color.WHITE : new Color(0x202020)); // Even darker gray for disabled text
-        setToolTipText(b ? null : "Disabled in locked mode");
-    }
-
-    @Override
-    public String getToolTipText() {
-        if (!isEnabled()) {
-            return "Disabled in locked mode";
+        if (!b) {
+            enableTooltipOnDisabled(this, "Disabled in locked mode");
+        } else {
+            setToolTipText(null);
         }
-        return super.getToolTipText();
-    }
-
-    @Override
-    public String getToolTipText(java.awt.event.MouseEvent event) {
-        if (!isEnabled()) {
-            return "Disabled in locked mode";
-        }
-        return super.getToolTipText(event);
     }
 
     @Override
@@ -166,5 +130,34 @@ public class AccentButton extends JButton {
     @Override
     protected void paintBorder(Graphics g) {
         // Don't paint default border, we handle shadows in paintComponent
+    }
+
+    /**
+     * Enables tooltips on disabled components by adding a mouse listener that manually triggers ToolTipManager.
+     * @param comp the component to enable tooltips on when disabled
+     * @param tooltip the tooltip text to show
+     */
+    public static void enableTooltipOnDisabled(javax.swing.JComponent comp, String tooltip) {
+        comp.setToolTipText(tooltip);
+        comp.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                if (!comp.isEnabled()) {
+                    javax.swing.ToolTipManager.sharedInstance().mouseEntered(e);
+                }
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                if (!comp.isEnabled()) {
+                    javax.swing.ToolTipManager.sharedInstance().mouseExited(e);
+                }
+            }
+            @Override
+            public void mouseMoved(java.awt.event.MouseEvent e) {
+                if (!comp.isEnabled()) {
+                    javax.swing.ToolTipManager.sharedInstance().mouseMoved(e);
+                }
+            }
+        });
     }
 }
