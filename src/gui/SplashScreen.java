@@ -18,7 +18,6 @@
 package gui;
 
 import java.awt.*;
-import java.util.*;
 import javax.swing.*;
 
 public class SplashScreen extends JDialog {
@@ -34,32 +33,7 @@ public class SplashScreen extends JDialog {
         setLocationRelativeTo(null);
 
         // Load and shuffle entries once
-        java.util.List<String> allEntries;
-        try {
-            var is = SplashScreen.class.getResourceAsStream("/resources/entries.txt");
-            if (is != null) {
-                var reader = new java.io.BufferedReader(new java.io.InputStreamReader(is));
-                allEntries = new java.util.ArrayList<>();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    allEntries.add(line);
-                }
-                reader.close();
-            } else {
-                throw new java.io.IOException("Resource not found");
-            }
-        } catch (java.io.IOException e) {
-            allEntries = Arrays.asList(
-                "2025-11-20 14:30: Started coding",
-                "2025-11-20 14:35: Fixed infinite loop",
-                "2025-11-20 14:40: Added cool feature",
-                "2025-11-20 14:45: Tested the app",
-                "2025-11-20 14:50: Committed to git"
-            );
-        }
-        Collections.shuffle(allEntries);
-        entriesList = allEntries.subList(0, Math.min(5, allEntries.size()));
-        Collections.sort(entriesList, Comparator.comparing(s -> java.time.LocalDateTime.parse(s.substring(0, 16), java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
+        entriesList = SplashEntryLoader.loadSplashEntries();
 
         var panel = new JPanel() {
             @Override
@@ -125,12 +99,28 @@ public class SplashScreen extends JDialog {
         var shirt = Color.RED; // red shirt
         var pants = Color.BLUE;
 
+        drawHead(g2d, manX, manY, skin);
+        drawHair(g2d, manX, manY);
+        drawEyes(g2d, manX, manY);
+        drawMouth(g2d, manX, manY);
+        drawMustache(g2d, manX, manY);
+        drawBowtie(g2d, manX, manY);
+        drawBody(g2d, manX, manY);
+        drawArms(g2d, manX, manY, skin);
+        drawHands(g2d, manX, manY, skin);
+        drawLegs(g2d, manX, manY, pants);
+        drawShoes(g2d, manX, manY);
+    }
+
+    private void drawHead(Graphics2D g2d, int manX, int manY, Color skin) {
         // Head
         g2d.setColor(skin);
         g2d.fillOval(manX + 15, manY, 30, 30);
         g2d.setColor(Color.BLACK);
         g2d.drawOval(manX + 15, manY, 30, 30);
+    }
 
+    private void drawHair(Graphics2D g2d, int manX, int manY) {
         // Hair - fuller brown
         g2d.setColor(new Color(139, 69, 19));
         g2d.fillOval(manX + 15, manY - 10, 30, 15);
@@ -140,7 +130,9 @@ public class SplashScreen extends JDialog {
         g2d.drawOval(manX + 15, manY - 10, 30, 15);
         g2d.drawOval(manX + 10, manY, 10, 10);
         g2d.drawOval(manX + 40, manY, 10, 10);
+    }
 
+    private void drawEyes(Graphics2D g2d, int manX, int manY) {
         // Eyes - nice
         g2d.setColor(Color.WHITE);
         g2d.fillOval(manX + 20, manY + 8, 8, 8);
@@ -158,16 +150,22 @@ public class SplashScreen extends JDialog {
         g2d.drawLine(manX + 24, manY + 8, manX + 26, manY + 6);
         g2d.drawLine(manX + 32, manY + 8, manX + 30, manY + 6);
         g2d.drawLine(manX + 36, manY + 8, manX + 38, manY + 6);
+    }
 
+    private void drawMouth(Graphics2D g2d, int manX, int manY) {
         // Mouth
         g2d.drawArc(manX + 25, manY + 18, 10, 5, 0, -120);
+    }
 
+    private void drawMustache(Graphics2D g2d, int manX, int manY) {
         // Mustache
         var mustacheGradient = new GradientPaint(manX + 22, manY + 15, new Color(139, 69, 19), manX + 22, manY + 18, new Color(101, 67, 33));
         g2d.setPaint(mustacheGradient);
         g2d.drawLine(manX + 22, manY + 17, manX + 28, manY + 16);
         g2d.drawLine(manX + 32, manY + 17, manX + 38, manY + 16);
+    }
 
+    private void drawBowtie(Graphics2D g2d, int manX, int manY) {
         // Bowtie
         g2d.setStroke(new BasicStroke(2));
         g2d.setColor(Color.RED);
@@ -176,7 +174,9 @@ public class SplashScreen extends JDialog {
         g2d.fillOval(manX + 35, manY + 40, 5, 5);
         g2d.setColor(Color.BLACK);
         g2d.drawOval(manX + 25, manY + 35, 10, 10);
+    }
 
+    private void drawBody(Graphics2D g2d, int manX, int manY) {
         // Body - gradient white shirt
         var shirtGradient = new GradientPaint(manX + 10, manY + 30, Color.WHITE, manX + 10, manY + 50, new Color(200, 200, 200));
         g2d.setPaint(shirtGradient);
@@ -185,16 +185,28 @@ public class SplashScreen extends JDialog {
         g2d.drawRect(manX + 10, manY + 30, 40, 40);
 
         // Add text on shirt
-        g2d.setColor(Color.BLACK);
-        g2d.setFont(new Font("Arial", Font.BOLD, 8));
+        g2d.setFont(new Font("Segoe UI", Font.BOLD, 8));
         FontMetrics fm = g2d.getFontMetrics();
         String line1 = ".LOG-hog";
-        String line2 = "License: GPL3";
+        String line2 = "License:";
+        String line3 = "GPL3";
         int textX = manX + 10 + (40 - fm.stringWidth(line1)) / 2; // center horizontally
-        int textY = manY + 45; // position in middle of shirt
+        int textY = manY + 42; // position in middle of shirt
+
+        // Draw shadows first
+        g2d.setColor(new Color(64, 64, 64, 180)); // Semi-transparent dark gray
+        g2d.drawString(line1, textX + 1, textY + 1);
+        g2d.drawString(line2, textX + 1, textY + fm.getHeight() + 1);
+        g2d.drawString(line3, textX + 1, textY + 2 * fm.getHeight() + 1);
+
+        // Draw main text
+        g2d.setColor(Color.BLACK);
         g2d.drawString(line1, textX, textY);
         g2d.drawString(line2, textX, textY + fm.getHeight());
+        g2d.drawString(line3, textX, textY + 2 * fm.getHeight());
+    }
 
+    private void drawArms(Graphics2D g2d, int manX, int manY, Color skin) {
         // Arms - rectangles with hands
         g2d.setColor(skin);
         g2d.fillRect(manX, manY + 35, 8, 25); // left arm
@@ -202,6 +214,9 @@ public class SplashScreen extends JDialog {
         g2d.setColor(Color.BLACK);
         g2d.drawRect(manX, manY + 35, 8, 25);
         g2d.drawRect(manX + 52, manY + 35, 8, 25);
+    }
+
+    private void drawHands(Graphics2D g2d, int manX, int manY, Color skin) {
         // Hands
         g2d.setColor(skin);
         g2d.fillOval(manX - 2, manY + 55, 12, 10); // left hand
@@ -226,7 +241,9 @@ public class SplashScreen extends JDialog {
         g2d.fillRect(manX + 51, manY + 55, 4, 3); // eraser
         g2d.setColor(Color.BLACK);
         g2d.drawRect(manX + 51, manY + 55, 4, 15);
+    }
 
+    private void drawLegs(Graphics2D g2d, int manX, int manY, Color pants) {
         // Legs
         g2d.setColor(pants);
         g2d.fillRect(manX + 15, manY + 70, 10, 20);
@@ -234,7 +251,9 @@ public class SplashScreen extends JDialog {
         g2d.setColor(Color.BLACK);
         g2d.drawRect(manX + 15, manY + 70, 10, 20);
         g2d.drawRect(manX + 35, manY + 70, 10, 20);
+    }
 
+    private void drawShoes(Graphics2D g2d, int manX, int manY) {
         // Shoes
         g2d.setColor(Color.BLACK);
         g2d.fillRect(manX + 12, manY + 90, 16, 10); // left shoe
