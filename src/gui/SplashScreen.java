@@ -181,6 +181,17 @@ public class SplashScreen extends JDialog {
         g2d.setColor(Color.BLACK);
         g2d.drawRect(manX + 10, manY + 30, 40, 40);
 
+        // Add text on shirt
+        g2d.setColor(Color.BLACK);
+        g2d.setFont(new Font("Arial", Font.BOLD, 8));
+        FontMetrics fm = g2d.getFontMetrics();
+        String line1 = ".LOG-hog";
+        String line2 = "License: GPL3";
+        int textX = manX + 10 + (40 - fm.stringWidth(line1)) / 2; // center horizontally
+        int textY = manY + 45; // position in middle of shirt
+        g2d.drawString(line1, textX, textY);
+        g2d.drawString(line2, textX, textY + fm.getHeight());
+
         // Arms - rectangles with hands
         g2d.setColor(skin);
         g2d.fillRect(manX, manY + 35, 8, 25); // left arm
