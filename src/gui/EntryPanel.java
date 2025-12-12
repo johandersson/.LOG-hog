@@ -17,7 +17,12 @@
 
 package gui;
 
-import gui.FormattingPanel;
+import java.awt.*;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import javax.swing.*;
+import main.LogTextEditor;
+import utils.UndoRedoTextArea;
 
 public class EntryPanel extends JPanel {
     private final JTextArea textArea;

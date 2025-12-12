@@ -23,6 +23,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 import javax.swing.*;
+import utils.Toast;
 
 public class LogTextEditor extends JFrame {
 
@@ -104,6 +105,9 @@ public class LogTextEditor extends JFrame {
         systemInitializer.initializeSystemComponents();
 
         setVisible(true);
+
+        // Show startup toast message
+        SwingUtilities.invokeLater(() -> Toast.showToast(entryPanel.getTextArea(), "Write something and hit CTRL+S!"));
     }
 
     private void initializeComponents() {
