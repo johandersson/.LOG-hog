@@ -51,8 +51,8 @@ public class SplashScreen extends JDialog {
                 g2d.setPaint(gp);
                 g2d.fillRect(0, 0, getWidth(), getHeight());
 
-                // Draw frog and notepad
-                drawFrogAndNotepad(g2d);
+                // Draw man and notepad
+                drawManAndNotepad(g2d);
             }
         };
         panel.setLayout(null); // for absolute positioning
@@ -77,7 +77,7 @@ public class SplashScreen extends JDialog {
         setVisible(true);
     }
 
-    private void drawFrogAndNotepad(Graphics2D g2d) {
+    private void drawManAndNotepad(Graphics2D g2d) {
         var manX = 40; // Moved further right, closer to notepad
         var manY = 50;
         var notepadX = 150;

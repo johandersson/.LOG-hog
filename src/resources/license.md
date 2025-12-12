@@ -9,7 +9,7 @@ A whimsical log file viewer and editor that turns boring log files into delightf
 - 🔍 **Search** through time and space
 - 🎨 **Syntax highlighting** for that extra pizzazz
 - 🔒 **Encryption** because secrets are fun
-- 🐸 **Frog mascot** included free!
+- � **Character mascot** included free!
 
 ## Why .LOG-hog?
 - Eats log files for breakfast
