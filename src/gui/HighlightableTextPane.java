@@ -18,6 +18,8 @@
 package gui;
 
 import java.awt.Toolkit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.*;
 import javax.swing.text.*;
 
@@ -50,17 +52,20 @@ public class HighlightableTextPane extends JTextPane {
             return 0;
         }
 
-        String searchText = caseSensitive ? text : text.toLowerCase();
-        String searchQuery = caseSensitive ? query : query.toLowerCase();
+        // Build regex pattern
+        String regex = Pattern.quote(query);
+        if (wholeWord) {
+            regex = "\\b" + regex + "\\b";
+        }
+        int flags = caseSensitive ? 0 : Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
+        Pattern pattern = Pattern.compile(regex, flags);
+        Matcher matcher = pattern.matcher(text);
 
         int matchCount = 0;
-        int start = 0;
         try {
-            while ((start = indexOf(searchText, searchQuery, start, wholeWord)) >= 0) {
-                int end = start + searchQuery.length();
-                highlighter.addHighlight(start, end, highlightPainter);
+            while (matcher.find()) {
+                highlighter.addHighlight(matcher.start(), matcher.end(), highlightPainter);
                 matchCount++;
-                start = end;
             }
         } catch (BadLocationException ex) {
             // ignore individual highlight failures
@@ -80,21 +85,6 @@ public class HighlightableTextPane extends JTextPane {
             }
         }
         return matchCount;
-    }
-
-    private int indexOf(String text, String query, int fromIndex, boolean wholeWord) {
-        int index = text.indexOf(query, fromIndex);
-        if (!wholeWord || index == -1) {
-            return index;
-        }
-        // Check if it's a whole word
-        boolean startOk = index == 0 || !Character.isLetterOrDigit(text.charAt(index - 1));
-        boolean endOk = index + query.length() == text.length() || !Character.isLetterOrDigit(text.charAt(index + query.length()));
-        if (startOk && endOk) {
-            return index;
-        }
-        // Not whole word, continue search
-        return indexOf(text, query, index + 1, wholeWord);
     }
 
     public void navigateHighlights(boolean next) {

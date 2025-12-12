@@ -9,12 +9,13 @@
 - **Manual Lock/Unlock**: Instantly lock your encrypted log file for security, clearing all data from memory and disabling all operations. Unlock by clicking the button and re-entering your password.
 - **Backup and Restore**: Easily backup your log file with encryption preservation. Backups are filtered to show only LogHog files.
 - **Performance Optimizations**: Streaming I/O for non-encrypted logs reduces memory usage for large files.
+- **Window Close Confirmation**: When closing the application, choose to lock the file or exit completely for added security.
 
 ## Keyboard Shortcuts:
 - **Ctrl+S** — Save a new entry
 - **Ctrl+R** — Refresh the log list to reflect external changes
 - **Ctrl+N** — Quickly add a short note, when starting the app the big text area is focused for quick entry, but CTRL+N you can use anywhere in the file to add a quick note.
-- **Ctrl+F** — Focus the search bar to quickly find entries.
+- **Ctrl+F** — Open advanced search dialog to find entries with options for whole word, case sensitivity, and match navigation.
 
 ## Filter entries in the Log Entries tab.
 - **Search Bar**: Find specific entries by keywords.

@@ -9,7 +9,7 @@ A secure, feature-rich Java Swing logging application.
   - Secure password visibility toggle (hold to show, release to hide)
 - Manual lock/unlock for immediate security
 - System tray integration with quick entry
-- Markdown rendering in full log view with search
+- Markdown rendering in full log view with advanced search (whole word, case sensitivity, match navigation)
 - Backup and restore with encryption preservation
 - Performance optimizations (streaming I/O for large non-encrypted files)
 - Single-instance enforcement
