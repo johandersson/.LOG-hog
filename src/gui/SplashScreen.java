@@ -85,7 +85,7 @@ public class SplashScreen extends JDialog {
         var manX = 40; // Moved further right, closer to notepad
         var manY = 50;
         var notepadX = 150;
-        var notepadY = 80;
+        var notepadY = 65; // Moved up slightly for better composition
 
         drawMan(g2d, manX, manY);
         drawSpeechBubble(g2d);
