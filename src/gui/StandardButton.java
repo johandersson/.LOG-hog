@@ -25,7 +25,7 @@ public class StandardButton extends JButton {
     private final Color shadowColor;
     private final Color disabledColor;
     private final int shadowOffset = 3;
-    private final int cornerRadius = 8;
+    private final int cornerRadius = 12;
 
     public StandardButton(String text, Color normalColor, Color shadowColor) {
         this(text, normalColor, shadowColor, new Color(0xB0B0B0));
