@@ -82,7 +82,7 @@ public class SplashScreen extends JDialog {
     }
 
     private void drawFrogAndNotepad(Graphics2D g2d) {
-        var manX = 20; // Moved much closer to notepad for better composition
+        var manX = 40; // Moved further right, closer to notepad
         var manY = 50;
         var notepadX = 150;
         var notepadY = 80;
