@@ -40,7 +40,7 @@ public class StandardButton extends JButton {
         setForeground(Color.BLACK);
         setBackground(normalColor);
         setFocusPainted(false);
-        setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+        setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         setOpaque(false);
         setContentAreaFilled(false);
