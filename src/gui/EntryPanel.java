@@ -18,6 +18,8 @@
 package gui;
 
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.InputEvent;
 import javax.swing.*;
 import main.LogTextEditor;
 import utils.UndoRedoTextArea;
@@ -48,6 +50,16 @@ public class EntryPanel extends JPanel {
         textArea.setEditable(true);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
         add(scrollPane, BorderLayout.CENTER);
+
+        // Key binding for Ctrl+S
+        textArea.getInputMap(JComponent.WHEN_FOCUSED).put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), "save");
+        textArea.getActionMap().put("save", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                editor.saveLogEntry();
+            }
+        });
 
         lockLabel.setForeground(Color.GRAY);
 

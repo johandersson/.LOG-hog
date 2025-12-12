@@ -184,15 +184,9 @@ public class LogTextEditor extends JFrame {
         InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = rootPane.getActionMap();
 
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), "save");
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK), "load");
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "find"); // Ctrl+F
 
-        actionMap.put("save", new AbstractAction() {
-            public void actionPerformed(ActionEvent e) {
-                saveLogEntry();
-            }
-        });
         actionMap.put("load", new AbstractAction() {
             public void actionPerformed(ActionEvent e) {
                 if (isLocked) {
