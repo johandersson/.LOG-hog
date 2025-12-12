@@ -50,7 +50,7 @@ public class StandardButton extends JButton {
         addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent e) {
-                shadowOffset = 5;
+                shadowOffset = 8;
                 repaint();
             }
 
