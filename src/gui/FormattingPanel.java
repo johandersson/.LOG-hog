@@ -36,7 +36,7 @@ public class FormattingPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
 
         // Bold button
-        var boldBtn = new StandardButton("B", Color.WHITE, Color.BLACK);
+        var boldBtn = new StandardButton("B", new Color(0xE0E0E0), new Color(0xB0B0B0));
         boldBtn.setPreferredSize(new Dimension(35, 28));
         boldBtn.setFont(boldBtn.getFont().deriveFont(Font.BOLD));
         boldBtn.setToolTipText("Bold (Ctrl+B)");
@@ -44,7 +44,7 @@ public class FormattingPanel extends JPanel {
         add(boldBtn);
 
         // Italic button
-        var italicBtn = new StandardButton("I", Color.WHITE, Color.BLACK);
+        var italicBtn = new StandardButton("I", new Color(0xE0E0E0), new Color(0xB0B0B0));
         italicBtn.setPreferredSize(new Dimension(35, 28));
         italicBtn.setFont(italicBtn.getFont().deriveFont(Font.ITALIC));
         italicBtn.setToolTipText("Italic (Ctrl+I)");
@@ -52,21 +52,21 @@ public class FormattingPanel extends JPanel {
         add(italicBtn);
 
         // Heading buttons
-        var h1Btn = new StandardButton("H1", Color.WHITE, Color.BLACK);
+        var h1Btn = new StandardButton("H1", new Color(0xE0E0E0), new Color(0xB0B0B0));
         h1Btn.setPreferredSize(new Dimension(40, 28));
         h1Btn.setFont(h1Btn.getFont().deriveFont(10f));
         h1Btn.setToolTipText("Heading 1");
         h1Btn.addActionListener(e -> applyFormatting("# ", ""));
         add(h1Btn);
 
-        var h2Btn = new StandardButton("H2", Color.WHITE, Color.BLACK);
+        var h2Btn = new StandardButton("H2", new Color(0xE0E0E0), new Color(0xB0B0B0));
         h2Btn.setPreferredSize(new Dimension(40, 28));
         h2Btn.setFont(h2Btn.getFont().deriveFont(10f));
         h2Btn.setToolTipText("Heading 2");
         h2Btn.addActionListener(e -> applyFormatting("## ", ""));
         add(h2Btn);
 
-        var h3Btn = new StandardButton("H3", Color.WHITE, Color.BLACK);
+        var h3Btn = new StandardButton("H3", new Color(0xE0E0E0), new Color(0xB0B0B0));
         h3Btn.setPreferredSize(new Dimension(40, 28));
         h3Btn.setFont(h3Btn.getFont().deriveFont(10f));
         h3Btn.setToolTipText("Heading 3");
@@ -74,7 +74,7 @@ public class FormattingPanel extends JPanel {
         add(h3Btn);
 
         // Link button
-        var linkBtn = new StandardButton("Link", Color.WHITE, Color.BLACK);
+        var linkBtn = new StandardButton("Link", new Color(0xE0E0E0), new Color(0xB0B0B0));
         linkBtn.setPreferredSize(new Dimension(45, 28));
         linkBtn.setFont(linkBtn.getFont().deriveFont(9f));
         linkBtn.setToolTipText("Insert Link");
