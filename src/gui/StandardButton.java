@@ -40,7 +40,7 @@ public class StandardButton extends JButton {
         setForeground(Color.BLACK);
         setBackground(normalColor);
         setFocusPainted(false);
-        setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
+        setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         setOpaque(false);
         setContentAreaFilled(false);
@@ -50,13 +50,13 @@ public class StandardButton extends JButton {
         addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent e) {
-                shadowOffset = 8;
+                setBackground(new Color(0xD0D0D0));
                 repaint();
             }
 
             @Override
             public void mouseExited(java.awt.event.MouseEvent e) {
-                shadowOffset = 3;
+                setBackground(normalColor);
                 repaint();
             }
         });
