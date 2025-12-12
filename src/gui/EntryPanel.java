@@ -17,12 +17,7 @@
 
 package gui;
 
-import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.InputEvent;
-import javax.swing.*;
-import main.LogTextEditor;
-import utils.UndoRedoTextArea;
+import gui.FormattingPanel;
 
 public class EntryPanel extends JPanel {
     private final JTextArea textArea;
@@ -30,6 +25,7 @@ public class EntryPanel extends JPanel {
     private final JButton saveBtn;
     private final JLabel lockLabel;
     private final JScrollPane scrollPane;
+    private final JPanel textContainer;
 
     public EntryPanel(LogTextEditor editor) {
         this.editor = editor;
@@ -37,6 +33,7 @@ public class EntryPanel extends JPanel {
         this.saveBtn = new AccentButton("Save");
         this.lockLabel = new JLabel("File locked. Press Unlock file in Full log view to unlock it again.", SwingConstants.CENTER);
         this.scrollPane = new JScrollPane(textArea);
+        this.textContainer = new JPanel(new BorderLayout());
         initPanel();
     }
 
@@ -49,7 +46,16 @@ public class EntryPanel extends JPanel {
         textArea.setWrapStyleWord(true);
         textArea.setEditable(true);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
-        add(scrollPane, BorderLayout.CENTER);
+
+        // Create container for text area and formatting
+        textContainer.setOpaque(false);
+
+        // Add formatting panel above text area
+        var formattingPanel = new FormattingPanel(textArea);
+        textContainer.add(formattingPanel, BorderLayout.NORTH);
+        textContainer.add(scrollPane, BorderLayout.CENTER);
+
+        add(textContainer, BorderLayout.CENTER);
 
         // Key binding for Ctrl+S
         textArea.getInputMap(JComponent.WHEN_FOCUSED).put(
@@ -79,11 +85,11 @@ public class EntryPanel extends JPanel {
         saveBtn.setEnabled(!locked);
         if (locked) {
             textArea.setText("");
-            remove(scrollPane);
+            remove(textContainer);
             add(lockLabel, BorderLayout.CENTER);
         } else {
             remove(lockLabel);
-            add(scrollPane, BorderLayout.CENTER);
+            add(textContainer, BorderLayout.CENTER);
         }
         revalidate();
         repaint();
