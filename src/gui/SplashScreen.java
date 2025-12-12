@@ -82,7 +82,7 @@ public class SplashScreen extends JDialog {
     }
 
     private void drawFrogAndNotepad(Graphics2D g2d) {
-        var manX = 50;
+        var manX = 20; // Moved much closer to notepad for better composition
         var manY = 50;
         var notepadX = 150;
         var notepadY = 80;
@@ -271,13 +271,13 @@ public class SplashScreen extends JDialog {
         // Calculate bubble size based on text
         int textWidth = fm.stringWidth(text);
         int textHeight = fm.getHeight();
-        int padding = 16; // padding around text
+        int padding = 12; // reduced padding for smaller bubble
         int bubbleW = textWidth + (padding * 2);
         int bubbleH = textHeight + (padding * 2);
 
-        // Position bubble - moved to avoid covering the man
-        int bubbleX = 280; // Positioned to the right to avoid man at (50,50)
-        int bubbleY = 15;
+        // Position bubble - above character's head to indicate he's speaking
+        int bubbleX = 15; // Moved to utmost left possible while keeping glow on screen
+        int bubbleY = 5;
 
         // Draw glowing white shadow effect
         int glowLayers = 4;
