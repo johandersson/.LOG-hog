@@ -107,15 +107,7 @@ public class UIInitializer {
     }
 
     private void setupStatusBar() {
-        // small status/footer area
-        JPanel statusBar = new JPanel(new BorderLayout());
-        statusBar.setBorder(new EmptyBorder(8, 12, 8, 12));
-        statusBar.setBackground(new Color(0xFFFFFF));
-        JLabel footer = new JLabel("Write something and hit Ctrl+S! Search with Ctrl+F. For a quick short entry, use Ctrl+N anywhere.");
-        footer.setFont(footer.getFont().deriveFont(Font.PLAIN, 12f));
-        footer.setForeground(new Color(0x394B54));
-        statusBar.add(footer, BorderLayout.WEST);
-
+        StatusBar statusBar = new StatusBar();
         editor.getContentPane().add(statusBar, BorderLayout.SOUTH);
     }
 
