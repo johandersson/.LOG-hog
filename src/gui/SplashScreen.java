@@ -59,6 +59,7 @@ public class SplashScreen extends JDialog {
 
         okButton = new StandardButton("OK", Color.WHITE, Color.BLACK);
         okButton.setBounds(200, 250, 50, 30);
+        okButton.addActionListener(e -> dispose());
         panel.add(okButton);
 
         setContentPane(panel);
