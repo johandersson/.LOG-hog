@@ -107,7 +107,7 @@ public class LogTextEditor extends JFrame {
         setVisible(true);
 
         // Show startup toast message
-        SwingUtilities.invokeLater(() -> Toast.showToast(entryPanel.getTextArea(), "Write something and hit CTRL+S!"));
+        SwingUtilities.invokeLater(() -> Toast.showToast(entryPanel.getTextArea(), "Write something and hit CTRL+S!", 2000));
     }
 
     private void initializeComponents() {

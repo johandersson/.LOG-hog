@@ -22,6 +22,10 @@ import javax.swing.*;
 
 public class Toast {
     public static void showToast(Component parent, String message) {
+        showToast(parent, message, 1000);
+    }
+
+    public static void showToast(Component parent, String message, int duration) {
         JWindow toast = new JWindow();
         toast.setBackground(new Color(0, 0, 0, 0)); // Transparent background
 
@@ -57,8 +61,8 @@ public class Toast {
 
         toast.setVisible(true);
 
-        // Fade out after 1 second
-        javax.swing.Timer timer = new javax.swing.Timer(1000, e -> {
+        // Fade out after specified duration
+        javax.swing.Timer timer = new javax.swing.Timer(duration, e -> {
             javax.swing.Timer fadeTimer = new javax.swing.Timer(25, null);
             fadeTimer.addActionListener(ev -> {
                 float opacity = toast.getOpacity();
