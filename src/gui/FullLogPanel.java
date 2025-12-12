@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import javax.swing.*;
 import main.LogTextEditor;
+import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 import notepad.NotepadOpener;
 
@@ -195,7 +196,7 @@ public class FullLogPanel extends JPanel {
                 }
                 lines = getNormalized(lines);
                 MarkdownRenderer.renderMarkdown(fullLogPane, lines);
-                MarkdownRenderer.addLinkListeners(fullLogPane);
+                LinkHandler.addLinkListeners(fullLogPane);
             } catch (Exception ex) {
                 String errorMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
                 if (errorMsg.contains("tag mismatch") || errorMsg.contains("decryption failed")) {

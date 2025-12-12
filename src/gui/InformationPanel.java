@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 
 public class InformationPanel extends JPanel {
@@ -45,7 +46,7 @@ public class InformationPanel extends JPanel {
         tp.setEditable(false);
         tp.setBackground(Color.WHITE);
         MarkdownRenderer.renderMarkdown(tp, informationTextToDisplay.lines().toList());
-        MarkdownRenderer.addLinkListeners(tp);
+        LinkHandler.addLinkListeners(tp);
 
         var sp = new JScrollPane(tp);
         sp.setOpaque(false);
