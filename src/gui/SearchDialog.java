@@ -28,12 +28,13 @@ public class SearchDialog extends JDialog {
     private final JCheckBox wholeWordCheck;
     private final JCheckBox caseSensitiveCheck;
     private final JLabel matchCountLabel;
+    private final JButton findBtn;
     private final JButton findNextBtn;
     private final JButton findPrevBtn;
     private final JButton closeBtn;
 
     public SearchDialog(Frame parent, HighlightableTextPane textPane) {
-        super(parent, "Find in Log", false);
+        super(parent, "Find in Log", true); // Modal dialog
         this.textPane = textPane;
 
         setLayout(new BorderLayout());
@@ -61,6 +62,8 @@ public class SearchDialog extends JDialog {
 
         // Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        findBtn = new AccentButton("Find");
+        findBtn.addActionListener(e -> performSearch());
         findNextBtn = new AccentButton("Find Next");
         findNextBtn.addActionListener(e -> findNext());
         findPrevBtn = new AccentButton("Find Previous");
@@ -68,6 +71,7 @@ public class SearchDialog extends JDialog {
         closeBtn = new AccentButton("Close");
         closeBtn.addActionListener(e -> setVisible(false));
 
+        buttonPanel.add(findBtn);
         buttonPanel.add(findNextBtn);
         buttonPanel.add(findPrevBtn);
         buttonPanel.add(closeBtn);
