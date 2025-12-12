@@ -275,8 +275,8 @@ public class SplashScreen extends JDialog {
         int bubbleW = textWidth + (padding * 2);
         int bubbleH = textHeight + (padding * 2);
 
-        // Position bubble
-        int bubbleX = 10;
+        // Position bubble - moved to avoid covering the man
+        int bubbleX = 280; // Positioned to the right to avoid man at (50,50)
         int bubbleY = 15;
 
         // Draw glowing white shadow effect
