@@ -56,14 +56,14 @@ public class InformationPanel extends JPanel {
         add(sp, BorderLayout.CENTER);
 
         // Bottom: OK button returns to Entry tab (index 0)
-        var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        bottom.setOpaque(false);
-        var ok = new AccentButton("OK");
-        ok.addActionListener(e -> {
-            if (tabPanel != null && tabPanel.getTabCount() > 0) tabPanel.setSelectedIndex(0);
-        });
-        bottom.add(ok);
-        add(bottom, BorderLayout.SOUTH);
+        // var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        // bottom.setOpaque(false);
+        // var ok = new AccentButton("OK");
+        // ok.addActionListener(e -> {
+        //     if (tabPanel != null && tabPanel.getTabCount() > 0) tabPanel.setSelectedIndex(0);
+        // });
+        // bottom.add(ok);
+        // add(bottom, BorderLayout.SOUTH);
     }
 
     private void createHeader(String title) {
