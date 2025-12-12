@@ -279,6 +279,23 @@ public class SplashScreen extends JDialog {
         int bubbleX = 10;
         int bubbleY = 15;
 
+        // Draw glowing white shadow effect
+        int glowLayers = 4;
+        for (int i = glowLayers; i > 0; i--) {
+            int glowOffset = i * 2;
+            int glowAlpha = 255 / (i + 1); // decreasing opacity
+            g2d.setColor(new Color(255, 255, 255, glowAlpha));
+
+            // Glow for main bubble
+            g2d.fillRoundRect(bubbleX - glowOffset, bubbleY - glowOffset,
+                            bubbleW + (glowOffset * 2), bubbleH + (glowOffset * 2), 20, 20);
+
+            // Glow for pointer
+            int[] glowXPoints = {bubbleX + 20 - glowOffset, bubbleX + 30 + glowOffset, bubbleX + 25};
+            int[] glowYPoints = {bubbleY + bubbleH + glowOffset, bubbleY + bubbleH + 10 + glowOffset, bubbleY + bubbleH + glowOffset};
+            g2d.fillPolygon(glowXPoints, glowYPoints, 3);
+        }
+
         // Draw speech bubble background
         g2d.setColor(Color.WHITE);
         g2d.fillRoundRect(bubbleX, bubbleY, bubbleW, bubbleH, 20, 20);
