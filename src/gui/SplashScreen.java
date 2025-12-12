@@ -279,11 +279,11 @@ public class SplashScreen extends JDialog {
         int bubbleX = 15; // Moved to utmost left possible while keeping glow on screen
         int bubbleY = 5;
 
-        // Draw glowing white shadow effect
-        int glowLayers = 4;
+        // Draw glowing white shadow effect - reduced intensity
+        int glowLayers = 3;
         for (int i = glowLayers; i > 0; i--) {
-            int glowOffset = i * 2;
-            int glowAlpha = 255 / (i + 1); // decreasing opacity
+            int glowOffset = i * 1; // Reduced offset for subtler glow
+            int glowAlpha = 180 / (i + 1); // Reduced base opacity for less intense glow
             g2d.setColor(new Color(255, 255, 255, glowAlpha));
 
             // Glow for main bubble
