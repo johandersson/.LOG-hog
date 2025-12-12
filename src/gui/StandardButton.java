@@ -44,7 +44,7 @@ public class StandardButton extends JButton {
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         setOpaque(false);
         setContentAreaFilled(false);
-        setFont(getFont().deriveFont(Font.BOLD, 12f));
+        setFont(new Font("Segoe UI", Font.BOLD, 12));
 
         // Add hover effect
         addMouseListener(new java.awt.event.MouseAdapter() {
