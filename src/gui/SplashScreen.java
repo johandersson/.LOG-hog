@@ -263,24 +263,41 @@ public class SplashScreen extends JDialog {
     }
 
     private void drawSpeechBubble(Graphics2D g2d) {
-        // Draw speech bubble
+        // Text content
+        String text = "I am a .LOG-hog! v 1.0.";
+        g2d.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        FontMetrics fm = g2d.getFontMetrics();
+
+        // Calculate bubble size based on text
+        int textWidth = fm.stringWidth(text);
+        int textHeight = fm.getHeight();
+        int padding = 16; // padding around text
+        int bubbleW = textWidth + (padding * 2);
+        int bubbleH = textHeight + (padding * 2);
+
+        // Position bubble
         int bubbleX = 10;
         int bubbleY = 15;
-        int bubbleW = 220;
-        int bubbleH = 40;
+
+        // Draw speech bubble background
         g2d.setColor(Color.WHITE);
         g2d.fillRoundRect(bubbleX, bubbleY, bubbleW, bubbleH, 20, 20);
+
+        // Draw speech bubble border
         g2d.setColor(Color.BLACK);
         g2d.setStroke(new BasicStroke(2));
         g2d.drawRoundRect(bubbleX, bubbleY, bubbleW, bubbleH, 20, 20);
-        // Pointer
+
+        // Draw pointer
         int[] xPoints = {bubbleX + 20, bubbleX + 30, bubbleX + 25};
         int[] yPoints = {bubbleY + bubbleH, bubbleY + bubbleH + 10, bubbleY + bubbleH};
         g2d.fillPolygon(xPoints, yPoints, 3);
         g2d.drawPolygon(xPoints, yPoints, 3);
-        // Text
-        g2d.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        g2d.drawString("I am a .LOG-hog! v 1.0.", bubbleX + 10, bubbleY + 25);
+
+        // Draw text centered in bubble
+        int textX = bubbleX + (bubbleW - textWidth) / 2;
+        int textY = bubbleY + padding + fm.getAscent();
+        g2d.drawString(text, textX, textY);
     }
 
     private void drawNotepad(Graphics2D g2d, int notepadX, int notepadY) {
