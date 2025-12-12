@@ -57,50 +57,8 @@ public class SplashScreen extends JDialog {
         };
         panel.setLayout(null); // for absolute positioning
 
-        okButton = new JButton("OK") {
-            private final int shadowOffset = 3;
-            private final int cornerRadius = 8;
-
-            @Override
-            protected void paintComponent(Graphics g) {
-                var g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                var width = getWidth();
-                var height = getHeight();
-
-                // Draw black shadows (multiple layers)
-                for (var i = shadowOffset; i >= 1; i--) {
-                    var alpha = 60 - (i * 8);
-                    if (alpha > 0) {
-                        g2.setColor(new Color(0, 0, 0, Math.max(3, alpha)));
-                        g2.fillRoundRect(i, i, width - 2*i, height - 2*i, cornerRadius, cornerRadius);
-                    }
-                }
-
-                // Draw white background
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, width, height, cornerRadius, cornerRadius);
-
-                g2.dispose();
-
-                // Paint text and other components
-                super.paintComponent(g);
-            }
-
-            @Override
-            protected void paintBorder(Graphics g) {
-                // Don't paint default border, we handle shadows in paintComponent
-            }
-        };
+        okButton = new StandardButton("OK", Color.WHITE, Color.BLACK);
         okButton.setBounds(200, 250, 50, 30);
-        okButton.setForeground(Color.BLACK);
-        okButton.setFocusPainted(false);
-        okButton.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
-        okButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        okButton.setOpaque(false);
-        okButton.setContentAreaFilled(false);
-        okButton.setFont(okButton.getFont().deriveFont(Font.BOLD, 12f));
         panel.add(okButton);
 
         setContentPane(panel);
