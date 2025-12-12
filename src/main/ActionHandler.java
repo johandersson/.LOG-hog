@@ -111,8 +111,18 @@ public class ActionHandler {
         if (selectedItem == null) return;
 
         logFileHandler.updateEntry(selectedItem, logListPanel.getEntryArea().getText());
+
+        // Preserve the selection after reloading by finding the updated item
         try {
             editor.loadLogEntries();
+            // Find and reselect the updated item
+            for (int i = 0; i < listModel.getSize(); i++) {
+                if (selectedItem.equals(listModel.getElementAt(i))) {
+                    logList.setSelectedIndex(i);
+                    logList.ensureIndexIsVisible(i);
+                    break;
+                }
+            }
         } catch (Exception e) {
             logFileHandler.showErrorDialog("Error reloading log entries: " + e.getMessage());
         }
