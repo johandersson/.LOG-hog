@@ -57,7 +57,7 @@ public class SplashScreen extends JDialog {
         };
         panel.setLayout(null); // for absolute positioning
 
-        okButton = new StandardButton("OK", Color.WHITE, Color.BLACK);
+        okButton = new StandardButton("OK", new Color(0xE0E0E0), new Color(0xB0B0B0));
         okButton.setBounds(200, 250, 50, 30);
         okButton.addActionListener(e -> dispose());
         panel.add(okButton);

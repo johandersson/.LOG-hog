@@ -191,7 +191,7 @@ public class LogListPanel extends JPanel {
         var urlPanel = new JPanel(new BorderLayout());
         var urlField = new JTextField(20);
         urlPanel.add(urlField, BorderLayout.CENTER);
-        var browseBtn = new StandardButton("Browse...", Color.WHITE, Color.BLACK);
+        var browseBtn = new StandardButton("Browse...", new Color(0xE0E0E0), new Color(0xB0B0B0));
         browseBtn.addActionListener(e -> {
             var fileChooser = new JFileChooser();
             fileChooser.setDialogTitle("Select File to Link");
@@ -210,8 +210,8 @@ public class LogListPanel extends JPanel {
 
         // Buttons
         var buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        var okBtn = new StandardButton("OK", Color.WHITE, Color.BLACK);
-        var cancelBtn = new StandardButton("Cancel", Color.WHITE, Color.BLACK);
+        var okBtn = new StandardButton("OK", new Color(0xE0E0E0), new Color(0xB0B0B0));
+        var cancelBtn = new StandardButton("Cancel", new Color(0xE0E0E0), new Color(0xB0B0B0));
 
         okBtn.addActionListener(e -> {
             var text = displayField.getText().trim();

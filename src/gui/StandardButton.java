@@ -24,7 +24,7 @@ public class StandardButton extends JButton {
     private final Color normalColor;
     private final Color shadowColor;
     private final Color disabledColor;
-    private final int shadowOffset = 3;
+    private int shadowOffset = 3;
     private final int cornerRadius = 12;
 
     public StandardButton(String text, Color normalColor, Color shadowColor) {
@@ -45,6 +45,21 @@ public class StandardButton extends JButton {
         setOpaque(false);
         setContentAreaFilled(false);
         setFont(getFont().deriveFont(Font.BOLD, 12f));
+
+        // Add hover effect
+        addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                shadowOffset = 5;
+                repaint();
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                shadowOffset = 3;
+                repaint();
+            }
+        });
     }
 
     @Override
