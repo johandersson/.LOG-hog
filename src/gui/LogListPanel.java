@@ -128,7 +128,7 @@ public class LogListPanel extends JPanel {
         entryContainer.add(entryScroll, BorderLayout.CENTER);
 
         // Add formatting buttons panel
-        var formattingPanel = createFormattingPanel();
+        var formattingPanel = new FormattingPanel(entryArea);
         entryContainer.add(formattingPanel, BorderLayout.NORTH);
 
         lockLabel.setForeground(Color.GRAY);
@@ -147,25 +147,6 @@ public class LogListPanel extends JPanel {
             }
         });
 
-        // Formatting shortcuts
-        entryArea.getInputMap(JComponent.WHEN_FOCUSED).put(
-                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_B, java.awt.event.InputEvent.CTRL_DOWN_MASK), "formatBold");
-        entryArea.getActionMap().put("formatBold", new AbstractAction() {
-            @Override
-            public void actionPerformed(java.awt.event.ActionEvent e) {
-                applyFormatting("**", "**");
-            }
-        });
-
-        entryArea.getInputMap(JComponent.WHEN_FOCUSED).put(
-                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_I, java.awt.event.InputEvent.CTRL_DOWN_MASK), "formatItalic");
-        entryArea.getActionMap().put("formatItalic", new AbstractAction() {
-            @Override
-            public void actionPerformed(java.awt.event.ActionEvent e) {
-                applyFormatting("*", "*");
-            }
-        });
-
         editor.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
                 KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, java.awt.event.InputEvent.CTRL_DOWN_MASK), "newEntryGlobal");
         editor.getRootPane().getActionMap().put("newEntryGlobal", editor.createNewQuickEntry());
@@ -179,78 +160,6 @@ public class LogListPanel extends JPanel {
         entryContainer.add(entryBottom, BorderLayout.SOUTH);
 
         return split;
-    }
-
-    private JPanel createFormattingPanel() {
-        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
-        panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
-
-        // Bold button
-        var boldBtn = new StandardButton("B", Color.WHITE, Color.BLACK);
-        boldBtn.setPreferredSize(new Dimension(30, 25));
-        boldBtn.setFont(boldBtn.getFont().deriveFont(Font.BOLD));
-        boldBtn.setToolTipText("Bold (Ctrl+B)");
-        boldBtn.addActionListener(e -> applyFormatting("**", "**"));
-        panel.add(boldBtn);
-
-        // Italic button
-        var italicBtn = new StandardButton("I", Color.WHITE, Color.BLACK);
-        italicBtn.setPreferredSize(new Dimension(30, 25));
-        italicBtn.setFont(italicBtn.getFont().deriveFont(Font.ITALIC));
-        italicBtn.setToolTipText("Italic (Ctrl+I)");
-        italicBtn.addActionListener(e -> applyFormatting("*", "*"));
-        panel.add(italicBtn);
-
-        // Heading buttons
-        var h1Btn = new StandardButton("H1", Color.WHITE, Color.BLACK);
-        h1Btn.setPreferredSize(new Dimension(35, 25));
-        h1Btn.setFont(h1Btn.getFont().deriveFont(10f));
-        h1Btn.setToolTipText("Heading 1");
-        h1Btn.addActionListener(e -> applyFormatting("# ", ""));
-        panel.add(h1Btn);
-
-        var h2Btn = new StandardButton("H2", Color.WHITE, Color.BLACK);
-        h2Btn.setPreferredSize(new Dimension(35, 25));
-        h2Btn.setFont(h2Btn.getFont().deriveFont(10f));
-        h2Btn.setToolTipText("Heading 2");
-        h2Btn.addActionListener(e -> applyFormatting("## ", ""));
-        panel.add(h2Btn);
-
-        var h3Btn = new StandardButton("H3", Color.WHITE, Color.BLACK);
-        h3Btn.setPreferredSize(new Dimension(35, 25));
-        h3Btn.setFont(h3Btn.getFont().deriveFont(10f));
-        h3Btn.setToolTipText("Heading 3");
-        h3Btn.addActionListener(e -> applyFormatting("### ", ""));
-        panel.add(h3Btn);
-
-        // Link button
-        var linkBtn = new StandardButton("🔗", Color.WHITE, Color.BLACK);
-        linkBtn.setPreferredSize(new Dimension(35, 25));
-        linkBtn.setToolTipText("Insert Link");
-        linkBtn.addActionListener(e -> insertLink());
-        panel.add(linkBtn);
-
-        return panel;
-    }
-
-    private void applyFormatting(String prefix, String suffix) {
-        var selectedText = entryArea.getSelectedText();
-        if (selectedText == null || selectedText.isEmpty()) {
-            // Insert at cursor position
-            var pos = entryArea.getCaretPosition();
-            entryArea.insert(prefix + suffix, pos);
-            entryArea.setCaretPosition(pos + prefix.length());
-        } else {
-            // Wrap selected text
-            var start = entryArea.getSelectionStart();
-            var end = entryArea.getSelectionEnd();
-            var newText = prefix + selectedText + suffix;
-            entryArea.replaceRange(newText, start, end);
-            entryArea.setSelectionStart(start);
-            entryArea.setSelectionEnd(start + newText.length());
-        }
-        entryArea.requestFocus();
     }
 
     private void insertLink() {
