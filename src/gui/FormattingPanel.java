@@ -54,21 +54,18 @@ public class FormattingPanel extends JPanel {
         // Heading buttons
         var h1Btn = new StandardButton("H1", new Color(0xE0E0E0), new Color(0xB0B0B0));
         h1Btn.setPreferredSize(new Dimension(40, 28));
-        h1Btn.setFont(h1Btn.getFont().deriveFont(10f));
         h1Btn.setToolTipText("Heading 1");
         h1Btn.addActionListener(e -> applyFormatting("# ", ""));
         add(h1Btn);
 
         var h2Btn = new StandardButton("H2", new Color(0xE0E0E0), new Color(0xB0B0B0));
         h2Btn.setPreferredSize(new Dimension(40, 28));
-        h2Btn.setFont(h2Btn.getFont().deriveFont(10f));
         h2Btn.setToolTipText("Heading 2");
         h2Btn.addActionListener(e -> applyFormatting("## ", ""));
         add(h2Btn);
 
         var h3Btn = new StandardButton("H3", new Color(0xE0E0E0), new Color(0xB0B0B0));
         h3Btn.setPreferredSize(new Dimension(40, 28));
-        h3Btn.setFont(h3Btn.getFont().deriveFont(10f));
         h3Btn.setToolTipText("Heading 3");
         h3Btn.addActionListener(e -> applyFormatting("### ", ""));
         add(h3Btn);
@@ -76,7 +73,6 @@ public class FormattingPanel extends JPanel {
         // Link button
         var linkBtn = new StandardButton("Link", new Color(0xE0E0E0), new Color(0xB0B0B0));
         linkBtn.setPreferredSize(new Dimension(45, 28));
-        linkBtn.setFont(linkBtn.getFont().deriveFont(9f));
         linkBtn.setToolTipText("Insert Link");
         linkBtn.addActionListener(e -> LinkDialog.showInsertLinkDialog(targetComponent));
         add(linkBtn);
