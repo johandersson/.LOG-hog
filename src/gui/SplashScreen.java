@@ -113,7 +113,13 @@ public class SplashScreen extends JDialog {
         var notepadX = 150;
         var notepadY = 80;
 
-        // Draw man
+        drawMan(g2d, manX, manY);
+        drawSpeechBubble(g2d);
+        drawNotepad(g2d, notepadX, notepadY);
+        drawPen(g2d, notepadX, notepadY);
+    }
+
+    private void drawMan(Graphics2D g2d, int manX, int manY) {
         g2d.setStroke(new BasicStroke(2));
         var skin = new Color(255, 218, 185);
         var shirt = Color.RED; // red shirt
@@ -134,9 +140,6 @@ public class SplashScreen extends JDialog {
         g2d.drawOval(manX + 15, manY - 10, 30, 15);
         g2d.drawOval(manX + 10, manY, 10, 10);
         g2d.drawOval(manX + 40, manY, 10, 10);
-
-        // Cap - remove or change
-        // Keep or remove cap
 
         // Eyes - nice
         g2d.setColor(Color.WHITE);
@@ -238,7 +241,9 @@ public class SplashScreen extends JDialog {
         g2d.fillRect(manX + 32, manY + 90, 16, 10); // right shoe
         g2d.drawRect(manX + 12, manY + 90, 16, 10);
         g2d.drawRect(manX + 32, manY + 90, 16, 10);
+    }
 
+    private void drawSpeechBubble(Graphics2D g2d) {
         // Draw speech bubble
         int bubbleX = 10;
         int bubbleY = 15;
@@ -257,7 +262,9 @@ public class SplashScreen extends JDialog {
         // Text
         g2d.setFont(new Font("Segoe UI", Font.BOLD, 12));
         g2d.drawString("I am a .LOG-hog! v 1.0.", bubbleX + 10, bubbleY + 25);
+    }
 
+    private void drawNotepad(Graphics2D g2d, int notepadX, int notepadY) {
         // Draw notepad - legal pad style with shadow
         // Shadow
         g2d.setColor(new Color(200, 200, 200, 100)); // semi-transparent gray
@@ -279,7 +286,9 @@ public class SplashScreen extends JDialog {
         for (int i = 0; i < animationFrame && i < entriesList.size(); i++) {
             g2d.drawString(entriesList.get(i), notepadX + 10, notepadY + 30 + i * 15);
         }
+    }
 
+    private void drawPen(Graphics2D g2d, int notepadX, int notepadY) {
         // Draw pen
         if (animationFrame > 0 && animationFrame <= entriesList.size()) {
             String lastEntry = entriesList.get(animationFrame - 1);
