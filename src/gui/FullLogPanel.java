@@ -39,6 +39,7 @@ public class FullLogPanel extends JPanel {
     private final JButton lockFileButton;
     private final JButton copyFullLogButton;
     private final JButton openInNotepadButton;
+    private SearchDialog searchDialog;
 
     public FullLogPanel(LogTextEditor editor, LogFileHandler logFileHandler) {
         this.editor = editor;
@@ -91,24 +92,21 @@ public class FullLogPanel extends JPanel {
     }
 
     private JPanel getRightBottomPanel() {
-        var rightBottomSearchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        rightBottomSearchPanel.setOpaque(false);
-        var searchLabel = new JLabel("Search:");
-        rightBottomSearchPanel.add(searchLabel);
-        var searchField = new JTextField(15);
-        searchField.addActionListener(e -> performSearchInFullLog(searchField.getText()));
-        rightBottomSearchPanel.add(searchField);
-        var searchBtn = new AccentButton("Find");
-        searchBtn.addActionListener(e -> performSearchInFullLog(searchField.getText()));
-        rightBottomSearchPanel.add(searchBtn);
+        var rightBottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        rightBottomPanel.setOpaque(false);
 
-        var prevHighlightBtn = new AccentButton("<-");
-        var nextHighlightBtn = new AccentButton("->");
-        prevHighlightBtn.addActionListener(e -> navigateToHighlight(false));
-        nextHighlightBtn.addActionListener(e -> navigateToHighlight(true));
-        rightBottomSearchPanel.add(prevHighlightBtn);
-        rightBottomSearchPanel.add(nextHighlightBtn);
-        return rightBottomSearchPanel;
+        var searchBtn = new AccentButton("Search");
+        searchBtn.addActionListener(e -> openSearchDialog());
+        rightBottomPanel.add(searchBtn);
+
+        return rightBottomPanel;
+    }
+
+    private void openSearchDialog() {
+        if (searchDialog == null) {
+            searchDialog = new SearchDialog((Frame) SwingUtilities.getWindowAncestor(this), fullLogPane);
+        }
+        searchDialog.setVisible(true);
     }
 
     public void updateLockButton() {
@@ -122,9 +120,8 @@ public class FullLogPanel extends JPanel {
     }
 
     public void performSearchInFullLog(String query) {
-        if (!fullLogPane.highlightText(query)) {
-            JOptionPane.showMessageDialog(this, "Text not found", "Find", JOptionPane.INFORMATION_MESSAGE);
-        }
+        // Legacy method, now handled by SearchDialog
+        openSearchDialog();
     }
 
     private void navigateToHighlight(boolean next) {

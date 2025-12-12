@@ -29,11 +29,15 @@ public class HighlightableTextPane extends JTextPane {
     }
 
     public boolean highlightText(String query) {
+        return highlightText(query, false, false) > 0;
+    }
+
+    public int highlightText(String query, boolean wholeWord, boolean caseSensitive) {
         var highlighter = getHighlighter();
         highlighter.removeAllHighlights();
 
         if (query == null || query.isBlank()) {
-            return false;
+            return 0;
         }
 
         var doc = getDocument();
@@ -43,39 +47,54 @@ public class HighlightableTextPane extends JTextPane {
             text = doc.getText(0, len);
         } catch (BadLocationException e) {
             JOptionPane.showMessageDialog(this, "Error accessing document", "Error", JOptionPane.ERROR_MESSAGE);
-            return false;
+            return 0;
         }
 
-        var lower = text.toLowerCase();
-        var qLower = query.toLowerCase();
+        String searchText = caseSensitive ? text : text.toLowerCase();
+        String searchQuery = caseSensitive ? query : query.toLowerCase();
 
-        var index = lower.indexOf(qLower);
-        if (index == -1) {
-            return false;
-        }
-
-        var start = 0;
+        int matchCount = 0;
+        int start = 0;
         try {
-            while ((start = lower.indexOf(qLower, start)) >= 0) {
-                var end = start + qLower.length();
+            while ((start = indexOf(searchText, searchQuery, start, wholeWord)) >= 0) {
+                int end = start + searchQuery.length();
                 highlighter.addHighlight(start, end, highlightPainter);
+                matchCount++;
                 start = end;
             }
         } catch (BadLocationException ex) {
             // ignore individual highlight failures
         }
 
-        try {
-            var rect = modelToView2D(index).getBounds();
-            if (rect != null) {
-                rect.height = Math.max(rect.height, 20);
-                scrollRectToVisible(rect);
-                setCaretPosition(index);
+        if (matchCount > 0) {
+            try {
+                var firstIndex = highlighter.getHighlights()[0].getStartOffset();
+                var rect = modelToView2D(firstIndex).getBounds();
+                if (rect != null) {
+                    rect.height = Math.max(rect.height, 20);
+                    scrollRectToVisible(rect);
+                    setCaretPosition(firstIndex);
+                }
+            } catch (BadLocationException ex) {
+                // ignore scrolling failure
             }
-        } catch (BadLocationException ex) {
-            // ignore scrolling failure
         }
-        return true;
+        return matchCount;
+    }
+
+    private int indexOf(String text, String query, int fromIndex, boolean wholeWord) {
+        int index = text.indexOf(query, fromIndex);
+        if (!wholeWord || index == -1) {
+            return index;
+        }
+        // Check if it's a whole word
+        boolean startOk = index == 0 || !Character.isLetterOrDigit(text.charAt(index - 1));
+        boolean endOk = index + query.length() == text.length() || !Character.isLetterOrDigit(text.charAt(index + query.length()));
+        if (startOk && endOk) {
+            return index;
+        }
+        // Not whole word, continue search
+        return indexOf(text, query, index + 1, wholeWord);
     }
 
     public void navigateHighlights(boolean next) {
