@@ -1,29 +1,7 @@
 # .LOG-hog - The Ultimate Log Muncher!
 
-**Version 1.0** - Because logs need love too! 🐷
-
-A whimsical log file viewer and editor that turns boring log files into delightful reading experiences. Perfect for developers who speak fluent binary and diary writers who code in their sleep.
-
-## Features That Will Blow Your Mind:
-- 📝 **Edit logs** like they're your diary
-- 🔍 **Search** through time and space
-- 🎨 **Syntax highlighting** for that extra pizzazz
-- 🔒 **Encryption** because secrets are fun
-- � **Character mascot** included free!
-
-## Why .LOG-hog?
-- Eats log files for breakfast
-- Never complains about stack traces
-- Friends with all programming languages
-- Has a PhD in debugging
-
-## Quick Start:
-1. Open a .log file
-2. Watch the magic happen
-3. Profit! 💰
-
-## Disclaimer:
-May cause excessive logging, spontaneous code reviews, and unexplained urges to refactor everything.
+LogHog is a powerful log file viewer and editor designed for developers and system administrators.
+It offers advanced features such as editing, searching, syntax highlighting, encryption, and a user-friendly interface.
 
 **Copyright (C) 2025, Johan Andersson**
 
