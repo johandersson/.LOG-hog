@@ -221,9 +221,7 @@ public class LogTextEditor extends JFrame {
         if (tabPane.getSelectedIndex() != 2) {
             tabPane.setSelectedIndex(2);
         }
-        String query = JOptionPane.showInputDialog(this, "Search text:", "Find", JOptionPane.QUESTION_MESSAGE);
-        if (query == null) return;
-        fullLogPanel.performSearchInFullLog(query);
+        fullLogPanel.openSearchDialog();
     }
 
 

@@ -102,7 +102,7 @@ public class FullLogPanel extends JPanel {
         return rightBottomPanel;
     }
 
-    private void openSearchDialog() {
+    public void openSearchDialog() {
         if (searchDialog == null) {
             searchDialog = new SearchDialog((Frame) SwingUtilities.getWindowAncestor(this), fullLogPane);
         }
