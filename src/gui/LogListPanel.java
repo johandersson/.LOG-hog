@@ -112,19 +112,24 @@ public class LogListPanel extends JPanel {
         logList.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         logList.setModel(listModel);
         logList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        logList.setBackground(Color.WHITE);
 
         var listScroll = new JScrollPane(logList);
         listScroll.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(0xE6E9EB)),
                 BorderFactory.createEmptyBorder(6, 6, 6, 6)
         ));
+        listScroll.setBackground(Color.WHITE);
+        listScroll.getViewport().setBackground(Color.WHITE);
 
         var entryContainer = this.entryContainer;
         entryContainer.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
         entryArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         entryArea.setLineWrap(true);
         entryArea.setWrapStyleWord(true);
+        entryArea.setBackground(Color.WHITE);
         entryScroll.setPreferredSize(new Dimension(600, 220));
+        entryScroll.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
         entryContainer.add(entryScroll, BorderLayout.CENTER);
 
         // Add formatting buttons panel
