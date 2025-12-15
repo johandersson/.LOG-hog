@@ -262,8 +262,6 @@ public class SettingsPanel extends JPanel {
         settings.setProperty("showSplashOnStartup", newSplashOnStartup ? "true" : "false");
         saveSettings();
         loadCurrentSettings(); // Refresh fields with saved values
-        statusLabel.setText("Settings saved.");
-        statusLabel.setForeground(Color.BLUE);
         Toast.showToast(editor, "Settings saved!");
     }
 
