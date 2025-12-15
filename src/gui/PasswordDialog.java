@@ -120,11 +120,11 @@ public class PasswordDialog extends JDialog {
         visible = newVisible;
         if (visible) {
             passwordField.setEchoChar((char) 0);
-            toggleButton.setText("<html><font size=\"+3\">👁</font></html>");
+            toggleButton.setText("<html><font size=\"+2\">👁</font></html>");
             toggleButton.setToolTipText("Hide password");
         } else {
             passwordField.setEchoChar('*');
-            toggleButton.setText("<html><font size=\"+3\"><s>👁</s></font></html>");
+            toggleButton.setText("<html><font size=\"+2\"><s>👁</s></font></html>");
             toggleButton.setToolTipText("Show password");
         }
         passwordField.requestFocusInWindow();
