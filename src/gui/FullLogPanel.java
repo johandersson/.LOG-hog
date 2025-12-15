@@ -40,6 +40,7 @@ public class FullLogPanel extends JPanel {
     private final JButton lockFileButton;
     private final JButton copyFullLogButton;
     private final JButton openInNotepadButton;
+    private final JButton searchButton;
     private SearchDialog searchDialog;
 
     public FullLogPanel(LogTextEditor editor, LogFileHandler logFileHandler) {
@@ -50,7 +51,9 @@ public class FullLogPanel extends JPanel {
         this.lockFileButton = new AccentButton(editor.isLocked() ? "Unlock File" : "Lock File");
         this.copyFullLogButton = new AccentButton("Copy Full Log to Clipboard");
         this.openInNotepadButton = new AccentButton("Open in Notepad");
+        this.searchButton = new AccentButton("Search");
         initPanel();
+        updateLockButton(); // Ensure buttons are in correct state based on lock status
     }
 
     private void initPanel() {
@@ -110,9 +113,8 @@ public class FullLogPanel extends JPanel {
         var rightBottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         rightBottomPanel.setOpaque(false);
 
-        var searchBtn = new AccentButton("Search");
-        searchBtn.addActionListener(e -> openSearchDialog());
-        rightBottomPanel.add(searchBtn);
+        searchButton.addActionListener(e -> openSearchDialog());
+        rightBottomPanel.add(searchButton);
 
         return rightBottomPanel;
     }
@@ -126,6 +128,7 @@ public class FullLogPanel extends JPanel {
 
     public void updateLockButton() {
         lockFileButton.setText(editor.isLocked() ? "Unlock File" : "Lock File");
+        searchButton.setEnabled(!editor.isLocked());
     }
 
     private void updateButtonStates(boolean locked) {
