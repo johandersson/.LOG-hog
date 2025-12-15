@@ -40,7 +40,6 @@ public final class HiddenTabUI extends BasicTabbedPaneUI {
 
     @Override
     protected void paintContentBorder(Graphics g, int tabPlacement, int selectedIndex) {
-        // default content border painting is OK; if you want none, leave empty
-        super.paintContentBorder(g, tabPlacement, selectedIndex);
+        // no-op: don't paint content border for flat look
     }
 }

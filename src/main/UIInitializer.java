@@ -201,6 +201,7 @@ public class UIInitializer {
         contentCard.setBorder(new EmptyBorder(12, 12, 12, 12));
 
         tabPane.setUI(new HiddenTabUI());
+        tabPane.setBorder(null);
         tabPane.addTab("Entry", editor.getEntryPanel());
         tabPane.addTab("Log Entries", editor.getLogListPanel());
         tabPane.addTab("Full Log", editor.getFullLogPanel());
