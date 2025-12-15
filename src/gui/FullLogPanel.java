@@ -213,7 +213,11 @@ public class FullLogPanel extends JPanel {
     private void handleLoadException(Exception ex, Path logPath) {
         String errorMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
         if (errorMsg.contains("tag mismatch") || errorMsg.contains("decryption failed")) {
-            JOptionPane.showMessageDialog(this, "Incorrect password. Please restart the application and try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
+            // If decryption fails when file should be unlocked, it means there's a state inconsistency
+            // Set the file as locked and show appropriate message
+            editor.setLocked(true);
+            JOptionPane.showMessageDialog(this, "Decryption failed. The file has been locked for security. Please use the Unlock button to try again.", "Security Error", JOptionPane.ERROR_MESSAGE);
+            handleLockedState();
         } else {
             fallbackReadRaw(logPath);
         }
