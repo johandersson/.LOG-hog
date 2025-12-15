@@ -45,6 +45,8 @@ public class SettingsPanel extends JPanel {
     private JTextField backupDirField;
     private JButton browseBackupButton;
     private JCheckBox splashOnStartupCheckBox;
+    private JCheckBox clipboardAutoClearCheckBox;
+    private JTextField clipboardTimeoutField;
 
     private void logToFile(String message) {
         try (FileWriter fw = new FileWriter("debug.log", true)) {
@@ -89,6 +91,9 @@ public class SettingsPanel extends JPanel {
 
         // Splash screen section
         contentPanel.add(createSplashPanel());
+
+        // Clipboard security section
+        contentPanel.add(createClipboardSecurityPanel());
 
         // Button section
         contentPanel.add(createButtonPanel());
@@ -190,6 +195,28 @@ public class SettingsPanel extends JPanel {
         return panel;
     }
 
+    private JPanel createClipboardSecurityPanel() {
+        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createTitledBorder("Clipboard Security"));
+
+        clipboardAutoClearCheckBox = new JCheckBox("Auto-clear clipboard after copying");
+        clipboardAutoClearCheckBox.setBackground(Color.WHITE);
+        clipboardAutoClearCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        clipboardAutoClearCheckBox.setSelected("true".equals(settings.getProperty("clipboardAutoClear", "true")));
+
+        var timeoutLabel = new JLabel("Timeout (seconds): ");
+        timeoutLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        clipboardTimeoutField = new JTextField(5);
+        clipboardTimeoutField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        clipboardTimeoutField.setText(settings.getProperty("clipboardTimeout", "30"));
+
+        panel.add(clipboardAutoClearCheckBox);
+        panel.add(timeoutLabel);
+        panel.add(clipboardTimeoutField);
+        return panel;
+    }
+
     private JPanel createButtonPanel() {
         var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panel.setBackground(Color.WHITE);
@@ -217,6 +244,8 @@ public class SettingsPanel extends JPanel {
         reminderField.setText(settings.getProperty("passwordReminder", ""));
         backupDirField.setText(settings.getProperty("backupDirectory", ""));
         splashOnStartupCheckBox.setSelected("true".equals(settings.getProperty("showSplashOnStartup", "true")));
+        clipboardAutoClearCheckBox.setSelected("true".equals(settings.getProperty("clipboardAutoClear", "true")));
+        clipboardTimeoutField.setText(settings.getProperty("clipboardTimeout", "30"));
         var isEncrypted = "true".equals(settings.getProperty("encrypted"));
         encryptionCheckBox.setSelected(isEncrypted);
         encryptionCheckBox.setEnabled(!isEncrypted); // Disable if already encrypted
@@ -243,11 +272,18 @@ public class SettingsPanel extends JPanel {
         var currentReminder = settings.getProperty("passwordReminder", "");
         var currentBackupDir = settings.getProperty("backupDirectory", "");
         var currentSplashOnStartup = "true".equals(settings.getProperty("showSplashOnStartup", "true"));
+        var currentClipboardAutoClear = "true".equals(settings.getProperty("clipboardAutoClear", "true"));
+        var currentClipboardTimeout = settings.getProperty("clipboardTimeout", "30");
         var newReminder = reminderField.getText();
         var newBackupDir = backupDirField.getText();
         var newSplashOnStartup = splashOnStartupCheckBox.isSelected();
+        var newClipboardAutoClear = clipboardAutoClearCheckBox.isSelected();
+        var newClipboardTimeout = clipboardTimeoutField.getText();
 
-        var settingsChanged = !currentReminder.equals(newReminder) || !currentBackupDir.equals(newBackupDir) || currentSplashOnStartup != newSplashOnStartup;
+        var settingsChanged = !currentReminder.equals(newReminder) || !currentBackupDir.equals(newBackupDir) ||
+                            currentSplashOnStartup != newSplashOnStartup ||
+                            currentClipboardAutoClear != newClipboardAutoClear ||
+                            !currentClipboardTimeout.equals(newClipboardTimeout);
 
         if (!settingsChanged) {
             statusLabel.setText("No changes to apply.");
@@ -260,6 +296,8 @@ public class SettingsPanel extends JPanel {
         editor.updatePasswordReminder(newReminder);
         settings.setProperty("backupDirectory", newBackupDir);
         settings.setProperty("showSplashOnStartup", newSplashOnStartup ? "true" : "false");
+        settings.setProperty("clipboardAutoClear", newClipboardAutoClear ? "true" : "false");
+        settings.setProperty("clipboardTimeout", newClipboardTimeout);
         saveSettings();
         loadCurrentSettings(); // Refresh fields with saved values
         Toast.showToast(editor, "Settings saved!");

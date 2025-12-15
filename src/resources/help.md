@@ -8,6 +8,19 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 ## Security Overview
 .LOG-hog prioritizes security for personal logging. It uses AES-256 encryption with GCM authentication, protecting your data from tampering and unauthorized reading. Encryption is optional but recommended for sensitive data. Passwords are derived using PBKDF2 with 100,000 iterations, making brute-force attacks slow. Failed login attempts add progressive delays (1-30 seconds) and limit to 3 tries before exit. Passwords are wiped from memory instantly to prevent forensic recovery. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager. .LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers.
 
+### Clipboard Security
+.LOG-hog includes advanced clipboard security features to protect sensitive log data from being inadvertently exposed through clipboard operations:
+
+- **Automatic Clipboard Clearing**: When copying log entries or full logs to the clipboard, the content is automatically cleared after a configurable timeout (default: 30 seconds). This prevents sensitive information from remaining in the clipboard indefinitely.
+- **Secure Content Marking**: Copied content is marked as secure .LOG-hog data, allowing the application to distinguish and manage it appropriately.
+- **Manual Clear Option**: Users can manually clear the secure clipboard at any time through the system tray menu.
+- **Educational Warnings**: Before copying encrypted or full log content, users receive detailed warnings about clipboard security risks and best practices.
+- **Configurable Settings**: Clipboard auto-clear timeout and behavior can be customized in the Settings tab under "Clipboard Security".
+
+**⚠️ Important Security Note**: If .LOG-hog is terminated unexpectedly (system crash, power outage, task manager kill), secure clipboard content may remain accessible. Always use the "Clear Clipboard" option from the system tray after unexpected terminations.
+
+Access clipboard security settings through the system tray icon (right-click the tray icon → "Clipboard Security") or the Settings tab in the main application.
+
 ## Key Features
 - **Tabbed Interface**: Effortlessly switch between writing new entries and browsing past logs.
 - **Quick Entry**: Add notes instantly with automatic timestamps.
@@ -32,6 +45,8 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 ## System tray Integration:
 - View 10 most recent logs, click one and it will open the app and focus that entry.
 - Add quick log entry directly from the tray menu.
+- **Clear Clipboard**: Immediately clear any secure .LOG-hog content from the clipboard for security.
+- Access clipboard security settings and features through the "Clipboard Security" menu option.
 
 ## Backup and Restore
 - **Creating Backups**: In the Settings tab, click "Backup Log File" to create a copy of your log file. Choose a location and filename (pre-filled with date). Backups preserve the encryption state of your original file.
@@ -50,7 +65,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 ## Editing Log Entries:
 - **Edit Date/Time**: Right-click on a log entry and select "Edit Date/Time" to change its timestamp. Enter the new date and time in the format HH:mm yyyy-MM-dd.
 - **Delete Entry**: Right-click and select "Delete Entry" to remove a log entry after confirmation.
-- **Copy to Clipboard**: Right-click and select "Copy Entry to Clipboard" to copy the timestamp and content to the clipboard.
+- **Copy to Clipboard**: Right-click and select "Copy Entry to Clipboard" to copy the timestamp and content to the clipboard. For security, copied content is automatically cleared after the configured timeout (see Clipboard Security settings).
 
 ## Link to URLs and files:
 - Easily create clickable links to websites and local files within your log entries. These are visible in the Full log formatted view of the log file.

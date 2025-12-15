@@ -137,31 +137,14 @@ public class FullLogPanel extends JPanel {
             return;
         }
 
-        // Check if file is encrypted and warn user
-        if (logFileHandler.isEncrypted()) {
-            var confirm = JOptionPane.showConfirmDialog(
-                this,
-                "<html><b>Security Warning:</b><br><br>" +
-                "You are about to copy the entire log file to the clipboard.<br>" +
-                "Clipboard contents may be accessible to other applications.<br><br>" +
-                "Are you sure you want to copy the full log to the clipboard?</html>",
-                "Copy Full Log to Clipboard - Security Warning",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE);
-
-            if (confirm != JOptionPane.YES_OPTION) {
-                return; // User chose not to copy
-            }
+        // Show enhanced security warning
+        if (!clipboard.ClipboardSecurityWarner.showFullLogWarning(this)) {
+            return; // User chose not to copy
         }
 
-        var selection = new StringSelection(text);
-        var clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        try {
-            clipboard.setContents(selection, selection);
-            JOptionPane.showMessageDialog(this, "Full log copied to clipboard.", "Copied", JOptionPane.INFORMATION_MESSAGE);
-        } catch (IllegalStateException ise) {
-            JOptionPane.showMessageDialog(this, "Unable to access clipboard right now. Try again.", "Clipboard Error", JOptionPane.ERROR_MESSAGE);
-        }
+        // Use secure clipboard with automatic clearing
+        clipboard.SecureClipboardManager.copySecureTextToClipboard(text, this,
+            "Full log copied to clipboard securely.");
     }
 
     public void loadFullLog() {

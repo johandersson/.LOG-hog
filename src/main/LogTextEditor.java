@@ -50,6 +50,10 @@ public class LogTextEditor extends JFrame {
         return settingsPanel;
     }
 
+    public JTabbedPane getTabPane() {
+        return tabPane;
+    }
+
     @Override
     public JRootPane getRootPane() {
         return super.getRootPane();
@@ -99,6 +103,9 @@ public class LogTextEditor extends JFrame {
         // Setup key bindings and system components
         setupKeyBindings();
         loadSettings();
+
+        // Initialize secure clipboard settings
+        initializeSecureClipboard();
 
         // Show splash screen on startup if enabled
         if ("true".equals(settings.getProperty("showSplashOnStartup", "true"))) {
@@ -467,6 +474,21 @@ public class LogTextEditor extends JFrame {
 
     public void updatePasswordReminder(String reminder) {
         this.passwordReminder = reminder;
+    }
+
+    private void initializeSecureClipboard() {
+        // Initialize secure clipboard settings from saved preferences
+        boolean autoClear = "true".equals(settings.getProperty("clipboardAutoClear", "true"));
+        int timeout = Integer.parseInt(settings.getProperty("clipboardTimeout", "30"));
+
+        clipboard.SecureClipboardManager.setAutoClearEnabled(autoClear);
+        clipboard.SecureClipboardManager.setTimeoutSeconds(timeout);
+
+        // Add shutdown hook to clean up secure clipboard
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            clipboard.SecureClipboardManager.clearSecureClipboard();
+            clipboard.SecureClipboardManager.shutdown();
+        }));
     }
 
 

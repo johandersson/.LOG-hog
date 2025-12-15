@@ -51,30 +51,18 @@ public class ActionHandler {
         return e -> {
             String selectedItem = logList.getSelectedValue();
             if (selectedItem != null) {
-                // Check if file is encrypted and warn user
+                // Check if file is encrypted and show enhanced warning
                 if (logFileHandler.isEncrypted()) {
-                    Object[] options = {"Copy anyway", "Don't copy to clipboard"};
-                    int confirm = JOptionPane.showOptionDialog(
-                        editor,
-                        "<html><b>Security Information:</b><br><br>" +
-                        "This log file is encrypted. The copied text will be <b>unencrypted</b> in the clipboard.<br>" +
-                        "Clipboard contents may be accessible to other applications.<br><br>" +
-                        "Are you sure you want to copy this entry to the clipboard?</html>",
-                        "Copy to Clipboard - Encrypted File",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.INFORMATION_MESSAGE,
-                        null,
-                        options,
-                        options[1]);
-
-                    if (confirm != JOptionPane.YES_OPTION) {
+                    if (!clipboard.ClipboardSecurityWarner.showEncryptedFileWarning(editor)) {
                         return; // User chose not to copy
                     }
                 }
 
                 //Copy both timestamp and entry text
                 String logContent = logFileHandler.loadEntry(selectedItem);
-                clipboard.ClipboardManager.copyLogEntryToClipboard(selectedItem, logContent, editor);
+                clipboard.SecureClipboardManager.copySecureTextToClipboard(
+                    selectedItem + "\n\n" + logContent, editor,
+                    "Log entry copied to clipboard securely.");
             }
         };
     }

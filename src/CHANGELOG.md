@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Blockquote support** in markdown rendering (> for quoted text)
 - **Window close confirmation dialog** with options to lock file or exit
 - **Comprehensive encryption documentation** (encryption.md) covering AES-256-GCM, PBKDF2, and security measures
+- **Clipboard Security Features**: Automatic clipboard clearing with configurable timeout, secure content marking, educational warnings, and system tray access
 - Updated README.md with security overview and link to detailed encryption documentation
 - Updated help.md to reference centralized security documentation and remove redundant sections
 - Added non-technical introduction to encryption.md for better user accessibility
@@ -48,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Memory security**: Immediate password clearing from memory after use to prevent forensic recovery; fixed memory leak where cachedEntries remained in memory during manual lock
 - **Comprehensive operation blocking**: All file operations disabled in locked state with proper security UI
 - **Password visibility**: Now requires active user interaction (hold to show, release to hide)
+- **Clipboard Security**: Automatic clearing of sensitive content with configurable timeout, secure content marking, and educational warnings to prevent data exposure
 - **Repository security**: Removed debug.log from repository and added to .gitignore; eliminated all salt logging
 - **Backward compatibility**: Maintained support for existing encrypted files with old PBKDF2 iterations
 

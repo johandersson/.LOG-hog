@@ -10,8 +10,9 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - Encryption support (optional) with AES-GCM (password retry on incorrect entry)
   - Password requirements: at least 16 characters, including at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':",./<>?)
   - Secure password visibility toggle (hold to show, release to hide)
+- **Clipboard Security**: Automatic clearing of copied content with configurable timeout and educational warnings
 - Manual lock/unlock for immediate security
-- System tray integration with quick entry
+- System tray integration with quick entry and clipboard security access
 - Markdown rendering in full log view with advanced search (whole word, case sensitivity, match navigation)
 - Backup and restore with encryption preservation
 - Performance optimizations (efficient memory management)
@@ -45,6 +46,8 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - 4-attempt limit with application restart requirement
 - Real-time countdown during delays
 - Immediate memory clearing of sensitive data
+- **Automatic clipboard clearing** with configurable timeout to prevent data exposure
+- **Security warnings and education** for clipboard operations on sensitive content
 
 ## Encryption Warning
 If you enable encryption, the program may load slower, especially in the settings tab when applying changes and in the full log view. This is due to the encryption/decryption process for the log file.

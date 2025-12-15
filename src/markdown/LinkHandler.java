@@ -23,7 +23,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import javax.swing.*;
 import javax.swing.text.AttributeSet;
-import javax.swing.text.JTextComponent;
 import javax.swing.text.StyledDocument;
 
 public class LinkHandler {
@@ -186,7 +185,7 @@ public class LinkHandler {
                 String href = (String) hrefObj;
                 JPopupMenu popup = new JPopupMenu();
                 JMenuItem copyItem = new JMenuItem("Copy Link");
-                copyItem.addActionListener(ae -> clipboard.ClipboardManager.copyTextToClipboard(href, pane, "Link copied to clipboard!"));
+                copyItem.addActionListener(ae -> clipboard.SecureClipboardManager.copySecureTextToClipboard(href, pane, "Link copied to clipboard securely!"));
                 popup.add(copyItem);
                 popup.show(pane, e.getX(), e.getY());
             }

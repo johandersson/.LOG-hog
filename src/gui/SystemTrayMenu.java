@@ -52,6 +52,8 @@ public class SystemTrayMenu {
             // Create menu items
             var addNoteItem = new MenuItem("Add Quick Note");
             var openItem = new MenuItem("Open");
+            var clearClipboardItem = new MenuItem("Clear Clipboard");
+            var clipboardSecurityItem = new MenuItem("Clipboard Security");
             var exitItem = new MenuItem("Exit");
             //Recent logs item with submenu with the 5 most recent logs
             SystemTrayMenu.recentLogsMenu = new Menu("Recent Logs");
@@ -61,6 +63,8 @@ public class SystemTrayMenu {
             SystemTrayMenu.popup.add(addNoteItem);
             SystemTrayMenu.popup.addSeparator();
             SystemTrayMenu.popup.add(openItem);
+            SystemTrayMenu.popup.add(clearClipboardItem);
+            SystemTrayMenu.popup.add(clipboardSecurityItem);
             SystemTrayMenu.popup.addSeparator();
             SystemTrayMenu.popup.add(exitItem);
             SystemTrayMenu.popup.addSeparator();
@@ -84,6 +88,20 @@ public class SystemTrayMenu {
                 logTextEditor.setVisible(true);
                 logTextEditor.setExtendedState(JFrame.NORMAL);
                 logTextEditor.toFront();
+            });
+
+            clipboardSecurityItem.addActionListener(e -> {
+                logTextEditor.setVisible(true);
+                logTextEditor.setExtendedState(JFrame.NORMAL);
+                logTextEditor.toFront();
+                // Switch to Settings tab (index 3)
+                logTextEditor.getTabPane().setSelectedIndex(3);
+            });
+
+            clearClipboardItem.addActionListener(e -> {
+                clipboard.SecureClipboardManager.clearSecureClipboard();
+                // Show confirmation (optional - could be silent)
+                java.awt.Toolkit.getDefaultToolkit().beep();
             });
 
             //init recent logs menu

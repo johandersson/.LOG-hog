@@ -17,7 +17,6 @@
 
 package markdown;
 
-import clipboard.ClipboardManager;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.time.LocalDateTime;
@@ -213,7 +212,7 @@ public class MarkdownRenderer {
                 String href = (String) hrefObj;
                 JPopupMenu popup = new JPopupMenu();
                 JMenuItem copyItem = new JMenuItem("Copy Link");
-                copyItem.addActionListener(ae -> ClipboardManager.copyTextToClipboard(href, pane, "Link copied to clipboard!"));
+                copyItem.addActionListener(ae -> clipboard.SecureClipboardManager.copySecureTextToClipboard(href, pane, "Link copied to clipboard securely!"));
                 popup.add(copyItem);
                 popup.show(pane, e.getX(), e.getY());
             }
