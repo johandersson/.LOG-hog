@@ -22,6 +22,22 @@ LogHog prioritizes security for personal logging with enterprise-grade encryptio
 - Real-time countdown during delays
 - Immediate memory clearing
 
+## System Requirements
+
+**Minimal Requirements:**
+- Java 17 or higher installed
+- 50 MB available RAM (100 MB recommended)
+- 200 MB free disk space
+
+**Extremely Small Footprint:**
+- **Application**: Only ~145 KB JAR file
+- **Settings**: ~1 KB configuration file
+- **Log Data**: Variable (typically 100-500 bytes per entry)
+- **Total**: Less than 200 KB for complete installation
+
+**No External Dependencies:**
+LogHog requires no additional libraries or frameworks beyond the standard Java runtime. It's completely self-contained and portable.
+
 ## Key Features
 - **Tabbed Interface**: Effortlessly switch between writing new entries and browsing past logs.
 - **Quick Entry**: Add notes instantly with automatic timestamps.

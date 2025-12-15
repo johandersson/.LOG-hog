@@ -20,6 +20,22 @@ The purpose of LogHog is to enable quick note-taking. Upon opening, the screen f
 - Comprehensive help documentation
 - GPL3 licensed
 
+## System Requirements & Footprint
+
+**Minimal System Requirements:**
+- Java 17 or higher
+- 50 MB RAM (recommended 100 MB)
+- 200 MB free disk space
+
+**Tiny Disk Footprint:**
+- **Application JAR**: ~145 KB (148,731 bytes)
+- **Settings file**: ~1 KB (varies with configuration)
+- **Log files**: Variable (typically 100-500 bytes per entry)
+- **Total installation**: < 200 KB
+
+**Zero External Dependencies:**
+LogHog is completely self-contained with no external Java libraries or dependencies. It uses only the standard Java runtime libraries, making it extremely portable and secure.
+
 ## Security Overview
 LogHog implements enterprise-grade security with AES-256-GCM encryption and sophisticated anti-brute-force protection. See [encryption.md](encryption.md) for comprehensive security documentation including technical details, attack vector analysis, and industry comparisons.
 
