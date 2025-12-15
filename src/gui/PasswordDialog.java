@@ -41,27 +41,39 @@ public class PasswordDialog extends JDialog {
 
     private void initComponents() {
         setLayout(new BorderLayout());
+        getContentPane().setBackground(new Color(0xF7FAFC));
 
         var centerPanel = new JPanel(new BorderLayout(5, 5));
-        centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        centerPanel.setBackground(new Color(0xF7FAFC));
 
         var topPanel = new JPanel(new BorderLayout());
+        topPanel.setBackground(new Color(0xF7FAFC));
         var welcomeText = customMessage != null ? customMessage : "Welcome back! Enter your password to unlock your encrypted log.";
         var welcomeLabel = new JLabel("<html><center>" + welcomeText + "</center></html>", SwingConstants.CENTER);
-        welcomeLabel.setFont(welcomeLabel.getFont().deriveFont(Font.PLAIN, 12f));
+        welcomeLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        welcomeLabel.setForeground(new Color(0x2B3A42));
         topPanel.add(welcomeLabel, BorderLayout.NORTH);
 
         if (reminder != null && !reminder.trim().isEmpty()) {
             var reminderLabel = new JLabel("Reminder: " + reminder, SwingConstants.CENTER);
-            reminderLabel.setForeground(Color.GRAY);
+            reminderLabel.setForeground(new Color(0x5E6A70));
+            reminderLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
             topPanel.add(reminderLabel, BorderLayout.SOUTH);
         }
 
         centerPanel.add(topPanel, BorderLayout.NORTH);
 
         passwordField = new JPasswordField(20);
+        passwordField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        passwordField.setBackground(Color.WHITE);
+        passwordField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(0xE6E9EB), 1),
+            BorderFactory.createEmptyBorder(8, 8, 8, 8)
+        ));
 
-        toggleButton = new JButton("Show");
+        toggleButton = new StandardButton("Show", new Color(0xE0E0E0), new Color(0xB0B0B0));
+        toggleButton.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         toggleButton.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mousePressed(java.awt.event.MouseEvent e) {
@@ -73,7 +85,8 @@ public class PasswordDialog extends JDialog {
             }
         });
 
-        var fieldPanel = new JPanel(new BorderLayout());
+        var fieldPanel = new JPanel(new BorderLayout(5, 0));
+        fieldPanel.setBackground(new Color(0xF7FAFC));
         fieldPanel.add(passwordField, BorderLayout.CENTER);
         fieldPanel.add(toggleButton, BorderLayout.EAST);
 
@@ -81,9 +94,10 @@ public class PasswordDialog extends JDialog {
 
         add(centerPanel, BorderLayout.CENTER);
 
-        var buttonPanel = new JPanel(new FlowLayout());
-        okButton = new JButton("OK");
-        cancelButton = new JButton("Cancel");
+        var buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        buttonPanel.setBackground(new Color(0xF7FAFC));
+        okButton = new StandardButton("OK", new Color(0xE0E0E0), new Color(0xB0B0B0));
+        cancelButton = new StandardButton("Cancel", new Color(0xE0E0E0), new Color(0xB0B0B0));
 
         okButton.addActionListener(e -> {
             password = passwordField.getPassword();

@@ -61,6 +61,7 @@ public class SplashScreen extends JDialog {
 
                 // Draw man and notepad
                 drawManAndNotepad(g2d);
+
             }
         };
         panel.setLayout(null); // for absolute positioning
@@ -98,7 +99,10 @@ public class SplashScreen extends JDialog {
         });
         animationTimer.start();
 
+        // Ensure splash screen is visible and on top
         setVisible(true);
+        toFront();
+        requestFocus();
     }
 
     private void drawManAndNotepad(Graphics2D g2d) {

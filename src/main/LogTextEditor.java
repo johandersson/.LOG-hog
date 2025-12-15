@@ -93,12 +93,17 @@ public class LogTextEditor extends JFrame {
         actionHandler.setPanels(logListPanel, fullLogPanel);
 
         // Initialize UI using extracted class
-        uiInitializer = new UIInitializer(this, tabPane, navItems);
+        uiInitializer = new UIInitializer(this, tabPane, navItems, settings);
         uiInitializer.initializeUI();
 
         // Setup key bindings and system components
         setupKeyBindings();
         loadSettings();
+
+        // Show splash screen on startup if enabled
+        if ("true".equals(settings.getProperty("showSplashOnStartup", "true"))) {
+            new gui.SplashScreen();
+        }
 
         systemInitializer = new SystemInitializer(this);
         systemInitializer.initializeSystemComponents();
@@ -342,7 +347,7 @@ public class LogTextEditor extends JFrame {
                     JOptionPane.showMessageDialog(this, "Too many failed attempts. Exiting for security.", "Security Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(0);
                 }
-                PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(this, "🔒 Unlock you secret .LOG!", passwordReminder);
+                PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(this, "🔒 Enter Password", passwordReminder);
                 char[] pwd = result.password;
                 if (pwd == null) {
                     System.exit(0);

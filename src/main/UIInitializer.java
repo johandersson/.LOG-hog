@@ -28,11 +28,13 @@ public class UIInitializer {
     private final LogTextEditor editor;
     private final JTabbedPane tabPane;
     private final List<NavItem> navItems;
+    private final java.util.Properties settings;
 
-    public UIInitializer(LogTextEditor editor, JTabbedPane tabPane, List<NavItem> navItems) {
+    public UIInitializer(LogTextEditor editor, JTabbedPane tabPane, List<NavItem> navItems, java.util.Properties settings) {
         this.editor = editor;
         this.tabPane = tabPane;
         this.navItems = navItems;
+        this.settings = settings;
     }
 
     public void initializeUI() {
@@ -88,7 +90,6 @@ public class UIInitializer {
     private void setupContent() {
         // Root panel with subtle border to emulate card area
         JPanel root = new JPanel(new BorderLayout());
-        root.setBorder(BorderFactory.createLineBorder(new Color(0xD6DCE0)));
         root.setBackground(new Color(0xF3F6F9));
         editor.setContentPane(root);
 
@@ -137,7 +138,10 @@ public class UIInitializer {
         NavItem n3 = new NavItem("Settings", 3, tabPane, null);
         NavItem n4 = new NavItem("Help", 4, tabPane, null);
         Runnable aboutOnClick = () -> {
-            new gui.SplashScreen(); // modal, shows splash
+            // Show splash screen in About menu if it's disabled on startup
+            if (!"true".equals(settings.getProperty("showSplashOnStartup", "true"))) {
+                new gui.SplashScreen();
+            }
             tabPane.setSelectedIndex(5);
         };
         NavItem n5 = new NavItem("About", 5, tabPane, aboutOnClick);

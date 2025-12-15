@@ -44,6 +44,7 @@ public class SettingsPanel extends JPanel {
     private JLabel statusLabel;
     private JTextField backupDirField;
     private JButton browseBackupButton;
+    private JCheckBox splashOnStartupCheckBox;
 
     private void logToFile(String message) {
         try (FileWriter fw = new FileWriter("debug.log", true)) {
@@ -85,6 +86,9 @@ public class SettingsPanel extends JPanel {
 
         // Reminder section
         contentPanel.add(createReminderPanel());
+
+        // Splash screen section
+        contentPanel.add(createSplashPanel());
 
         // Button section
         contentPanel.add(createButtonPanel());
@@ -172,6 +176,20 @@ public class SettingsPanel extends JPanel {
         return panel;
     }
 
+    private JPanel createSplashPanel() {
+        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createTitledBorder("Splash Screen"));
+
+        splashOnStartupCheckBox = new JCheckBox("Show splash screen on startup");
+        splashOnStartupCheckBox.setBackground(Color.WHITE);
+        splashOnStartupCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        splashOnStartupCheckBox.setSelected("true".equals(settings.getProperty("showSplashOnStartup", "true")));
+
+        panel.add(splashOnStartupCheckBox);
+        return panel;
+    }
+
     private JPanel createButtonPanel() {
         var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panel.setBackground(Color.WHITE);
@@ -198,6 +216,7 @@ public class SettingsPanel extends JPanel {
     public void loadCurrentSettings() {
         reminderField.setText(settings.getProperty("passwordReminder", ""));
         backupDirField.setText(settings.getProperty("backupDirectory", ""));
+        splashOnStartupCheckBox.setSelected("true".equals(settings.getProperty("showSplashOnStartup", "true")));
         var isEncrypted = "true".equals(settings.getProperty("encrypted"));
         encryptionCheckBox.setSelected(isEncrypted);
         encryptionCheckBox.setEnabled(!isEncrypted); // Disable if already encrypted
@@ -223,10 +242,12 @@ public class SettingsPanel extends JPanel {
         // Check if any settings actually changed
         var currentReminder = settings.getProperty("passwordReminder", "");
         var currentBackupDir = settings.getProperty("backupDirectory", "");
+        var currentSplashOnStartup = "true".equals(settings.getProperty("showSplashOnStartup", "true"));
         var newReminder = reminderField.getText();
         var newBackupDir = backupDirField.getText();
+        var newSplashOnStartup = splashOnStartupCheckBox.isSelected();
 
-        var settingsChanged = !currentReminder.equals(newReminder) || !currentBackupDir.equals(newBackupDir);
+        var settingsChanged = !currentReminder.equals(newReminder) || !currentBackupDir.equals(newBackupDir) || currentSplashOnStartup != newSplashOnStartup;
 
         if (!settingsChanged) {
             statusLabel.setText("No changes to apply.");
@@ -238,6 +259,7 @@ public class SettingsPanel extends JPanel {
         settings.setProperty("passwordReminder", newReminder);
         editor.updatePasswordReminder(newReminder);
         settings.setProperty("backupDirectory", newBackupDir);
+        settings.setProperty("showSplashOnStartup", newSplashOnStartup ? "true" : "false");
         saveSettings();
         loadCurrentSettings(); // Refresh fields with saved values
         statusLabel.setText("Settings saved.");

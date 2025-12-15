@@ -18,7 +18,6 @@
 package gui;
 
 import java.awt.*;
-import java.util.List;
 
 public class SplashPainter {
     public static void drawManAndNotepad(Graphics2D g2d, int width, int height) {
@@ -83,13 +82,5 @@ public class SplashPainter {
     private static void drawPen(Graphics2D g2d, int x, int y) {
         g2d.setColor(Color.BLUE);
         g2d.fillRect(x + 70, y + 20, 20, 3);
-    }
-
-    public static void drawFireworks(Graphics2D g2d, List<Firework> fireworks) {
-        for (Firework f : fireworks) {
-            int alpha = (int)(f.getAlpha() * 150); // More transparent
-            g2d.setColor(new Color(173, 216, 230, Math.max(0, alpha))); // Light blue instead of white
-            g2d.fillOval((int)f.x - 1, (int)f.y - 1, 2, 2); // Smaller particles
-        }
     }
 }
