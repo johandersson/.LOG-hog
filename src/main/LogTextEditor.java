@@ -376,7 +376,7 @@ public class LogTextEditor extends JFrame {
                             case 3 -> 15000; // 15 seconds
                             default -> 0;
                         };
-                        showSecurityDelayDialog(delay);
+                        SecurityDelayDialog.showDialog(delay, this);
                     } else {
                         logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
                         System.exit(0);
@@ -449,7 +449,7 @@ public class LogTextEditor extends JFrame {
                         case 3 -> 15000; // 15 seconds
                         default -> 0;
                     };
-                    showSecurityDelayDialog(delay);
+                    SecurityDelayDialog.showDialog(delay, this);
                 } else {
                     logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
                     System.exit(0);
@@ -469,51 +469,6 @@ public class LogTextEditor extends JFrame {
         this.passwordReminder = reminder;
     }
 
-    private void showSecurityDelayDialog(long delayMillis) {
-        if (delayMillis <= 0) return;
-        var dialog = new JDialog(this, "Security Delay", true);
-        dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-        dialog.setLayout(new BorderLayout());
-        
-        // Create center panel with message and countdown
-        var centerPanel = new JPanel(new BorderLayout());
-        centerPanel.add(new JLabel("Security delay after failed password attempt...", SwingConstants.CENTER), BorderLayout.NORTH);
-        var countdownLabel = new JLabel("", SwingConstants.CENTER);
-        countdownLabel.setFont(countdownLabel.getFont().deriveFont(14.0f));
-        centerPanel.add(countdownLabel, BorderLayout.SOUTH);
-        
-        dialog.add(centerPanel, BorderLayout.CENTER);
-        var progressBar = new JProgressBar(0, 100);
-        dialog.add(progressBar, BorderLayout.SOUTH);
-        dialog.setSize(350, 120);
-        dialog.setLocationRelativeTo(this);
 
-        // Use Swing Timer for smooth progress updates
-        var timer = new javax.swing.Timer(50, null);
-        final long startTime = System.currentTimeMillis();
-        final long endTime = startTime + delayMillis;
-
-        timer.addActionListener(e -> {
-            long currentTime = System.currentTimeMillis();
-            if (currentTime >= endTime) {
-                progressBar.setValue(100);
-                countdownLabel.setText("0 seconds remaining");
-                timer.stop();
-                dialog.dispose();
-            } else {
-                long elapsed = currentTime - startTime;
-                int progress = (int) (elapsed * 100 / delayMillis);
-                progressBar.setValue(progress);
-                
-                // Update countdown every second
-                long remainingMillis = endTime - currentTime;
-                long remainingSeconds = (remainingMillis + 999) / 1000; // Round up
-                countdownLabel.setText(remainingSeconds + " seconds remaining");
-            }
-        });
-
-        timer.start();
-        dialog.setVisible(true);
-    }
 
 }
