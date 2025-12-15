@@ -108,6 +108,7 @@ public class LogListPanel extends JPanel {
         var split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         split.setResizeWeight(0.33);
         split.setBorder(null);
+        split.setDividerSize(1);
 
         logList.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         logList.setModel(listModel);
