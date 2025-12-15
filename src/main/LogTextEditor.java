@@ -462,18 +462,25 @@ public class LogTextEditor extends JFrame {
         dialog.setLayout(new BorderLayout());
         dialog.add(new JLabel("Security delay after failed password attempt...", SwingConstants.CENTER), BorderLayout.CENTER);
         var progressBar = new JProgressBar(0, 100);
-        progressBar.setIndeterminate(true);
         dialog.add(progressBar, BorderLayout.SOUTH);
         dialog.setSize(350, 100);
         dialog.setLocationRelativeTo(this);
 
         SwingUtilities.invokeLater(() -> {
             dialog.setVisible(true);
-            try {
-                Thread.sleep(delayMillis);
-            } catch (InterruptedException e) {
-                // Ignore
+            long startTime = System.currentTimeMillis();
+            long endTime = startTime + delayMillis;
+            while (System.currentTimeMillis() < endTime) {
+                long remaining = endTime - System.currentTimeMillis();
+                int progress = (int) ((delayMillis - remaining) * 100 / delayMillis);
+                progressBar.setValue(progress);
+                try {
+                    Thread.sleep(50); // Update every 50ms
+                } catch (InterruptedException e) {
+                    break;
+                }
             }
+            progressBar.setValue(100);
             dialog.setVisible(false);
         });
     }
