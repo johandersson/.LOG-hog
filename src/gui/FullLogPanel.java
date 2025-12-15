@@ -164,13 +164,7 @@ public class FullLogPanel extends JPanel {
     public void loadFullLog() {
         SwingUtilities.invokeLater(() -> {
             if (editor.isLocked()) {
-                fullLogPane.setText("");
-                fullLogPane.clearHighlights();
-                fullLogPane.setContentType("text/plain");
-                fullLogPane.setText("File locked. Press Unlock file in Full log view to unlock it again.");
-                fullLogPane.setForeground(Color.GRAY);
-                fullLogPathLabel.setText("Log file: (locked)");
-                updateButtonStates(true);
+                handleLockedState();
                 return;
             }
             updateButtonStates(false);
@@ -179,31 +173,47 @@ public class FullLogPanel extends JPanel {
                 showLogNotFound();
                 return;
             }
-
             clearEditorForNewLoad(logPath);
-
-            try {
-                List<String> lines;
-                if (logFileHandler.isEncrypted()) {
-                    var data = Files.readAllBytes(logPath);
-                    var decrypted = EncryptionManager.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
-                    lines = Arrays.asList(decrypted.split("\n", -1));
-                } else {
-                    lines = Files.readAllLines(logPath);
-                }
-                lines = getNormalized(lines);
-                MarkdownRenderer.renderMarkdown(fullLogPane, lines);
-                LinkHandler.addLinkListeners(fullLogPane);
-            } catch (Exception ex) {
-                String errorMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
-                if (errorMsg.contains("tag mismatch") || errorMsg.contains("decryption failed")) {
-                    JOptionPane.showMessageDialog(this, "Incorrect password. Please restart the application and try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
-                } else {
-                    fallbackReadRaw(logPath);
-                }
-            }
+            loadAndProcessLogFile(logPath);
             updateLockButton();
         });
+    }
+
+    private void handleLockedState() {
+        fullLogPane.setText("");
+        fullLogPane.clearHighlights();
+        fullLogPane.setContentType("text/plain");
+        fullLogPane.setText("File locked. Press Unlock file in Full log view to unlock it again.");
+        fullLogPane.setForeground(Color.GRAY);
+        fullLogPathLabel.setText("Log file: (locked)");
+        updateButtonStates(true);
+    }
+
+    private void loadAndProcessLogFile(Path logPath) {
+        try {
+            List<String> lines;
+            if (logFileHandler.isEncrypted()) {
+                var data = Files.readAllBytes(logPath);
+                var decrypted = EncryptionManager.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
+                lines = Arrays.asList(decrypted.split("\n", -1));
+            } else {
+                lines = Files.readAllLines(logPath);
+            }
+            lines = getNormalized(lines);
+            MarkdownRenderer.renderMarkdown(fullLogPane, lines);
+            LinkHandler.addLinkListeners(fullLogPane);
+        } catch (Exception ex) {
+            handleLoadException(ex, logPath);
+        }
+    }
+
+    private void handleLoadException(Exception ex, Path logPath) {
+        String errorMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+        if (errorMsg.contains("tag mismatch") || errorMsg.contains("decryption failed")) {
+            JOptionPane.showMessageDialog(this, "Incorrect password. Please restart the application and try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
+        } else {
+            fallbackReadRaw(logPath);
+        }
     }
 
     private void clearEditorForNewLoad(Path chosen) {
