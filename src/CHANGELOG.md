@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Security enhancements: Immediate password clearing from memory after use to prevent forensic recovery
 - Progressive delays (1-30 seconds) after incorrect password attempts to slow brute-force attacks
 - Enhanced password guidance in documentation emphasizing strong, random passphrases and password managers
+- Comprehensive encryption documentation (encryption.md) covering AES-256-GCM, PBKDF2, and security measures
+- Updated README.md with security overview and link to detailed encryption documentation
+- Updated help.md to reference centralized security documentation and remove redundant sections
+- Added non-technical introduction to encryption.md for better user accessibility
 
 ### Changed
 - Updated splash screen entries to remove movie references and focus on themes of mom, coding, coca cola, AI, and pizza
