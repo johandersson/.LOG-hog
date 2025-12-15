@@ -115,10 +115,7 @@ public class LogListPanel extends JPanel {
         logList.setBackground(Color.WHITE);
 
         var listScroll = new JScrollPane(logList);
-        listScroll.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(0xE6E9EB)),
-                BorderFactory.createEmptyBorder(6, 6, 6, 6)
-        ));
+        listScroll.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
         listScroll.setBackground(Color.WHITE);
         listScroll.getViewport().setBackground(Color.WHITE);
 
@@ -129,7 +126,7 @@ public class LogListPanel extends JPanel {
         entryArea.setWrapStyleWord(true);
         entryArea.setBackground(Color.WHITE);
         entryScroll.setPreferredSize(new Dimension(600, 220));
-        entryScroll.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
+        entryScroll.setBorder(BorderFactory.createEmptyBorder());
         entryContainer.add(entryScroll, BorderLayout.CENTER);
 
         // Add formatting buttons panel

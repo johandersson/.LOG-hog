@@ -63,7 +63,7 @@ public class FullLogPanel extends JPanel {
         fullLogPane.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         // fullLogPane.setFont(new Font("Georgia", Font.PLAIN, 14)); // Remove to let document styles control font
         var scroll = new JScrollPane(fullLogPane);
-        scroll.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
+        scroll.setBorder(BorderFactory.createEmptyBorder());
         add(scroll, BorderLayout.CENTER);
 
         var pathPanel = new JPanel(new BorderLayout());

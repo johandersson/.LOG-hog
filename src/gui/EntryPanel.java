@@ -50,7 +50,7 @@ public class EntryPanel extends JPanel {
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
         textArea.setEditable(true);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(0xE6E9EB)));
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
 
         // Create container for text area and formatting
         textContainer.setOpaque(false);

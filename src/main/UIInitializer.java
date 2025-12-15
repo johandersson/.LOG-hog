@@ -198,10 +198,7 @@ public class UIInitializer {
     private void createContentCardWithTabs(JPanel center) {
         JPanel contentCard = new JPanel(new BorderLayout());
         contentCard.setBackground(Color.WHITE);
-        contentCard.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(0xE7EBEF)),
-                new EmptyBorder(12, 12, 12, 12)
-        ));
+        contentCard.setBorder(new EmptyBorder(12, 12, 12, 12));
 
         tabPane.setUI(new HiddenTabUI());
         tabPane.addTab("Entry", editor.getEntryPanel());
