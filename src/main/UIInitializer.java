@@ -139,10 +139,6 @@ public class UIInitializer {
         NavItem n3 = new NavItem("Settings", 3, tabPane, null);
         NavItem n4 = new NavItem("Help", 4, tabPane, null);
         Runnable aboutOnClick = () -> {
-            // Show splash screen in About menu if it's disabled on startup
-            if (!"true".equals(settings.getProperty("showSplashOnStartup", "true"))) {
-                new gui.SplashScreen();
-            }
             tabPane.setSelectedIndex(5);
         };
         NavItem n5 = new NavItem("About", 5, tabPane, aboutOnClick);
