@@ -10,61 +10,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - GPL3 copyright notices and author attribution to all Java files
 - CHANGELOG.md for tracking important changes
-- Manual file locking/unlocking feature with security UI
-- Lock state prevents all file operations and shows lock messages
-- Plain text rendering for lock messages to prevent link artifacts
-- Backup directory setting to centralize all backup locations
-- Improved single instance enforcement that brings existing window to front
-- IPC communication between application instances
-- Backward compatibility for encrypted files created with old PBKDF2 iterations
-- Comprehensive encryption compatibility across all decryption operations
-- Blockquote support in markdown rendering (> for quoted text)
-- Confirmation dialog on window close with options to lock file or exit
-- Improved disabled button appearance with custom painting and tooltips
-- Advanced search dialog with whole word, case sensitivity, match counts, and navigation
-- Security enhancements: Immediate password clearing from memory after use to prevent forensic recovery
-- Progressive delays (1-30 seconds) after incorrect password attempts to slow brute-force attacks
-- Enhanced password guidance in documentation emphasizing strong, random passphrases and password managers
-- Comprehensive encryption documentation (encryption.md) covering AES-256-GCM, PBKDF2, and security measures
+- **Manual file locking/unlocking feature** with comprehensive security UI and operation blocking
+- **Advanced search dialog** with whole word matching, case sensitivity, match counts, and navigation
+- **Progressive security delays** (3s → 15s → 60s with randomization) after incorrect password attempts to prevent brute-force attacks
+- **Backup directory setting** to centralize all backup locations
+- **Improved single instance enforcement** with IPC communication and window focus restoration
+- **Backward compatibility** for encrypted files created with old PBKDF2 iterations
+- **Blockquote support** in markdown rendering (> for quoted text)
+- **Window close confirmation dialog** with options to lock file or exit
+- **Comprehensive encryption documentation** (encryption.md) covering AES-256-GCM, PBKDF2, and security measures
 - Updated README.md with security overview and link to detailed encryption documentation
 - Updated help.md to reference centralized security documentation and remove redundant sections
 - Added non-technical introduction to encryption.md for better user accessibility
 
 ### Changed
+- **Security improvements**: Password visibility toggle now requires holding button (press to show, release to hide); removed "Always show password" setting
+- **Manual lock behavior**: No longer prompts user, instantly locks and disables UI with comprehensive operation blocking
+- **Lock messages**: Displayed in all relevant views when file is locked, with plain text rendering to prevent link artifacts
+- **Error handling**: Improved decryption error messages to show user-friendly "Incorrect password" instead of technical errors
+- **Search shortcut**: Ctrl+F now opens advanced search dialog instead of focusing simple search bar
+- **Code modernization**: Refactored SettingsPanel.java for better maintainability; modernized codebase with 'var' declarations (Java 17 feature)
+- **Repository management**: Moved .gitignore to project root with enhanced patterns for logs, backups, and AI files
 - Updated splash screen entries to remove movie references and focus on themes of mom, coding, coca cola, AI, and pizza
-- Removed duplicate entries from splash screen log
-- Manual lock no longer prompts user, instantly locks and disables UI
-- Lock messages displayed in all relevant views when file is locked
-- Full log lock message ensures no HTML/markdown processing
-- Password visibility toggle now requires holding button (press to show, release to hide)
-- Removed "Always show password" setting for better security
-- Improved decryption error messages to show user-friendly "Incorrect password" instead of technical errors
-- Modernized codebase with 'var' declarations for local variables (Java 17 feature)
-- Refactored SettingsPanel.java for better maintainability with extracted methods
-- Moved .gitignore to project root for proper repository-wide coverage
-- Enhanced .gitignore with additional patterns for logs, backups, and AI files
-- Ctrl+F shortcut now opens advanced search dialog instead of focusing simple search bar
 
 ### Fixed
-- Improved password error handling to catch decryption failures from both current and legacy key derivation methods, showing user-friendly messages instead of technical details
-- All save/load/delete/edit operations blocked when file is locked
-- Lock message in Full Log view no longer appears as clickable links
-- Security: No file access or memory reading possible in locked state
-- Backup operations now use configured default directory
+- **Security fixes**: All save/load/delete/edit operations blocked when file is locked; no file access or memory reading possible in locked state
+- **Password error handling**: Improved to catch decryption failures from both current and legacy key derivation methods, showing user-friendly messages
+- **Encryption compatibility**: Fixed issues when PBKDF2 iterations were increased; all decryption operations now support both old (65,536) and new (100,000) PBKDF2 iterations
+- **Lock message rendering**: Full log lock message no longer appears as clickable links
+- **Backup operations**: Now use configured default directory
+- **Settings panel**: Fixed NullPointerException when backupDirField was not initialized
+- **Repository cleanup**: Removed debug.log and backup files from version control
 - Password dialog compilation and method declaration issues
-- NullPointerException in SettingsPanel when backupDirField was not initialized
-- Encryption compatibility issue when PBKDF2 iterations were increased
-- All decryption operations now support both old (65,536) and new (100,000) PBKDF2 iterations
-- Repository cleanup: removed debug.log and backup files from version control
 
 ### Security
-- Removed debug.log from repository and added to .gitignore
-- Eliminated all salt logging for security
-- Comprehensive operation blocking in locked state
-- Password visibility requires active user interaction
-- Increased PBKDF2 iterations from 65,536 to 100,000 for enhanced password-based key derivation security
-- Maintained backward compatibility for existing encrypted files
-- Fixed memory leak: cachedEntries now cleared during manual lock to prevent decrypted content from remaining in memory
+- **Enhanced password-based key derivation**: Increased PBKDF2 iterations from 65,536 to 100,000 for stronger protection
+- **Memory security**: Immediate password clearing from memory after use to prevent forensic recovery; fixed memory leak where cachedEntries remained in memory during manual lock
+- **Comprehensive operation blocking**: All file operations disabled in locked state with proper security UI
+- **Password visibility**: Now requires active user interaction (hold to show, release to hide)
+- **Repository security**: Removed debug.log from repository and added to .gitignore; eliminated all salt logging
+- **Backward compatibility**: Maintained support for existing encrypted files with old PBKDF2 iterations
 
 ## [1.0.0] - 2025-12-04
 
