@@ -14,7 +14,7 @@ The purpose of LogHog is to enable quick note-taking. Upon opening, the screen f
 - System tray integration with quick entry
 - Markdown rendering in full log view with advanced search (whole word, case sensitivity, match navigation)
 - Backup and restore with encryption preservation
-- Performance optimizations (streaming I/O for large non-encrypted files)
+- Performance optimizations (efficient memory management)
 - Single-instance enforcement
 - Right-click menus for editing and managing entries
 - Comprehensive help documentation
@@ -24,7 +24,7 @@ The purpose of LogHog is to enable quick note-taking. Upon opening, the screen f
 
 **Minimal System Requirements:**
 - Java 17 or higher
-- 50 MB RAM (recommended 100 MB)
+- 25 MB RAM (recommended 50 MB)
 - 200 MB free disk space
 
 **Tiny Disk Footprint:**

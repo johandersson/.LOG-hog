@@ -26,7 +26,7 @@ LogHog prioritizes security for personal logging with enterprise-grade encryptio
 
 **Minimal Requirements:**
 - Java 17 or higher installed
-- 50 MB available RAM (100 MB recommended)
+- 25 MB available RAM (50 MB recommended)
 - 200 MB free disk space
 
 **Extremely Small Footprint:**
@@ -46,7 +46,7 @@ LogHog requires no additional libraries or frameworks beyond the standard Java r
 - **Encryption (Optional)**: Secure your log file with AES encryption. Enable via Settings tab, set a strong password, and backup your data. The password is required on startup and is never stored on disk.
 - **Manual Lock/Unlock**: Instantly lock your encrypted log file for security, clearing all data from memory and disabling all operations. Unlock by clicking the button and re-entering your password.
 - **Backup and Restore**: Easily backup your log file with encryption preservation. Backups are filtered to show only LogHog files.
-- **Performance Optimizations**: Streaming I/O for non-encrypted logs reduces memory usage for large files.
+- **Performance Optimizations**: Efficient memory management for typical log file sizes.
 - **Window Close Confirmation**: When closing the application, choose to lock the file or exit completely for added security.
 
 ## Keyboard Shortcuts:
