@@ -30,7 +30,7 @@ public class ClipboardSecurityWarner {
 
     // Educational content about clipboard risks
     private static final String CLIPBOARD_RISKS_EDUCATION =
-        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif;'>" +
+        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 11px;'>" +
         "<h3 style='color: #d32f2f; margin-top: 0;'>⚠️ Clipboard Security Risks</h3>" +
         "<p><b>Clipboard contents remain accessible until overwritten or system restart.</b></p>" +
         "<ul style='margin-left: 20px;'>" +
@@ -43,7 +43,7 @@ public class ClipboardSecurityWarner {
         "</body></html>";
 
     private static final String ENCRYPTED_FILE_WARNING =
-        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif;'>" +
+        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 11px;'>" +
         "<h3 style='color: #f57c00; margin-top: 0;'>🔓 Encrypted File Warning</h3>" +
         "<p>This log file is encrypted. The copied text will be <b>unencrypted</b> in the clipboard.</p>" +
         "<p><b>This means sensitive information will be temporarily accessible in plain text!</b></p>" +
@@ -51,7 +51,7 @@ public class ClipboardSecurityWarner {
         "</body></html>";
 
     private static final String FULL_LOG_WARNING =
-        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif;'>" +
+        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 11px;'>" +
         "<h3 style='color: #d32f2f; margin-top: 0;'>🚨 Full Log Export Warning</h3>" +
         "<p>You are about to copy your <b>entire log file</b> to the clipboard.</p>" +
         "<p><b>This may contain sensitive information across all your entries!</b></p>" +
@@ -99,7 +99,7 @@ public class ClipboardSecurityWarner {
      */
     public static void showSecureContentWarning(Component parent) {
         String message =
-            "<html><body style='width: 350px; font-family: Segoe UI, sans-serif;'>" +
+            "<html><body style='width: 350px; font-family: Segoe UI, sans-serif; font-size: 11px;'>" +
             "<h3 style='color: #1976d2; margin-top: 0;'>🔒 Secure Clipboard Active</h3>" +
             "<p>Clipboard contains .LOG-hog content that will auto-clear for security.</p>" +
             "<p><b>Content will be automatically cleared in " +
@@ -145,7 +145,7 @@ public class ClipboardSecurityWarner {
         }
 
         String tip =
-            "<html><body style='width: 300px; font-family: Segoe UI, sans-serif;'>" +
+            "<html><body style='width: 300px; font-family: Segoe UI, sans-serif; font-size: 11px;'>" +
             "<h4 style='color: #1976d2; margin-top: 0;'>💡 Security Tip</h4>" +
             "<p>Copied content will auto-clear from clipboard in " +
             SecureClipboardManager.getTimeoutSeconds() + " seconds for your security.</p>" +
