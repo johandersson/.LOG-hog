@@ -62,6 +62,20 @@ public class FullLogPanel extends JPanel {
         fullLogPane.setContentType("text/plain");
         fullLogPane.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         // fullLogPane.setFont(new Font("Georgia", Font.PLAIN, 14)); // Remove to let document styles control font
+
+        // Override ctrl+c to use secure clipboard
+        fullLogPane.getInputMap(JComponent.WHEN_FOCUSED).put(
+                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, java.awt.event.InputEvent.CTRL_DOWN_MASK), "copySecure");
+        fullLogPane.getActionMap().put("copySecure", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                String selectedText = fullLogPane.getSelectedText();
+                if (selectedText != null && !selectedText.isEmpty()) {
+                    clipboard.SecureClipboardManager.copySecureTextToClipboard(selectedText, fullLogPane);
+                }
+            }
+        });
+
         var scroll = new JScrollPane(fullLogPane);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         add(scroll, BorderLayout.CENTER);
