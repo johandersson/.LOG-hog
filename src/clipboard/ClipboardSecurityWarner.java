@@ -88,12 +88,9 @@ public class ClipboardSecurityWarner {
         htmlPane.setEditable(false);
         htmlPane.setOpaque(false);
         htmlPane.setBorder(null);
+        htmlPane.setPreferredSize(new Dimension(450, 400));
 
-        JScrollPane scrollPane = new JScrollPane(htmlPane);
-        scrollPane.setPreferredSize(new Dimension(450, 300));
-        scrollPane.setBorder(null);
-
-        JOptionPane.showMessageDialog(parent, scrollPane,
+        JOptionPane.showMessageDialog(parent, htmlPane,
             "Clipboard Security Education", JOptionPane.INFORMATION_MESSAGE);
     }
 
@@ -116,14 +113,11 @@ public class ClipboardSecurityWarner {
         htmlPane.setEditable(false);
         htmlPane.setOpaque(false);
         htmlPane.setBorder(null);
-
-        JScrollPane scrollPane = new JScrollPane(htmlPane);
-        scrollPane.setPreferredSize(new Dimension(400, 200));
-        scrollPane.setBorder(null);
+        htmlPane.setPreferredSize(new Dimension(400, 250));
 
         Object[] options = {"Clear Now", "Keep Content", "Learn More"};
 
-        int result = JOptionPane.showOptionDialog(parent, scrollPane,
+        int result = JOptionPane.showOptionDialog(parent, htmlPane,
             "Secure Clipboard Status", JOptionPane.YES_NO_CANCEL_OPTION,
             JOptionPane.INFORMATION_MESSAGE, null, options, options[1]);
 
@@ -163,12 +157,9 @@ public class ClipboardSecurityWarner {
         htmlPane.setEditable(false);
         htmlPane.setOpaque(false);
         htmlPane.setBorder(null);
+        htmlPane.setPreferredSize(new Dimension(350, 180));
 
-        JScrollPane scrollPane = new JScrollPane(htmlPane);
-        scrollPane.setPreferredSize(new Dimension(350, 150));
-        scrollPane.setBorder(null);
-
-        JOptionPane.showMessageDialog(parent, scrollPane,
+        JOptionPane.showMessageDialog(parent, htmlPane,
             "Security Tip", JOptionPane.INFORMATION_MESSAGE);
     }
 
@@ -185,6 +176,7 @@ public class ClipboardSecurityWarner {
         htmlPane.setEditable(false);
         htmlPane.setOpaque(false);
         htmlPane.setBorder(null);
+        htmlPane.setPreferredSize(new Dimension(450, 400));
 
         // Make links clickable if needed
         htmlPane.addHyperlinkListener(e -> {
@@ -197,13 +189,9 @@ public class ClipboardSecurityWarner {
             }
         });
 
-        JScrollPane scrollPane = new JScrollPane(htmlPane);
-        scrollPane.setPreferredSize(new Dimension(450, 300));
-        scrollPane.setBorder(null);
-
         Object[] options = {confirmText, cancelText, "Learn More"};
 
-        int result = JOptionPane.showOptionDialog(parent, scrollPane, title,
+        int result = JOptionPane.showOptionDialog(parent, htmlPane, title,
             JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE,
             null, options, options[1]);
 
