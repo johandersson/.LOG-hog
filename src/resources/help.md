@@ -1,12 +1,12 @@
 # Welcome to the Help File for .LOG-hog!
 
 ## Purpose
-The purpose of LogHog is to enable quick note-taking. Upon opening, the screen focuses directly on the editor window for immediate writing. After composing your note, press Ctrl+S or click Save to clear the text field and save the entry into a dated log. This clearing allows you to write a new log entry right away, facilitating rapid and efficient note-taking.
+The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen focuses directly on the editor window for immediate writing. After composing your note, press Ctrl+S or click Save to clear the text field and save the entry into a dated log. This clearing allows you to write a new log entry right away, facilitating rapid and efficient note-taking.
 
-LogHog is compatible with Notepad's .LOG feature. In Notepad, creating a file that starts with '.LOG' on the first line enables automatic timestamp insertion on each open or save (see [how .LOG works in Notepad](https://www.howtogeek.com/359463/what-is-a-log-file/)). LogHog can read, edit, and manage such log files, offering advanced features like encryption, search, and formatting while preserving the timestamped structure.
+.LOG-hog is compatible with Notepad's .LOG feature. In Notepad, creating a file that starts with '.LOG' on the first line enables automatic timestamp insertion on each open or save (see [how .LOG works in Notepad](https://www.howtogeek.com/359463/what-is-a-log-file/)). .LOG-hog can read, edit, and manage such log files, offering advanced features like encryption, search, and formatting while preserving the timestamped structure.
 
 ## Security Overview
-LogHog prioritizes security for personal logging. It uses AES-256 encryption with GCM authentication, protecting your data from tampering and unauthorized reading. Encryption is optional but recommended for sensitive data. Passwords are derived using PBKDF2 with 100,000 iterations, making brute-force attacks slow. Failed login attempts add progressive delays (1-30 seconds) and limit to 3 tries before exit. Passwords are wiped from memory instantly to prevent forensic recovery. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager. LogHog is secure for daily use but not invincible against state-level threats or keyloggers.
+.LOG-hog prioritizes security for personal logging. It uses AES-256 encryption with GCM authentication, protecting your data from tampering and unauthorized reading. Encryption is optional but recommended for sensitive data. Passwords are derived using PBKDF2 with 100,000 iterations, making brute-force attacks slow. Failed login attempts add progressive delays (1-30 seconds) and limit to 3 tries before exit. Passwords are wiped from memory instantly to prevent forensic recovery. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager. .LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers.
 
 ## Key Features
 - **Tabbed Interface**: Effortlessly switch between writing new entries and browsing past logs.
@@ -15,7 +15,7 @@ LogHog prioritizes security for personal logging. It uses AES-256 encryption wit
 - **Right-Click Menu in Log Entries**: Right-click on any log entry to access options like copying to clipboard, deleting, or editing the date and time.
 - **Encryption (Optional)**: Secure your log file with AES encryption. Enable via Settings tab, set a strong password, and backup your data. The password is required on startup and is never stored on disk.
 - **Manual Lock/Unlock**: Instantly lock your encrypted log file for security, clearing all data from memory and disabling all operations. Unlock by clicking the button and re-entering your password.
-- **Backup and Restore**: Easily backup your log file with encryption preservation. Backups are filtered to show only LogHog files.
+- **Backup and Restore**: Easily backup your log file with encryption preservation. Backups are filtered to show only .LOG-hog files.
 - **Performance Optimizations**: Efficient memory management for typical log file sizes.
 - **Window Close Confirmation**: When closing the application, choose to lock the file or exit completely for added security.
 
@@ -35,13 +35,13 @@ LogHog prioritizes security for personal logging. It uses AES-256 encryption wit
 
 ## Backup and Restore
 - **Creating Backups**: In the Settings tab, click "Backup Log File" to create a copy of your log file. Choose a location and filename (pre-filled with date). Backups preserve the encryption state of your original file.
-- **Backup Filtering**: The file chooser shows only existing LogHog backup files for easy management.
+- **Backup Filtering**: The file chooser shows only existing .LOG-hog backup files for easy management.
 - **Restoring**: Manually replace your log.txt with a backup file if needed.
 
 ## Encryption
 - **Enabling Encryption**: Access the Settings tab to enable encryption. You'll need to set a password (at least 16 characters, including at least one uppercase letter and one special character from: !@#$%^&*()_+-=[]{}|;':",./<>?). Optionally, backup your unencrypted log file before proceeding.
 - **Password Visibility**: When prompted for your password at startup, you can choose to always show the password in plain text by checking the "Always show password in plain text" box. This setting is saved and will apply to future password prompts.
-- **Security Notes**: Your log file is encrypted using AES with a key derived from your password. The password is only kept in memory while the app runs and is never saved to disk. <span style="color:red">If you forget your password, your data cannot be recovered.</span> In terms of security, AES-GCM is a strong, industry-standard encryption method. As long as you use a strong, unique password and keep it secret, your data is very safe from unauthorized access. LogHog clears passwords from memory immediately after use and adds progressive delays (1-30 seconds) after incorrect password attempts to slow down automated attacks.
+- **Security Notes**: Your log file is encrypted using AES with a key derived from your password. The password is only kept in memory while the app runs and is never saved to disk. <span style="color:red">If you forget your password, your data cannot be recovered.</span> In terms of security, AES-GCM is a strong, industry-standard encryption method. As long as you use a strong, unique password and keep it secret, your data is very safe from unauthorized access. .LOG-hog clears passwords from memory immediately after use and adds progressive delays (1-30 seconds) after incorrect password attempts to slow down automated attacks.
 - **Password Guidance**: To maximize security, use a long passphrase (20+ characters) that's random and unique. Avoid dictionary words, patterns (like "Qwerty123!"), or personal details. Use a password manager to generate and store strong passwords. Remember, even with encryption, a weak password can be cracked—treat it like a key to your safe. In terms of security, AES-GCM is a strong, industry-standard encryption method. As long as you use a strong, unique password and keep it secret, your data is very safe from unauthorized access.
 - **Usage**: When encryption is enabled, you'll be prompted for your password each time you start the app. If the password is incorrect, you'll see a clear error message and can retry immediately.
 - **Manual Lock/Unlock**: For immediate security, click the "Lock File" button in the Full Log tab to instantly lock your encrypted log. This clears all decrypted data from memory, empties all views, and disables all editing operations. A lock message will appear in all relevant areas. To unlock, click the "Unlock File" button and re-enter your password.
@@ -72,7 +72,7 @@ The Full Log tab renders your log entries with Markdown formatting for better re
 Formatting is applied in the Full Log window for a polished view of your entries.
 
 ## License
-LogHog is licensed under the GNU General Public License version 3 (GPL3). See the license.md file for full license text.
+.LOG-hog is licensed under the GNU General Public License version 3 (GPL3). See the license.md file for full license text.
 
 ## Changelog
 See CHANGELOG.md for a detailed history of changes and new features.

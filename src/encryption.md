@@ -1,13 +1,13 @@
-# LogHog Security & Encryption Documentation
+# .LOG-hog Security & Encryption Documentation
 
-LogHog is designed to keep your personal logs and notes safe and private. Whether you're journaling thoughts, storing sensitive information, or maintaining records, your data deserves protection. This document explains the security measures we use to safeguard your information.
+.LOG-hog is designed to keep your personal logs and notes safe and private. Whether you're journaling thoughts, storing sensitive information, or maintaining records, your data deserves protection. This document explains the security measures we use to safeguard your information.
 
 ## Overview
-LogHog implements enterprise-grade security suitable for personal sensitive data storage. This document provides comprehensive details about the security architecture, encryption implementation, and protection mechanisms.
+.LOG-hog implements enterprise-grade security suitable for personal sensitive data storage. This document provides comprehensive details about the security architecture, encryption implementation, and protection mechanisms.
 
 ## Security Rating: 8.5/10 Overall
 
-LogHog provides excellent security for a personal logging application, with enterprise-standard encryption and robust anti-brute-force protection.
+.LOG-hog provides excellent security for a personal logging application, with enterprise-standard encryption and robust anti-brute-force protection.
 
 ---
 
@@ -129,7 +129,7 @@ byte[] encrypted = encrypt(data, key);
 - **Advanced Features**: Progressive delays with randomization
 
 ### Overall Assessment
-LogHog provides **enterprise-grade encryption** with **consumer-friendly usability**. The security implementation is robust for personal use while remaining practical for daily operation.
+.LOG-hog provides **enterprise-grade encryption** with **consumer-friendly usability**. The security implementation is robust for personal use while remaining practical for daily operation.
 
 ---
 

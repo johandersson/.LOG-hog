@@ -1,12 +1,12 @@
 # Welcome to the Help File for .LOG-hog!
 
 ## Purpose
-The purpose of LogHog is to enable quick note-taking. Upon opening, the screen focuses directly on the editor window for immediate writing. After composing your note, press Ctrl+S or click Save to clear the text field and save the entry into a dated log. This clearing allows you to write a new log entry right away, facilitating rapid and efficient note-taking.
+The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen focuses directly on the editor window for immediate writing. After composing your note, press Ctrl+S or click Save to clear the text field and save the entry into a dated log. This clearing allows you to write a new log entry right away, facilitating rapid and efficient note-taking.
 
-LogHog is compatible with Notepad's .LOG feature. In Notepad, creating a file that starts with '.LOG' on the first line enables automatic timestamp insertion on each open or save (see [how .LOG works in Notepad](https://www.howtogeek.com/359463/what-is-a-log-file/)). LogHog can read, edit, and manage such log files, offering advanced features like encryption, search, and formatting while preserving the timestamped structure.
+.LOG-hog is compatible with Notepad's .LOG feature. In Notepad, creating a file that starts with '.LOG' on the first line enables automatic timestamp insertion on each open or save (see [how .LOG works in Notepad](https://www.howtogeek.com/359463/what-is-a-log-file/)). .LOG-hog can read, edit, and manage such log files, offering advanced features like encryption, search, and formatting while preserving the timestamped structure.
 
 ## Security Overview
-LogHog prioritizes security for personal logging with enterprise-grade encryption and comprehensive anti-brute-force protection. For detailed technical information, see [encryption.md](encryption.md).
+.LOG-hog prioritizes security for personal logging with enterprise-grade encryption and comprehensive anti-brute-force protection. For detailed technical information, see [encryption.md](encryption.md).
 
 **Security Rating: 8.5/10**
 - **Cryptography**: 9.5/10 - AES-256-GCM with PBKDF2
