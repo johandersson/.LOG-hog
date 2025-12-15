@@ -369,19 +369,13 @@ public class LogTextEditor extends JFrame {
                         errorMsg.contains("decryption failed")) {
                         JOptionPane.showMessageDialog(this, "Incorrect password. Please try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
                         // Add progressive delay after failed attempts
-                        try {
-                            long delay = switch (attempts) {
-                                case 1 -> 1000; // 1 second
-                                case 2 -> 5000; // 5 seconds
-                                case 3 -> 30000; // 30 seconds
-                                default -> 0;
-                            };
-                            if (delay > 0) {
-                                Thread.sleep(delay);
-                            }
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                        }
+                        long delay = switch (attempts) {
+                            case 1 -> 1000; // 1 second
+                            case 2 -> 5000; // 5 seconds
+                            case 3 -> 30000; // 30 seconds
+                            default -> 0;
+                        };
+                        showSecurityDelayDialog(delay);
                     } else {
                         logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
                         System.exit(0);
@@ -441,6 +435,7 @@ public class LogTextEditor extends JFrame {
                     errorMsg.contains("integrity check failed") ||
                     errorMsg.contains("mac check failed")) {
                     JOptionPane.showMessageDialog(this, "Incorrect password. Please try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
+                    showSecurityDelayDialog(2000); // 2 second delay
                 } else {
                     logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
                     System.exit(0);
@@ -458,6 +453,29 @@ public class LogTextEditor extends JFrame {
 
     public void updatePasswordReminder(String reminder) {
         this.passwordReminder = reminder;
+    }
+
+    private void showSecurityDelayDialog(long delayMillis) {
+        if (delayMillis <= 0) return;
+        var dialog = new JDialog(this, "Security Delay", true);
+        dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        dialog.setLayout(new BorderLayout());
+        dialog.add(new JLabel("Security delay after failed password attempt...", SwingConstants.CENTER), BorderLayout.CENTER);
+        var progressBar = new JProgressBar(0, 100);
+        progressBar.setIndeterminate(true);
+        dialog.add(progressBar, BorderLayout.SOUTH);
+        dialog.setSize(350, 100);
+        dialog.setLocationRelativeTo(this);
+
+        SwingUtilities.invokeLater(() -> {
+            dialog.setVisible(true);
+            try {
+                Thread.sleep(delayMillis);
+            } catch (InterruptedException e) {
+                // Ignore
+            }
+            dialog.setVisible(false);
+        });
     }
 
 }
