@@ -67,6 +67,7 @@ public class UIInitializer {
                     editor.manualLock();
                 } else if (option == JOptionPane.NO_OPTION) {
                     // Exit program
+                    showSecurityProgressDialog(editor);
                     editor.getLogFileHandler().clearSensitiveData();
                     System.exit(0);
                 }
@@ -225,5 +226,28 @@ public class UIInitializer {
         contentCard.add(tabPane, BorderLayout.CENTER);
 
         center.add(contentCard, BorderLayout.CENTER);
+    }
+
+    private void showSecurityProgressDialog(JFrame parent) {
+        var dialog = new JDialog(parent, "Securing Data", true);
+        dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        dialog.setLayout(new BorderLayout());
+        dialog.add(new JLabel("Securing sensitive data before exit...", SwingConstants.CENTER), BorderLayout.CENTER);
+        var progressBar = new JProgressBar(0, 100);
+        progressBar.setIndeterminate(true);
+        dialog.add(progressBar, BorderLayout.SOUTH);
+        dialog.setSize(300, 100);
+        dialog.setLocationRelativeTo(parent);
+
+        // Show dialog and simulate progress
+        SwingUtilities.invokeLater(() -> {
+            dialog.setVisible(true);
+            try {
+                Thread.sleep(3000); // 3 seconds delay
+            } catch (InterruptedException e) {
+                // Ignore
+            }
+            dialog.setVisible(false);
+        });
     }
 }
