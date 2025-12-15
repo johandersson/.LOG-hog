@@ -354,7 +354,7 @@ public class LogTextEditor extends JFrame {
                     success = true;
                 } catch (Exception e) {
                     attempts++;
-                    if (attempts >= 4) {
+                    if (attempts >= 3) {
                         JOptionPane.showMessageDialog(this, "Too many failed attempts. Please restart the application to try again.", "Security Error", JOptionPane.ERROR_MESSAGE);
                         System.exit(0);
                     }
@@ -367,13 +367,12 @@ public class LogTextEditor extends JFrame {
                         errorMsg.contains("integrity check failed") ||
                         errorMsg.contains("mac check failed") ||
                         errorMsg.contains("decryption failed")) {
-                        int remaining = 4 - attempts;
+                        int remaining = 3 - attempts;
                         JOptionPane.showMessageDialog(this, "Incorrect password. " + remaining + " attempts remaining.", "Password Error", JOptionPane.ERROR_MESSAGE);
                         // Add progressive delay after failed attempts
                         long delay = switch (attempts) {
                             case 1 -> 1000; // 1 second
                             case 2 -> 5000; // 5 seconds
-                            case 3 -> 10000; // 10 seconds
                             default -> 0;
                         };
                         showSecurityDelayDialog(delay);
@@ -429,7 +428,7 @@ public class LogTextEditor extends JFrame {
                 fullLogPanel.loadFullLog(); // Refresh full log view after successful decryption
             } catch (Exception e) {
                 attempts++;
-                if (attempts >= 4) {
+                if (attempts >= 3) {
                     JOptionPane.showMessageDialog(this, "Too many failed attempts. Please restart the application to try again.", "Security Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(0);
                 }
@@ -441,12 +440,11 @@ public class LogTextEditor extends JFrame {
                     errorMsg.contains("aeadbadtag") ||
                     errorMsg.contains("integrity check failed") ||
                     errorMsg.contains("mac check failed")) {
-                    int remaining = 4 - attempts;
+                    int remaining = 3 - attempts;
                     JOptionPane.showMessageDialog(this, "Incorrect password. " + remaining + " attempts remaining.", "Password Error", JOptionPane.ERROR_MESSAGE);
                     long delay = switch (attempts) {
                         case 1 -> 1000; // 1 second
                         case 2 -> 5000; // 5 seconds
-                        case 3 -> 10000; // 10 seconds
                         default -> 0;
                     };
                     showSecurityDelayDialog(delay);
