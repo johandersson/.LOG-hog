@@ -7,7 +7,7 @@ The purpose of LogHog is to enable quick note-taking. Upon opening, the screen f
 
 ## Features
 - Tabbed interface for writing and browsing logs
-- Encryption support with AES-GCM (password retry on incorrect entry)
+- Encryption support (optional) with AES-GCM (password retry on incorrect entry)
   - Password requirements: at least 16 characters, including at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':",./<>?)
   - Secure password visibility toggle (hold to show, release to hide)
 - Manual lock/unlock for immediate security

@@ -6,12 +6,14 @@ The purpose of LogHog is to enable quick note-taking. Upon opening, the screen f
 LogHog is compatible with Notepad's .LOG feature. In Notepad, creating a file that starts with '.LOG' on the first line enables automatic timestamp insertion on each open or save (see [how .LOG works in Notepad](https://www.howtogeek.com/359463/what-is-a-log-file/)). LogHog can read, edit, and manage such log files, offering advanced features like encryption, search, and formatting while preserving the timestamped structure.
 
 ## Security Overview
-LogHog prioritizes security for personal logging. It uses AES-256 encryption with GCM authentication, protecting your data from tampering and unauthorized reading. Passwords are derived using PBKDF2 with 100,000 iterations, making brute-force attacks slow. Failed login attempts add progressive delays (1-30 seconds) and limit to 3 tries before exit. Passwords are wiped from memory instantly to prevent forensic recovery. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager. LogHog is secure for daily use but not invincible against state-level threats or keyloggers.
+LogHog prioritizes security for personal logging. It uses AES-256 encryption with GCM authentication, protecting your data from tampering and unauthorized reading. Encryption is optional but recommended for sensitive data. Passwords are derived using PBKDF2 with 100,000 iterations, making brute-force attacks slow. Failed login attempts add progressive delays (1-30 seconds) and limit to 3 tries before exit. Passwords are wiped from memory instantly to prevent forensic recovery. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager. LogHog is secure for daily use but not invincible against state-level threats or keyloggers.
+
+## Key Features
 - **Tabbed Interface**: Effortlessly switch between writing new entries and browsing past logs.
 - **Quick Entry**: Add notes instantly with automatic timestamps.
 - **Single-Instance Enforcement**: Only one instance of the application can run at a time to prevent conflicts.
 - **Right-Click Menu in Log Entries**: Right-click on any log entry to access options like copying to clipboard, deleting, or editing the date and time.
-- **Encryption**: Secure your log file with AES encryption. Enable via Settings tab, set a strong password, and backup your data. The password is required on startup and is never stored on disk.
+- **Encryption (Optional)**: Secure your log file with AES encryption. Enable via Settings tab, set a strong password, and backup your data. The password is required on startup and is never stored on disk.
 - **Manual Lock/Unlock**: Instantly lock your encrypted log file for security, clearing all data from memory and disabling all operations. Unlock by clicking the button and re-entering your password.
 - **Backup and Restore**: Easily backup your log file with encryption preservation. Backups are filtered to show only LogHog files.
 - **Performance Optimizations**: Streaming I/O for non-encrypted logs reduces memory usage for large files.
