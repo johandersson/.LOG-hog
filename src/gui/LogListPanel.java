@@ -51,6 +51,7 @@ public class LogListPanel extends JPanel {
     private void initPanel() {
         setLayout(new BorderLayout(8, 8));
         setBackground(Color.WHITE);
+        setBorder(BorderFactory.createLineBorder(new Color(0x2F80ED), 1));
 
         // Top: filter controls
         var filterPanel = createFilterPanel();

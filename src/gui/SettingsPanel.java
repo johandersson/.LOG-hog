@@ -66,6 +66,7 @@ public class SettingsPanel extends JPanel {
     private void initComponents() {
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
+        setBorder(BorderFactory.createLineBorder(new Color(0x2F80ED), 1));
 
         var contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));

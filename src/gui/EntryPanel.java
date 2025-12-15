@@ -45,6 +45,7 @@ public class EntryPanel extends JPanel {
     private void initPanel() {
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
+        setBorder(BorderFactory.createLineBorder(new Color(0x2F80ED), 1));
 
         textArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         textArea.setLineWrap(true);

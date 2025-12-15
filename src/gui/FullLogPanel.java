@@ -56,6 +56,7 @@ public class FullLogPanel extends JPanel {
     private void initPanel() {
         setLayout(new BorderLayout(6, 6));
         setBackground(Color.WHITE);
+        setBorder(BorderFactory.createLineBorder(new Color(0x2F80ED), 1));
 
         fullLogPane.setEditable(false);
         fullLogPane.setBackground(Color.WHITE);

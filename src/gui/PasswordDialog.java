@@ -67,13 +67,11 @@ public class PasswordDialog extends JDialog {
         passwordField = new JPasswordField(20);
         passwordField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         passwordField.setBackground(Color.WHITE);
-        passwordField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(0xE6E9EB), 1),
-            BorderFactory.createEmptyBorder(8, 8, 8, 8)
-        ));
+        passwordField.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-        toggleButton = new StandardButton("Show", new Color(0xE0E0E0), new Color(0xB0B0B0));
+        toggleButton = new StandardButton("", new Color(0xE0E0E0), new Color(0xB0B0B0));
         toggleButton.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        toggleButton.setToolTipText("Show password");
         toggleButton.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mousePressed(java.awt.event.MouseEvent e) {
@@ -96,7 +94,7 @@ public class PasswordDialog extends JDialog {
 
         var buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         buttonPanel.setBackground(new Color(0xF7FAFC));
-        okButton = new StandardButton("OK", new Color(0xE0E0E0), new Color(0xB0B0B0));
+        okButton = new AccentButton("OK");
         cancelButton = new StandardButton("Cancel", new Color(0xE0E0E0), new Color(0xB0B0B0));
 
         okButton.addActionListener(e -> {
@@ -120,10 +118,12 @@ public class PasswordDialog extends JDialog {
         visible = newVisible;
         if (visible) {
             passwordField.setEchoChar((char) 0);
-            toggleButton.setText("Hide");
+            toggleButton.setText("<html><font size=\"+3\">👁</font></html>");
+            toggleButton.setToolTipText("Hide password");
         } else {
             passwordField.setEchoChar('*');
-            toggleButton.setText("Show");
+            toggleButton.setText("<html><font size=\"+3\"><s>👁</s></font></html>");
+            toggleButton.setToolTipText("Show password");
         }
         passwordField.requestFocusInWindow();
     }
