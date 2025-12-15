@@ -21,13 +21,14 @@ The purpose of LogHog is to enable quick note-taking. Upon opening, the screen f
 - GPL3 licensed
 
 ## Security Overview
-LogHog is designed with security in mind for personal note-taking. Your data is protected by AES-256 encryption in GCM mode, a standard used by governments and banks. With a strong password, your logs are extremely safe from unauthorized access—even if your device is stolen or hacked. Passwords are cleared from memory immediately after use, and failed attempts trigger progressive delays to slow attacks. However, security depends on you: use long, random passwords (20+ characters) and keep them secret. If you forget your password, data cannot be recovered. For everyday use, LogHog is as secure as commercial encrypted apps like VeraCrypt.
+LogHog implements enterprise-grade security with AES-256-GCM encryption and sophisticated anti-brute-force protection. See [encryption.md](encryption.md) for comprehensive security documentation including technical details, attack vector analysis, and industry comparisons.
 
-**Password Protection Features:**
-- **Progressive Security Delays**: Failed password attempts trigger increasing delays (3s → 15s → 60s) with ±20% randomization to prevent timing attacks
-- **Attempt Limits**: Maximum 4 password attempts before requiring application restart
-- **Real-time Feedback**: Clear countdown showing remaining wait time during delays
-- **Memory Security**: Passwords are immediately cleared from memory after use
+**Key Security Features:**
+- AES-256-GCM authenticated encryption with PBKDF2 key derivation
+- Progressive security delays (3s → 15s → 60s) with randomization
+- 4-attempt limit with application restart requirement
+- Real-time countdown during delays
+- Immediate memory clearing of sensitive data
 
 ## Encryption Warning
 If you enable encryption, the program may load slower, especially in the settings tab when applying changes and in the full log view. This is due to the encryption/decryption process for the log file.
