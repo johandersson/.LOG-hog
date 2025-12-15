@@ -29,8 +29,8 @@ import java.awt.event.ActionListener;
 public class ClipboardSecurityWarner {
 
     // Educational content about clipboard risks
-    private static final String CLIPBOARD_RISKS_EDUCATION =
-        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 9px;'>" +
+    private static String getClipboardRisksEducation() {
+        return "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 9px;'>" +
         "<h3 style='color: #d32f2f; margin-top: 0;'>⚠️ Clipboard Security Risks</h3>" +
         "<p><b>Clipboard contents remain accessible until overwritten or system restart.</b></p>" +
         "<ul style='margin-left: 20px;'>" +
@@ -39,15 +39,16 @@ public class ClipboardSecurityWarner {
         "<li><b>Shared Systems:</b> Other users can access clipboard on shared computers</li>" +
         "<li><b>Application Monitoring:</b> Keyloggers and spyware can capture clipboard data</li>" +
         "</ul>" +
-        "<p style='color: #1976d2;'><b>.LOG-hog Security:</b> Content will auto-clear in 30 seconds for your protection.</p>" +
+        "<p style='color: #1976d2;'><b>.LOG-hog Security:</b> Content will auto-clear in " + SecureClipboardManager.getTimeoutSeconds() + " seconds for your protection.</p>" +
         "</body></html>";
+    }
 
     private static final String ENCRYPTED_FILE_WARNING =
         "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 9px;'>" +
         "<h3 style='color: #f57c00; margin-top: 0;'>🔓 Encrypted File Warning</h3>" +
         "<p>This log file is encrypted. The copied text will be <b>unencrypted</b> in the clipboard.</p>" +
         "<p><b>This means sensitive information will be temporarily accessible in plain text!</b></p>" +
-        CLIPBOARD_RISKS_EDUCATION.replace("<h3", "<h4").replace("</h3>", "</h4>") +
+        getClipboardRisksEducation().replace("<h3", "<h4").replace("</h3>", "</h4>") +
         "</body></html>";
 
     private static final String FULL_LOG_WARNING =
@@ -55,7 +56,7 @@ public class ClipboardSecurityWarner {
         "<h3 style='color: #d32f2f; margin-top: 0;'>🚨 Full Log Export Warning</h3>" +
         "<p>You are about to copy your <b>entire log file</b> to the clipboard.</p>" +
         "<p><b>This may contain sensitive information across all your entries!</b></p>" +
-        CLIPBOARD_RISKS_EDUCATION.replace("<h3", "<h4").replace("</h3>", "</h4>") +
+        getClipboardRisksEducation().replace("<h3", "<h4").replace("</h3>", "</h4>") +
         "</body></html>";
 
     /**
@@ -84,7 +85,7 @@ public class ClipboardSecurityWarner {
     public static void showClipboardEducation(Component parent) {
         JEditorPane htmlPane = new JEditorPane();
         htmlPane.setContentType("text/html");
-        htmlPane.setText(CLIPBOARD_RISKS_EDUCATION);
+        htmlPane.setText(getClipboardRisksEducation());
         htmlPane.setEditable(false);
         htmlPane.setOpaque(false);
         htmlPane.setBorder(null);
