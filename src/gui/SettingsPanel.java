@@ -299,6 +299,16 @@ public class SettingsPanel extends JPanel {
         settings.setProperty("clipboardAutoClear", newClipboardAutoClear ? "true" : "false");
         settings.setProperty("clipboardTimeout", newClipboardTimeout);
         saveSettings();
+
+        // Update secure clipboard settings immediately
+        clipboard.SecureClipboardManager.setAutoClearEnabled(newClipboardAutoClear);
+        try {
+            int timeoutValue = Integer.parseInt(newClipboardTimeout);
+            clipboard.SecureClipboardManager.setTimeoutSeconds(timeoutValue);
+        } catch (NumberFormatException e) {
+            // If invalid, keep current setting
+        }
+
         loadCurrentSettings(); // Refresh fields with saved values
         Toast.showToast(editor, "Settings saved!");
     }

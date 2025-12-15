@@ -82,7 +82,18 @@ public class ClipboardSecurityWarner {
      * Show general clipboard security education dialog.
      */
     public static void showClipboardEducation(Component parent) {
-        JOptionPane.showMessageDialog(parent, CLIPBOARD_RISKS_EDUCATION,
+        JEditorPane htmlPane = new JEditorPane();
+        htmlPane.setContentType("text/html");
+        htmlPane.setText(CLIPBOARD_RISKS_EDUCATION);
+        htmlPane.setEditable(false);
+        htmlPane.setOpaque(false);
+        htmlPane.setBorder(null);
+
+        JScrollPane scrollPane = new JScrollPane(htmlPane);
+        scrollPane.setPreferredSize(new Dimension(450, 300));
+        scrollPane.setBorder(null);
+
+        JOptionPane.showMessageDialog(parent, scrollPane,
             "Clipboard Security Education", JOptionPane.INFORMATION_MESSAGE);
     }
 
@@ -99,9 +110,20 @@ public class ClipboardSecurityWarner {
             "<p>You can manually clear it now if needed.</p>" +
             "</body></html>";
 
+        JEditorPane htmlPane = new JEditorPane();
+        htmlPane.setContentType("text/html");
+        htmlPane.setText(message);
+        htmlPane.setEditable(false);
+        htmlPane.setOpaque(false);
+        htmlPane.setBorder(null);
+
+        JScrollPane scrollPane = new JScrollPane(htmlPane);
+        scrollPane.setPreferredSize(new Dimension(400, 200));
+        scrollPane.setBorder(null);
+
         Object[] options = {"Clear Now", "Keep Content", "Learn More"};
 
-        int result = JOptionPane.showOptionDialog(parent, message,
+        int result = JOptionPane.showOptionDialog(parent, scrollPane,
             "Secure Clipboard Status", JOptionPane.YES_NO_CANCEL_OPTION,
             JOptionPane.INFORMATION_MESSAGE, null, options, options[1]);
 
@@ -135,7 +157,18 @@ public class ClipboardSecurityWarner {
             SecureClipboardManager.getTimeoutSeconds() + " seconds for your security.</p>" +
             "</body></html>";
 
-        JOptionPane.showMessageDialog(parent, tip,
+        JEditorPane htmlPane = new JEditorPane();
+        htmlPane.setContentType("text/html");
+        htmlPane.setText(tip);
+        htmlPane.setEditable(false);
+        htmlPane.setOpaque(false);
+        htmlPane.setBorder(null);
+
+        JScrollPane scrollPane = new JScrollPane(htmlPane);
+        scrollPane.setPreferredSize(new Dimension(350, 150));
+        scrollPane.setBorder(null);
+
+        JOptionPane.showMessageDialog(parent, scrollPane,
             "Security Tip", JOptionPane.INFORMATION_MESSAGE);
     }
 
@@ -145,9 +178,32 @@ public class ClipboardSecurityWarner {
     private static boolean showSecurityWarning(Component parent, String message,
             String title, String confirmText, String cancelText) {
 
+        // Create a proper HTML-capable dialog
+        JEditorPane htmlPane = new JEditorPane();
+        htmlPane.setContentType("text/html");
+        htmlPane.setText(message);
+        htmlPane.setEditable(false);
+        htmlPane.setOpaque(false);
+        htmlPane.setBorder(null);
+
+        // Make links clickable if needed
+        htmlPane.addHyperlinkListener(e -> {
+            if (e.getEventType() == javax.swing.event.HyperlinkEvent.EventType.ACTIVATED) {
+                try {
+                    java.awt.Desktop.getDesktop().browse(e.getURL().toURI());
+                } catch (Exception ex) {
+                    // Ignore
+                }
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(htmlPane);
+        scrollPane.setPreferredSize(new Dimension(450, 300));
+        scrollPane.setBorder(null);
+
         Object[] options = {confirmText, cancelText, "Learn More"};
 
-        int result = JOptionPane.showOptionDialog(parent, message, title,
+        int result = JOptionPane.showOptionDialog(parent, scrollPane, title,
             JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE,
             null, options, options[1]);
 

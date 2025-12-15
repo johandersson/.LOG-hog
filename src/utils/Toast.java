@@ -52,12 +52,9 @@ public class Toast {
         toast.add(panel);
         toast.pack();
 
-        // Position at center of the parent component
-        Dimension parentSize = parent.getSize();
-        Point parentLocation = parent.getLocationOnScreen();
-        int x = parentLocation.x + (parentSize.width - toast.getWidth()) / 2;
-        int y = parentLocation.y + (parentSize.height - toast.getHeight()) / 2;
-        toast.setLocation(x, y);
+        // Position at center of the parent component or screen center if parent is null
+        Point position = calculateToastPosition(parent, toast);
+        toast.setLocation(position.x, position.y);
 
         toast.setVisible(true);
 
@@ -77,5 +74,21 @@ public class Toast {
         });
         timer.setRepeats(false);
         timer.start();
+    }
+
+    private static Point calculateToastPosition(Component parent, Component toast) {
+        int x, y;
+        if (parent != null) {
+            Dimension parentSize = parent.getSize();
+            Point parentLocation = parent.getLocationOnScreen();
+            x = parentLocation.x + (parentSize.width - toast.getWidth()) / 2;
+            y = parentLocation.y + (parentSize.height - toast.getHeight()) / 2;
+        } else {
+            // Center on screen if no parent provided
+            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+            x = (screenSize.width - toast.getWidth()) / 2;
+            y = (screenSize.height - toast.getHeight()) / 2;
+        }
+        return new Point(x, y);
     }
 }
