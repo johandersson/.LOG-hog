@@ -27,6 +27,13 @@ public class NotepadOpener {
             JOptionPane.showMessageDialog(null, "log.txt not found in user home or current working directory.", "File Not Found", JOptionPane.ERROR_MESSAGE);
             return;
         }
+
+        // Validate path for security
+        if (!isValidLogPath(logPath)) {
+            JOptionPane.showMessageDialog(null, "Invalid log file path detected.", "Security Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         try {
             new ProcessBuilder("notepad.exe", logPath.toAbsolutePath().toString()).start();
         } catch (Exception e) {
@@ -50,5 +57,34 @@ public class NotepadOpener {
         if (Files.exists(homePath)) return homePath;
         if (Files.exists(cwdPath)) return cwdPath;
         return null;
+    }
+
+    private static boolean isValidLogPath(Path path) {
+        try {
+            // Convert to absolute path and normalize
+            Path absolutePath = path.toAbsolutePath().normalize();
+
+            // Check that the path ends with log.txt
+            if (!absolutePath.getFileName().toString().equals("log.txt")) {
+                return false;
+            }
+
+            // Check that the path doesn't contain suspicious characters
+            String pathString = absolutePath.toString();
+            if (pathString.contains("..") || pathString.contains("&") || pathString.contains("|") ||
+                pathString.contains(";") || pathString.contains("`") || pathString.contains("$")) {
+                return false;
+            }
+
+            // Ensure the path is within user home or current working directory
+            String userHome = System.getProperty("user.home");
+            String cwd = System.getProperty("user.dir");
+            Path userHomePath = Path.of(userHome).toAbsolutePath().normalize();
+            Path cwdPath = Path.of(cwd).toAbsolutePath().normalize();
+
+            return absolutePath.startsWith(userHomePath) || absolutePath.startsWith(cwdPath);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

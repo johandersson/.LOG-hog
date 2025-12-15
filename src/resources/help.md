@@ -11,7 +11,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 ### Clipboard Security
 .LOG-hog includes advanced clipboard security features to protect sensitive log data from being inadvertently exposed through clipboard operations:
 
-- **Automatic Clipboard Clearing**: When copying log entries or full logs to the clipboard, the content is automatically cleared after a configurable timeout (default: 30 seconds). This prevents sensitive information from remaining in the clipboard indefinitely.
+- **Automatic Clipboard Clearing**: When copying log entries or full logs to the clipboard (via right-click menu or Ctrl+C), the content is automatically cleared after a configurable timeout (default: 30 seconds). This prevents sensitive information from remaining in the clipboard indefinitely.
 - **Secure Content Marking**: Copied content is marked as secure .LOG-hog data, allowing the application to distinguish and manage it appropriately.
 - **Manual Clear Option**: Users can manually clear the secure clipboard at any time through the system tray menu.
 - **Educational Warnings**: Before copying encrypted or full log content, users receive detailed warnings about clipboard security risks and best practices.
@@ -65,7 +65,7 @@ Access clipboard security settings through the system tray icon (right-click the
 ## Editing Log Entries:
 - **Edit Date/Time**: Right-click on a log entry and select "Edit Date/Time" to change its timestamp. Enter the new date and time in the format HH:mm yyyy-MM-dd.
 - **Delete Entry**: Right-click and select "Delete Entry" to remove a log entry after confirmation.
-- **Copy to Clipboard**: Right-click and select "Copy Entry to Clipboard" to copy the timestamp and content to the clipboard. For security, copied content is automatically cleared after the configured timeout (see Clipboard Security settings).
+- **Copy to Clipboard**: Right-click and select "Copy Entry to Clipboard" to copy the timestamp and content to the clipboard. You can also use Ctrl+C while editing entries or viewing the full log. For security, copied content is automatically cleared after the configured timeout (see Clipboard Security settings).
 
 ## Link to URLs and files:
 - Easily create clickable links to websites and local files within your log entries. These are visible in the Full log formatted view of the log file.

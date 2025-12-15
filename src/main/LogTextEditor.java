@@ -77,9 +77,12 @@ public class LogTextEditor extends JFrame {
 
     private String passwordReminder = "";
     private boolean isLocked = false;
+    private final Object lockObject = new Object();
 
     public boolean isLocked() {
-        return isLocked;
+        synchronized (lockObject) {
+            return isLocked;
+        }
     }
 
     private UIInitializer uiInitializer;
@@ -402,12 +405,14 @@ public class LogTextEditor extends JFrame {
     }
 
     public void manualLock() {
-        logFileHandler.clearSensitiveData();
-        // Clear UI
-        listModel.clear();
-        fullLogPanel.loadFullLog(); // This will show empty since locked
-        isLocked = true;
-        updateUILockState();
+        synchronized (lockObject) {
+            logFileHandler.clearSensitiveData();
+            // Clear UI
+            listModel.clear();
+            fullLogPanel.loadFullLog(); // This will show empty since locked
+            isLocked = true;
+            updateUILockState();
+        }
     }
 
     public void manualUnlock() {
@@ -431,7 +436,9 @@ public class LogTextEditor extends JFrame {
             try {
                 loadLogEntries();
                 success = true;
-                isLocked = false;
+                synchronized (lockObject) {
+                    isLocked = false;
+                }
                 updateUILockState();
                 fullLogPanel.loadFullLog(); // Refresh full log view after successful decryption
             } catch (Exception e) {

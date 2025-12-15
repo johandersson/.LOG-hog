@@ -18,9 +18,12 @@
 package gui;
 
 import java.awt.*;
+import java.security.SecureRandom;
 import javax.swing.*;
 
 public class SecurityDelayDialog {
+    private static final SecureRandom secureRandom = new SecureRandom();
+
     public static void showDialog(long delayMillis, Frame parent) {
         showDialog(delayMillis, parent, "Security delay after failed password attempt...");
     }
@@ -29,7 +32,7 @@ public class SecurityDelayDialog {
         if (delayMillis <= 0) return;
         
         // Add ±20% randomization to prevent timing attacks
-        long randomizedDelay = delayMillis + (long)(delayMillis * 0.2 * (Math.random() - 0.5));
+        long randomizedDelay = delayMillis + (long)(delayMillis * 0.2 * (secureRandom.nextDouble() - 0.5));
         // Ensure minimum 1 second delay
         randomizedDelay = Math.max(1000, randomizedDelay);
         

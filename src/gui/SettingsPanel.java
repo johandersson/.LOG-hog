@@ -20,8 +20,6 @@ package gui;
 import filehandling.LogFileHandler;
 import java.awt.*;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,14 +45,6 @@ public class SettingsPanel extends JPanel {
     private JCheckBox splashOnStartupCheckBox;
     private JCheckBox clipboardAutoClearCheckBox;
     private JTextField clipboardTimeoutField;
-
-    private void logToFile(String message) {
-        try (FileWriter fw = new FileWriter("debug.log", true)) {
-            fw.write(message + "\n");
-        } catch (IOException e) {
-            // Optionally log to a logger or ignore
-        }
-    }
 
     public SettingsPanel(LogTextEditor editor, Properties settings, Path settingsPath, LogFileHandler logFileHandler) {
         this.editor = editor;
@@ -280,6 +270,13 @@ public class SettingsPanel extends JPanel {
         var newClipboardAutoClear = clipboardAutoClearCheckBox.isSelected();
         var newClipboardTimeout = clipboardTimeoutField.getText();
 
+        // Validate clipboard timeout
+        if (!isValidClipboardTimeout(newClipboardTimeout)) {
+            JOptionPane.showMessageDialog(editor, "Clipboard timeout must be a number between 1 and 3600 seconds (1 hour).", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            loadCurrentSettings(); // Reset to current valid values
+            return;
+        }
+
         var settingsChanged = !currentReminder.equals(newReminder) || !currentBackupDir.equals(newBackupDir) ||
                             currentSplashOnStartup != newSplashOnStartup ||
                             currentClipboardAutoClear != newClipboardAutoClear ||
@@ -351,7 +348,6 @@ public class SettingsPanel extends JPanel {
             if (java.nio.file.Files.exists(settingsPath)) {
                 var backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
                 java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                logToFile("Settings file backed up to: " + backupSettingsPath.toString());
             }
 
             var saltBytes = logFileHandler.getSalt();
@@ -437,9 +433,7 @@ public class SettingsPanel extends JPanel {
     private void saveSettings() {
         try (var fos = new FileOutputStream(settingsPath.toFile())) {
             settings.store(fos, "LogHog settings");
-            logToFile("Settings saved successfully.");
         } catch (Exception e) {
-            logToFile("Error saving settings: " + e.getMessage());
             JOptionPane.showMessageDialog(editor, "Error saving settings: " + e.getMessage());
         }
     }
@@ -497,9 +491,8 @@ public class SettingsPanel extends JPanel {
             var backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
             try {
                 java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                logToFile("Settings file backed up to: " + backupSettingsPath.toString());
             } catch (Exception e) {
-                logToFile("Failed to backup settings file: " + e.getMessage());
+                // Silently ignore backup failures
             }
         }
     }
@@ -545,5 +538,19 @@ public class SettingsPanel extends JPanel {
             JOptionPane.ERROR_MESSAGE);
         statusLabel.setText("Decryption failed.");
         statusLabel.setForeground(Color.RED);
+    }
+
+    private boolean isValidClipboardTimeout(String timeoutStr) {
+        if (timeoutStr == null || timeoutStr.trim().isEmpty()) {
+            return false;
+        }
+
+        try {
+            int timeout = Integer.parseInt(timeoutStr.trim());
+            // Timeout must be between 1 second and 1 hour (3600 seconds)
+            return timeout >= 1 && timeout <= 3600;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }

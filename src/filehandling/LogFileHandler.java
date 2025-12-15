@@ -84,7 +84,7 @@ public class LogFileHandler {
             sortAndNormalizeFile();
             invalidateEntryCache();
         } catch (Exception e) {
-            showErrorDialog("Error saving text: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
+            showErrorDialog("Error saving text. Please check your input and try again.");
         }
     }
 
@@ -160,7 +160,7 @@ public class LogFileHandler {
                 Files.write(FILE_PATH, updatedLines);
             }
         } catch (Exception e) {
-            showErrorDialog("Error updating log entry: " + e.getMessage());
+            showErrorDialog("Error updating log entry. Please try again.");
         }
     }
 
@@ -205,7 +205,7 @@ public class LogFileHandler {
                 sortListModel(listModel);
             }
         } catch (Exception e) {
-            showErrorDialog("Error changing timestamp: " + e.getMessage());
+            showErrorDialog("Error changing timestamp. Please try again.");
         }
     }
 
@@ -239,7 +239,7 @@ public class LogFileHandler {
             }
             listModel.removeElement(timeStamp);
         } catch (Exception e) {
-            showErrorDialog("Error deleting log entry: " + e.getMessage());
+            showErrorDialog("Error deleting log entry. Please try again.");
         }
     }
 
@@ -375,7 +375,7 @@ public class LogFileHandler {
                 .filter(line -> line.startsWith(timeStamp))
                 .count();
         } catch (Exception e) {
-            showErrorDialog("Error checking duplicates: " + e.getMessage());
+            showErrorDialog("Error checking duplicates. Please try again.");
             return 0;
         }
     }    public List<String> getLines() throws Exception {
@@ -554,6 +554,11 @@ public class LogFileHandler {
     private Path getBackupPath(String filename) {
         if (backupDirectory != null && !backupDirectory.isEmpty()) {
             Path dir = Paths.get(backupDirectory);
+            // Validate that the backup directory is within allowed paths
+            if (!isValidFilePath(dir)) {
+                // Fall back to sibling if backup directory is not valid
+                return FILE_PATH.resolveSibling(filename);
+            }
             try {
                 Files.createDirectories(dir);
             } catch (Exception e) {
@@ -603,5 +608,25 @@ public class LogFileHandler {
 
     public void showErrorDialog(String message) {
         JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private boolean isValidFilePath(Path path) {
+        try {
+            // Convert to absolute path and normalize
+            Path absolutePath = path.toAbsolutePath().normalize();
+
+            // Get user home directory
+            String userHome = System.getProperty("user.home");
+            Path userHomePath = Path.of(userHome).toAbsolutePath().normalize();
+
+            // Get current working directory
+            String cwd = System.getProperty("user.dir");
+            Path cwdPath = Path.of(cwd).toAbsolutePath().normalize();
+
+            // Allow paths within user home or current working directory
+            return absolutePath.startsWith(userHomePath) || absolutePath.startsWith(cwdPath);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

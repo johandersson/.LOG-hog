@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Blockquote support** in markdown rendering (> for quoted text)
 - **Window close confirmation dialog** with options to lock file or exit
 - **Comprehensive encryption documentation** (encryption.md) covering AES-256-GCM, PBKDF2, and security measures
-- **Clipboard Security Features**: Automatic clipboard clearing with configurable timeout, secure content marking, educational warnings, and system tray access
+- **Clipboard Security Features**: Automatic clipboard clearing with configurable timeout, secure content marking, educational warnings, system tray access, and secure Ctrl+C functionality in all text areas
 - Updated README.md with security overview and link to detailed encryption documentation
 - Updated help.md to reference centralized security documentation and remove redundant sections
 - Added non-technical introduction to encryption.md for better user accessibility
@@ -49,9 +49,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Memory security**: Immediate password clearing from memory after use to prevent forensic recovery; fixed memory leak where cachedEntries remained in memory during manual lock
 - **Comprehensive operation blocking**: All file operations disabled in locked state with proper security UI
 - **Password visibility**: Now requires active user interaction (hold to show, release to hide)
-- **Clipboard Security**: Automatic clearing of sensitive content with configurable timeout, secure content marking, and educational warnings to prevent data exposure
+- **Clipboard Security**: Automatic clearing of sensitive content with configurable timeout, secure content marking, educational warnings, and secure Ctrl+C overrides to prevent data exposure
 - **Repository security**: Removed debug.log from repository and added to .gitignore; eliminated all salt logging
 - **Backward compatibility**: Maintained support for existing encrypted files with old PBKDF2 iterations
+- **Critical Security Hardening**: Implemented comprehensive security fixes for all high and medium severity vulnerabilities:
+  - **Debug Logging Security**: Completely removed debug logging that exposed cryptographic salts and sensitive operation details
+  - **Command Injection Protection**: Added path validation in external process execution to prevent command injection attacks
+  - **Input Validation Enhancement**: Implemented bounds checking and comprehensive validation for all numeric settings (clipboard timeout: 1-3600 seconds)
+  - **Cryptographic Randomness**: Replaced weak Math.random() and Random with SecureRandom for all security-sensitive operations
+  - **Information Disclosure Prevention**: Replaced detailed error messages with generic user-friendly messages to prevent internal implementation details exposure
+  - **Thread Safety**: Added proper synchronization for shared state variables to prevent race conditions in multi-threaded operations
+  - **File Path Security**: Implemented path validation to constrain file operations within user home and current working directories, preventing directory traversal attacks
 
 ## [1.0.0] - 2025-12-04
 

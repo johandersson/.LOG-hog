@@ -17,8 +17,6 @@
 
 package encryption;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
@@ -34,13 +32,6 @@ public class EncryptionManager {
     private static final int PBKDF2_ITERATIONS = 100000;
     private static final int PBKDF2_ITERATIONS_LEGACY = 65536; // For backward compatibility
     private static final int AES_KEY_LENGTH = 256; // bits
-    private static void logToFile(String message) {
-        try (FileWriter fw = new FileWriter("debug.log", true)) {
-            fw.write(message + "\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     public static byte[] generateSalt() {
         var salt = new byte[16];
@@ -95,13 +86,11 @@ public class EncryptionManager {
             SecretKey key = deriveKey(password, salt);
             return decrypt(encryptedData, key);
         } catch (Exception e) {
-            logToFile("Decryption failed with current iterations, trying legacy iterations");
             try {
                 // Fallback to legacy iterations for backward compatibility
                 SecretKey legacyKey = deriveKeyLegacy(password, salt);
                 return decrypt(encryptedData, legacyKey);
             } catch (Exception legacyException) {
-                logToFile("Decryption failed with legacy iterations too");
                 throw new Exception("Decryption failed with both current and legacy key derivation methods");
             }
         }
