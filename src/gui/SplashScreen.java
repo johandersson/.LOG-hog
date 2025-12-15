@@ -25,12 +25,16 @@ public class SplashScreen extends JDialog {
     private javax.swing.Timer animationTimer;
     private JButton okButton;
     private java.util.List<String> entriesList;
+    private Point initialClick;
 
     public SplashScreen() {
         super((Frame) null, "Splash", true); // modal dialog
         setUndecorated(true);
         setSize(450, 300);
         setLocationRelativeTo(null);
+
+        // Set rounded shape for the window (not too rounded)
+        setShape(new java.awt.geom.RoundRectangle2D.Float(0, 0, 450, 300, 25, 25));
 
         // Load and shuffle entries once
         entriesList = SplashEntryLoader.loadSplashEntries();
@@ -42,9 +46,13 @@ public class SplashScreen extends JDialog {
                 var g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                // Shadow
-                g2d.setColor(new Color(0, 0, 0, 120));
-                g2d.fillRoundRect(12, 12, getWidth() - 12, getHeight() - 12, 30, 30);
+                // White glowing shadow effect
+                for (int i = 3; i > 0; i--) {
+                    int offset = i * 2;
+                    int alpha = 60 / i; // Decreasing opacity for glow effect
+                    g2d.setColor(new Color(255, 255, 255, alpha));
+                    g2d.fillRoundRect(offset, offset, getWidth() - offset, getHeight() - offset, 25, 25);
+                }
 
                 // Gradient background from blue to cyan
                 var gp = new GradientPaint(0, 0, new Color(0, 102, 204), getWidth(), getHeight(), new Color(0, 204, 255));
@@ -56,6 +64,22 @@ public class SplashScreen extends JDialog {
             }
         };
         panel.setLayout(null); // for absolute positioning
+
+        // Add mouse listeners for dragging
+        panel.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                initialClick = e.getPoint();
+            }
+        });
+        panel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                int x = getLocation().x + e.getX() - initialClick.x;
+                int y = getLocation().y + e.getY() - initialClick.y;
+                setLocation(x, y);
+            }
+        });
 
         okButton = new StandardButton("OK", new Color(0xE0E0E0), new Color(0xB0B0B0));
         okButton.setBounds(200, 250, 50, 30);
