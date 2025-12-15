@@ -342,11 +342,6 @@ public class LogTextEditor extends JFrame {
             boolean success = false;
             int attempts = 0;
             while (!success) {
-                attempts++;
-                if (attempts > 3) {
-                    JOptionPane.showMessageDialog(this, "Too many failed attempts. Exiting for security.", "Security Error", JOptionPane.ERROR_MESSAGE);
-                    System.exit(0);
-                }
                 PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(this, "🔒 Enter Password", passwordReminder);
                 char[] pwd = result.password;
                 if (pwd == null) {
@@ -358,6 +353,11 @@ public class LogTextEditor extends JFrame {
                     loadLogEntries();
                     success = true;
                 } catch (Exception e) {
+                    attempts++;
+                    if (attempts >= 3) {
+                        JOptionPane.showMessageDialog(this, "Too many failed attempts. Exiting for security.", "Security Error", JOptionPane.ERROR_MESSAGE);
+                        System.exit(0);
+                    }
                     String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
                     if (errorMsg.contains("tag mismatch") || 
                         errorMsg.contains("bad tag") ||
@@ -372,7 +372,6 @@ public class LogTextEditor extends JFrame {
                         long delay = switch (attempts) {
                             case 1 -> 1000; // 1 second
                             case 2 -> 5000; // 5 seconds
-                            case 3 -> 30000; // 30 seconds
                             default -> 0;
                         };
                         showSecurityDelayDialog(delay);
@@ -408,6 +407,7 @@ public class LogTextEditor extends JFrame {
 
     private void reloadEncryptedLog() {
         boolean success = false;
+        int attempts = 0;
         while (!success) {
             PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(this, "Reload Encrypted Log", settings.getProperty("passwordReminder", ""));
             char[] pwd = result.password;
@@ -426,6 +426,11 @@ public class LogTextEditor extends JFrame {
                 updateUILockState();
                 fullLogPanel.loadFullLog(); // Refresh full log view after successful decryption
             } catch (Exception e) {
+                attempts++;
+                if (attempts >= 3) {
+                    JOptionPane.showMessageDialog(this, "Too many failed attempts. Exiting for security.", "Security Error", JOptionPane.ERROR_MESSAGE);
+                    System.exit(0);
+                }
                 String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
                 if (errorMsg.contains("tag mismatch") || 
                     errorMsg.contains("bad tag") ||
@@ -435,7 +440,12 @@ public class LogTextEditor extends JFrame {
                     errorMsg.contains("integrity check failed") ||
                     errorMsg.contains("mac check failed")) {
                     JOptionPane.showMessageDialog(this, "Incorrect password. Please try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
-                    showSecurityDelayDialog(2000); // 2 second delay
+                    long delay = switch (attempts) {
+                        case 1 -> 1000; // 1 second
+                        case 2 -> 5000; // 5 seconds
+                        default -> 0;
+                    };
+                    showSecurityDelayDialog(delay);
                 } else {
                     logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
                     System.exit(0);
@@ -466,8 +476,6 @@ public class LogTextEditor extends JFrame {
         dialog.setSize(350, 100);
         dialog.setLocationRelativeTo(this);
 
-        dialog.setVisible(true);
-
         // Use Swing Timer for smooth progress updates
         var timer = new javax.swing.Timer(50, null);
         final long startTime = System.currentTimeMillis();
@@ -478,7 +486,7 @@ public class LogTextEditor extends JFrame {
             if (currentTime >= endTime) {
                 progressBar.setValue(100);
                 timer.stop();
-                dialog.setVisible(false);
+                dialog.dispose();
             } else {
                 long elapsed = currentTime - startTime;
                 int progress = (int) (elapsed * 100 / delayMillis);
@@ -487,6 +495,7 @@ public class LogTextEditor extends JFrame {
         });
 
         timer.start();
+        dialog.setVisible(true);
     }
 
 }
