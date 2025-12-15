@@ -97,38 +97,46 @@ public class LogTextEditor extends JFrame {
     private SystemInitializer systemInitializer;
 
     public LogTextEditor() {
-        // Initialize action handler first (needed by components)
-        actionHandler = new ActionHandler(this, logFileHandler, logList, listModel);
+        try {
+            // Initialize action handler first (needed by components)
+            actionHandler = new ActionHandler(this, logFileHandler, logList, listModel);
 
-        // Initialize components (they may depend on actionHandler)
-        initializeComponents();
+            // Initialize components (they may depend on actionHandler)
+            initializeComponents();
 
-        // Set panels on action handler
-        actionHandler.setPanels(logListPanel, fullLogPanel);
+            // Set panels on action handler
+            actionHandler.setPanels(logListPanel, fullLogPanel);
 
-        // Initialize UI using extracted class
-        uiInitializer = new UIInitializer(this, tabPane, navItems, settings);
-        uiInitializer.initializeUI();
+            // Initialize UI using extracted class
+            uiInitializer = new UIInitializer(this, tabPane, navItems, settings);
+            uiInitializer.initializeUI();
 
-        // Setup key bindings and system components
-        setupKeyBindings();
-        loadSettings();
+            // Setup key bindings and system components
+            setupKeyBindings();
+            loadSettings();
 
-        // Initialize secure clipboard settings
-        initializeSecureClipboard();
+            // Initialize secure clipboard settings
+            initializeSecureClipboard();
 
-        // Show splash screen on startup if enabled
-        if ("true".equals(settings.getProperty("showSplashOnStartup", "true"))) {
-            new gui.SplashScreen();
+            // Show splash screen on startup if enabled
+            if ("true".equals(settings.getProperty("showSplashOnStartup", "true"))) {
+                new gui.SplashScreen();
+            }
+
+            // Initialize system components
+            systemInitializer = new SystemInitializer(this);
+            systemInitializer.initializeSystemComponents();
+
+            setVisible(true);
+
+            // Focus the entry text area on startup
+            SwingUtilities.invokeLater(() -> entryPanel.getTextArea().requestFocusInWindow());
+
+        } catch (Exception e) {
+            System.err.println("Error in LogTextEditor constructor: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
-
-        systemInitializer = new SystemInitializer(this);
-        systemInitializer.initializeSystemComponents();
-
-        setVisible(true);
-
-        // Focus the entry text area on startup
-        SwingUtilities.invokeLater(() -> entryPanel.getTextArea().requestFocusInWindow());
     }
 
     private void initializeComponents() {
@@ -251,16 +259,32 @@ public class LogTextEditor extends JFrame {
 
 
     public static void main(String[] args) {
+        System.out.println("LogHog starting...");
+        
+        // Check if running in headless environment
+        if (java.awt.GraphicsEnvironment.isHeadless()) {
+            System.err.println("LogHog is a GUI application and cannot run in a headless environment.");
+            System.err.println("Please run LogHog in a desktop environment with display capabilities.");
+            System.exit(1);
+        }
+        
         if (SingleInstanceManager.isAnotherInstanceRunning()) {
+            System.out.println("Another instance detected, exiting...");
             SingleInstanceManager.notifyExistingInstance();
             System.exit(0);
         }
 
+        System.out.println("No other instance running, initializing GUI...");
         SwingUtilities.invokeLater(() -> {
-            LogTextEditor editor = new LogTextEditor();
-            instance = editor;
-            editor.setVisible(true);
-            editor.startSingleInstanceListener();
+            try {
+                LogTextEditor editor = new LogTextEditor();
+                editor.setVisible(true);
+                editor.startSingleInstanceListener();
+            } catch (Exception e) {
+                System.err.println("Error during GUI initialization: " + e.getMessage());
+                e.printStackTrace();
+                System.exit(1);
+            }
         });
     }
 
@@ -371,7 +395,7 @@ public class LogTextEditor extends JFrame {
                     success = true;
                 } catch (Exception e) {
                     attempts++;
-                    if (attempts >= 4) {
+                    if (attempts >= 3) {
                         JOptionPane.showMessageDialog(this, "Too many failed attempts. Please restart the application to try again.", "Security Error", JOptionPane.ERROR_MESSAGE);
                         System.exit(0);
                     }
@@ -383,14 +407,13 @@ public class LogTextEditor extends JFrame {
                         errorMsg.contains("aeadbadtag") ||
                         errorMsg.contains("integrity check failed") ||
                         errorMsg.contains("mac check failed") ||
-                        errorMsg.contains("decryption failed")) {
-                        int remaining = 4 - attempts;
+                        errorMsg.contains("decryption failed with both current and legacy")) {
+                        int remaining = 3 - attempts;
                         JOptionPane.showMessageDialog(this, "Incorrect password. " + remaining + " attempts remaining.", "Password Error", JOptionPane.ERROR_MESSAGE);
                         // Add progressive delay after failed attempts
                         long delay = switch (attempts) {
                             case 1 -> 3000; // 3 seconds
                             case 2 -> 15000; // 15 seconds
-                            case 3 -> 60000; // 60 seconds
                             default -> 0;
                         };
                         SecurityDelayDialog.showDialog(delay, this);
@@ -450,7 +473,7 @@ public class LogTextEditor extends JFrame {
                 fullLogPanel.loadFullLog(); // Refresh full log view after successful decryption
             } catch (Exception e) {
                 attempts++;
-                if (attempts >= 4) {
+                if (attempts >= 3) {
                     JOptionPane.showMessageDialog(this, "Too many failed attempts. Please restart the application to try again.", "Security Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(0);
                 }
@@ -461,13 +484,13 @@ public class LogTextEditor extends JFrame {
                     errorMsg.contains("illegal block size") ||
                     errorMsg.contains("aeadbadtag") ||
                     errorMsg.contains("integrity check failed") ||
-                    errorMsg.contains("mac check failed")) {
-                    int remaining = 4 - attempts;
+                    errorMsg.contains("mac check failed") ||
+                    errorMsg.contains("decryption failed with both current and legacy")) {
+                    int remaining = 3 - attempts;
                     JOptionPane.showMessageDialog(this, "Incorrect password. " + remaining + " attempts remaining.", "Password Error", JOptionPane.ERROR_MESSAGE);
                     long delay = switch (attempts) {
                         case 1 -> 3000; // 3 seconds
                         case 2 -> 15000; // 15 seconds
-                        case 3 -> 60000; // 60 seconds
                         default -> 0;
                     };
                     SecurityDelayDialog.showDialog(delay, this);
