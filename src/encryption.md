@@ -1,5 +1,7 @@
 # LogHog Security & Encryption Documentation
 
+LogHog is designed to keep your personal logs and notes safe and private. Whether you're journaling thoughts, storing sensitive information, or maintaining records, your data deserves protection. This document explains the security measures we use to safeguard your information.
+
 ## Overview
 LogHog implements enterprise-grade security suitable for personal sensitive data storage. This document provides comprehensive details about the security architecture, encryption implementation, and protection mechanisms.
 
