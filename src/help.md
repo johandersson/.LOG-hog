@@ -3,6 +3,8 @@
 ## Purpose
 The purpose of LogHog is to enable quick note-taking. Upon opening, the screen focuses directly on the editor window for immediate writing. After composing your note, press Ctrl+S or click Save to clear the text field and save the entry into a dated log. This clearing allows you to write a new log entry right away, facilitating rapid and efficient note-taking.
 
+LogHog is compatible with Notepad's .LOG feature. In Notepad, creating a file that starts with '.LOG' on the first line enables automatic timestamp insertion on each open or save (see [how .LOG works in Notepad](https://www.howtogeek.com/359463/what-is-a-log-file/)). LogHog can read, edit, and manage such log files, offering advanced features like encryption, search, and formatting while preserving the timestamped structure.
+
 ## Security Overview
 LogHog prioritizes security for personal logging. It uses AES-256 encryption with GCM authentication, protecting your data from tampering and unauthorized reading. Passwords are derived using PBKDF2 with 100,000 iterations, making brute-force attacks slow. Failed login attempts add progressive delays (1-30 seconds) and limit to 3 tries before exit. Passwords are wiped from memory instantly to prevent forensic recovery. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager. LogHog is secure for daily use but not invincible against state-level threats or keyloggers.
 - **Tabbed Interface**: Effortlessly switch between writing new entries and browsing past logs.

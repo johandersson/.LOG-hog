@@ -211,6 +211,13 @@ public class UIInitializer {
                 editor.getFullLogPanel().loadFullLog();
             } else if (tabPane.getSelectedIndex() == 3) {
                 editor.getSettingsPanel().loadCurrentSettings();
+            } else if (tabPane.getSelectedIndex() == 0) {
+                // Focus the entry text area when switching to the Entry tab
+                SwingUtilities.invokeLater(() -> {
+                    var textArea = editor.getEntryPanel().getTextArea();
+                    textArea.requestFocusInWindow();
+                    textArea.setCaretPosition(textArea.getDocument().getLength()); // Place cursor at the end
+                });
             }
         });
         contentCard.add(tabPane, BorderLayout.CENTER);
