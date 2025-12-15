@@ -83,6 +83,8 @@ public class PasswordDialog extends JDialog {
             }
         });
 
+        updateVisibility(false);
+
         var fieldPanel = new JPanel(new BorderLayout(5, 0));
         fieldPanel.setBackground(new Color(0xF7FAFC));
         fieldPanel.add(passwordField, BorderLayout.CENTER);
