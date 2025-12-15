@@ -150,6 +150,19 @@ public class LogListPanel extends JPanel {
             }
         });
 
+        // Override ctrl+c to use secure clipboard
+        entryArea.getInputMap(JComponent.WHEN_FOCUSED).put(
+                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, java.awt.event.InputEvent.CTRL_DOWN_MASK), "copySecure");
+        entryArea.getActionMap().put("copySecure", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                String selectedText = entryArea.getSelectedText();
+                if (selectedText != null && !selectedText.isEmpty()) {
+                    clipboard.SecureClipboardManager.copySecureTextToClipboard(selectedText, entryArea);
+                }
+            }
+        });
+
         editor.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
                 KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, java.awt.event.InputEvent.CTRL_DOWN_MASK), "newEntryGlobal");
         editor.getRootPane().getActionMap().put("newEntryGlobal", editor.createNewQuickEntry());

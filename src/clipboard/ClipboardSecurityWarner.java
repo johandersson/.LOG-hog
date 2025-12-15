@@ -30,7 +30,7 @@ public class ClipboardSecurityWarner {
 
     // Educational content about clipboard risks
     private static final String CLIPBOARD_RISKS_EDUCATION =
-        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 11px;'>" +
+        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 9px;'>" +
         "<h3 style='color: #d32f2f; margin-top: 0;'>⚠️ Clipboard Security Risks</h3>" +
         "<p><b>Clipboard contents remain accessible until overwritten or system restart.</b></p>" +
         "<ul style='margin-left: 20px;'>" +
@@ -43,7 +43,7 @@ public class ClipboardSecurityWarner {
         "</body></html>";
 
     private static final String ENCRYPTED_FILE_WARNING =
-        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 11px;'>" +
+        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 9px;'>" +
         "<h3 style='color: #f57c00; margin-top: 0;'>🔓 Encrypted File Warning</h3>" +
         "<p>This log file is encrypted. The copied text will be <b>unencrypted</b> in the clipboard.</p>" +
         "<p><b>This means sensitive information will be temporarily accessible in plain text!</b></p>" +
@@ -51,7 +51,7 @@ public class ClipboardSecurityWarner {
         "</body></html>";
 
     private static final String FULL_LOG_WARNING =
-        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 11px;'>" +
+        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 9px;'>" +
         "<h3 style='color: #d32f2f; margin-top: 0;'>🚨 Full Log Export Warning</h3>" +
         "<p>You are about to copy your <b>entire log file</b> to the clipboard.</p>" +
         "<p><b>This may contain sensitive information across all your entries!</b></p>" +
@@ -88,7 +88,7 @@ public class ClipboardSecurityWarner {
         htmlPane.setEditable(false);
         htmlPane.setOpaque(false);
         htmlPane.setBorder(null);
-        htmlPane.setPreferredSize(new Dimension(450, 400));
+        htmlPane.setPreferredSize(new Dimension(450, 350));
 
         JOptionPane.showMessageDialog(parent, htmlPane,
             "Clipboard Security Education", JOptionPane.INFORMATION_MESSAGE);
@@ -99,7 +99,7 @@ public class ClipboardSecurityWarner {
      */
     public static void showSecureContentWarning(Component parent) {
         String message =
-            "<html><body style='width: 350px; font-family: Segoe UI, sans-serif; font-size: 11px;'>" +
+            "<html><body style='width: 350px; font-family: Segoe UI, sans-serif; font-size: 9px;'>" +
             "<h3 style='color: #1976d2; margin-top: 0;'>🔒 Secure Clipboard Active</h3>" +
             "<p>Clipboard contains .LOG-hog content that will auto-clear for security.</p>" +
             "<p><b>Content will be automatically cleared in " +
@@ -113,12 +113,12 @@ public class ClipboardSecurityWarner {
         htmlPane.setEditable(false);
         htmlPane.setOpaque(false);
         htmlPane.setBorder(null);
-        htmlPane.setPreferredSize(new Dimension(400, 250));
+        htmlPane.setPreferredSize(new Dimension(400, 200));
 
-        Object[] options = {"Clear Now", "Keep Content", "Learn More"};
+        Object[] options = {"Clear Now", "Keep Content"};
 
         int result = JOptionPane.showOptionDialog(parent, htmlPane,
-            "Secure Clipboard Status", JOptionPane.YES_NO_CANCEL_OPTION,
+            "Secure Clipboard Status", JOptionPane.YES_NO_OPTION,
             JOptionPane.INFORMATION_MESSAGE, null, options, options[1]);
 
         switch (result) {
@@ -126,9 +126,6 @@ public class ClipboardSecurityWarner {
                 SecureClipboardManager.clearSecureClipboard();
                 JOptionPane.showMessageDialog(parent, "Clipboard cleared for security.",
                     "Clipboard Cleared", JOptionPane.INFORMATION_MESSAGE);
-                break;
-            case JOptionPane.CANCEL_OPTION: // Learn More
-                showClipboardEducation(parent);
                 break;
             case JOptionPane.NO_OPTION: // Keep Content - do nothing
             default:
@@ -145,7 +142,7 @@ public class ClipboardSecurityWarner {
         }
 
         String tip =
-            "<html><body style='width: 300px; font-family: Segoe UI, sans-serif; font-size: 11px;'>" +
+            "<html><body style='width: 300px; font-family: Segoe UI, sans-serif; font-size: 9px;'>" +
             "<h4 style='color: #1976d2; margin-top: 0;'>💡 Security Tip</h4>" +
             "<p>Copied content will auto-clear from clipboard in " +
             SecureClipboardManager.getTimeoutSeconds() + " seconds for your security.</p>" +
@@ -157,7 +154,7 @@ public class ClipboardSecurityWarner {
         htmlPane.setEditable(false);
         htmlPane.setOpaque(false);
         htmlPane.setBorder(null);
-        htmlPane.setPreferredSize(new Dimension(350, 180));
+        htmlPane.setPreferredSize(new Dimension(350, 140));
 
         JOptionPane.showMessageDialog(parent, htmlPane,
             "Security Tip", JOptionPane.INFORMATION_MESSAGE);
@@ -176,7 +173,7 @@ public class ClipboardSecurityWarner {
         htmlPane.setEditable(false);
         htmlPane.setOpaque(false);
         htmlPane.setBorder(null);
-        htmlPane.setPreferredSize(new Dimension(450, 400));
+        htmlPane.setPreferredSize(new Dimension(450, 350));
 
         // Make links clickable if needed
         htmlPane.addHyperlinkListener(e -> {
@@ -189,18 +186,15 @@ public class ClipboardSecurityWarner {
             }
         });
 
-        Object[] options = {confirmText, cancelText, "Learn More"};
+        Object[] options = {confirmText, cancelText};
 
         int result = JOptionPane.showOptionDialog(parent, htmlPane, title,
-            JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE,
+            JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
             null, options, options[1]);
 
         switch (result) {
             case JOptionPane.YES_OPTION: // Confirm action
                 return true;
-            case JOptionPane.CANCEL_OPTION: // Learn More
-                showClipboardEducation(parent);
-                return false; // Don't proceed, but show education
             case JOptionPane.NO_OPTION: // Cancel
             default:
                 return false;
