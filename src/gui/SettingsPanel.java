@@ -104,6 +104,7 @@ public class SettingsPanel extends JPanel {
 
         encryptionCheckBox = new JCheckBox("Enable encryption");
         encryptionCheckBox.setBackground(Color.WHITE);
+        encryptionCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         encryptionCheckBox.setSelected("true".equals(settings.getProperty("encrypted")));
 
         panel.add(encryptionCheckBox);
@@ -115,11 +116,12 @@ public class SettingsPanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createTitledBorder("Decrypt File"));
 
-        var decryptButton = new JButton("Decrypt Log File");
+        var decryptButton = new StandardButton("Decrypt Log File", new Color(0xE0E0E0), new Color(0xB0B0B0));
         decryptButton.addActionListener(e -> decryptLogFile());
 
         var decryptWarning = new JLabel("<html><b>Warning:</b> This will permanently decrypt your log file and store it in plain text.</html>");
         decryptWarning.setForeground(Color.RED);
+        decryptWarning.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
         panel.add(decryptButton);
         panel.add(decryptWarning);
@@ -130,7 +132,7 @@ public class SettingsPanel extends JPanel {
         var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panel.setBackground(Color.WHITE);
 
-        var backupButton = new JButton("Backup Log File");
+        var backupButton = new StandardButton("Backup Log File", new Color(0xE0E0E0), new Color(0xB0B0B0));
         backupButton.addActionListener(e -> backupLogFile());
 
         panel.add(backupButton);
@@ -143,8 +145,10 @@ public class SettingsPanel extends JPanel {
         panel.setBorder(BorderFactory.createTitledBorder("Backup Directory"));
 
         var backupDirLabel = new JLabel("Default backup directory: ");
+        backupDirLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         backupDirField = new JTextField(20);
-        var browseBackupButton = new JButton("Browse...");
+        backupDirField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        var browseBackupButton = new StandardButton("Browse...", new Color(0xE0E0E0), new Color(0xB0B0B0));
         browseBackupButton.addActionListener(e -> browseBackupDirectory());
 
         panel.add(backupDirLabel);
@@ -159,7 +163,9 @@ public class SettingsPanel extends JPanel {
         panel.setBorder(BorderFactory.createTitledBorder("Password Reminder"));
 
         var reminderLabel = new JLabel("Optional reminder (stored in plain text): ");
+        reminderLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         reminderField = new JTextField(20);
+        reminderField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
         panel.add(reminderLabel);
         panel.add(reminderField);
@@ -170,7 +176,7 @@ public class SettingsPanel extends JPanel {
         var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panel.setBackground(Color.WHITE);
 
-        applyButton = new JButton("Apply Changes");
+        applyButton = new AccentButton("Apply Changes");
         applyButton.addActionListener(e -> applySettings());
 
         panel.add(applyButton);
@@ -183,6 +189,7 @@ public class SettingsPanel extends JPanel {
 
         statusLabel = new JLabel("");
         statusLabel.setForeground(Color.BLUE);
+        statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
         panel.add(statusLabel);
         return panel;
