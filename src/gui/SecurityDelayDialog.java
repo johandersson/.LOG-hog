@@ -27,6 +27,12 @@ public class SecurityDelayDialog {
 
     public static void showDialog(long delayMillis, Frame parent, String message) {
         if (delayMillis <= 0) return;
+        
+        // Add ±20% randomization to prevent timing attacks
+        long randomizedDelay = delayMillis + (long)(delayMillis * 0.2 * (Math.random() - 0.5));
+        // Ensure minimum 1 second delay
+        randomizedDelay = Math.max(1000, randomizedDelay);
+        
         var dialog = new JDialog(parent, "Security Delay", true);
         dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
         dialog.setLayout(new BorderLayout());
@@ -47,7 +53,7 @@ public class SecurityDelayDialog {
         // Use Swing Timer for smooth progress updates
         var timer = new javax.swing.Timer(50, null);
         final long startTime = System.currentTimeMillis();
-        final long endTime = startTime + delayMillis;
+        final long endTime = startTime + randomizedDelay;
 
         timer.addActionListener(e -> {
             long currentTime = System.currentTimeMillis();

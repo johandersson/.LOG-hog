@@ -371,9 +371,9 @@ public class LogTextEditor extends JFrame {
                         JOptionPane.showMessageDialog(this, "Incorrect password. " + remaining + " attempts remaining.", "Password Error", JOptionPane.ERROR_MESSAGE);
                         // Add progressive delay after failed attempts
                         long delay = switch (attempts) {
-                            case 1 -> 1000; // 1 second
-                            case 2 -> 5000; // 5 seconds
-                            case 3 -> 15000; // 15 seconds
+                            case 1 -> 3000; // 3 seconds
+                            case 2 -> 15000; // 15 seconds
+                            case 3 -> 60000; // 60 seconds
                             default -> 0;
                         };
                         SecurityDelayDialog.showDialog(delay, this);
