@@ -466,23 +466,27 @@ public class LogTextEditor extends JFrame {
         dialog.setSize(350, 100);
         dialog.setLocationRelativeTo(this);
 
-        SwingUtilities.invokeLater(() -> {
-            dialog.setVisible(true);
-            long startTime = System.currentTimeMillis();
-            long endTime = startTime + delayMillis;
-            while (System.currentTimeMillis() < endTime) {
-                long remaining = endTime - System.currentTimeMillis();
-                int progress = (int) ((delayMillis - remaining) * 100 / delayMillis);
+        dialog.setVisible(true);
+
+        // Use Swing Timer for smooth progress updates
+        var timer = new javax.swing.Timer(50, null);
+        final long startTime = System.currentTimeMillis();
+        final long endTime = startTime + delayMillis;
+
+        timer.addActionListener(e -> {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime >= endTime) {
+                progressBar.setValue(100);
+                timer.stop();
+                dialog.setVisible(false);
+            } else {
+                long elapsed = currentTime - startTime;
+                int progress = (int) (elapsed * 100 / delayMillis);
                 progressBar.setValue(progress);
-                try {
-                    Thread.sleep(50); // Update every 50ms
-                } catch (InterruptedException e) {
-                    break;
-                }
             }
-            progressBar.setValue(100);
-            dialog.setVisible(false);
         });
+
+        timer.start();
     }
 
 }
