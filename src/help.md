@@ -1,6 +1,10 @@
 # Welcome to the Help File for .LOG-hog!
 
-## Key Features
+## Purpose
+The purpose of LogHog is to enable quick note-taking. Upon opening, the screen focuses directly on the editor window for immediate writing. After composing your note, press Ctrl+S or click Save to clear the text field and save the entry into a dated log. This clearing allows you to write a new log entry right away, facilitating rapid and efficient note-taking.
+
+## Security Overview
+LogHog prioritizes security for personal logging. It uses AES-256 encryption with GCM authentication, protecting your data from tampering and unauthorized reading. Passwords are derived using PBKDF2 with 100,000 iterations, making brute-force attacks slow. Failed login attempts add progressive delays (1-30 seconds) and limit to 3 tries before exit. Passwords are wiped from memory instantly to prevent forensic recovery. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager. LogHog is secure for daily use but not invincible against state-level threats or keyloggers.
 - **Tabbed Interface**: Effortlessly switch between writing new entries and browsing past logs.
 - **Quick Entry**: Add notes instantly with automatic timestamps.
 - **Single-Instance Enforcement**: Only one instance of the application can run at a time to prevent conflicts.
@@ -33,7 +37,8 @@
 ## Encryption
 - **Enabling Encryption**: Access the Settings tab to enable encryption. You'll need to set a password (at least 16 characters, including at least one uppercase letter and one special character from: !@#$%^&*()_+-=[]{}|;':",./<>?). Optionally, backup your unencrypted log file before proceeding.
 - **Password Visibility**: When prompted for your password at startup, you can choose to always show the password in plain text by checking the "Always show password in plain text" box. This setting is saved and will apply to future password prompts.
-- **Security Notes**: Your log file is encrypted using AES with a key derived from your password. The password is only kept in memory while the app runs and is never saved to disk. <span style="color:red">If you forget your password, your data cannot be recovered.</span>
+- **Security Notes**: Your log file is encrypted using AES with a key derived from your password. The password is only kept in memory while the app runs and is never saved to disk. <span style="color:red">If you forget your password, your data cannot be recovered.</span> In terms of security, AES-GCM is a strong, industry-standard encryption method. As long as you use a strong, unique password and keep it secret, your data is very safe from unauthorized access. LogHog clears passwords from memory immediately after use and adds progressive delays (1-30 seconds) after incorrect password attempts to slow down automated attacks.
+- **Password Guidance**: To maximize security, use a long passphrase (20+ characters) that's random and unique. Avoid dictionary words, patterns (like "Qwerty123!"), or personal details. Use a password manager to generate and store strong passwords. Remember, even with encryption, a weak password can be cracked—treat it like a key to your safe.
 - **Usage**: When encryption is enabled, you'll be prompted for your password each time you start the app. If the password is incorrect, you'll see a clear error message and can retry immediately.
 - **Manual Lock/Unlock**: For immediate security, click the "Lock File" button in the Full Log tab to instantly lock your encrypted log. This clears all decrypted data from memory, empties all views, and disables all editing operations. A lock message will appear in all relevant areas. To unlock, click the "Unlock File" button and re-enter your password.
 - **Performance**: Encryption adds a small delay to saving and loading, but decrypted content is cached in memory for fast access during your session. **Note**: Enabling encryption may cause the program to load slower, especially in the settings tab when applying changes and in the full log view.

@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Confirmation dialog on window close with options to lock file or exit
 - Improved disabled button appearance with custom painting and tooltips
 - Advanced search dialog with whole word, case sensitivity, match counts, and navigation
+- Security enhancements: Immediate password clearing from memory after use to prevent forensic recovery
+- Progressive delays (1-30 seconds) after incorrect password attempts to slow brute-force attacks
+- Enhanced password guidance in documentation emphasizing strong, random passphrases and password managers
 
 ### Changed
 - Updated splash screen entries to remove movie references and focus on themes of mom, coding, coca cola, AI, and pizza

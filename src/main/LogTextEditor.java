@@ -104,6 +104,9 @@ public class LogTextEditor extends JFrame {
         systemInitializer.initializeSystemComponents();
 
         setVisible(true);
+
+        // Focus the entry text area on startup
+        SwingUtilities.invokeLater(() -> entryPanel.getTextArea().requestFocusInWindow());
     }
 
     private void initializeComponents() {
@@ -345,6 +348,7 @@ public class LogTextEditor extends JFrame {
                     System.exit(0);
                 }
                 logFileHandler.setEncryption(pwd, salt);
+                java.util.Arrays.fill(pwd, '\0'); // Zero out password for security
                 try {
                     loadLogEntries();
                     success = true;
@@ -359,6 +363,20 @@ public class LogTextEditor extends JFrame {
                         errorMsg.contains("mac check failed") ||
                         errorMsg.contains("decryption failed")) {
                         JOptionPane.showMessageDialog(this, "Incorrect password. Please try again.", "Password Error", JOptionPane.ERROR_MESSAGE);
+                        // Add progressive delay after failed attempts
+                        try {
+                            long delay = switch (attempts) {
+                                case 1 -> 1000; // 1 second
+                                case 2 -> 5000; // 5 seconds
+                                case 3 -> 30000; // 30 seconds
+                                default -> 0;
+                            };
+                            if (delay > 0) {
+                                Thread.sleep(delay);
+                            }
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                        }
                     } else {
                         logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
                         System.exit(0);
@@ -401,6 +419,7 @@ public class LogTextEditor extends JFrame {
             }
             byte[] salt = Base64.getDecoder().decode(settings.getProperty("salt"));
             logFileHandler.setEncryption(pwd, salt);
+            java.util.Arrays.fill(pwd, '\0'); // Zero out password for security
             try {
                 loadLogEntries();
                 success = true;

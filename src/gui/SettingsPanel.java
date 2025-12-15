@@ -263,6 +263,8 @@ public class SettingsPanel extends JPanel {
         var confirm = confirmResult.password;
         if (!java.util.Arrays.equals(pwd, confirm)) {
             JOptionPane.showMessageDialog(editor, "Passwords do not match");
+            java.util.Arrays.fill(pwd, '\0');
+            java.util.Arrays.fill(confirm, '\0');
             return;
         }
 
@@ -301,6 +303,9 @@ public class SettingsPanel extends JPanel {
             JOptionPane.showMessageDialog(editor, "Encryption failed: " + ex.getMessage());
             statusLabel.setText("Encryption failed: " + ex.getMessage());
             statusLabel.setForeground(Color.RED);
+        } finally {
+            java.util.Arrays.fill(pwd, '\0');
+            java.util.Arrays.fill(confirm, '\0');
         }
     }
 
