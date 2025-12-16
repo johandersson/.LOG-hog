@@ -21,8 +21,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Utility class for handling date parsing and formatting operations.
@@ -38,32 +36,36 @@ public class DateHandler {
      * @throws IllegalArgumentException if the timestamp format is unrecognized
      */
     public static LocalDateTime parseTimestamp(String entry) {
-        // Extract the timestamp from the beginning of the line
-        Pattern tsPattern = Pattern.compile("^(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})( \\([0-9]+\\))?");
-        Matcher matcher = tsPattern.matcher(entry.trim());
-        if (!matcher.find()) {
-            throw new IllegalArgumentException("No timestamp found in: " + entry);
+        String trimmed = entry.trim();
+        
+        // Quick check for LogHog's primary format
+        if (trimmed.matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?$")) {
+            return LocalDateTime.parse(trimmed.replaceAll(" \\(\\d+\\)", ""), DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT));
         }
-        String dateStr = matcher.group(1);
+        
+        // For other formats, try a limited set of common patterns
         List<DateTimeFormatter> formatters = List.of(
-                DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ENGLISH),
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ENGLISH),
-                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.ENGLISH),
-                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm", Locale.ENGLISH),
-                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm", Locale.ENGLISH)
+                // LogHog variations
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT),
+                // Common international formats
+                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.ROOT),
+                DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm", Locale.ROOT),
+                // Notepad US style (needs English for AM/PM)
+                DateTimeFormatter.ofPattern("'Date: 'MM/dd/yyyy' Time: 'hh:mm:ss a", Locale.ENGLISH),
+                // Notepad 24-hour style
+                DateTimeFormatter.ofPattern("'Date: 'dd/MM/yyyy' Time: 'HH:mm:ss", Locale.ROOT)
         );
+        
         for (DateTimeFormatter fmt : formatters) {
             try {
-                return LocalDateTime.parse(dateStr, fmt);
+                return LocalDateTime.parse(trimmed, fmt);
             } catch (Exception ignored) {
             }
         }
-        throw new IllegalArgumentException("Unrecognized date format: " + dateStr);
+        
+        // If all fail, throw with helpful message
+        throw new IllegalArgumentException("Unsupported timestamp format: '" + trimmed + "'. Use LogHog's format (HH:mm yyyy-MM-dd) or reformat the file.");
     }
 
     /**

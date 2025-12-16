@@ -17,15 +17,32 @@
 
 package markdown;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.event.MouseEvent;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-import java.util.regex.*;
-import javax.swing.*;
-import javax.swing.text.*;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.JTextPane;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 
 public class MarkdownRenderer {
 
@@ -65,7 +82,7 @@ public class MarkdownRenderer {
             }
 
             // Sort entries oldest first
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.getDefault());
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
             entries.sort((a, b) -> {
                 try {
                     String dateStrA = a.get(0).trim().replaceAll(" \\(\\d+\\)", "");

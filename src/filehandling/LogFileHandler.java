@@ -17,21 +17,28 @@
 
 package filehandling;
 
-import encryption.EncryptionManager;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.*;
-import javax.crypto.*;
-import javax.swing.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+
+import javax.crypto.SecretKey;
+import javax.swing.DefaultListModel;
+import javax.swing.JOptionPane;
+
+import encryption.EncryptionManager;
 import utils.DateHandler;
 
 public class LogFileHandler {
     static Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.getDefault());
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
 
     // For testing only
     public static void setTestFilePath(Path testPath) {
