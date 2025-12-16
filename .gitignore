@@ -43,3 +43,20 @@ debug.log
 
 ### Copilot ###
 copilot_instructions.md
+
+### Testing ###
+# JUnit and coverage JARs
+lib/*.jar
+# Coverage reports and data
+jacoco.exec
+coverage/
+htmlcov/
+# Test results
+test-results/
+junit-reports/
+# IDE test configurations
+.idea/testData/
+.vscode/test-results/
+# Temporary test files
+*.tmp
+test-*.log

@@ -68,6 +68,9 @@ public class UIInitializer {
                 } else if (option == JOptionPane.NO_OPTION) {
                     // Exit program
                     showSecurityProgressDialog(editor);
+                    // Clean up before exit
+                    clipboard.SecureClipboardManager.clearSecureClipboard();
+                    clipboard.SecureClipboardManager.shutdown();
                     editor.getLogFileHandler().clearSensitiveData();
                     System.exit(0);
                 }

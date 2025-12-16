@@ -112,23 +112,7 @@ public class LogTextEditor extends JFrame {
             uiInitializer = new UIInitializer(this, tabPane, navItems, settings);
             uiInitializer.initializeUI();
 
-            // Setup key bindings and system components
-            setupKeyBindings();
-            loadSettings();
-
-            // Initialize secure clipboard settings
-            initializeSecureClipboard();
-
-            // Show splash screen on startup if enabled
-            if ("true".equals(settings.getProperty("showSplashOnStartup", "true"))) {
-                new gui.SplashScreen();
-            }
-
-            // Initialize system components
-            systemInitializer = new SystemInitializer(this);
-            systemInitializer.initializeSystemComponents();
-
-            // Initialize encryption handler
+            // Initialize encryption handler before loading settings
             encryptionHandler = new EncryptionHandler(this, logFileHandler, settings,
                 () -> {
                     try {
@@ -138,7 +122,17 @@ public class LogTextEditor extends JFrame {
                     }
                 },
                 this::updateUILockState,
-                () -> fullLogPanel.loadFullLog());
+                () -> {
+                    try {
+                        fullLogPanel.loadFullLog();
+                    } catch (Exception e) {
+                        logFileHandler.showErrorDialog("Error loading full log: " + e.getMessage());
+                    }
+                });
+
+            // Setup key bindings and system components
+            setupKeyBindings();
+            loadSettings();
 
             setVisible(true);
 
@@ -430,11 +424,8 @@ public class LogTextEditor extends JFrame {
         clipboard.SecureClipboardManager.setAutoClearEnabled(autoClear);
         clipboard.SecureClipboardManager.setTimeoutSeconds(timeout);
 
-        // Add shutdown hook to clean up secure clipboard
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            clipboard.SecureClipboardManager.clearSecureClipboard();
-            clipboard.SecureClipboardManager.shutdown();
-        }));
+        // Cleanup is now handled directly in UIInitializer before System.exit(0)
+        // No shutdown hook needed
     }
 
 

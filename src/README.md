@@ -74,6 +74,29 @@ In terms of security, .LOG-hog uses AES-GCM encryption, which is a strong, indus
 ## Installation
 Build with `javac *.java` and `jar cvfe loghog.jar LogHog *.class resources/`
 
+## Testing
+.LOG-hog includes comprehensive JUnit 5 testing with code coverage reporting.
+
+### Running Tests
+- **Basic tests**: Run `run_tests_simple.bat` for quick test execution without coverage
+- **Full tests with coverage**: Run `run_tests.bat` for complete testing with JaCoCo coverage report generation
+
+### Test Structure
+- Tests are located in `src/test/java/`
+- Package-based organization (e.g., `test.ToastTest`)
+- Coverage reports generated in `coverage/` directory
+- HTML coverage reports viewable by opening `coverage/index.html`
+
+### Test Dependencies
+- JUnit 5 Platform Console Standalone (1.10.2)
+- JaCoCo 0.8.13 (Java 21 compatible)
+- All dependencies included in `lib/` directory
+
+### Adding New Tests
+1. Create test classes in `src/test/java/` with package declarations
+2. Compile tests with: `javac -cp ".;lib\junit-platform-console-standalone-1.10.2.jar" -d . test\java\*.java`
+3. Run tests using the provided batch files
+
 ## Documentation
 - [API Documentation (Javadocs)](../javadocs/index.html)
 
