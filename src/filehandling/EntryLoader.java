@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import encryption.EncryptionManager;
 import java.util.regex.Matcher;
@@ -53,6 +54,9 @@ public class EntryLoader {
         } else {
             lines = Files.readAllLines(LogFileHandler.FILE_PATH);
         }
+
+        // Remove secure clipboard markers from lines
+        lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
 
         try {
             var entries = new ArrayList<List<String>>();

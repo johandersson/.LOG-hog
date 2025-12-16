@@ -313,9 +313,20 @@ public class MarkdownRenderer {
         Style sepStyle = styles.get("sep");
         boolean firstEntry = true;
         boolean previousHadCode = false;
+        
+        // Trim trailing blank lines from entries
+        List<List<String>> trimmedEntries = new ArrayList<>();
         for (List<String> entry : entries) {
+            List<String> trimmed = new ArrayList<>(entry);
+            while (!trimmed.isEmpty() && trimmed.get(trimmed.size() - 1).trim().isEmpty()) {
+                trimmed.remove(trimmed.size() - 1);
+            }
+            trimmedEntries.add(trimmed);
+        }
+        
+        for (List<String> entry : trimmedEntries) {
             if (!firstEntry && !previousHadCode) {
-                doc.insertString(doc.getLength(), "\n", sepStyle); // Only one blank line between entries
+                doc.insertString(doc.getLength(), "\n\n", sepStyle); // Two blank lines between entries
             }
             firstEntry = false;
             boolean inCodeBlock = false;

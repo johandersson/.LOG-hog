@@ -54,8 +54,24 @@ public class LogFileHandler {
     private long cachedEntriesLastModified = 0;
     private final EntryLoader entryLoader = new EntryLoader(this);
 
+    public static String removeSecureMarker(String text) {
+        if (text == null) return null;
+        // Remove the secure clipboard marker if present
+        String marker = "[LOGHOG_SECURE_CONTENT]";
+        int markerIndex = text.indexOf(marker);
+        if (markerIndex == 0) {
+            int pipeIndex = text.indexOf('|');
+            if (pipeIndex > marker.length()) {
+                return text.substring(pipeIndex + 1);
+            }
+        }
+        return text;
+    }
+
     public void saveText(String text, DefaultListModel<String> listModel) {
         if (text == null || text.isBlank()) return;
+
+        text = removeSecureMarker(text);
 
         String timeStamp = FORMATTER.format(LocalDateTime.now());
         int count = getDuplicateCount(timeStamp);
@@ -63,7 +79,7 @@ public class LogFileHandler {
 
         String ls = System.lineSeparator();
         // Entry ends with exactly one blank line for correct grouping
-        String entry = uniqueTimeStamp + ls + text;
+        String entry = uniqueTimeStamp + ls + text + ls;
 
         try {
             if (encrypted) {
@@ -84,7 +100,7 @@ public class LogFileHandler {
                 if (Files.exists(FILE_PATH)) {
                     // Inspect last line to avoid creating multiple blank lines between entries.
                     List<String> existing = Files.readAllLines(FILE_PATH);
-                    String toWrite = uniqueTimeStamp + ls + text;
+                    String toWrite = uniqueTimeStamp + ls + text + ls;
                     Files.writeString(FILE_PATH, toWrite, java.nio.file.StandardOpenOption.APPEND);
                 } else {
                     // For new files, ensure .LOG header exists for Notepad compatibility

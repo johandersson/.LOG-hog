@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.swing.*;
 import main.LogTextEditor;
 import markdown.LinkHandler;
@@ -202,6 +203,8 @@ public class FullLogPanel extends JPanel {
             } else {
                 lines = Files.readAllLines(logPath);
             }
+            // Remove secure clipboard markers from lines
+            lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
             MarkdownRenderer.renderMarkdown(fullLogPane, lines);
             LinkHandler.addLinkListeners(fullLogPane);
         } catch (Exception ex) {
