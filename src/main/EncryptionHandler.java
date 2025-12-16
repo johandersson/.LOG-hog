@@ -116,7 +116,7 @@ public class EncryptionHandler {
             } catch (Exception e) {
                 attempts++;
                 if (attempts >= 4) {
-                    JOptionPane.showMessageDialog(parentFrame, "Too many failed attempts. Please restart the application to try again.", "Security Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(parentFrame, "<html><b>🚫 Security Lock</b><br><br>Too many failed password attempts.<br>The application is now locked for security.<br><br>Please restart the application to try again.</html>", "Security Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(0);
                 }
                 String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
@@ -129,7 +129,7 @@ public class EncryptionHandler {
                     errorMsg.contains("mac check failed") ||
                     errorMsg.contains("decryption failed")) {
                     int remaining = 4 - attempts;
-                    JOptionPane.showMessageDialog(parentFrame, "The password you entered is incorrect. You have " + remaining + " attempts remaining before the application locks for security.", "Authentication Failed", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(parentFrame, "<html><b>🔒 Authentication Failed</b><br><br>The password you entered is incorrect.<br>You have <b>" + remaining + "</b> attempts remaining before the application locks for security.<br><br><i>Tip: Use your password manager or reminder if needed.</i></html>", "Authentication Failed", JOptionPane.ERROR_MESSAGE);
                     WindowShakeAnimation.shake(parentFrame);
                     // Add progressive delay after failed attempts
                     long delay = switch (attempts) {
@@ -140,7 +140,7 @@ public class EncryptionHandler {
                     };
                     SecurityDelayDialog.showDialog(delay, parentFrame);
                 } else {
-                    logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
+                    logFileHandler.showErrorDialog("<html><b>📁 Load Failed</b><br><br>Unable to load log entries.<br>" + e.getMessage() + "<br><br><i>Tip: The file may be corrupted or inaccessible.</i></html>");
                     if (exitOnCancel) {
                         System.exit(0);
                     }

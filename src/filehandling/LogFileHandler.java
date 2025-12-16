@@ -98,7 +98,7 @@ public class LogFileHandler {
 
             invalidateEntryCache();
         } catch (Exception e) {
-            showErrorDialog("Error saving text. Please check your input and try again.");
+            showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save your log entry.<br>Please check your input and try again.<br><br><i>Tip: Ensure the file is not read-only or in use by another program.</i></html>");
         }
     }
 
@@ -173,7 +173,7 @@ public class LogFileHandler {
                 Files.write(FILE_PATH, updatedLines);
             }
         } catch (Exception e) {
-            showErrorDialog("Error updating log entry. Please try again.");
+            showErrorDialog("<html><b>✏️ Update Failed</b><br><br>Unable to update the log entry.<br>Please try again.<br><br><i>Tip: Ensure the entry exists and the file is writable.</i></html>");
         }
     }
 
@@ -212,7 +212,7 @@ public class LogFileHandler {
                 sortListModel(listModel);
             }
         } catch (Exception e) {
-            showErrorDialog("Error changing timestamp. Please try again.");
+            showErrorDialog("<html><b>⏰ Timestamp Change Failed</b><br><br>Unable to change the timestamp.<br>Please try again.<br><br><i>Tip: Ensure the new timestamp is unique and valid.</i></html>");
         }
     }
 
@@ -246,7 +246,7 @@ public class LogFileHandler {
             }
             listModel.removeElement(timeStamp);
         } catch (Exception e) {
-            showErrorDialog("Error deleting log entry. Please try again.");
+            showErrorDialog("<html><b>🗑️ Delete Failed</b><br><br>Unable to delete the log entry.<br>Please try again.<br><br><i>Tip: Ensure the entry exists and the file is not locked.</i></html>");
         }
     }
 
@@ -392,7 +392,7 @@ public class LogFileHandler {
                 .filter(line -> line.startsWith(timeStamp))
                 .count();
         } catch (Exception e) {
-            showErrorDialog("Error checking duplicates. Please try again.");
+            showErrorDialog("<html><b>🔍 Duplicate Check Failed</b><br><br>Unable to check for duplicate timestamps.<br>Proceeding with save.<br><br><i>Tip: This may result in duplicate entries.</i></html>");
             return 0;
         }
     }    public List<String> getLines() throws Exception {
@@ -600,7 +600,7 @@ public class LogFileHandler {
         if (selectedItem != null && !selectedItem.isBlank()) {
             deleteLogEntry(selectedItem, listModel);
         } else {
-            showErrorDialog("No entry selected for deletion.");
+            showErrorDialog("<html><b>⚠️ No Selection</b><br><br>Please select a log entry to delete.<br><br><i>Tip: Click on an entry in the list to select it.</i></html>");
         }
     }
 

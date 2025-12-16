@@ -17,12 +17,39 @@
 
 package gui;
 
-import filehandling.LogFileHandler;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.GridLayout;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.stream.IntStream;
-import javax.swing.*;
+
+import javax.swing.AbstractAction;
+import javax.swing.BorderFactory;
+import javax.swing.DefaultListModel;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+
+import filehandling.LogFileHandler;
 import main.LogTextEditor;
 import utils.UndoRedoTextArea;
 
@@ -100,7 +127,7 @@ public class LogListPanel extends JPanel {
                 logFileHandler.loadFilteredEntries(listModel, year, month);
             }
         } catch (Exception ex) {
-            logFileHandler.showErrorDialog("Error applying date filter: " + ex.getMessage());
+            logFileHandler.showErrorDialog("<html><b>📅 Filter Failed</b><br><br>Unable to apply date filter.<br>" + ex.getMessage() + "<br><br><i>Tip: Check the selected year and month.</i></html>");
         }
     }
 

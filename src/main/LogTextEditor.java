@@ -262,7 +262,7 @@ public class LogTextEditor extends JFrame {
                     fullLogPanel.loadFullLog();
                     SystemTrayMenu.updateRecentLogsMenu();
                 } catch (Exception ex) {
-                    logFileHandler.showErrorDialog("Error loading data: " + ex.getMessage());
+                    logFileHandler.showErrorDialog("<html><b>🔄 Reload Failed</b><br><br>Unable to reload log data.<br>" + ex.getMessage() + "<br><br><i>Tip: Check the log file and try again.</i></html>");
                 }
             }
         });
@@ -412,18 +412,18 @@ public class LogTextEditor extends JFrame {
                         loadLogEntries();
                         fullLogPanel.loadFullLog();
                     } catch (Exception e) {
-                        logFileHandler.showErrorDialog("Error loading data: " + e.getMessage());
+                        logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br>" + e.getMessage() + "<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
                     }
                 }
             } catch (Exception e) {
-                logFileHandler.showErrorDialog("Error loading settings: " + e.getMessage());
+                logFileHandler.showErrorDialog("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br>" + e.getMessage() + "<br><br><i>Tip: Settings will use defaults.</i></html>");
             }
         } else {
             try {
                 loadLogEntries();
                 fullLogPanel.loadFullLog();
             } catch (Exception e) {
-                logFileHandler.showErrorDialog("Error loading data: " + e.getMessage());
+                logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br>" + e.getMessage() + "<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
             }
         }
     }
@@ -432,7 +432,7 @@ public class LogTextEditor extends JFrame {
         try (java.io.FileOutputStream fos = new java.io.FileOutputStream(settingsPath.toFile())) {
             settings.store(fos, "LogHog settings");
         } catch (Exception e) {
-            logFileHandler.showErrorDialog("Error saving settings: " + e.getMessage());
+            logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to save application settings.<br>" + e.getMessage() + "<br><br><i>Tip: Settings may not persist between sessions.</i></html>");
         }
     }
 

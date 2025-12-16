@@ -17,13 +17,25 @@
 
 package main;
 
-import filehandling.LogFileHandler;
-import gui.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
-import javax.swing.*;
+
+import javax.swing.AbstractAction;
+import javax.swing.DefaultListModel;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+
+import filehandling.LogFileHandler;
+import gui.FullLogPanel;
+import gui.LogListPanel;
+import gui.SystemTrayMenu;
 import utils.Toast;
 
 public class ActionHandler {
@@ -83,7 +95,7 @@ public class ActionHandler {
                         fullLogPanel.loadFullLog();
                         SystemTrayMenu.updateRecentLogsMenu();
                     } catch (Exception ex) {
-                        logFileHandler.showErrorDialog("Error refreshing data: " + ex.getMessage());
+                        logFileHandler.showErrorDialog("<html><b>🔄 Refresh Failed</b><br><br>Unable to refresh log data after save.<br>" + ex.getMessage() + "<br><br><i>Tip: Try reloading the application.</i></html>");
                     }
                 }
             }
@@ -112,7 +124,7 @@ public class ActionHandler {
                 }
             }
         } catch (Exception e) {
-            logFileHandler.showErrorDialog("Error reloading log entries: " + e.getMessage());
+            logFileHandler.showErrorDialog("<html><b>🔄 Reload Failed</b><br><br>Unable to reload log entries after update.<br>" + e.getMessage() + "<br><br><i>Tip: The update may have succeeded, but the list couldn't refresh.</i></html>");
         }
         fullLogPanel.loadFullLog();
         SystemTrayMenu.updateRecentLogsMenu();
