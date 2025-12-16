@@ -17,14 +17,16 @@
 
 package main;
 
+import java.util.Base64;
+import java.util.Properties;
+
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+
 import filehandling.LogFileHandler;
 import gui.PasswordDialog;
 import gui.SecurityDelayDialog;
 import utils.WindowShakeAnimation;
-import java.util.Base64;
-import java.util.Properties;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
 
 /**
  * Handles encryption setup, password authentication, and related security operations.
@@ -113,7 +115,7 @@ public class EncryptionHandler {
                 }
             } catch (Exception e) {
                 attempts++;
-                if (attempts >= 3) {
+                if (attempts >= 4) {
                     JOptionPane.showMessageDialog(parentFrame, "Too many failed attempts. Please restart the application to try again.", "Security Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(0);
                 }
@@ -126,13 +128,14 @@ public class EncryptionHandler {
                     errorMsg.contains("integrity check failed") ||
                     errorMsg.contains("mac check failed") ||
                     errorMsg.contains("decryption failed")) {
-                    int remaining = 3 - attempts;
+                    int remaining = 4 - attempts;
                     JOptionPane.showMessageDialog(parentFrame, "The password you entered is incorrect. You have " + remaining + " attempts remaining before the application locks for security.", "Authentication Failed", JOptionPane.ERROR_MESSAGE);
                     WindowShakeAnimation.shake(parentFrame);
                     // Add progressive delay after failed attempts
                     long delay = switch (attempts) {
                         case 1 -> 3000; // 3 seconds
                         case 2 -> 15000; // 15 seconds
+                        case 3 -> 30000; // 30 seconds
                         default -> 0;
                     };
                     SecurityDelayDialog.showDialog(delay, parentFrame);

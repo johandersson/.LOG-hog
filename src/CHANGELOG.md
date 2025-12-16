@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CHANGELOG.md for tracking important changes
 - **Manual file locking/unlocking feature** with comprehensive security UI and operation blocking
 - **Advanced search dialog** with whole word matching, case sensitivity, match counts, and navigation
-- **Progressive security delays** (3s → 15s → 60s with randomization) after incorrect password attempts to prevent brute-force attacks
+- **Progressive security delays** (3s → 15s → 30s with ±20% randomization) after incorrect password attempts to prevent brute-force attacks
 - **Backup directory setting** to centralize all backup locations
 - **Improved single instance enforcement** with IPC communication and window focus restoration
 - **Backward compatibility** for encrypted files created with old PBKDF2 iterations
@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Search shortcut**: Ctrl+F now opens advanced search dialog instead of focusing simple search bar
 - **Code modernization**: Refactored SettingsPanel.java for better maintainability; modernized codebase with 'var' declarations (Java 17 feature)
 - **Repository management**: Moved .gitignore to project root with enhanced patterns for logs, backups, and AI files
+- **Password authentication**: Increased maximum attempts from 3 to 4 with updated progressive delays (3s → 15s → 30s)
 - Updated splash screen entries to remove movie references and focus on themes of mom, coding, coca cola, AI, and pizza
 
 ### Fixed
@@ -45,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backup operations**: Now use configured default directory
 - **Settings panel**: Fixed NullPointerException when backupDirField was not initialized
 - **Repository cleanup**: Removed debug.log and backup files from version control
+- **SecurityDelayDialog**: Now properly displays for legacy decryption failures
 - Password dialog compilation and method declaration issues
 
 ### Security
