@@ -93,7 +93,7 @@ public class EntryLoader {
             var filteredTimestampEntries = new ArrayList<List<String>>();
             for (List<String> entry : timestampEntries) {
                 try {
-                    var dt = parseDate(entry.get(0));
+                    var dt = utils.DateHandler.parseTimestamp(entry.get(0));
                     if (dt.getYear() == currentYear && dt.getMonthValue() == currentMonth) {
                         filteredTimestampEntries.add(entry);
                     }
@@ -101,8 +101,8 @@ public class EntryLoader {
             }
             filteredTimestampEntries.sort((a, b) -> {
                 try {
-                    LocalDateTime dateA = parseDate(a.get(0));
-                    LocalDateTime dateB = parseDate(b.get(0));
+                    LocalDateTime dateA = utils.DateHandler.parseTimestamp(a.get(0));
+                    LocalDateTime dateB = utils.DateHandler.parseTimestamp(b.get(0));
                     return dateB.compareTo(dateA);
                 } catch (Exception e) {
                     return b.get(0).compareTo(a.get(0));
@@ -163,7 +163,7 @@ public class EntryLoader {
             for (List<String> entry : entries) {
                 if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
                     try {
-                        LocalDateTime dt = parseDate(entry.get(0).trim());
+                        LocalDateTime dt = utils.DateHandler.parseTimestamp(entry.get(0).trim());
                         if (dt.getYear() == year && dt.getMonthValue() == month) {
                             filteredEntries.add(entry);
                         }
@@ -172,8 +172,8 @@ public class EntryLoader {
             }
             filteredEntries.sort((a, b) -> {
                 try {
-                    LocalDateTime dateA = parseDate(a.get(0));
-                    LocalDateTime dateB = parseDate(b.get(0));
+                    LocalDateTime dateA = utils.DateHandler.parseTimestamp(a.get(0));
+                    LocalDateTime dateB = utils.DateHandler.parseTimestamp(b.get(0));
                     return dateB.compareTo(dateA);
                 } catch (Exception e) {
                     return b.get(0).compareTo(a.get(0));
@@ -194,7 +194,7 @@ public class EntryLoader {
         for (int i = 0; i < sourceModel.getSize(); i++) {
             String entry = sourceModel.getElementAt(i);
             try {
-                LocalDateTime dt = parseDate(entry);
+                LocalDateTime dt = utils.DateHandler.parseTimestamp(entry);
                 if (dt.getYear() == year && dt.getMonthValue() == month) {
                     filtered.addElement(entry);
                 }
@@ -256,7 +256,7 @@ public class EntryLoader {
             }
             timestamps.sort((a, b) -> {
                 try {
-                    return parseDate(b).compareTo(parseDate(a));
+                    return utils.DateHandler.parseTimestamp(b).compareTo(utils.DateHandler.parseTimestamp(a));
                 } catch (Exception e) {
                     return 0; // keep original order if parsing fails
                 }
@@ -268,34 +268,5 @@ public class EntryLoader {
             logFileHandler.showErrorDialog("Error loading recent log entries: " + e.getMessage());
         }
         return recentEntries;
-    }
-
-    public LocalDateTime parseDate(String entry) {
-        // Extract the timestamp from the beginning of the line
-        Pattern tsPattern = Pattern.compile("^(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})( \\([0-9]+\\))?");
-        Matcher matcher = tsPattern.matcher(entry.trim());
-        if (!matcher.find()) {
-            throw new IllegalArgumentException("No timestamp found in: " + entry);
-        }
-        String dateStr = matcher.group(1);
-        List<DateTimeFormatter> formatters = List.of(
-                DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm", Locale.getDefault()),
-                DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ENGLISH),
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ENGLISH),
-                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.ENGLISH),
-                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm", Locale.ENGLISH),
-                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm", Locale.ENGLISH)
-        );
-        for (DateTimeFormatter fmt : formatters) {
-            try {
-                return LocalDateTime.parse(dateStr, fmt);
-            } catch (Exception ignored) {
-            }
-        }
-        throw new IllegalArgumentException("Unrecognized date format: " + dateStr);
     }
 }

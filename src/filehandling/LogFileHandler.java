@@ -27,6 +27,7 @@ import java.util.*;
 import java.util.stream.*;
 import javax.crypto.*;
 import javax.swing.*;
+import utils.DateHandler;
 
 public class LogFileHandler {
     static Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
@@ -482,7 +483,7 @@ public class LogFileHandler {
         List<String> sortedEntries = Collections.list(listModel.elements()).stream()
                 .sorted((a, b) -> {
                     try {
-                        return entryLoader.parseDate(b).compareTo(entryLoader.parseDate(a));
+                        return DateHandler.parseTimestamp(b).compareTo(DateHandler.parseTimestamp(a));
                     } catch (Exception e) {
                         return 0; // keep original order if parsing fails
                     }
