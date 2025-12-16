@@ -202,7 +202,6 @@ public class FullLogPanel extends JPanel {
             } else {
                 lines = Files.readAllLines(logPath);
             }
-            lines = getNormalized(lines);
             MarkdownRenderer.renderMarkdown(fullLogPane, lines);
             LinkHandler.addLinkListeners(fullLogPane);
         } catch (Exception ex) {
