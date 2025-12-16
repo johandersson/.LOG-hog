@@ -301,7 +301,7 @@ public class LogTextEditor extends JFrame {
         // Set up look and feel (same as LogHog.main)
         try {
             for (var info : UIManager.getInstalledLookAndFeels()) {
-                if ("Windows".equals(info.getName())) {
+                if ("Nimbus".equals(info.getName())) {
                     UIManager.setLookAndFeel(info.getClassName());
                     break;
                 }
@@ -313,7 +313,7 @@ public class LogTextEditor extends JFrame {
         JFrame.setDefaultLookAndFeelDecorated(false);
         
         if (SingleInstanceManager.isAnotherInstanceRunning()) {
-            System.out.println("Another instance detected, exiting...");
+            SingleInstanceManager.showAlreadyRunningDialog();
             SingleInstanceManager.notifyExistingInstance();
             System.exit(0);
         }
