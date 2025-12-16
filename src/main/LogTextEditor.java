@@ -301,7 +301,7 @@ public class LogTextEditor extends JFrame {
         // Set up look and feel (same as LogHog.main)
         try {
             for (var info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
+                if ("Windows".equals(info.getName())) {
                     UIManager.setLookAndFeel(info.getClassName());
                     break;
                 }

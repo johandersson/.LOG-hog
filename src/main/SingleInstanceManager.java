@@ -25,15 +25,23 @@ import java.net.Socket;
 import javax.swing.JOptionPane;
 
 public class SingleInstanceManager {
-    private static final int PORT = 9999;
+    private static final int PORT = 29999;
     private static ServerSocket serverSocket;
 
     public static boolean isAnotherInstanceRunning() {
+        // First try to connect to see if an instance is actually running
         try {
-            serverSocket = new ServerSocket(PORT);
-            return false;
+            Socket socket = new Socket("localhost", PORT);
+            socket.close();
+            return true; // Connected successfully, instance is running
         } catch (IOException e) {
-            return true;
+            // Can't connect, try to bind the port
+            try {
+                serverSocket = new ServerSocket(PORT);
+                return false; // Bound successfully, no instance running
+            } catch (IOException e2) {
+                return false; // Can't bind, but since can't connect, assume no instance
+            }
         }
     }
 

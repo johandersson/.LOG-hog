@@ -25,7 +25,7 @@ public class LogHog {
     public static void main(String[] args) {
     try {
         for (var info : UIManager.getInstalledLookAndFeels()) {
-            if ("Nimbus".equals(info.getName())) {
+            if ("Windows".equals(info.getName())) {
                 UIManager.setLookAndFeel(info.getClassName());
                 break;
             }

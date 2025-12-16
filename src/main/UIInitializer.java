@@ -17,12 +17,33 @@
 
 package main;
 
-import gui.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.util.List;
-import javax.swing.*;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JTabbedPane;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
+
+import gui.HiddenTabUI;
+import gui.InformationPanel;
+import gui.NavItem;
+import gui.StatusBar;
 
 public class UIInitializer {
     private final LogTextEditor editor;
@@ -117,9 +138,13 @@ public class UIInitializer {
     }
 
     private void setupLookAndFeel() {
-        UIManager.put("control", new Color(0xF3F6F9));
-        UIManager.put("nimbusBase", new Color(0x2E3A3F));
-        UIManager.put("text", new Color(0x22282B));
+        // Custom colors for Windows look and feel
+        UIManager.put("Panel.background", new Color(0xF3F6F9));
+        UIManager.put("Button.background", new Color(0xF3F6F9));
+        UIManager.put("TextField.background", new Color(0xF3F6F9));
+        UIManager.put("Label.foreground", new Color(0x22282B));
+        UIManager.put("Button.foreground", new Color(0x22282B));
+        UIManager.put("TextField.foreground", new Color(0x22282B));
         Font uiFont = new Font("Segoe UI", Font.PLAIN, 13);
         UIManager.put("Label.font", uiFont);
         UIManager.put("Button.font", uiFont);
