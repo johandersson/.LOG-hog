@@ -27,7 +27,7 @@ import java.net.Socket;
 import javax.swing.JOptionPane;
 
 public class SingleInstanceManager {
-    private static final int PORT = 9998;
+    private static final int PORT = 9999;
     private static ServerSocket serverSocket;
 
     public static boolean isAnotherInstanceRunning() {
