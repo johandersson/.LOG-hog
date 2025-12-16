@@ -43,18 +43,36 @@ public class DateHandler {
             return LocalDateTime.parse(trimmed.replaceAll(" \\(\\d+\\)", ""), DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT));
         }
         
-        // For other formats, try a limited set of common patterns
+        // For other formats, try a comprehensive set of common patterns
         List<DateTimeFormatter> formatters = List.of(
                 // LogHog variations
                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT),
                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss", Locale.ROOT), // ISO with T
                 // Common international formats
                 DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.ROOT),
+                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", Locale.ROOT),
                 DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm", Locale.ROOT),
-                // Notepad US style (needs English for AM/PM)
+                DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss", Locale.ROOT),
+                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm", Locale.ROOT),
+                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss", Locale.ROOT),
+                // German-style
+                DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", Locale.ROOT),
+                DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss", Locale.ROOT),
+                // US 12-hour with AM/PM (requires English locale)
+                DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a", Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm a", Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm:ss a", Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a", Locale.ENGLISH),
+                // Notepad styles
                 DateTimeFormatter.ofPattern("'Date: 'MM/dd/yyyy' Time: 'hh:mm:ss a", Locale.ENGLISH),
-                // Notepad 24-hour style
-                DateTimeFormatter.ofPattern("'Date: 'dd/MM/yyyy' Time: 'HH:mm:ss", Locale.ROOT)
+                DateTimeFormatter.ofPattern("'Date: 'dd/MM/yyyy' Time: 'HH:mm:ss", Locale.ROOT),
+                // Additional common variations
+                DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a", Locale.ENGLISH), // 12-hour ISO
+                DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm", Locale.ROOT),
+                DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss", Locale.ROOT),
+                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm", Locale.ROOT),
+                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss", Locale.ROOT)
         );
         
         for (DateTimeFormatter fmt : formatters) {
