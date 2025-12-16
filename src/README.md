@@ -54,17 +54,6 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - **Comprehensive input validation** with bounds checking and sanitization
 - **File operation restrictions** to user home and working directories only
 
-**Security Hardening Completed:**
-- ✅ **Debug logging eliminated** - No sensitive data exposure in logs
-- ✅ **Command injection protection** - Path validation for external processes
-- ✅ **Input validation enhanced** - Bounds checking for all numeric settings
-- ✅ **Cryptographic randomness** - SecureRandom throughout security features
-- ✅ **Information disclosure prevention** - Generic error messages only
-- ✅ **Thread safety implemented** - Race condition prevention
-- ✅ **File path security** - Directory traversal protection
-
-**Security Rating: HIGH (8.5/10)** - Suitable for sensitive personal and professional data storage.
-
 ## Encryption Warning
 If you enable encryption, the program may load slower, especially in the settings tab when applying changes and in the full log view. This is due to the encryption/decryption process for the log file.
 

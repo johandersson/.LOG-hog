@@ -5,6 +5,12 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 
 .LOG-hog is compatible with Notepad's .LOG feature. In Notepad, creating a file that starts with '.LOG' on the first line enables automatic timestamp insertion on each open or save (see [how .LOG works in Notepad](https://www.howtogeek.com/359463/what-is-a-log-file/)). .LOG-hog can read, edit, and manage such log files, offering advanced features like encryption, search, and formatting while preserving the timestamped structure.
 
+## Keyboard Shortcuts:
+- **Ctrl+S** — Save a new entry
+- **Ctrl+R** — Refresh the log list to reflect external changes
+- **Ctrl+N** — Quickly add a short note, when starting the app the big text area is focused for quick entry, but CTRL+N you can use anywhere in the file to add a quick note.
+- **Ctrl+F** — Open advanced search dialog to find entries with options for whole word, case sensitivity, and match navigation.
+
 ## Timestamp Formats
 .LOG-hog uses **HH:mm yyyy-MM-dd** as its native timestamp format for new entries. However, it can load and parse log files created in other applications using a wide variety of common timestamp formats from different locales and regions. This ensures compatibility with files from Notepad, spreadsheets, databases, and international sources.
 
@@ -45,11 +51,24 @@ Access clipboard security settings through the system tray icon (right-click the
 - **Performance Optimizations**: Efficient memory management for typical log file sizes.
 - **Window Close Confirmation**: When closing the application, choose to lock the file or exit completely for added security.
 
-## Keyboard Shortcuts:
-- **Ctrl+S** — Save a new entry
-- **Ctrl+R** — Refresh the log list to reflect external changes
-- **Ctrl+N** — Quickly add a short note, when starting the app the big text area is focused for quick entry, but CTRL+N you can use anywhere in the file to add a quick note.
-- **Ctrl+F** — Open advanced search dialog to find entries with options for whole word, case sensitivity, and match navigation.
+## Markdown Formatting
+The Full Log tab renders your log entries with Markdown formatting for better readability. Supported features include:
+
+- **Headers**: Use # for headings (e.g., # Header 1, ## Header 2)
+- **Bold**: Wrap text with ** (e.g., **bold text**)
+- **Italic**: Wrap text with * (e.g., *italic text*)
+- **Links**: [Link Text](URL) for clickable links
+- **Lists**: Use - for unordered lists
+- **Blockquotes**: Use > for quoted text (e.g., > This is a quote) - displays with large quote marks and indentation
+- **Code**: `inline code` for inline, or ``` for code blocks
+- **Line Breaks**: Use two spaces at the end of a line or a blank line for paragraphs
+
+Formatting is applied in the Full Log window for a polished view of your entries.
+
+## Link to URLs and files:
+- Easily create clickable links to websites and local files within your log entries. These are visible in the Full log formatted view of the log file.
+- URLs: [Example Site](http://example.com)
+- Local files: [My File](file:///C:/path/to/your/file.txt)
 
 ## Filter entries in the Log Entries tab.
 - **Search Bar**: Find specific entries by keywords.
@@ -79,25 +98,6 @@ Access clipboard security settings through the system tray icon (right-click the
 - **Edit Date/Time**: Right-click on a log entry and select "Edit Date/Time" to change its timestamp. Enter the new date and time in the format HH:mm yyyy-MM-dd.
 - **Delete Entry**: Right-click and select "Delete Entry" to remove a log entry after confirmation.
 - **Copy to Clipboard**: Right-click and select "Copy Entry to Clipboard" to copy the timestamp and content to the clipboard. You can also use Ctrl+C while editing entries or viewing the full log. For security, copied content is automatically cleared after the configured timeout (see Clipboard Security settings).
-
-## Link to URLs and files:
-- Easily create clickable links to websites and local files within your log entries. These are visible in the Full log formatted view of the log file.
-- URLs: [Example Site](http://example.com)
-- Local files: [My File](file:///C:/path/to/your/file.txt)
-
-## Markdown Formatting
-The Full Log tab renders your log entries with Markdown formatting for better readability. Supported features include:
-
-- **Headers**: Use # for headings (e.g., # Header 1, ## Header 2)
-- **Bold**: Wrap text with ** (e.g., **bold text**)
-- **Italic**: Wrap text with * (e.g., *italic text*)
-- **Links**: [Link Text](URL) for clickable links
-- **Lists**: Use - for unordered lists
-- **Blockquotes**: Use > for quoted text (e.g., > This is a quote) - displays with large quote marks and indentation
-- **Code**: `inline code` for inline, or ``` for code blocks
-- **Line Breaks**: Use two spaces at the end of a line or a blank line for paragraphs
-
-Formatting is applied in the Full Log window for a polished view of your entries.
 
 ## License
 .LOG-hog is licensed under the GNU General Public License version 3 (GPL3). See the license.md file for full license text.
