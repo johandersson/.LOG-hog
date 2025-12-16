@@ -18,6 +18,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - Performance optimizations (efficient memory management)
 - Single-instance enforcement
 - Right-click menus for editing and managing entries
+- **Comprehensive timestamp format support**: Loads files with 23+ common date formats from various locales (ISO, US, European, German, etc.) while using HH:mm yyyy-MM-dd as the native format
 - Comprehensive help documentation
 - GPL3 licensed
 

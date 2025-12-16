@@ -5,6 +5,19 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 
 .LOG-hog is compatible with Notepad's .LOG feature. In Notepad, creating a file that starts with '.LOG' on the first line enables automatic timestamp insertion on each open or save (see [how .LOG works in Notepad](https://www.howtogeek.com/359463/what-is-a-log-file/)). .LOG-hog can read, edit, and manage such log files, offering advanced features like encryption, search, and formatting while preserving the timestamped structure.
 
+## Timestamp Formats
+.LOG-hog uses **HH:mm yyyy-MM-dd** as its native timestamp format for new entries. However, it can load and parse log files created in other applications using a wide variety of common timestamp formats from different locales and regions. This ensures compatibility with files from Notepad, spreadsheets, databases, and international sources.
+
+**Supported Formats Include:**
+- ISO standards: `yyyy-MM-dd HH:mm`, `yyyy-MM-dd HH:mm:ss`, `yyyy-MM-ddTHH:mm:ss`
+- US formats: `MM/dd/yyyy HH:mm`, `MM/dd/yyyy hh:mm:ss AM/PM`
+- European formats: `dd/MM/yyyy HH:mm`, `dd/MM/yyyy hh:mm:ss AM/PM`
+- German formats: `dd.MM.yyyy HH:mm`, `dd.MM.yyyy HH:mm:ss`
+- Other common variations: `yyyy/MM/dd HH:mm`, `dd-MM-yyyy HH:mm`, `MM-dd-yyyy HH:mm`
+- Notepad-specific: `Date: MM/dd/yyyy Time: hh:mm:ss AM/PM`, `Date: dd/MM/yyyy Time: HH:mm:ss`
+
+If your log file uses an unsupported format, .LOG-hog will display a clear error message suggesting reformatting or using the native format. All loaded timestamps are internally converted to the standard format for consistency.
+
 ## Security Overview
 .LOG-hog prioritizes security for personal logging. It uses AES-256 encryption with GCM authentication, protecting your data from tampering and unauthorized reading. Encryption is optional but recommended for sensitive data. Passwords are derived using PBKDF2 with 100,000 iterations, making brute-force attacks slow. Failed login attempts add progressive delays (1-30 seconds) and limit to 3 tries before exit. Passwords are wiped from memory instantly to prevent forensic recovery. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager. .LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers.
 

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DateHandler utility class** for centralized timestamp parsing and formatting
 - **EncryptionHandler class** for managing password authentication and encryption setup
 - **Javadocs generation** with comprehensive API documentation
+- **Expanded timestamp format support** for better Notepad compatibility across locales (supports 23+ common formats including ISO, US, European, German, and 12-hour variants)
 - Updated README.md with security overview and link to detailed encryption documentation
 - Updated help.md to reference centralized security documentation and remove redundant sections
 - Added non-technical introduction to encryption.md for better user accessibility
