@@ -74,7 +74,9 @@ public class LogFileHandler {
                     String toWrite = lastLineIsBlank ? uniqueTimeStamp + ls + text + ls : ls + uniqueTimeStamp + ls + text + ls;
                     Files.writeString(FILE_PATH, toWrite, java.nio.file.StandardOpenOption.APPEND);
                 } else {
-                    Files.writeString(FILE_PATH, entry, java.nio.file.StandardOpenOption.CREATE);
+                    // For new files, ensure .LOG header exists for Notepad compatibility
+                    String contentWithHeader = ".LOG" + ls + ls + entry;
+                    Files.writeString(FILE_PATH, contentWithHeader, java.nio.file.StandardOpenOption.CREATE);
                 }
             }
 
@@ -263,13 +265,16 @@ public class LogFileHandler {
     }
 
     private static List<String> sortEntriesByTimestamp(List<String> lines) {
+        // Check if .LOG header exists in the input
+        boolean hasLogHeader = lines.stream().anyMatch(line -> line.trim().equalsIgnoreCase(".LOG"));
+        
         List<List<String>> entries = new ArrayList<>();
         List<String> currentEntry = new ArrayList<>();
         java.util.regex.Pattern tsPattern = java.util.regex.Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", java.util.regex.Pattern.MULTILINE);
 
         for (String line : lines) {
             String trimmed = line.trim();
-            if (trimmed.equalsIgnoreCase(".LOG")) continue;
+            if (trimmed.equalsIgnoreCase(".LOG")) continue; // Skip .LOG during processing
             if (tsPattern.matcher(trimmed).matches()) {
                 if (!currentEntry.isEmpty()) {
                     entries.add(new ArrayList<>(currentEntry));
@@ -315,6 +320,13 @@ public class LogFileHandler {
 
         // Flatten back to lines with consistent spacing
         List<String> sortedLines = new ArrayList<>();
+        
+        // Add .LOG header at the top if it existed in the input
+        if (hasLogHeader) {
+            sortedLines.add(".LOG");
+            sortedLines.add(""); // Blank line after header
+        }
+        
         for (int i = 0; i < sortedEntries.size(); i++) {
             List<String> entry = sortedEntries.get(i);
             
@@ -389,9 +401,7 @@ public class LogFileHandler {
             return cachedLines;
         } else {
             List<String> lines = Files.readAllLines(FILE_PATH);
-            if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
-                lines.remove(0);
-            }
+            // Keep .LOG in unencrypted files for Notepad compatibility
             return lines.stream().map(String::trim).collect(Collectors.toList());
         }
     }
@@ -472,8 +482,11 @@ public class LogFileHandler {
         Path backupPath = getBackupPath(FILE_PATH.getFileName().toString() + ".bak");
         Files.write(backupPath, data);
         
+        // Add .LOG header for Notepad compatibility when decrypting
+        String contentWithHeader = ".LOG\n\n" + decrypted;
+        
         // Write decrypted content as plain text (using writeString to preserve encoding)
-        Files.writeString(FILE_PATH, decrypted);
+        Files.writeString(FILE_PATH, contentWithHeader);
         
         // Clear encryption state
         clearSensitiveData();

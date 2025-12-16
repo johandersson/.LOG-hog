@@ -297,10 +297,15 @@ public class FileHandlingTest {
         assertNotNull(lines);
         assertTrue(lines.size() > 0);
 
-        // Should not contain .LOG header if present
+        // For unencrypted files, .LOG header should be preserved
+        boolean hasLogHeader = false;
         for (String line : lines) {
-            assertNotEquals(".LOG", line.trim().toUpperCase());
+            if (".LOG".equals(line.trim().toUpperCase())) {
+                hasLogHeader = true;
+                break;
+            }
         }
+        assertTrue(hasLogHeader, "Unencrypted files should preserve .LOG header");
     }
 
     @Test
