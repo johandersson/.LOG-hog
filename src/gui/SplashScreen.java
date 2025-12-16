@@ -113,8 +113,39 @@ public class SplashScreen extends JDialog {
         g2d.fillRect(0, 0, getWidth(), getHeight());
     }
 
+    private void drawCharacter(Graphics2D g2d, int x, int y) {
+        // Head
+        g2d.setColor(SKIN_COLOR);
+        g2d.fillOval(x + 20, y, 20, 20);
+        // Hair
+        g2d.setColor(HAIR_COLOR);
+        g2d.fillOval(x + 18, y - 2, 24, 8);
+        // Eyes
+        g2d.setColor(Color.WHITE);
+        g2d.fillOval(x + 25, y + 5, 4, 4);
+        g2d.fillOval(x + 31, y + 5, 4, 4);
+        g2d.setColor(Color.BLACK);
+        g2d.fillOval(x + 26, y + 6, 2, 2);
+        g2d.fillOval(x + 32, y + 6, 2, 2);
+        // Body
+        g2d.setColor(SHIRT_COLOR);
+        g2d.fillRect(x + 25, y + 20, 10, 30);
+        // Arms
+        g2d.setColor(SKIN_COLOR);
+        g2d.fillRect(x + 15, y + 25, 10, 5);
+        g2d.fillRect(x + 35, y + 25, 10, 5);
+        // Legs
+        g2d.setColor(PANTS_COLOR);
+        g2d.fillRect(x + 25, y + 50, 5, 20);
+        g2d.fillRect(x + 30, y + 50, 5, 20);
+        // Shoes
+        g2d.setColor(Color.BLACK);
+        g2d.fillRect(x + 23, y + 70, 7, 5);
+        g2d.fillRect(x + 30, y + 70, 7, 5);
+    }
+
     private void drawSceneElements(Graphics2D g2d) {
-        // characterDrawer.drawCharacter(g2d, MAN_X, MAN_Y);
+        drawCharacter(g2d, MAN_X, MAN_Y);
         drawSpeechBubble(g2d);
         drawNotepad(g2d, NOTEPAD_X, NOTEPAD_Y);
         drawPen(g2d, NOTEPAD_X, NOTEPAD_Y);
@@ -261,7 +292,7 @@ public class SplashScreen extends JDialog {
     }
 
     private void drawNotepadEntries(Graphics2D g2d, int notepadX, int notepadY) {
-        g2d.setFont(new Font("Monospaced", Font.PLAIN, 10));
+        g2d.setFont(new Font("Monospaced", Font.PLAIN, 14));
         g2d.setColor(Color.BLACK);
         for (int i = 0; i < animationFrame && i < entriesList.size(); i++) {
             g2d.drawString(entriesList.get(i), notepadX + 10, notepadY + 30 + i * 15);
