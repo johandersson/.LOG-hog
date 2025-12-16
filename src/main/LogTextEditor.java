@@ -95,6 +95,7 @@ public class LogTextEditor extends JFrame {
     private UIInitializer uiInitializer;
     private ActionHandler actionHandler;
     private SystemInitializer systemInitializer;
+    private EncryptionHandler encryptionHandler;
 
     public LogTextEditor() {
         try {
@@ -126,6 +127,18 @@ public class LogTextEditor extends JFrame {
             // Initialize system components
             systemInitializer = new SystemInitializer(this);
             systemInitializer.initializeSystemComponents();
+
+            // Initialize encryption handler
+            encryptionHandler = new EncryptionHandler(this, logFileHandler, settings,
+                () -> {
+                    try {
+                        loadLogEntries();
+                    } catch (Exception e) {
+                        logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
+                    }
+                },
+                this::updateUILockState,
+                () -> fullLogPanel.loadFullLog());
 
             setVisible(true);
 
@@ -259,7 +272,6 @@ public class LogTextEditor extends JFrame {
 
 
     public static void main(String[] args) {
-        System.out.println("LogHog starting...");
         
         // Check if running in headless environment
         if (java.awt.GraphicsEnvironment.isHeadless()) {
@@ -352,7 +364,7 @@ public class LogTextEditor extends JFrame {
                 passwordReminder = settings.getProperty("passwordReminder", "");
                 var dataLoaded = false;
                 if ("true".equals(enc)) {
-                    handleEncryptionSetup();
+                    encryptionHandler.handleEncryptionSetup();
                     dataLoaded = true;
                 }
                 if (!dataLoaded) {
@@ -372,56 +384,6 @@ public class LogTextEditor extends JFrame {
                 fullLogPanel.loadFullLog();
             } catch (Exception e) {
                 logFileHandler.showErrorDialog("Error loading data: " + e.getMessage());
-            }
-        }
-    }
-
-    private void handleEncryptionSetup() {
-        String saltStr = settings.getProperty("salt");
-        if (saltStr != null) {
-            byte[] salt = java.util.Base64.getDecoder().decode(saltStr);
-            boolean success = false;
-            int attempts = 0;
-            while (!success) {
-                PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(this, "🔒 Enter Password", passwordReminder);
-                char[] pwd = result.password;
-                if (pwd == null) {
-                    System.exit(0);
-                }
-                logFileHandler.setEncryption(pwd, salt);
-                java.util.Arrays.fill(pwd, '\0'); // Zero out password for security
-                try {
-                    loadLogEntries();
-                    success = true;
-                } catch (Exception e) {
-                    attempts++;
-                    if (attempts >= 3) {
-                        JOptionPane.showMessageDialog(this, "Too many failed attempts. Please restart the application to try again.", "Security Error", JOptionPane.ERROR_MESSAGE);
-                        System.exit(0);
-                    }
-                    String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-                    if (errorMsg.contains("tag mismatch") || 
-                        errorMsg.contains("bad tag") ||
-                        errorMsg.contains("badpadding") || 
-                        errorMsg.contains("illegal block size") ||
-                        errorMsg.contains("aeadbadtag") ||
-                        errorMsg.contains("integrity check failed") ||
-                        errorMsg.contains("mac check failed") ||
-                        errorMsg.contains("decryption failed with both current and legacy")) {
-                        int remaining = 3 - attempts;
-                        JOptionPane.showMessageDialog(this, "Incorrect password. " + remaining + " attempts remaining.", "Password Error", JOptionPane.ERROR_MESSAGE);
-                        // Add progressive delay after failed attempts
-                        long delay = switch (attempts) {
-                            case 1 -> 3000; // 3 seconds
-                            case 2 -> 15000; // 15 seconds
-                            default -> 0;
-                        };
-                        SecurityDelayDialog.showDialog(delay, this);
-                    } else {
-                        logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
-                        System.exit(0);
-                    }
-                }
             }
         }
     }
@@ -446,60 +408,7 @@ public class LogTextEditor extends JFrame {
     }
 
     public void manualUnlock() {
-        reloadEncryptedLog();
-    }
-
-    private void reloadEncryptedLog() {
-        boolean success = false;
-        int attempts = 0;
-        while (!success) {
-            PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(this, "Reload Encrypted Log", settings.getProperty("passwordReminder", ""));
-            char[] pwd = result.password;
-            if (pwd == null) {
-                // User cancelled, exit
-                System.exit(0);
-                return;
-            }
-            byte[] salt = Base64.getDecoder().decode(settings.getProperty("salt"));
-            logFileHandler.setEncryption(pwd, salt);
-            java.util.Arrays.fill(pwd, '\0'); // Zero out password for security
-            try {
-                loadLogEntries();
-                success = true;
-                synchronized (lockObject) {
-                    isLocked = false;
-                }
-                updateUILockState();
-                fullLogPanel.loadFullLog(); // Refresh full log view after successful decryption
-            } catch (Exception e) {
-                attempts++;
-                if (attempts >= 3) {
-                    JOptionPane.showMessageDialog(this, "Too many failed attempts. Please restart the application to try again.", "Security Error", JOptionPane.ERROR_MESSAGE);
-                    System.exit(0);
-                }
-                String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-                if (errorMsg.contains("tag mismatch") || 
-                    errorMsg.contains("bad tag") ||
-                    errorMsg.contains("badpadding") || 
-                    errorMsg.contains("illegal block size") ||
-                    errorMsg.contains("aeadbadtag") ||
-                    errorMsg.contains("integrity check failed") ||
-                    errorMsg.contains("mac check failed") ||
-                    errorMsg.contains("decryption failed with both current and legacy")) {
-                    int remaining = 3 - attempts;
-                    JOptionPane.showMessageDialog(this, "Incorrect password. " + remaining + " attempts remaining.", "Password Error", JOptionPane.ERROR_MESSAGE);
-                    long delay = switch (attempts) {
-                        case 1 -> 3000; // 3 seconds
-                        case 2 -> 15000; // 15 seconds
-                        default -> 0;
-                    };
-                    SecurityDelayDialog.showDialog(delay, this);
-                } else {
-                    logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
-                    System.exit(0);
-                }
-            }
-        }
+        encryptionHandler.reloadEncryptedLog();
     }
 
     private void updateUILockState() {

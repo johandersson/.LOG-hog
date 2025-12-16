@@ -61,7 +61,7 @@ public class SettingsPanel extends JPanel {
 
         var contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
         contentPanel.setBackground(Color.WHITE);
 
         // Encryption section
