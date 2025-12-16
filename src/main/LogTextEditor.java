@@ -274,6 +274,20 @@ public class LogTextEditor extends JFrame {
             System.exit(1);
         }
         
+        // Set up look and feel (same as LogHog.main)
+        try {
+            for (var info : UIManager.getInstalledLookAndFeels()) {
+                if ("Windows".equals(info.getName())) {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        // Let the OS draw the title bar and buttons (native chrome)
+        JFrame.setDefaultLookAndFeelDecorated(false);
+        
         if (SingleInstanceManager.isAnotherInstanceRunning()) {
             System.out.println("Another instance detected, exiting...");
             SingleInstanceManager.notifyExistingInstance();

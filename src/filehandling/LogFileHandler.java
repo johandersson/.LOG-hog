@@ -56,7 +56,7 @@ public class LogFileHandler {
 
         String ls = System.lineSeparator();
         // Entry ends with exactly one blank line for correct grouping
-        String entry = uniqueTimeStamp + ls + text + ls;
+        String entry = uniqueTimeStamp + ls + text;
 
         try {
             if (encrypted) {
@@ -77,8 +77,7 @@ public class LogFileHandler {
                 if (Files.exists(FILE_PATH)) {
                     // Inspect last line to avoid creating multiple blank lines between entries.
                     List<String> existing = Files.readAllLines(FILE_PATH);
-                    boolean lastLineIsBlank = !existing.isEmpty() && existing.get(existing.size() - 1).trim().isEmpty();
-                    String toWrite = lastLineIsBlank ? uniqueTimeStamp + ls + text + ls : ls + uniqueTimeStamp + ls + text + ls;
+                    String toWrite = uniqueTimeStamp + ls + text;
                     Files.writeString(FILE_PATH, toWrite, java.nio.file.StandardOpenOption.APPEND);
                 } else {
                     // For new files, ensure .LOG header exists for Notepad compatibility
@@ -90,8 +89,6 @@ public class LogFileHandler {
             listModel.addElement(uniqueTimeStamp);
             sortListModel(listModel);
 
-            // Sort and normalize the entire file to ensure consistent blank lines and ordering
-            sortAndNormalizeFile();
             invalidateEntryCache();
         } catch (Exception e) {
             showErrorDialog("Error saving text. Please check your input and try again.");
@@ -144,7 +141,6 @@ public class LogFileHandler {
                     inTargetEntry = true;
                     updatedLines.add(line); // keep the timestamp line
                     updatedLines.add(newText); // add the new text
-                    updatedLines.add(""); // ensure a blank line after the entry
                     continue;
                 }
 
@@ -191,20 +187,14 @@ public class LogFileHandler {
                 }
             }
 
-            // Sort entries by timestamp
-            List<String> sortedLines = sortEntriesByTimestamp(lines);
-            
-            // Normalize spacing
-            List<String> normalized = getNormalized(sortedLines);
-
             if (encrypted) {
-                cachedLines = new ArrayList<>(normalized);
+                cachedLines = new ArrayList<>(lines);
                 String fullText = String.join("\n", cachedLines);
                 SecretKey key = EncryptionManager.deriveKey(password, salt);
                 byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
                 Files.write(FILE_PATH, encryptedData);
             } else {
-                Files.write(FILE_PATH, normalized);
+                Files.write(FILE_PATH, lines);
             }
             
             // Update the list model
