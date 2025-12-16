@@ -60,3 +60,9 @@ junit-reports/
 # Temporary test files
 *.tmp
 test-*.log
+
+# Local change tracking and docs
+changes.txt
+changes_summary.md
+src/development_history.md
+lib/
