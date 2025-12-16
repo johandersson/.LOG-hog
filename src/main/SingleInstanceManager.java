@@ -46,6 +46,7 @@ public class SingleInstanceManager {
             // Can't connect or communicate, try to bind the port
             try {
                 serverSocket = new ServerSocket(PORT);
+                serverSocket.setReuseAddress(true);
                 // Add shutdown hook to close the socket gracefully on exit
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                     if (serverSocket != null && !serverSocket.isClosed()) {
