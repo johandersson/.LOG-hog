@@ -373,6 +373,10 @@ public class LogTextEditor extends JFrame {
                             this.toFront();
                             this.requestFocus();
                         });
+                    } else if ("LOGHOG_PING".equals(message)) {
+                        var out = new java.io.PrintWriter(clientSocket.getOutputStream(), true);
+                        out.println("LOGHOG_PONG");
+                        out.close();
                     }
                     in.close();
                     clientSocket.close();

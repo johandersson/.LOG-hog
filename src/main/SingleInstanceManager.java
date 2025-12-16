@@ -17,7 +17,9 @@
 
 package main;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -25,19 +27,35 @@ import java.net.Socket;
 import javax.swing.JOptionPane;
 
 public class SingleInstanceManager {
-    private static final int PORT = 29999;
+    private static final int PORT = 9998;
     private static ServerSocket serverSocket;
 
     public static boolean isAnotherInstanceRunning() {
-        // First try to connect to see if an instance is actually running
+        // First try to connect and ping to see if a LogHog instance is actually running
         try {
             Socket socket = new Socket("localhost", PORT);
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            out.println("LOGHOG_PING");
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            String response = in.readLine();
+            in.close();
+            out.close();
             socket.close();
-            return true; // Connected successfully, instance is running
+            return "LOGHOG_PONG".equals(response); // Only if it's LogHog responding
         } catch (IOException e) {
-            // Can't connect, try to bind the port
+            // Can't connect or communicate, try to bind the port
             try {
                 serverSocket = new ServerSocket(PORT);
+                // Add shutdown hook to close the socket gracefully on exit
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    if (serverSocket != null && !serverSocket.isClosed()) {
+                        try {
+                            serverSocket.close();
+                        } catch (IOException ex) {
+                            // Ignore
+                        }
+                    }
+                }));
                 return false; // Bound successfully, no instance running
             } catch (IOException e2) {
                 return false; // Can't bind, but since can't connect, assume no instance
