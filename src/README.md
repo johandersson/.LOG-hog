@@ -74,6 +74,9 @@ In terms of security, .LOG-hog uses AES-GCM encryption, which is a strong, indus
 ## Installation
 Build with `javac *.java` and `jar cvfe loghog.jar LogHog *.class resources/`
 
+## Documentation
+- [API Documentation (Javadocs)](../javadocs/index.html)
+
 ## Usage
 Run with `java -jar loghog.jar`
 

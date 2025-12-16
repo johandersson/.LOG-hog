@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Window close confirmation dialog** with options to lock file or exit
 - **Comprehensive encryption documentation** (encryption.md) covering AES-256-GCM, PBKDF2, and security measures
 - **Clipboard Security Features**: Automatic clipboard clearing with configurable timeout, secure content marking, educational warnings, system tray access, and secure Ctrl+C functionality in all text areas
+- **DateHandler utility class** for centralized timestamp parsing and formatting
+- **EncryptionHandler class** for managing password authentication and encryption setup
+- **Javadocs generation** with comprehensive API documentation
 - Updated README.md with security overview and link to detailed encryption documentation
 - Updated help.md to reference centralized security documentation and remove redundant sections
 - Added non-technical introduction to encryption.md for better user accessibility
