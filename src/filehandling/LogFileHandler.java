@@ -62,6 +62,13 @@ public class LogFileHandler {
             if (encrypted) {
                 cachedLines.addAll(Arrays.asList(entry.split("\n", -1)));
                 String fullText = String.join("\n", cachedLines);
+                
+                // Ensure .LOG header is present for encrypted files
+                if (!fullText.startsWith(".LOG")) {
+                    fullText = ".LOG\n\n" + fullText;
+                    cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\n")));
+                }
+                
                 SecretKey key = EncryptionManager.deriveKey(password, salt);
                 byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
                 Files.write(FILE_PATH, encryptedData);
@@ -409,10 +416,12 @@ public class LogFileHandler {
     public void enableEncryption(char[] pwd) throws Exception {
         this.salt = EncryptionManager.generateSalt();
         List<String> lines = Files.readAllLines(FILE_PATH);
-        if (!lines.isEmpty() && lines.get(0).trim().equals(".LOG")) {
-            lines.remove(0);
-        }
+        // Preserve .LOG header in encrypted files (don't remove it)
         String fullText = String.join("\n", lines);
+        // Ensure .LOG header is present
+        if (!fullText.startsWith(".LOG")) {
+            fullText = ".LOG\n\n" + fullText;
+        }
         SecretKey key = EncryptionManager.deriveKey(pwd, this.salt);
         byte[] encrypted = EncryptionManager.encrypt(fullText, key);
         // Save encrypted to backup first
@@ -482,8 +491,11 @@ public class LogFileHandler {
         Path backupPath = getBackupPath(FILE_PATH.getFileName().toString() + ".bak");
         Files.write(backupPath, data);
         
-        // Add .LOG header for Notepad compatibility when decrypting
-        String contentWithHeader = ".LOG\n\n" + decrypted;
+        // Ensure .LOG header is present (for backward compatibility with old encrypted files)
+        String contentWithHeader = decrypted;
+        if (!contentWithHeader.startsWith(".LOG")) {
+            contentWithHeader = ".LOG\n\n" + contentWithHeader;
+        }
         
         // Write decrypted content as plain text (using writeString to preserve encoding)
         Files.writeString(FILE_PATH, contentWithHeader);

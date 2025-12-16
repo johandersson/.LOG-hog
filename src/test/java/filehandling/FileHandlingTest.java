@@ -791,4 +791,112 @@ public class FileHandlingTest {
 
         Files.write(testFilePath, testData);
     }
+
+    // Helper method to enable encryption for testing
+    private void enableEncryption() throws Exception {
+        logFileHandler.enableEncryption("testpassword".toCharArray());
+    }
+
+    // Helper method to create a test file without .LOG header (simulating old encrypted files)
+    private void createOldEncryptedFile() throws IOException {
+        LocalDateTime now = LocalDateTime.now();
+        String currentMonthTimestamp1 = String.format("%02d:%02d %04d-%02d-%02d",
+            now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
+
+        List<String> testData = Arrays.asList(
+            "",  // No .LOG header - simulates old encrypted file
+            "",
+            currentMonthTimestamp1,
+            "This is an entry from old encrypted file",
+            "",
+            "14:45 2024-11-10",
+            "This is an old entry from 2024"
+        );
+
+        Files.write(testFilePath, testData);
+    }
+
+    // ===== ENCRYPTION TESTS =====
+
+    @Test
+    @DisplayName("Encrypted files should preserve .LOG header")
+    void testEncryptedFilePreservesLogHeader() throws Exception {
+        enableEncryption();
+
+        logFileHandler.saveText("Test entry", listModel);
+
+        List<String> lines = logFileHandler.getLines();
+        assertNotNull(lines);
+        assertTrue(lines.size() > 0);
+
+        // Should contain .LOG header
+        boolean hasLogHeader = false;
+        for (String line : lines) {
+            if (".LOG".equals(line.trim().toUpperCase())) {
+                hasLogHeader = true;
+                break;
+            }
+        }
+        assertTrue(hasLogHeader, "Encrypted files should preserve .LOG header");
+    }
+
+    @Test
+    @DisplayName("Decrypting old encrypted files should add .LOG header")
+    void testDecryptOldEncryptedFileAddsLogHeader() throws Exception {
+        // Create file without .LOG header (simulating old unencrypted file)
+        createOldEncryptedFile();
+
+        // Enable encryption (this will add .LOG header before encrypting)
+        enableEncryption();
+
+        // Now disable encryption - should preserve .LOG header
+        logFileHandler.disableEncryption();
+
+        // Check that decrypted file has .LOG header
+        List<String> lines = Files.readAllLines(testFilePath);
+        assertTrue(lines.size() > 0);
+        assertEquals(".LOG", lines.get(0).trim().toUpperCase());
+    }
+
+    @Test
+    @DisplayName("EntryLoader should filter .LOG from UI for encrypted files")
+    void testEntryLoaderFiltersLogFromEncryptedFiles() throws Exception {
+        enableEncryption();
+
+        logFileHandler.saveText("Test entry", listModel);
+
+        // Load entries - should filter out .LOG
+        entryLoader.loadLogEntries(listModel);
+
+        // Should have entries but .LOG should not appear in list model
+        assertTrue(listModel.getSize() > 0);
+        for (int i = 0; i < listModel.getSize(); i++) {
+            assertNotEquals(".LOG", listModel.getElementAt(i).trim().toUpperCase());
+        }
+    }
+
+    @Test
+    @DisplayName("Encrypted files should maintain .LOG through save/load cycles")
+    void testEncryptedFileMaintainsLogThroughCycles() throws Exception {
+        enableEncryption();
+
+        // Save first entry
+        logFileHandler.saveText("First entry", listModel);
+
+        // Save second entry
+        logFileHandler.saveText("Second entry", listModel);
+
+        // Reload lines
+        List<String> lines = logFileHandler.getLines();
+
+        // Should still have .LOG header
+        boolean hasLogHeader = false;
+        for (String line : lines) {
+            if (".LOG".equals(line.trim().toUpperCase())) {
+                hasLogHeader = true;
+                break;
+            }
+        }
+        assertTrue(hasLogHeader, "Encrypted files should maintain .LOG header through multiple saves");
+    }
 }
