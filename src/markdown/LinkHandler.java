@@ -76,8 +76,7 @@ public class LinkHandler {
             StyledDocument doc = pane.getStyledDocument();
             AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
             Object hrefObj = attrs.getAttribute("href");
-            if (hrefObj instanceof String) {
-                String href = (String) hrefObj;
+            if (hrefObj instanceof String href) {
                 if (href.startsWith("file:")) {
                     handleFileLink(pane, href);
                 } else {
@@ -95,7 +94,7 @@ public class LinkHandler {
             return;
         }
 
-        java.io.File file = null;
+        java.io.File file;
         try {
             // First try to parse as URI
             java.net.URI uri = java.net.URI.create(href);
@@ -181,8 +180,7 @@ public class LinkHandler {
             StyledDocument doc = pane.getStyledDocument();
             AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
             Object hrefObj = attrs.getAttribute("href");
-            if (hrefObj instanceof String) {
-                String href = (String) hrefObj;
+            if (hrefObj instanceof String href) {
                 JPopupMenu popup = new JPopupMenu();
                 JMenuItem copyItem = new JMenuItem("Copy Link");
                 copyItem.addActionListener(ae -> clipboard.SecureClipboardManager.copySecureTextToClipboard(href, pane, "Link copied to clipboard securely!"));

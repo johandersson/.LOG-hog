@@ -199,8 +199,6 @@ public class FullLogPanel extends JPanel {
                 var data = Files.readAllBytes(logPath);
                 var decrypted = EncryptionManager.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
                 lines = Arrays.asList(decrypted.split("\n", -1));
-                // Show splash screen after successful decryption
-                new gui.SplashScreen();
             } else {
                 lines = Files.readAllLines(logPath);
             }

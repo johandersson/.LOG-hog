@@ -19,11 +19,12 @@ package gui;
 
 import java.awt.*;
 import javax.swing.*;
+import utils.WindowShakeAnimation;
 
 public class SplashScreen extends JDialog {
     private int animationFrame = 0;
     private javax.swing.Timer animationTimer;
-    private AccentButton okButton;
+    private StandardButton okButton;
     private java.util.List<String> entriesList;
     private Point initialClick;
 
@@ -71,6 +72,10 @@ public class SplashScreen extends JDialog {
             @Override
             public void mousePressed(java.awt.event.MouseEvent e) {
                 initialClick = e.getPoint();
+                // Check if clicked on the man (whole man area)
+                if (e.getX() >= 40 && e.getX() <= 100 && e.getY() >= 50 && e.getY() <= 150) {
+                    WindowShakeAnimation.shake(SplashScreen.this);
+                }
             }
         });
         panel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
@@ -100,7 +105,6 @@ public class SplashScreen extends JDialog {
         animationTimer.start();
 
         // Ensure splash screen is visible and on top
-        setVisible(true);
         toFront();
         requestFocus();
     }

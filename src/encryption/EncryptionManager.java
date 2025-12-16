@@ -91,7 +91,7 @@ public class EncryptionManager {
                 SecretKey legacyKey = deriveKeyLegacy(password, salt);
                 return decrypt(encryptedData, legacyKey);
             } catch (Exception legacyException) {
-                throw new Exception("Decryption failed with both current and legacy key derivation methods");
+                throw new Exception("Decryption failed: invalid password or corrupted file");
             }
         }
     }

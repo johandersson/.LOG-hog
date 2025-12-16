@@ -20,6 +20,7 @@ package main;
 import filehandling.LogFileHandler;
 import gui.PasswordDialog;
 import gui.SecurityDelayDialog;
+import utils.WindowShakeAnimation;
 import java.util.Base64;
 import java.util.Properties;
 import javax.swing.JFrame;
@@ -124,9 +125,10 @@ public class EncryptionHandler {
                     errorMsg.contains("aeadbadtag") ||
                     errorMsg.contains("integrity check failed") ||
                     errorMsg.contains("mac check failed") ||
-                    errorMsg.contains("decryption failed with both current and legacy")) {
+                    errorMsg.contains("decryption failed")) {
                     int remaining = 3 - attempts;
-                    JOptionPane.showMessageDialog(parentFrame, "Incorrect password. " + remaining + " attempts remaining.", "Password Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(parentFrame, "The password you entered is incorrect. You have " + remaining + " attempts remaining before the application locks for security.", "Authentication Failed", JOptionPane.ERROR_MESSAGE);
+                    WindowShakeAnimation.shake(parentFrame);
                     // Add progressive delay after failed attempts
                     long delay = switch (attempts) {
                         case 1 -> 3000; // 3 seconds

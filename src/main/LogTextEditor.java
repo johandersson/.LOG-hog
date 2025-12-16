@@ -17,12 +17,36 @@
 
 package main;
 
+import java.awt.Menu;
+import java.awt.MenuItem;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.DefaultListModel;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JRootPane;
+import javax.swing.JTabbedPane;
+import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+
 import filehandling.LogFileHandler;
-import gui.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
-import javax.swing.*;
+import gui.AccentButton;
+import gui.EntryPanel;
+import gui.FullLogPanel;
+import gui.LogListPanel;
+import gui.NavItem;
+import gui.SettingsPanel;
+import gui.SystemTrayMenu;
 
 public class LogTextEditor extends JFrame {
 
@@ -118,7 +142,7 @@ public class LogTextEditor extends JFrame {
                     try {
                         loadLogEntries();
                     } catch (Exception e) {
-                        logFileHandler.showErrorDialog("Error loading log entries: " + e.getMessage());
+                        throw new RuntimeException(e);
                     }
                 },
                 this::updateUILockState,
@@ -126,7 +150,7 @@ public class LogTextEditor extends JFrame {
                     try {
                         fullLogPanel.loadFullLog();
                     } catch (Exception e) {
-                        logFileHandler.showErrorDialog("Error loading full log: " + e.getMessage());
+                        throw new RuntimeException(e);
                     }
                 });
 
@@ -366,6 +390,10 @@ public class LogTextEditor extends JFrame {
             try (var fis = new java.io.FileInputStream(settingsPath.toFile())) {
                 settings.load(fis);
                 settingsPanel.loadCurrentSettings();
+                // Show splash screen on startup if enabled
+                if ("true".equals(settings.getProperty("showSplashOnStartup", "true"))) {
+                    new gui.SplashScreen().setVisible(true);
+                }
                 var backupDir = settings.getProperty("backupDirectory", "");
                 logFileHandler.setBackupDirectory(backupDir);
                 var enc = settings.getProperty("encrypted");

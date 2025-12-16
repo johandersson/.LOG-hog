@@ -17,7 +17,7 @@ echo.
 
 REM Generate HTML coverage report (optional)
 echo Generating HTML coverage report...
-java -jar %~dp0lib\jacoco-cli-0.8.13.jar report %~dp0jacoco.exec --classfiles %~dp0src --sourcefiles %~dp0src --html %~dp0coverage
+java -jar %~dp0lib\jacoco-cli-0.8.13.jar report %~dp0jacoco.exec --classfiles %~dp0src\loghog.jar --sourcefiles %~dp0src --html %~dp0coverage
 
 echo.
 echo HTML coverage report generated in 'coverage' directory
