@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html","k":"18"},{"l":"browser"},{"l":"clipboard"},{"l":"encryption"},{"l":"filehandling"},{"l":"gui"},{"l":"main"},{"l":"markdown"},{"l":"notepad"},{"l":"utils"}];updateSearchResults();
