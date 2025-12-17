@@ -5,34 +5,30 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 
 .LOG-hog is compatible with Notepad's .LOG feature. In Notepad, creating a file that starts with '.LOG' on the first line enables automatic timestamp insertion on each open or save (see [how .LOG works in Notepad](https://www.howtogeek.com/359463/what-is-a-log-file/)). .LOG-hog can read, edit, and manage such log files, offering advanced features like encryption, search, and formatting while preserving the timestamped structure.
 
-## Keyboard Shortcuts:
-- **Ctrl+S** — Save a new entry
-- **Ctrl+R** — Refresh the log list to reflect external changes
-- **Ctrl+N** — Quickly add a short note, when starting the app the big text area is focused for quick entry, but CTRL+N you can use anywhere in the file to add a quick note.
-- **Ctrl+F** — Open advanced search dialog to find entries with options for whole word, case sensitivity, and match navigation.
-
-## Timestamp Formats
-.LOG-hog uses **HH:mm yyyy-MM-dd** as its native timestamp format for new entries. However, it can load and parse log files created in other applications using a wide variety of common timestamp formats from different locales and regions. This ensures compatibility with files from Notepad, spreadsheets, databases, and international sources.
-
-**Supported Formats Include:**
-- ISO standards: `yyyy-MM-dd HH:mm`, `yyyy-MM-dd HH:mm:ss`, `yyyy-MM-ddTHH:mm:ss`
-- US formats: `MM/dd/yyyy HH:mm`, `MM/dd/yyyy hh:mm:ss AM/PM`
-- European formats: `dd/MM/yyyy HH:mm`, `dd/MM/yyyy hh:mm:ss AM/PM`
-- German formats: `dd.MM.yyyy HH:mm`, `dd.MM.yyyy HH:mm:ss`
-- Other common variations: `yyyy/MM/dd HH:mm`, `dd-MM-yyyy HH:mm`, `MM-dd-yyyy HH:mm`
-- Notepad-specific: `Date: MM/dd/yyyy Time: hh:mm:ss AM/PM`, `Date: dd/MM/yyyy Time: HH:mm:ss`
-
-If your log file uses an unsupported format, .LOG-hog will display a clear error message suggesting reformatting or using the native format. All loaded timestamps are internally converted to the standard format for consistency.
-
 ## Security Overview
-.LOG-hog prioritizes security for personal logging. It uses AES-256 encryption with GCM authentication, protecting your data from tampering and unauthorized reading. Encryption is optional but recommended for sensitive data. Passwords are derived using PBKDF2 with 100,000 iterations, making brute-force attacks slow. Failed login attempts add progressive delays (1-30 seconds) and limit to 3 tries before exit. Passwords are wiped from memory instantly to prevent forensic recovery. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager. .LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers.
+.LOG-hog implements **enterprise-grade security** with comprehensive protection against modern threats. The application has undergone extensive security hardening to address all identified vulnerabilities.
+
+**Key Security Features:**
+- **AES-256-GCM authenticated encryption** with PBKDF2-100,000 iterations key derivation
+- **Progressive brute-force protection** (3s → 15s → 60s) with cryptographically secure randomization
+- **4-attempt limit** with application restart requirement and real-time countdown
+- **Immediate memory clearing** of all sensitive data (passwords, keys, cached content)
+- **Automatic clipboard security** with configurable timeout (1-3600 seconds) and educational warnings
+- **Secure Ctrl+C functionality** in all text areas with automatic clearing
+- **Path validation and confinement** preventing directory traversal and command injection
+- **Thread-safe operations** with proper synchronization
+- **Generic error messages** preventing information disclosure
+- **Comprehensive input validation** with bounds checking and sanitization
+- **File operation restrictions** to user home and working directories only
 
 **Security Rating: HIGH (9.0/10)** - Suitable for sensitive personal and professional data storage. Enhanced password requirements now enforce minimum strength scoring, blocking weak passwords that meet basic criteria.
+
+.LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager.
 
 ### Clipboard Security
 .LOG-hog includes advanced clipboard security features to protect sensitive log data from being inadvertently exposed through clipboard operations:
 
-- **Automatic Clipboard Clearing**: When copying log entries or full logs to the clipboard (via right-click menu or Ctrl+C), the content is automatically cleared after a configurable timeout (default: 30 seconds). This prevents sensitive information from remaining in the clipboard indefinitely.
+- **Automatic Clipboard Clearing**: When copying log entries or full logs to the clipboard, the content is automatically cleared after a configurable timeout (default: 30 seconds). This prevents sensitive information from remaining in the clipboard indefinitely.
 - **Secure Content Marking**: Copied content is marked as secure .LOG-hog data, allowing the application to distinguish and manage it appropriately.
 - **Manual Clear Option**: Users can manually clear the secure clipboard at any time through the system tray menu.
 - **Educational Warnings**: Before copying encrypted or full log content, users receive detailed warnings about clipboard security risks and best practices.
@@ -53,24 +49,11 @@ Access clipboard security settings through the system tray icon (right-click the
 - **Performance Optimizations**: Efficient memory management for typical log file sizes.
 - **Window Close Confirmation**: When closing the application, choose to lock the file or exit completely for added security.
 
-## Markdown Formatting
-The Full Log tab renders your log entries with Markdown formatting for better readability. Supported features include:
-
-- **Headers**: Use # for headings (e.g., # Header 1, ## Header 2)
-- **Bold**: Wrap text with ** (e.g., **bold text**)
-- **Italic**: Wrap text with * (e.g., *italic text*)
-- **Links**: [Link Text](URL) for clickable links
-- **Lists**: Use - for unordered lists
-- **Blockquotes**: Use > for quoted text (e.g., > This is a quote) - displays with large quote marks and indentation
-- **Code**: `inline code` for inline, or ``` for code blocks
-- **Line Breaks**: Use two spaces at the end of a line or a blank line for paragraphs
-
-Formatting is applied in the Full Log window for a polished view of your entries.
-
-## Link to URLs and files:
-- Easily create clickable links to websites and local files within your log entries. These are visible in the Full log formatted view of the log file.
-- URLs: [Example Site](http://example.com)
-- Local files: [My File](file:///C:/path/to/your/file.txt)
+## Keyboard Shortcuts:
+- **Ctrl+S** — Save a new entry
+- **Ctrl+R** — Refresh the log list to reflect external changes
+- **Ctrl+N** — Quickly add a short note, when starting the app the big text area is focused for quick entry, but CTRL+N you can use anywhere in the file to add a quick note.
+- **Ctrl+F** — Open advanced search dialog to find entries with options for whole word, case sensitivity, and match navigation.
 
 ## Filter entries in the Log Entries tab.
 - **Search Bar**: Find specific entries by keywords.
@@ -99,7 +82,26 @@ Formatting is applied in the Full Log window for a polished view of your entries
 ## Editing Log Entries:
 - **Edit Date/Time**: Right-click on a log entry and select "Edit Date/Time" to change its timestamp. Enter the new date and time in the format HH:mm yyyy-MM-dd.
 - **Delete Entry**: Right-click and select "Delete Entry" to remove a log entry after confirmation.
-- **Copy to Clipboard**: Right-click and select "Copy Entry to Clipboard" to copy the timestamp and content to the clipboard. You can also use Ctrl+C while editing entries or viewing the full log. For security, copied content is automatically cleared after the configured timeout (see Clipboard Security settings).
+- **Copy to Clipboard**: Right-click and select "Copy Entry to Clipboard" to copy the timestamp and content to the clipboard. For security, copied content is automatically cleared after the configured timeout (see Clipboard Security settings).
+
+## Link to URLs and files:
+- Easily create clickable links to websites and local files within your log entries. These are visible in the Full log formatted view of the log file.
+- URLs: [Example Site](http://example.com)
+- Local files: [My File](file:///C:/path/to/your/file.txt)
+
+## Markdown Formatting
+The Full Log tab renders your log entries with Markdown formatting for better readability. Supported features include:
+
+- **Headers**: Use # for headings (e.g., # Header 1, ## Header 2)
+- **Bold**: Wrap text with ** (e.g., **bold text**)
+- **Italic**: Wrap text with * (e.g., *italic text*)
+- **Links**: [Link Text](URL) for clickable links
+- **Lists**: Use - for unordered lists
+- **Blockquotes**: Use > for quoted text (e.g., > This is a quote) - displays with large quote marks and indentation
+- **Code**: `inline code` for inline, or ``` for code blocks
+- **Line Breaks**: Use two spaces at the end of a line or a blank line for paragraphs
+
+Formatting is applied in the Full Log window for a polished view of your entries.
 
 ## License
 .LOG-hog is licensed under the GNU General Public License version 3 (GPL3). See the license.md file for full license text.
@@ -109,3 +111,19 @@ See CHANGELOG.md for a detailed history of changes and new features.
 
 ## Github repo:
 [GitHub Repository](http://github.com/johandersson/.LOG-hog)
+
+## Keyboard Shortcuts:
+- **Ctrl+S** — Save a new entry
+- **Ctrl+R** — Refresh the log list to reflect external changes
+- **Ctrl+N** — Quickly add a short note, when starting the app the big text area is focused for quick entry, but CTRL+N you can use anywhere in the file to add a quick note.
+- **Ctrl+F** — Open advanced search dialog to find entries with options for whole word, case sensitivity, and match navigation.
+
+## Filter entries in the Log Entries tab.
+- **Search Bar**: Find specific entries by keywords.
+- **Date Filter**: View entries from a specific date range.
+
+## System tray Integration:
+- View 10 most recent logs, click one and it will open the app and focus that entry.
+- Add quick log entry directly from the tray menu.
+- **Clear Clipboard**: Immediately clear any secure .LOG-hog content from the clipboard for security.
+- Access clipboard security settings and features through the "Clipboard Security" menu option.
