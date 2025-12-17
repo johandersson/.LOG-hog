@@ -40,6 +40,7 @@ public class EncryptionHandler {
     private final Runnable loadLogEntriesCallback;
     private final Runnable updateUILockStateCallback;
     private final Runnable loadFullLogCallback;
+    private final SecureSettings secureSettings;
 
     /**
      * Constructs an EncryptionHandler with the necessary dependencies.
@@ -47,16 +48,18 @@ public class EncryptionHandler {
      * @param parentFrame the parent JFrame for dialogs
      * @param logFileHandler the LogFileHandler for encryption operations
      * @param settings the application settings
+     * @param secureSettings the SecureSettings for encryption
      * @param loadLogEntriesCallback callback to load log entries
      * @param updateUILockStateCallback callback to update UI lock state
      * @param loadFullLogCallback callback to load full log
      */
-    public EncryptionHandler(JFrame parentFrame, LogFileHandler logFileHandler, Properties settings,
+    public EncryptionHandler(JFrame parentFrame, LogFileHandler logFileHandler, Properties settings, SecureSettings secureSettings,
                            Runnable loadLogEntriesCallback, Runnable updateUILockStateCallback,
                            Runnable loadFullLogCallback) {
         this.parentFrame = parentFrame;
         this.logFileHandler = logFileHandler;
         this.settings = settings;
+        this.secureSettings = secureSettings;
         this.loadLogEntriesCallback = loadLogEntriesCallback;
         this.updateUILockStateCallback = updateUILockStateCallback;
         this.loadFullLogCallback = loadFullLogCallback;
@@ -90,7 +93,7 @@ public class EncryptionHandler {
      * @param exitOnCancel whether to exit the application if password entry is cancelled
      */
     private void performPasswordAuthentication(byte[] salt, String dialogTitle, boolean exitOnCancel) {
-        String passwordReminder = settings.getProperty("passwordReminder", "");
+        String passwordReminder = secureSettings.getDecryptedProperty(settings, "passwordReminder", "");
         boolean success = false;
         int attempts = 0;
         while (!success) {

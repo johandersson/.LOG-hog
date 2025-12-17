@@ -79,7 +79,7 @@ public class LogFileHandler {
 
         String ls = System.lineSeparator();
         // Entry ends with exactly one blank line for correct grouping
-        String entry = uniqueTimeStamp + ls + text + ls;
+        String entry = timeStamp + ls + text + ls;
 
         try {
             if (encrypted) {
@@ -611,6 +611,10 @@ public class LogFileHandler {
     }
 
 
+
+    public String getRawTimestamp(String displayTimestamp) {
+        return displayTimestamp.replaceAll(" \\([0-9]+\\)$", "");
+    }
 
     public void deleteEntry(String selectedItem, DefaultListModel<String> listModel) {
         if (selectedItem != null && !selectedItem.isBlank()) {

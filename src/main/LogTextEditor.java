@@ -146,7 +146,7 @@ public class LogTextEditor extends JFrame {
             systemInitializer.initializeSystemComponents();
 
             // Initialize encryption handler before loading settings
-            encryptionHandler = new EncryptionHandler(this, logFileHandler, settings,
+            encryptionHandler = new EncryptionHandler(this, logFileHandler, settings, secureSettings,
                 () -> {
                     try {
                         loadLogEntries();
@@ -215,7 +215,8 @@ public class LogTextEditor extends JFrame {
             logList.ensureIndexIsVisible(0);
             String item = listModel.getElementAt(0);
             if (item != null) {
-                String content = logFileHandler.loadEntry(item);
+                var rawTs = logFileHandler.getRawTimestamp(item);
+                String content = logFileHandler.loadEntry(rawTs);
                 logListPanel.getEntryArea().setText(content);
             }
         } else {

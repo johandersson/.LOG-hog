@@ -71,7 +71,8 @@ public class ActionHandler {
                 }
 
                 //Copy both timestamp and entry text
-                String logContent = logFileHandler.loadEntry(selectedItem);
+                var rawTs = logFileHandler.getRawTimestamp(selectedItem);
+                String logContent = logFileHandler.loadEntry(rawTs);
                 clipboard.SecureClipboardManager.copySecureTextToClipboard(
                     selectedItem + "\n\n" + logContent, editor,
                     "Log entry copied to clipboard securely.");
@@ -162,7 +163,8 @@ public class ActionHandler {
         StringBuilder previewBuilder = new StringBuilder();
         for (int i = 0; i < selectedItems.size(); i++) {
             String selectedItem = selectedItems.get(i);
-            String entryText = logFileHandler.loadEntry(selectedItem);
+            var rawTs = logFileHandler.getRawTimestamp(selectedItem);
+            String entryText = logFileHandler.loadEntry(rawTs);
             String previewBody;
             if (entryText == null || entryText.isBlank()) {
                 previewBody = "(no content)";
