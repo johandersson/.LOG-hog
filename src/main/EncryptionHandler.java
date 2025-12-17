@@ -26,7 +26,6 @@ import javax.swing.JOptionPane;
 import filehandling.LogFileHandler;
 import gui.PasswordDialog;
 import gui.SecurityDelayDialog;
-import utils.WindowShakeAnimation;
 
 /**
  * Handles encryption setup, password authentication, and related security operations.
@@ -130,7 +129,7 @@ public class EncryptionHandler {
                     errorMsg.contains("decryption failed")) {
                     int remaining = 4 - attempts;
                     JOptionPane.showMessageDialog(parentFrame, "<html><b>🔒 Authentication Failed</b><br><br>The password you entered is incorrect.<br>You have <b>" + remaining + "</b> attempts remaining before the application locks for security.<br><br><i>Tip: Use your password manager or reminder if needed.</i></html>", "Authentication Failed", JOptionPane.ERROR_MESSAGE);
-                    WindowShakeAnimation.shake(parentFrame);
+                    // WindowShakeAnimation.shake(parentFrame);
                     // Add progressive delay after failed attempts
                     long delay = switch (attempts) {
                         case 1 -> 3000; // 3 seconds

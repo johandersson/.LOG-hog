@@ -136,6 +136,10 @@ public class LogTextEditor extends JFrame {
             uiInitializer = new UIInitializer(this, tabPane, navItems, settings);
             uiInitializer.initializeUI();
 
+            // Initialize system components (system tray, etc.)
+            systemInitializer = new SystemInitializer(this);
+            systemInitializer.initializeSystemComponents();
+
             // Initialize encryption handler before loading settings
             encryptionHandler = new EncryptionHandler(this, logFileHandler, settings,
                 () -> {
@@ -157,6 +161,9 @@ public class LogTextEditor extends JFrame {
             // Setup key bindings and system components
             setupKeyBindings();
             loadSettings();
+
+            // Update system tray recent logs menu now that settings are loaded
+            SystemTrayMenu.updateRecentLogsMenu();
 
             setVisible(true);
 

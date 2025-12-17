@@ -43,6 +43,7 @@ import javax.swing.border.EmptyBorder;
 import gui.HiddenTabUI;
 import gui.InformationPanel;
 import gui.NavItem;
+import gui.SplashScreen;
 import gui.StatusBar;
 
 public class UIInitializer {
@@ -167,6 +168,7 @@ public class UIInitializer {
         NavItem n3 = new NavItem("Settings", 3, tabPane, null);
         NavItem n4 = new NavItem("Help", 4, tabPane, null);
         Runnable aboutOnClick = () -> {
+            new SplashScreen().setVisible(true);
             tabPane.setSelectedIndex(5);
         };
         NavItem n5 = new NavItem("About", 5, tabPane, aboutOnClick);

@@ -17,9 +17,17 @@
 
 package gui;
 
-import java.awt.*;
+import java.awt.AWTException;
+import java.awt.Color;
+import java.awt.Menu;
+import java.awt.MenuItem;
+import java.awt.PopupMenu;
+import java.awt.SystemTray;
+import java.awt.TrayIcon;
 import java.awt.image.BufferedImage;
-import javax.swing.*;
+
+import javax.swing.JFrame;
+
 import main.LogTextEditor;
 
 public class SystemTrayMenu {
@@ -103,10 +111,6 @@ public class SystemTrayMenu {
                 // Show confirmation (optional - could be silent)
                 java.awt.Toolkit.getDefaultToolkit().beep();
             });
-
-            //init recent logs menu
-            logTextEditor.updateRecentLogsMenu(SystemTrayMenu.recentLogsMenu);
-
 
             exitItem.addActionListener(e -> {
                 System.exit(0);
