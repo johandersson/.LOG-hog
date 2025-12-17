@@ -167,15 +167,7 @@ public class UIInitializer {
         NavItem n2 = new NavItem("Full Log", 2, tabPane, null);
         NavItem n3 = new NavItem("Settings", 3, tabPane, null);
         NavItem n4 = new NavItem("Help", 4, tabPane, null);
-        Runnable aboutOnClick = () -> {
-            tabPane.setSelectedIndex(5);
-            SplashScreen splash = new SplashScreen();
-            splash.setVisible(true);
-            if (splash.wasOkPressed()) {
-                ((InformationPanel) tabPane.getComponentAt(5)).loadText();
-            }
-        };
-        NavItem n5 = new NavItem("About", 5, tabPane, aboutOnClick);
+        NavItem n5 = new NavItem("About", 5, tabPane, null);
 
         navItems.clear();
         navItems.add(n0);
@@ -244,6 +236,13 @@ public class UIInitializer {
                 editor.getFullLogPanel().loadFullLog();
             } else if (tabPane.getSelectedIndex() == 3) {
                 editor.getSettingsPanel().loadCurrentSettings();
+            } else if (tabPane.getSelectedIndex() == 5) {
+                ((InformationPanel) tabPane.getComponentAt(5)).unloadText();
+                SplashScreen splash = new SplashScreen();
+                splash.setVisible(true);
+                if (splash.wasOkPressed()) {
+                    ((InformationPanel) tabPane.getComponentAt(5)).loadText();
+                }
             } else if (tabPane.getSelectedIndex() == 0) {
                 // Focus the entry text area when switching to the Entry tab
                 SwingUtilities.invokeLater(() -> {

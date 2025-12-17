@@ -86,6 +86,10 @@ public class InformationPanel extends JPanel {
         }
     }
 
+    public void unloadText() {
+        textPane.setText("");
+    }
+
     private void createHeader(String title) {
         // Header
         var header = new JLabel(title);
