@@ -27,6 +27,8 @@ If your log file uses an unsupported format, .LOG-hog will display a clear error
 ## Security Overview
 .LOG-hog prioritizes security for personal logging. It uses AES-256 encryption with GCM authentication, protecting your data from tampering and unauthorized reading. Encryption is optional but recommended for sensitive data. Passwords are derived using PBKDF2 with 100,000 iterations, making brute-force attacks slow. Failed login attempts add progressive delays (1-30 seconds) and limit to 3 tries before exit. Passwords are wiped from memory instantly to prevent forensic recovery. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager. .LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers.
 
+**Security Rating: HIGH (9.0/10)** - Suitable for sensitive personal and professional data storage. Enhanced password requirements now enforce minimum strength scoring, blocking weak passwords that meet basic criteria.
+
 ### Clipboard Security
 .LOG-hog includes advanced clipboard security features to protect sensitive log data from being inadvertently exposed through clipboard operations:
 

@@ -2,6 +2,9 @@
 
 A secure, feature-rich Java Swing logging application.
 
+## Security
+**Security Rating: HIGH (9.0/10)** - Enterprise-grade encryption with AES-256-GCM, PBKDF2 key derivation, progressive delays, and enforced password strength. Suitable for sensitive personal and professional data.
+
 ## Purpose
 The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen focuses directly on the editor window for immediate writing. After composing your note, press Ctrl+S or click Save to clear the text field and save the entry into a dated log. This clearing allows you to write a new log entry right away, facilitating rapid and efficient note-taking.
 

@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backward compatibility** for encrypted files created with old PBKDF2 iterations
 - **Blockquote support** in markdown rendering (> for quoted text)
 - **Window close confirmation dialog** with options to lock file or exit
+- **Password strength indicator** with real-time feedback during password creation
+- **Enforced minimum password strength** (at least 'Good' score) for new encryptions to prevent weak passwords
 - **Comprehensive encryption documentation** (encryption.md) covering AES-256-GCM, PBKDF2, and security measures
 - **Clipboard Security Features**: Automatic clipboard clearing with configurable timeout, secure content marking, educational warnings, system tray access, and secure Ctrl+C functionality in all text areas
 - **DateHandler utility class** for centralized timestamp parsing and formatting

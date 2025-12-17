@@ -30,7 +30,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - ✅ **Thread safety implemented** - Race condition prevention
 - ✅ **File path security** - Directory traversal protection
 
-**Security Rating: HIGH (8.5/10)** - Suitable for sensitive personal and professional data storage.
+**Security Rating: HIGH (9.0/10)** - Suitable for sensitive personal and professional data storage. Enhanced password requirements now enforce minimum strength scoring, blocking weak passwords that meet basic criteria.
 
 .LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager.
 

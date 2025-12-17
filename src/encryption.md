@@ -5,9 +5,9 @@
 ## Overview
 .LOG-hog implements enterprise-grade security suitable for personal sensitive data storage. This document provides comprehensive details about the security architecture, encryption implementation, and protection mechanisms.
 
-## Security Rating: 9/10 Overall
+## Security Rating: 9.0/10 Overall
 
-.LOG-hog provides excellent security for a personal logging application, with enterprise-standard encryption, robust anti-brute-force protection, and comprehensive clipboard security.
+.LOG-hog provides excellent security for a personal logging application, with enterprise-standard encryption, robust anti-brute-force protection, comprehensive clipboard security, and enforced password strength requirements.
 
 ---
 
