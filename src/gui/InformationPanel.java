@@ -17,38 +17,50 @@
 
 package gui;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import javax.swing.*;
+
+import javax.swing.BorderFactory;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextPane;
 import javax.swing.border.EmptyBorder;
+
 import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 
 public class InformationPanel extends JPanel {
-    public InformationPanel(JTabbedPane tabPane, String fileNameForText, String title) {
+    private String fileName;
+    private JTextPane textPane;
+
+    public InformationPanel(JTabbedPane tabPane, String fileNameForText, String title, boolean lazyLoad) {
         super(new BorderLayout(8, 8));
-        createPanel(tabPane, fileNameForText, title);
+        this.fileName = fileNameForText;
+        createPanel(tabPane, title, lazyLoad);
     }
 
-    private void createPanel(JTabbedPane tabPanel, String fileNameForText, String title) {
-        // Load license text
-        var informationTextToDisplay = loadPanelText(fileNameForText);
+    private void createPanel(JTabbedPane tabPanel, String title, boolean lazyLoad) {
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(12, 12, 12, 12));
 
         createHeader(title);
 
+        textPane = new JTextPane();
+        textPane.setEditable(false);
+        textPane.setBackground(Color.WHITE);
 
-        var tp = new JTextPane();
-        tp.setEditable(false);
-        tp.setBackground(Color.WHITE);
-        MarkdownRenderer.renderMarkdown(tp, informationTextToDisplay.lines().toList());
-        LinkHandler.addLinkListeners(tp);
+        if (!lazyLoad) {
+            loadText();
+        }
 
-        var sp = new JScrollPane(tp);
+        var sp = new JScrollPane(textPane);
         sp.setOpaque(false);
         sp.getViewport().setOpaque(false);
         sp.setBorder(BorderFactory.createEmptyBorder());
@@ -64,6 +76,14 @@ public class InformationPanel extends JPanel {
         // });
         // bottom.add(ok);
         // add(bottom, BorderLayout.SOUTH);
+    }
+
+    public void loadText() {
+        if (fileName != null) {
+            var informationTextToDisplay = loadPanelText(fileName);
+            MarkdownRenderer.renderMarkdown(textPane, informationTextToDisplay.lines().toList());
+            LinkHandler.addLinkListeners(textPane);
+        }
     }
 
     private void createHeader(String title) {

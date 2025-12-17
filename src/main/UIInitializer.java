@@ -168,8 +168,9 @@ public class UIInitializer {
         NavItem n3 = new NavItem("Settings", 3, tabPane, null);
         NavItem n4 = new NavItem("Help", 4, tabPane, null);
         Runnable aboutOnClick = () -> {
-            new SplashScreen().setVisible(true);
             tabPane.setSelectedIndex(5);
+            new SplashScreen().setVisible(true);
+            ((InformationPanel) tabPane.getComponentAt(5)).loadText();
         };
         NavItem n5 = new NavItem("About", 5, tabPane, aboutOnClick);
 
@@ -233,8 +234,8 @@ public class UIInitializer {
         tabPane.addTab("Log Entries", editor.getLogListPanel());
         tabPane.addTab("Full Log", editor.getFullLogPanel());
         tabPane.addTab("Settings", editor.getSettingsPanel());
-        tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help"));
-        tabPane.addTab("About", new InformationPanel(tabPane, "license.md", "About"));
+        tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help", false));
+        tabPane.addTab("About", new InformationPanel(tabPane, "license.md", "About", true));
         tabPane.addChangeListener(e -> {
             if (tabPane.getSelectedIndex() == 2) {
                 editor.getFullLogPanel().loadFullLog();
