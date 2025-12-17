@@ -25,19 +25,18 @@ import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 
-import clipboard.SecureClipboardManager;
-
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
+
+import clipboard.SecureClipboardManager;
 
 public class PasswordGeneratorDialog extends JDialog {
     private JTextField resultField;
@@ -56,20 +55,25 @@ public class PasswordGeneratorDialog extends JDialog {
     }
 
     private void initComponents() {
-        setLayout(new BorderLayout(10, 10));
+        setLayout(new BorderLayout(15, 15));
         getContentPane().setBackground(new Color(0xF7FAFC));
 
-        // Header
+        // Header with padding
+        var headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(0xF7FAFC));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 10, 20));
         var header = new JLabel("Generate Secure Passwords & Passphrases");
         header.setFont(header.getFont().deriveFont(Font.BOLD, 16f));
         header.setForeground(new Color(0x2B3A42));
-        add(header, BorderLayout.NORTH);
+        headerPanel.add(header, BorderLayout.CENTER);
+        add(headerPanel, BorderLayout.NORTH);
 
         // Center panel
         var centerPanel = new JPanel(new GridBagLayout());
         centerPanel.setBackground(new Color(0xF7FAFC));
-        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
         var gbc = new GridBagConstraints();
+        gbc.insets = new java.awt.Insets(8, 8, 8, 8); // Add padding between components
 
         // Type selection
         gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.WEST;
@@ -136,8 +140,9 @@ public class PasswordGeneratorDialog extends JDialog {
         add(centerPanel, BorderLayout.CENTER);
 
         // Buttons
-        var buttonPanel = new JPanel(new FlowLayout());
+        var buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
         buttonPanel.setBackground(new Color(0xF7FAFC));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 20, 20));
 
         generateButton = new AccentButton("Generate");
         generateButton.addActionListener(e -> generate());

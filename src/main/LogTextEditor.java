@@ -99,6 +99,9 @@ public class LogTextEditor extends JFrame {
     private final java.util.Properties settings = new java.util.Properties();
     private final java.nio.file.Path settingsPath = java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
 
+    // Secure settings for sensitive data
+    private final SecureSettings secureSettings;
+
     private String passwordReminder = "";
     private boolean isLocked = false;
     private final Object lockObject = new Object();
@@ -122,6 +125,8 @@ public class LogTextEditor extends JFrame {
     private EncryptionHandler encryptionHandler;
 
     public LogTextEditor() {
+        // Initialize secure settings
+        secureSettings = new SecureSettings();
         try {
             // Initialize action handler first (needed by components)
             actionHandler = new ActionHandler(this, logFileHandler, logList, listModel);
@@ -408,7 +413,7 @@ public class LogTextEditor extends JFrame {
                 var backupDir = settings.getProperty("backupDirectory", "");
                 logFileHandler.setBackupDirectory(backupDir);
                 var enc = settings.getProperty("encrypted");
-                passwordReminder = settings.getProperty("passwordReminder", "");
+                passwordReminder = secureSettings.getDecryptedProperty(settings, "passwordReminder", "");
                 var dataLoaded = false;
                 if ("true".equals(enc)) {
                     encryptionHandler.handleEncryptionSetup();

@@ -41,6 +41,7 @@ import javax.swing.JTextField;
 
 import filehandling.LogFileHandler;
 import main.LogTextEditor;
+import main.SecureSettings;
 import utils.Toast;
 
 public class SettingsPanel extends JPanel {
@@ -48,6 +49,7 @@ public class SettingsPanel extends JPanel {
     private final Properties settings;
     private final Path settingsPath;
     private final LogFileHandler logFileHandler;
+    private final SecureSettings secureSettings;
 
     private JCheckBox encryptionCheckBox;
     private JButton applyButton;
@@ -64,6 +66,7 @@ public class SettingsPanel extends JPanel {
         this.settings = settings;
         this.settingsPath = settingsPath;
         this.logFileHandler = logFileHandler;
+        this.secureSettings = new SecureSettings();
 
         initComponents();
     }
@@ -248,7 +251,7 @@ public class SettingsPanel extends JPanel {
     }
 
     public void loadCurrentSettings() {
-        reminderField.setText(settings.getProperty("passwordReminder", ""));
+        reminderField.setText(secureSettings.getDecryptedProperty(settings, "passwordReminder", ""));
         backupDirField.setText(settings.getProperty("backupDirectory", ""));
         splashOnStartupCheckBox.setSelected("true".equals(settings.getProperty("showSplashOnStartup", "true")));
         clipboardAutoClearCheckBox.setSelected("true".equals(settings.getProperty("clipboardAutoClear", "true")));
@@ -276,7 +279,7 @@ public class SettingsPanel extends JPanel {
         }
 
         // Check if any settings actually changed
-        var currentReminder = settings.getProperty("passwordReminder", "");
+        var currentReminder = secureSettings.getDecryptedProperty(settings, "passwordReminder", "");
         var currentBackupDir = settings.getProperty("backupDirectory", "");
         var currentSplashOnStartup = "true".equals(settings.getProperty("showSplashOnStartup", "true"));
         var currentClipboardAutoClear = "true".equals(settings.getProperty("clipboardAutoClear", "true"));
@@ -306,7 +309,7 @@ public class SettingsPanel extends JPanel {
         }
 
         // Save settings
-        settings.setProperty("passwordReminder", newReminder);
+        secureSettings.setEncryptedProperty(settings, "passwordReminder", newReminder);
         editor.updatePasswordReminder(newReminder);
         settings.setProperty("backupDirectory", newBackupDir);
         settings.setProperty("showSplashOnStartup", newSplashOnStartup ? "true" : "false");

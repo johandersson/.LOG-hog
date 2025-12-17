@@ -17,8 +17,10 @@
 
 package notepad;
 
-import java.nio.file.*;
-import javax.swing.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import javax.swing.JOptionPane;
 
 public class NotepadOpener {
     public static void openLogInNotepad() {
@@ -69,20 +71,41 @@ public class NotepadOpener {
                 return false;
             }
 
-            // Check that the path doesn't contain suspicious characters
+            // Check that the path doesn't contain suspicious characters or command injection attempts
             String pathString = absolutePath.toString();
-            if (pathString.contains("..") || pathString.contains("&") || pathString.contains("|") ||
-                pathString.contains(";") || pathString.contains("`") || pathString.contains("$")) {
+            String[] forbiddenChars = {"..", "&", "|", ";", "`", "$", "<", ">", "*", "?", "[", "]", "{", "}",
+                                     "\"", "'", "\n", "\r", "\t", "\0", "\\", "/"};
+            for (String forbidden : forbiddenChars) {
+                if (pathString.contains(forbidden)) {
+                    return false;
+                }
+            }
+
+            // Check for command injection patterns
+            if (pathString.matches(".*\\$\\(.*\\).*") || // $(command)
+                pathString.matches(".*`.*`.*") ||       // `command`
+                pathString.matches(".*\\$\\{.*\\}.*")) { // ${variable}
                 return false;
             }
 
             // Ensure the path is within user home or current working directory
             String userHome = System.getProperty("user.home");
             String cwd = System.getProperty("user.dir");
+            if (userHome == null || cwd == null) {
+                return false; // Can't validate without these properties
+            }
+
             Path userHomePath = Path.of(userHome).toAbsolutePath().normalize();
             Path cwdPath = Path.of(cwd).toAbsolutePath().normalize();
 
-            return absolutePath.startsWith(userHomePath) || absolutePath.startsWith(cwdPath);
+            // Additional check: ensure path doesn't escape the allowed directories
+            if (!absolutePath.startsWith(userHomePath) && !absolutePath.startsWith(cwdPath)) {
+                return false;
+            }
+
+            // Final check: ensure the file actually exists and is readable
+            return Files.exists(absolutePath) && Files.isReadable(absolutePath);
+
         } catch (Exception e) {
             return false;
         }
