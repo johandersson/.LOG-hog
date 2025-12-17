@@ -320,7 +320,9 @@ public class SettingsPanel extends JPanel {
             int timeoutValue = Integer.parseInt(newClipboardTimeout);
             clipboard.SecureClipboardManager.setTimeoutSeconds(timeoutValue);
         } catch (NumberFormatException e) {
-            // If invalid, keep current setting
+            JOptionPane.showMessageDialog(editor, "Invalid clipboard timeout value. Using default.", "Settings Error", JOptionPane.WARNING_MESSAGE);
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(editor, "Clipboard timeout must be between 5 and 30 seconds.", "Settings Error", JOptionPane.WARNING_MESSAGE);
         }
 
         loadCurrentSettings(); // Refresh fields with saved values

@@ -475,7 +475,16 @@ public class LogTextEditor extends JFrame {
         int timeout = Integer.parseInt(settings.getProperty("clipboardTimeout", "30"));
 
         clipboard.SecureClipboardManager.setAutoClearEnabled(autoClear);
-        clipboard.SecureClipboardManager.setTimeoutSeconds(timeout);
+        try {
+            clipboard.SecureClipboardManager.setTimeoutSeconds(timeout);
+        } catch (IllegalArgumentException e) {
+            // If saved timeout is invalid, use default
+            try {
+                clipboard.SecureClipboardManager.setTimeoutSeconds(30);
+            } catch (IllegalArgumentException e2) {
+                // This should never happen with hardcoded 30
+            }
+        }
 
         // Cleanup is now handled directly in UIInitializer before System.exit(0)
         // No shutdown hook needed

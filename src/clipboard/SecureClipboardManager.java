@@ -17,10 +17,23 @@
 
 package clipboard;
 
-import java.awt.*;
-import java.awt.datatransfer.*;
-import java.util.concurrent.*;
-import javax.swing.*;
+import java.awt.Component;
+import java.awt.Toolkit;
+import java.awt.Window;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+
 import utils.Toast;
 
 /**
@@ -37,9 +50,13 @@ public class SecureClipboardManager {
 
     /**
      * Set the automatic clipboard clearing timeout in seconds.
+     * Valid range: 5-30 seconds
      */
     public static void setTimeoutSeconds(int seconds) {
-        timeoutSeconds = Math.max(5, seconds); // Minimum 5 seconds
+        if (seconds < 5 || seconds > 30) {
+            throw new IllegalArgumentException("Timeout must be between 5 and 30 seconds");
+        }
+        timeoutSeconds = seconds;
     }
 
     /**
@@ -72,10 +89,19 @@ public class SecureClipboardManager {
      * Securely copy text to clipboard with automatic clearing and custom message.
      */
     public static void copySecureTextToClipboard(String text, Component parent, String successMessage) {
-        if (text == null || text.isEmpty()) {
+        // Input validation
+        if (text == null) {
+            Toolkit.getDefaultToolkit().beep();
+            JOptionPane.showMessageDialog(parent, "Cannot copy null text.", "Copy Failed", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (text.isEmpty()) {
             Toolkit.getDefaultToolkit().beep();
             JOptionPane.showMessageDialog(parent, "Text is empty.", "Copy Failed", JOptionPane.WARNING_MESSAGE);
             return;
+        }
+        if (successMessage == null) {
+            successMessage = "Text copied to clipboard securely.";
         }
 
         // Mark content as secure and add timestamp
@@ -102,6 +128,10 @@ public class SecureClipboardManager {
 
         } catch (IllegalStateException ise) {
             JOptionPane.showMessageDialog(parent, "Unable to access clipboard right now. Try again.", "Clipboard Error", JOptionPane.ERROR_MESSAGE);
+        } catch (SecurityException se) {
+            JOptionPane.showMessageDialog(parent, "Clipboard access denied by security manager.", "Security Error", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(parent, "Unexpected error accessing clipboard: " + e.getMessage(), "Clipboard Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -127,8 +157,15 @@ public class SecureClipboardManager {
                     }
                 }
             }
+        } catch (IllegalStateException ise) {
+            // Clipboard not available - silently ignore
+        } catch (UnsupportedFlavorException ufe) {
+            // Data flavor not supported - silently ignore
+        } catch (IOException ioe) {
+            // I/O error accessing clipboard - silently ignore
         } catch (Exception e) {
-            // Silently ignore clipboard access errors during clearing
+            // Any other unexpected error - log but don't show to user
+            System.err.println("Unexpected error clearing secure clipboard: " + e.getMessage());
         }
     }
 
@@ -144,8 +181,15 @@ public class SecureClipboardManager {
                 String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
                 return data != null && data.startsWith(LOGHOG_CLIPBOARD_MARKER);
             }
+        } catch (IllegalStateException ise) {
+            // Clipboard not available
+        } catch (UnsupportedFlavorException ufe) {
+            // Data flavor not supported
+        } catch (IOException ioe) {
+            // I/O error accessing clipboard
         } catch (Exception e) {
-            // Silently ignore clipboard access errors
+            // Any other unexpected error
+            System.err.println("Unexpected error checking secure clipboard content: " + e.getMessage());
         }
         return false;
     }
@@ -159,16 +203,20 @@ public class SecureClipboardManager {
             clearTask.cancel(false);
         }
 
-        // Schedule new clearing task
-        clearTask = scheduler.schedule(() -> {
-            SwingUtilities.invokeLater(() -> {
-                if (hasSecureContent()) {
-                    clearSecureClipboard();
-                    // Show notification that clipboard was cleared
-                    Toast.showToast(null, "Clipboard automatically cleared for security.");
-                }
-            });
-        }, timeoutSeconds, TimeUnit.SECONDS);
+        try {
+            // Schedule new clearing task
+            clearTask = scheduler.schedule(() -> {
+                SwingUtilities.invokeLater(() -> {
+                    if (hasSecureContent()) {
+                        clearSecureClipboard();
+                        // Show notification that clipboard was cleared
+                        Toast.showToast(null, "Clipboard automatically cleared for security.");
+                    }
+                });
+            }, timeoutSeconds, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            System.err.println("Failed to schedule clipboard clearing: " + e.getMessage());
+        }
     }
 
     /**
