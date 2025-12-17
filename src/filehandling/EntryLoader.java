@@ -232,26 +232,42 @@ public class EntryLoader {
             } else {
                 lines = Files.readAllLines(LogFileHandler.FILE_PATH);
             }
-            StringBuilder entry = new StringBuilder();
-            boolean found = false;
+
+            // Parse entries like in loadLogEntries
+            var entries = new ArrayList<List<String>>();
+            var currentEntry = new ArrayList<String>();
             var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$");
-
             for (String line : lines) {
-                if (!found && line.trim().equals(timeStamp.trim())) {
-                    found = true;
-                    continue;
-                }
-
-                if (found) {
-                    // stop at next timestamp (accounts for entries with or without blank lines)
-                    if (tsPattern.matcher(line.trim()).matches()) {
-                        break;
+                var trimmed = line.trim();
+                if (trimmed.equalsIgnoreCase(".LOG")) continue;
+                if (tsPattern.matcher(trimmed).matches()) {
+                    if (!currentEntry.isEmpty()) {
+                        entries.add(new ArrayList<>(currentEntry));
+                        currentEntry.clear();
                     }
-                    entry.append(line).append("\n");
+                    currentEntry.add(line);
+                } else {
+                    if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
+                        currentEntry.add(line);
+                    }
+                }
+            }
+            if (!currentEntry.isEmpty()) {
+                entries.add(currentEntry);
+            }
+
+            // Find the entry with matching timestamp
+            for (List<String> e : entries) {
+                if (!e.isEmpty() && e.get(0).trim().equals(timeStamp.trim())) {
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 1; i < e.size(); i++) {
+                        sb.append(e.get(i)).append("\n");
+                    }
+                    return sb.toString().trim();
                 }
             }
 
-            return entry.toString().trim();
+            return "";
         } catch (Exception e) {
             logFileHandler.showErrorDialog("<html><b>👁️ Display Failed</b><br><br>Unable to display the log entry.<br>" + e.getMessage() + "<br><br><i>Tip: The entry may be corrupted or the file may be locked.</i></html>");
         }

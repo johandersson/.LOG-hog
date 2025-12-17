@@ -899,4 +899,41 @@ public class FileHandlingTest {
         }
         assertTrue(hasLogHeader, "Encrypted files should maintain .LOG header through multiple saves");
     }
+
+    @Test
+    @DisplayName("EntryLoader should load entry correctly after encryption unlock")
+    void testLoadEntryAfterEncryptionUnlock() throws Exception {
+        // Create test data first
+        createTestLogFile();
+
+        // Load entries to get a timestamp
+        entryLoader.loadLogEntries(listModel);
+        assertTrue(listModel.getSize() > 0);
+        String originalTimestamp = listModel.getElementAt(0);
+
+        // Load the entry content before encryption
+        String originalContent = entryLoader.loadEntry(originalTimestamp);
+        assertNotNull(originalContent);
+        assertFalse(originalContent.isEmpty());
+
+        // Now enable encryption (simulate locking)
+        enableEncryption();
+
+        // Clear list and reload (simulate unlock)
+        listModel.clear();
+        entryLoader.loadLogEntries(listModel);
+        assertTrue(listModel.getSize() > 0);
+
+        // The timestamp should be the same (display format)
+        String encryptedTimestamp = listModel.getElementAt(0);
+        assertEquals(originalTimestamp, encryptedTimestamp);
+
+        // Load the entry content after encryption
+        String encryptedContent = entryLoader.loadEntry(encryptedTimestamp);
+        assertNotNull(encryptedContent);
+        assertFalse(encryptedContent.isEmpty());
+
+        // Content should be the same
+        assertEquals(originalContent, encryptedContent);
+    }
 }
