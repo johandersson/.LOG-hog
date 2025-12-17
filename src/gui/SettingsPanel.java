@@ -324,7 +324,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private void enableEncryption() {
-        var pwdResult = PasswordDialog.showPasswordDialog(editor, "Enter new password (min 20 chars, 1 uppercase, 1 special char)", reminderField.getText(), "Create a new password for your log.", true);
+        var pwdResult = PasswordDialog.showPasswordDialog(editor, "Create Password", reminderField.getText(), "<html>Create a strong password for your encrypted log.<br><br><b>Requirements:</b><br>• At least 20 characters<br>• At least one uppercase letter (A-Z)<br>• At least one special character (!@#$%^&* etc.)<br>• Must score at least 'Good' strength<br><br>Use a passphrase for maximum security.</html>", true);
         var pwd = pwdResult.password;
         if (pwd == null) return;
 
@@ -341,6 +341,13 @@ public class SettingsPanel extends JPanel {
         }
         if (!hasUpper || !hasSpecial) {
             JOptionPane.showMessageDialog(editor, "Password must contain at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':\",./<>?)");
+            return;
+        }
+
+        // Check strength score
+        int score = gui.PasswordStrengthIndicator.calculateStrength(pwd);
+        if (score < 50) { // Require at least 'Good' (50+)
+            JOptionPane.showMessageDialog(editor, "Password is too weak. Please create a stronger password (aim for 'Good' or 'Strong' in the indicator).");
             return;
         }
 
