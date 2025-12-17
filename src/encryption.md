@@ -81,7 +81,7 @@ byte[] encrypted = encrypt(data, key);
 ## 📋 Clipboard Security: 9/10
 
 ### Security Features
-- **Automatic Clearing**: Configurable timeout (5-300 seconds, default 30s)
+- **Automatic Clearing**: Configurable timeout (5-30 seconds, default 30s)
 - **Content Marking**: Secure .LOG-hog data identification
 - **Educational Warnings**: User education about clipboard risks
 - **Manual Controls**: Immediate clear options available
@@ -92,6 +92,7 @@ byte[] encrypted = encrypt(data, key);
 - **Secure Markers**: Content tagged as sensitive .LOG-hog data
 - **User Notifications**: Toast messages for security actions
 - **Settings Integration**: User-configurable timeout and behavior
+- **Error Handling**: Comprehensive exception handling for clipboard access failures
 
 ### Security Benefits
 - **Data Exposure Prevention**: Eliminates indefinite clipboard access
