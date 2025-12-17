@@ -313,8 +313,7 @@ public class LogListPanel extends JPanel {
             if (!e.getValueIsAdjusting()) {
                 var selectedItem = logList.getSelectedValue();
                 if (selectedItem != null) {
-                    var rawTs = logFileHandler.getRawTimestamp(selectedItem);
-                    var logContent = logFileHandler.loadEntry(rawTs);
+                    var logContent = logFileHandler.loadEntry(selectedItem);
                     entryArea.setText(logContent);
                 } else {
                     entryArea.setText("");
@@ -331,8 +330,7 @@ public class LogListPanel extends JPanel {
             logList.ensureIndexIsVisible(0);
             var item = listModel.getElementAt(0);
             if (item != null) {
-                var rawTs = logFileHandler.getRawTimestamp(item);
-                var content = logFileHandler.loadEntry(rawTs);
+                var content = logFileHandler.loadEntry(item);
                 entryArea.setText(content);
             }
         } else {

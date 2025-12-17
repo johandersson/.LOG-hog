@@ -115,22 +115,10 @@ public class EntryLoader {
             List<List<String>> sortedEntries = new ArrayList<>();
             sortedEntries.addAll(nonTimestampEntries); // preamble notes at top
             sortedEntries.addAll(filteredTimestampEntries);
-            Map<String, Integer> countMap = new HashMap<>();
             for (List<String> entry : sortedEntries) {
                 // For the list view, show only the timestamp line (or first line for non-timestamp entries)
                 if (!entry.isEmpty()) {
-                    String firstLine = entry.get(0).trim();
-                    if (tsPattern.matcher(firstLine).matches()) {
-                        // Strip any existing suffix
-                        String baseTs = firstLine.replaceAll(" \\([0-9]+\\)$", "");
-                        String minuteTs = baseTs.split(" ")[0];
-                        int count = countMap.getOrDefault(minuteTs, 0);
-                        String display = baseTs + (count > 0 ? " (" + count + ")" : "");
-                        listModel.addElement(display);
-                        countMap.put(minuteTs, count + 1);
-                    } else {
-                        listModel.addElement(firstLine);
-                    }
+                    listModel.addElement(entry.get(0).trim());
                 }
             }
         } catch (Exception e) {
@@ -248,7 +236,7 @@ public class EntryLoader {
             boolean found = false;
 
             for (String line : lines) {
-                if (!found && line.trim().startsWith(timeStamp.trim())) {
+                if (!found && line.trim().equals(timeStamp.trim())) {
                     found = true;
                     continue;
                 }

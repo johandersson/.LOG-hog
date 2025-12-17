@@ -79,7 +79,7 @@ public class LogFileHandler {
 
         String ls = System.lineSeparator();
         // Entry ends with exactly one blank line for correct grouping
-        String entry = timeStamp + ls + text + ls;
+        String entry = uniqueTimeStamp + ls + text + ls;
 
         try {
             if (encrypted) {
@@ -399,7 +399,7 @@ public class LogFileHandler {
         return updatedLines;
     }
 
-    private int getDuplicateCount(String timeStamp) {
+    public int getDuplicateCount(String timeStamp) {
         if (!Files.exists(FILE_PATH)) return 0;
 
         try {

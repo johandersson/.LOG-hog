@@ -234,8 +234,17 @@ public class ActionHandler {
             return;
         }
 
+        // calculate unique timestamp
+        int count = logFileHandler.getDuplicateCount(newDateTime.trim());
+        String uniqueNewTimestamp = count > 0 ? newDateTime.trim() + " (" + count + ")" : newDateTime.trim();
+
         // update
-        logFileHandler.changeTimestamp(selectedItem, newDateTime.trim(), listModel);
+        logFileHandler.changeTimestamp(selectedItem, uniqueNewTimestamp, listModel);
+        try {
+            editor.loadLogEntries();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         // reload full log and update menu
         fullLogPanel.loadFullLog();
         SystemTrayMenu.updateRecentLogsMenu();
