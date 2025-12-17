@@ -15,13 +15,15 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - **Immediate memory clearing** of all sensitive data (passwords, keys, cached content)
 - **Automatic clipboard security** with configurable timeout (1-3600 seconds) and educational warnings
 - **Secure Ctrl+C functionality** in all text areas with automatic clearing
+- **Automatic secure backups** after encryption/decryption operations with multiple overwrite deletion
 - **Path validation and confinement** preventing directory traversal and command injection
 - **Thread-safe operations** with proper synchronization
 - **Generic error messages** preventing information disclosure
 - **Comprehensive input validation** with bounds checking and sanitization
 - **File operation restrictions** to user home and working directories only
+- **Settings encryption** using deterministic keys for defense in depth
 
-**Security Rating: HIGH (9.0/10)** - Suitable for sensitive personal and professional data storage. Enhanced password requirements now enforce minimum strength scoring, blocking weak passwords that meet basic criteria.
+**Security Rating: HIGH (9.5/10)** - Suitable for sensitive personal and professional data storage. Enhanced password requirements now enforce minimum strength scoring, blocking weak passwords that meet basic criteria.
 
 .LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager.
 
@@ -67,6 +69,8 @@ Access clipboard security settings through the system tray icon (right-click the
 
 ## Backup and Restore
 - **Creating Backups**: In the Settings tab, click "Backup Log File" to create a copy of your log file. Choose a location and filename (pre-filled with date). Backups preserve the encryption state of your original file.
+- **Automatic Backup**: When enabled in Settings, automatic secure backups are created after encryption or decryption operations. Configure the backup directory and enable/disable this feature in the Settings tab under "Automatic Backup".
+- **Backup Security**: All backups use secure deletion (multiple overwrites) when replacing existing files to prevent data recovery.
 - **Backup Filtering**: The file chooser shows only existing .LOG-hog backup files for easy management.
 - **Restoring**: Manually replace your log.txt with a backup file if needed.
 

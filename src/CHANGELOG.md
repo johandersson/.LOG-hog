@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Unreleased]
+
 ### Added
 - GPL3 copyright notices and author attribution to all Java files
 - CHANGELOG.md for tracking important changes
@@ -27,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **EncryptionHandler class** for managing password authentication and encryption setup
 - **Javadocs generation** with comprehensive API documentation
 - **Expanded timestamp format support** for better Notepad compatibility across locales (supports 23+ common formats including ISO, US, European, German, and 12-hour variants)
+- **BackupManager component** for centralized backup handling with secure deletion
+- **Automatic backup functionality** triggered after encryption/decryption operations
+- **Secure random password generation** for tests (removed hardcoded passwords)
+- **Error message sanitization** to prevent information disclosure in production
+- **Input validation** for settings (reminder length, backup directory safety)
+- **Secure file deletion** with multiple overwrites for backup security
+- **Settings encryption** using deterministic keys for defense in depth
 - Updated README.md with security overview and link to detailed encryption documentation
 - Updated help.md to reference centralized security documentation and remove redundant sections
 - Added non-technical introduction to encryption.md for better user accessibility
@@ -41,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Repository management**: Moved .gitignore to project root with enhanced patterns for logs, backups, and AI files
 - **Password authentication**: Increased maximum attempts from 3 to 4 with updated progressive delays (3s → 15s → 30s)
 - **Password requirements**: Relaxed special character requirement for strong passwords (70+ score) to allow secure passphrases while maintaining security for weaker passwords
+- **Security architecture**: Implemented separate encryption for settings (deterministic keys) vs log files (user passwords + salt)
 - Updated splash screen entries to remove movie references and focus on themes of mom, coding, coca cola, AI, and pizza
 
 ### Fixed
@@ -48,6 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Password error handling**: Improved to catch decryption failures from both current and legacy key derivation methods, showing user-friendly messages
 - **Encryption compatibility**: Fixed issues when PBKDF2 iterations were increased; all decryption operations now support both old (65,536) and new (100,000) PBKDF2 iterations
 - **Lock message rendering**: Full log lock message no longer appears as clickable links
+- **Error message sanitization**: Removed detailed exception information from user-facing error dialogs
+- **Input validation**: Added comprehensive validation for settings inputs (reminder length, backup directory safety)
+- **Debug output removal**: Eliminated System.out.println statements from production code
+- **Secure file operations**: Implemented multiple overwrite deletion for backup security
 - **Backup operations**: Now use configured default directory
 - **Settings panel**: Fixed NullPointerException when backupDirField was not initialized
 - **Repository cleanup**: Removed debug.log and backup files from version control
