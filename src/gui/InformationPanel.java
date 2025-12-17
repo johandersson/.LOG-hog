@@ -19,6 +19,7 @@ package gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -40,13 +41,13 @@ public class InformationPanel extends JPanel {
     private String fileName;
     private JTextPane textPane;
 
-    public InformationPanel(JTabbedPane tabPane, String fileNameForText, String title, boolean lazyLoad) {
+    public InformationPanel(JTabbedPane tabPane, String fileNameForText, String title, boolean lazyLoad, boolean showSplash) {
         super(new BorderLayout(8, 8));
         this.fileName = fileNameForText;
-        createPanel(tabPane, title, lazyLoad);
+        createPanel(tabPane, title, lazyLoad, showSplash);
     }
 
-    private void createPanel(JTabbedPane tabPanel, String title, boolean lazyLoad) {
+    private void createPanel(JTabbedPane tabPanel, String title, boolean lazyLoad, boolean showSplash) {
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(12, 12, 12, 12));
 
@@ -67,15 +68,20 @@ public class InformationPanel extends JPanel {
         sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         add(sp, BorderLayout.CENTER);
 
-        // Bottom: OK button returns to Entry tab (index 0)
-        // var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        // bottom.setOpaque(false);
-        // var ok = new AccentButton("OK");
-        // ok.addActionListener(e -> {
-        //     if (tabPanel != null && tabPanel.getTabCount() > 0) tabPanel.setSelectedIndex(0);
-        // });
-        // bottom.add(ok);
-        // add(bottom, BorderLayout.SOUTH);
+        if (lazyLoad && !showSplash) {
+            var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            bottom.setOpaque(false);
+            var splashButton = new AccentButton("Show Splash");
+            splashButton.addActionListener(e -> {
+                SplashScreen splash = new SplashScreen();
+                splash.setVisible(true);
+                if (splash.wasOkPressed()) {
+                    loadText();
+                }
+            });
+            bottom.add(splashButton);
+            add(bottom, BorderLayout.SOUTH);
+        }
     }
 
     public void loadText() {
