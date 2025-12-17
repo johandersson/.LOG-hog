@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Code modernization**: Refactored SettingsPanel.java for better maintainability; modernized codebase with 'var' declarations (Java 17 feature)
 - **Repository management**: Moved .gitignore to project root with enhanced patterns for logs, backups, and AI files
 - **Password authentication**: Increased maximum attempts from 3 to 4 with updated progressive delays (3s → 15s → 30s)
+- **Password requirements**: Relaxed special character requirement for strong passwords (70+ score) to allow secure passphrases while maintaining security for weaker passwords
 - Updated splash screen entries to remove movie references and focus on themes of mom, coding, coca cola, AI, and pizza
 
 ### Fixed
