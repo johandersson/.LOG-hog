@@ -24,7 +24,8 @@ import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Toolkit;
+
+import clipboard.SecureClipboardManager;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
@@ -144,9 +145,11 @@ public class PasswordGeneratorDialog extends JDialog {
         copyButton = new StandardButton("Copy to Clipboard", new Color(0xE0E0E0), new Color(0xB0B0B0));
         copyButton.addActionListener(e -> {
             if (!resultField.getText().isEmpty()) {
-                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
-                    new java.awt.datatransfer.StringSelection(resultField.getText()), null);
-                JOptionPane.showMessageDialog(this, "Password copied to clipboard!\nRemember to save it in your password manager.");
+                SecureClipboardManager.copySecureTextToClipboard(
+                    resultField.getText(), 
+                    this, 
+                    "Password copied to clipboard securely!"
+                );
             }
         });
 
