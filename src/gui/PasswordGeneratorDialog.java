@@ -17,8 +17,26 @@
 
 package gui;
 
-import java.awt.*;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Toolkit;
+
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JSpinner;
+import javax.swing.JTextField;
+import javax.swing.SpinnerNumberModel;
 
 public class PasswordGeneratorDialog extends JDialog {
     private JTextField resultField;
@@ -27,6 +45,7 @@ public class PasswordGeneratorDialog extends JDialog {
     private JSpinner lengthSpinner;
     private JButton generateButton;
     private JButton copyButton;
+    private PasswordStrengthIndicator strengthIndicator;
 
     public PasswordGeneratorDialog(Frame parent) {
         super(parent, "Password Generator", true);
@@ -38,7 +57,6 @@ public class PasswordGeneratorDialog extends JDialog {
     private void initComponents() {
         setLayout(new BorderLayout(10, 10));
         getContentPane().setBackground(new Color(0xF7FAFC));
-        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         // Header
         var header = new JLabel("Generate Secure Passwords & Passphrases");
@@ -49,7 +67,8 @@ public class PasswordGeneratorDialog extends JDialog {
         // Center panel
         var centerPanel = new JPanel(new GridBagLayout());
         centerPanel.setBackground(new Color(0xF7FAFC));
-        var gbc = new GridBagLayout().createGridBagConstraints();
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        var gbc = new GridBagConstraints();
 
         // Type selection
         gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.WEST;
@@ -97,8 +116,18 @@ public class PasswordGeneratorDialog extends JDialog {
         gbc.gridx = 1; gbc.gridy = 2; gbc.fill = GridBagConstraints.HORIZONTAL;
         centerPanel.add(resultField, gbc);
 
+        // Strength indicator
+        gbc.gridx = 0; gbc.gridy = 3;
+        centerPanel.add(new JLabel("Strength:"), gbc);
+
+        strengthIndicator = new PasswordStrengthIndicator();
+        strengthIndicator.updateStrength("".toCharArray()); // Start empty
+
+        gbc.gridx = 1; gbc.gridy = 3; gbc.fill = GridBagConstraints.HORIZONTAL;
+        centerPanel.add(strengthIndicator, gbc);
+
         // Warning message
-        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
         var warning = new JLabel("<html><b>⚠️ Important:</b> Save this password in your password manager immediately!<br>Do not rely on memory alone.</html>");
         warning.setForeground(new Color(0xD32F2F));
         centerPanel.add(warning, gbc);
@@ -140,6 +169,7 @@ public class PasswordGeneratorDialog extends JDialog {
             result = PasswordGenerator.generatePassphrase(length);
         }
         resultField.setText(result);
+        strengthIndicator.updateStrength(result.toCharArray());
     }
 
     public static void showDialog(Frame parent) {
