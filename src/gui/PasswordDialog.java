@@ -139,6 +139,20 @@ public class PasswordDialog extends JDialog {
 
         buttonPanel.add(okButton);
         buttonPanel.add(cancelButton);
+
+        if (showStrength) {
+            var generateButton = new StandardButton("Generate", new Color(0xE0E0E0), new Color(0xB0B0B0));
+            generateButton.addActionListener(e -> {
+                // Generate a strong password
+                var generated = PasswordGenerator.generatePassword(20);
+                passwordField.setText(generated);
+                if (strengthIndicator != null) {
+                    strengthIndicator.updateStrength(generated.toCharArray());
+                }
+            });
+            buttonPanel.add(generateButton);
+        }
+
         add(buttonPanel, BorderLayout.SOUTH);
 
         getRootPane().setDefaultButton(okButton);

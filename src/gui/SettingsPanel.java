@@ -227,7 +227,11 @@ public class SettingsPanel extends JPanel {
         applyButton = new AccentButton("Apply Changes");
         applyButton.addActionListener(e -> applySettings());
 
+        var generatorButton = new StandardButton("Password Generator", new Color(0xE0E0E0), new Color(0xB0B0B0));
+        generatorButton.addActionListener(e -> PasswordGeneratorDialog.showDialog(editor));
+
         panel.add(applyButton);
+        panel.add(generatorButton);
         return panel;
     }
 
@@ -324,7 +328,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private void enableEncryption() {
-        var pwdResult = PasswordDialog.showPasswordDialog(editor, "Create Password", reminderField.getText(), "<html>Create a strong password for your encrypted log.<br><br><b>Requirements:</b><br>• At least 20 characters<br>• At least one uppercase letter (A-Z)<br>• At least one special character (!@#$%^&* etc.)<br>• Must score at least 'Good' strength<br><br>Use a passphrase for maximum security.</html>", true);
+        var pwdResult = PasswordDialog.showPasswordDialog(editor, "Create Password", reminderField.getText(), "<html>Create a strong password for your encrypted log.<br><br><b>Requirements:</b><br>• At least 20 characters<br>• At least one uppercase letter (A-Z)<br>• At least one special character (!@#$%^&* etc.)<br>• Must score at least 'Good' strength<br><br>Use the <b>Generate</b> button for a secure random password, or create your own.<br><br><b>⚠️ Remember to save your password in a password manager!</b></html>", true);
         var pwd = pwdResult.password;
         if (pwd == null) return;
 
