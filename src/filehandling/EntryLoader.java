@@ -248,7 +248,7 @@ public class EntryLoader {
             boolean found = false;
 
             for (String line : lines) {
-                if (!found && line.trim().equals(timeStamp.trim())) {
+                if (!found && line.trim().startsWith(timeStamp.trim())) {
                     found = true;
                     continue;
                 }
