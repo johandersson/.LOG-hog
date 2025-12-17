@@ -39,7 +39,7 @@ public class NotepadOpener {
         try {
             new ProcessBuilder("notepad.exe", logPath.toAbsolutePath().toString()).start();
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Error opening log in Notepad: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Error opening log in Notepad. Please check file permissions and try again.", "Error", JOptionPane.ERROR_MESSAGE);
             // Try vim on Linux/Mac
             try {
                 String os = System.getProperty("os.name").toLowerCase();
@@ -47,7 +47,7 @@ public class NotepadOpener {
                     new ProcessBuilder("vim", logPath.toAbsolutePath().toString()).start();
                 }
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(null, "Error opening log in vim: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Error opening log in vim. Please check file permissions and try again.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }

@@ -131,7 +131,7 @@ public class SecureClipboardManager {
         } catch (SecurityException se) {
             JOptionPane.showMessageDialog(parent, "Clipboard access denied by security manager.", "Security Error", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(parent, "Unexpected error accessing clipboard: " + e.getMessage(), "Clipboard Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(parent, "Unexpected error accessing clipboard. Please try again.", "Clipboard Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 

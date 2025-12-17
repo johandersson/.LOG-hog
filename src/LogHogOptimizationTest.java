@@ -1,10 +1,12 @@
-import encryption.EncryptionManager;
-import filehandling.LogFileHandler;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.List;
+
+import encryption.EncryptionManager;
+import filehandling.LogFileHandler;
 
 /**
  * Simple test program for LogHog optimizations
@@ -16,7 +18,16 @@ public class LogHogOptimizationTest {
     private static final Path TEST_FILE_ENCRYPT = Paths.get("log_test_encrypt.txt");
     private static final Path TEST_FILE_CACHE = Paths.get("log_test_cache.txt");
     private static final Path TEST_FILE_SORT = Paths.get("log_test_sort.txt");
-    private static final char[] TEST_PASSWORD = "TestPassword123!".toCharArray();
+
+    private static char[] generateTestPassword() {
+        SecureRandom random = new SecureRandom();
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+        char[] password = new char[16];
+        for (int i = 0; i < password.length; i++) {
+            password[i] = chars.charAt(random.nextInt(chars.length()));
+        }
+        return password;
+    }
 
     public static void main(String[] args) {
         System.out.println("=== LogHog Optimization Test ===\n");
@@ -94,16 +105,17 @@ public class LogHogOptimizationTest {
         // Test encryption/decryption
         String testData = "Test data for encryption";
         byte[] salt = EncryptionManager.generateSalt();
+        char[] testPassword = generateTestPassword();
         byte[] encrypted = EncryptionManager.encrypt(testData,
-            EncryptionManager.deriveKey(TEST_PASSWORD, salt));
+            EncryptionManager.deriveKey(testPassword, salt));
         String decrypted = EncryptionManager.decrypt(encrypted,
-            EncryptionManager.deriveKey(TEST_PASSWORD, salt));
+            EncryptionManager.deriveKey(testPassword, salt));
 
         if (!testData.equals(decrypted)) {
             throw new RuntimeException("Encryption/decryption failed");
         }
 
-        handler.enableEncryption(TEST_PASSWORD);
+        handler.enableEncryption(testPassword);
         if (!handler.isEncrypted()) {
             throw new RuntimeException("Should be encrypted");
         }
@@ -134,7 +146,8 @@ public class LogHogOptimizationTest {
             java.nio.file.Files.createFile(TEST_FILE_CACHE);
         }
         handler.saveText("Initial entry", new javax.swing.DefaultListModel<>());
-        handler.enableEncryption(TEST_PASSWORD);
+        char[] cachePassword = generateTestPassword();
+        handler.enableEncryption(cachePassword);
 
         // Add entries
         for (int i = 0; i < 3; i++) {

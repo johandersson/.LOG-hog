@@ -25,11 +25,13 @@ import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.Properties;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -40,6 +42,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import filehandling.LogFileHandler;
+import main.BackupManager;
 import main.LogTextEditor;
 import main.SecureSettings;
 import utils.Toast;
@@ -50,6 +53,7 @@ public class SettingsPanel extends JPanel {
     private final Path settingsPath;
     private final LogFileHandler logFileHandler;
     private final SecureSettings secureSettings;
+    private final BackupManager backupManager;
 
     private JCheckBox encryptionCheckBox;
     private JButton applyButton;
@@ -60,6 +64,9 @@ public class SettingsPanel extends JPanel {
     private JCheckBox splashOnStartupCheckBox;
     private JCheckBox clipboardAutoClearCheckBox;
     private JTextField clipboardTimeoutField;
+    private JCheckBox autoBackupCheckBox;
+    private JTextField autoBackupDirField;
+    private JButton browseAutoBackupButton;
 
     public SettingsPanel(LogTextEditor editor, Properties settings, Path settingsPath, LogFileHandler logFileHandler) {
         this.editor = editor;
@@ -67,6 +74,7 @@ public class SettingsPanel extends JPanel {
         this.settingsPath = settingsPath;
         this.logFileHandler = logFileHandler;
         this.secureSettings = new SecureSettings();
+        this.backupManager = new BackupManager(settings);
 
         initComponents();
     }
@@ -91,6 +99,9 @@ public class SettingsPanel extends JPanel {
 
         // Backup directory section
         contentPanel.add(createBackupDirPanel());
+
+        // Auto-backup section
+        contentPanel.add(createAutoBackupPanel());
 
         // Reminder section
         contentPanel.add(createReminderPanel());
@@ -169,6 +180,30 @@ public class SettingsPanel extends JPanel {
         panel.add(backupDirLabel);
         panel.add(backupDirField);
         panel.add(browseBackupButton);
+        return panel;
+    }
+
+    private JPanel createAutoBackupPanel() {
+        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createTitledBorder("Automatic Backup"));
+
+        autoBackupCheckBox = new JCheckBox("Enable automatic backup after encryption changes");
+        autoBackupCheckBox.setBackground(Color.WHITE);
+        autoBackupCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+
+        var autoBackupDirLabel = new JLabel("Auto-backup directory (optional): ");
+        autoBackupDirLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        autoBackupDirField = new JTextField(20);
+        autoBackupDirField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        browseAutoBackupButton = new StandardButton("Browse...", new Color(0xE0E0E0), new Color(0xB0B0B0));
+        browseAutoBackupButton.addActionListener(e -> browseAutoBackupDirectory());
+
+        panel.add(autoBackupCheckBox);
+        panel.add(Box.createHorizontalStrut(20)); // Add some spacing
+        panel.add(autoBackupDirLabel);
+        panel.add(autoBackupDirField);
+        panel.add(browseAutoBackupButton);
         return panel;
     }
 
@@ -253,6 +288,8 @@ public class SettingsPanel extends JPanel {
     public void loadCurrentSettings() {
         reminderField.setText(secureSettings.getDecryptedProperty(settings, "passwordReminder", ""));
         backupDirField.setText(settings.getProperty("backupDirectory", ""));
+        autoBackupCheckBox.setSelected("true".equals(settings.getProperty("autoBackupEnabled", "false")));
+        autoBackupDirField.setText(settings.getProperty("autoBackupDirectory", ""));
         splashOnStartupCheckBox.setSelected("true".equals(settings.getProperty("showSplashOnStartup", "true")));
         clipboardAutoClearCheckBox.setSelected("true".equals(settings.getProperty("clipboardAutoClear", "true")));
         clipboardTimeoutField.setText(settings.getProperty("clipboardTimeout", "30"));
@@ -286,6 +323,8 @@ public class SettingsPanel extends JPanel {
         var currentClipboardTimeout = settings.getProperty("clipboardTimeout", "30");
         var newReminder = reminderField.getText();
         var newBackupDir = backupDirField.getText();
+        var newAutoBackupEnabled = autoBackupCheckBox.isSelected();
+        var newAutoBackupDir = autoBackupDirField.getText();
         var newSplashOnStartup = splashOnStartupCheckBox.isSelected();
         var newClipboardAutoClear = clipboardAutoClearCheckBox.isSelected();
         var newClipboardTimeout = clipboardTimeoutField.getText();
@@ -297,7 +336,25 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
+        // Validate reminder field
+        if (!isValidReminder(newReminder)) {
+            JOptionPane.showMessageDialog(editor, "Password reminder must be less than 200 characters and cannot contain control characters.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            loadCurrentSettings(); // Reset to current valid values
+            return;
+        }
+
+        // Validate backup directory
+        if (!isValidBackupDirectory(newBackupDir)) {
+            JOptionPane.showMessageDialog(editor, "Backup directory path is invalid or contains unsafe characters.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            loadCurrentSettings(); // Reset to current valid values
+            return;
+        }
+
+        var currentAutoBackupEnabled = "true".equals(settings.getProperty("autoBackupEnabled", "false"));
+        var currentAutoBackupDir = settings.getProperty("autoBackupDirectory", "");
+
         var settingsChanged = !currentReminder.equals(newReminder) || !currentBackupDir.equals(newBackupDir) ||
+                            currentAutoBackupEnabled != newAutoBackupEnabled || !currentAutoBackupDir.equals(newAutoBackupDir) ||
                             currentSplashOnStartup != newSplashOnStartup ||
                             currentClipboardAutoClear != newClipboardAutoClear ||
                             !currentClipboardTimeout.equals(newClipboardTimeout);
@@ -312,6 +369,8 @@ public class SettingsPanel extends JPanel {
         secureSettings.setEncryptedProperty(settings, "passwordReminder", newReminder);
         editor.updatePasswordReminder(newReminder);
         settings.setProperty("backupDirectory", newBackupDir);
+        settings.setProperty("autoBackupEnabled", newAutoBackupEnabled ? "true" : "false");
+        settings.setProperty("autoBackupDirectory", newAutoBackupDir);
         settings.setProperty("showSplashOnStartup", newSplashOnStartup ? "true" : "false");
         settings.setProperty("clipboardAutoClear", newClipboardAutoClear ? "true" : "false");
         settings.setProperty("clipboardTimeout", newClipboardTimeout);
@@ -409,9 +468,12 @@ public class SettingsPanel extends JPanel {
             editor.loadLogEntries();
             editor.getFullLogPanel().loadFullLog();
 
+            // Perform automatic backup after successful encryption
+            performAutomaticBackup();
+
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(editor, "Encryption failed: " + ex.getMessage());
-            statusLabel.setText("Encryption failed: " + ex.getMessage());
+            JOptionPane.showMessageDialog(editor, "Encryption failed. Please check your password and try again.");
+            statusLabel.setText("Encryption failed. Please check your password and try again.");
             statusLabel.setForeground(Color.RED);
         } finally {
             java.util.Arrays.fill(pwd, '\0');
@@ -430,6 +492,23 @@ public class SettingsPanel extends JPanel {
         if (res == JFileChooser.APPROVE_OPTION) {
             backupDirField.setText(chooser.getSelectedFile().getAbsolutePath());
         }
+    }
+
+    private void browseAutoBackupDirectory() {
+        var chooser = new JFileChooser();
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        var current = autoBackupDirField.getText();
+        if (!current.isEmpty()) {
+            chooser.setCurrentDirectory(new java.io.File(current));
+        }
+        var res = chooser.showOpenDialog(editor);
+        if (res == JFileChooser.APPROVE_OPTION) {
+            autoBackupDirField.setText(chooser.getSelectedFile().getAbsolutePath());
+        }
+    }
+
+    private void performAutomaticBackup() {
+        backupManager.performAutomaticBackup();
     }
 
     private void backupLogFile() {
@@ -461,10 +540,14 @@ public class SettingsPanel extends JPanel {
             var selectedFile = chooser.getSelectedFile();
             var backupPath = selectedFile.toPath();
             try {
+                // Securely delete existing backup file if it exists
+                if (Files.exists(backupPath)) {
+                    secureDelete(backupPath);
+                }
                 Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 statusLabel.setText("Backup saved to: " + backupPath.toString());
             } catch (java.io.IOException | SecurityException ex) {
-                JOptionPane.showMessageDialog(editor, "Backup failed: " + ex.getMessage());
+                JOptionPane.showMessageDialog(editor, "Backup failed. Please check file permissions and try again.");
             }
         }
     }
@@ -473,7 +556,7 @@ public class SettingsPanel extends JPanel {
         try (var fos = new FileOutputStream(settingsPath.toFile())) {
             settings.store(fos, "LogHog settings");
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(editor, "Error saving settings: " + e.getMessage());
+            JOptionPane.showMessageDialog(editor, "Error saving settings. Please check file permissions and try again.");
         }
     }
 
@@ -561,6 +644,9 @@ public class SettingsPanel extends JPanel {
         statusLabel.setText("File decrypted successfully. Encryption disabled.");
         statusLabel.setForeground(new Color(0, 128, 0)); // Green
         editor.getFullLogPanel().loadFullLog();
+
+        // Perform automatic backup after successful decryption
+        performAutomaticBackup();
     }
 
     private void showDecryptionSuccessMessage() {
@@ -591,5 +677,65 @@ public class SettingsPanel extends JPanel {
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    private boolean isValidReminder(String reminder) {
+        if (reminder == null) {
+            return true; // Empty reminder is allowed
+        }
+        if (reminder.length() > 200) {
+            return false;
+        }
+        // Check for control characters
+        for (char c : reminder.toCharArray()) {
+            if (Character.isISOControl(c)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isValidBackupDirectory(String path) {
+        if (path == null || path.trim().isEmpty()) {
+            return true; // Empty path is allowed (will use default)
+        }
+        try {
+            // Check if it's a valid path
+            java.nio.file.Paths.get(path);
+            // Check for dangerous characters that could be used for path traversal
+            if (path.contains("..") || path.contains("\\") && !System.getProperty("os.name").toLowerCase().contains("windows")) {
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void secureDelete(java.nio.file.Path filePath) throws java.io.IOException {
+        if (!Files.exists(filePath)) {
+            return;
+        }
+
+        long fileSize = Files.size(filePath);
+        SecureRandom random = new SecureRandom();
+
+        // Overwrite file multiple times with random data
+        for (int pass = 0; pass < 3; pass++) {
+            try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(filePath.toFile(), "rw")) {
+                byte[] buffer = new byte[8192];
+                long remaining = fileSize;
+                while (remaining > 0) {
+                    int toWrite = (int) Math.min(buffer.length, remaining);
+                    random.nextBytes(buffer);
+                    raf.write(buffer, 0, toWrite);
+                    remaining -= toWrite;
+                }
+                raf.getFD().sync(); // Force write to disk
+            }
+        }
+
+        // Finally delete the file
+        Files.delete(filePath);
     }
 }

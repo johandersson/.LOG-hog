@@ -330,7 +330,6 @@ public class LogTextEditor extends JFrame {
             System.exit(0);
         }
 
-        System.out.println("No other instance running, initializing GUI...");
         SwingUtilities.invokeLater(() -> {
             try {
                 LogTextEditor editor = new LogTextEditor();
