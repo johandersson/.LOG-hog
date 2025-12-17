@@ -11,8 +11,9 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 ## Features
 - Tabbed interface for writing and browsing logs
 - Encryption support (optional) with AES-GCM (password retry on incorrect entry)
-  - Password requirements: at least 20 characters, including at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':",./<>?), and must score at least 'Good' strength
+  - Password requirements: at least 20 characters, including at least one uppercase letter and one special character (unless password scores 'Strong'), and must score at least 'Good' strength
   - Secure password visibility toggle (hold to show, release to hide)
+  - **Built-in password generator** for secure random passwords and passphrases
 - **Clipboard Security**: Automatic clearing of copied content with configurable timeout and educational warnings
 - Manual lock/unlock for immediate security
 - System tray integration with quick entry and clipboard security access
@@ -24,6 +25,9 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - **Comprehensive timestamp format support**: Loads files with 23+ common date formats from various locales (ISO, US, European, German, etc.) while using HH:mm yyyy-MM-dd as the native format
 - Comprehensive help documentation
 - GPL3 licensed
+
+## Third-Party Components
+- **EFF Diceware Word List**: Used for secure passphrase generation. Released under Creative Commons Zero (CC0) license (public domain).
 
 ## System Requirements & Footprint
 

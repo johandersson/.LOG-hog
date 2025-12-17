@@ -328,7 +328,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private void enableEncryption() {
-        var pwdResult = PasswordDialog.showPasswordDialog(editor, "Create Password", reminderField.getText(), "<html>Create a strong password for your encrypted log.<br><br><b>Requirements:</b><br>• At least 20 characters<br>• At least one uppercase letter (A-Z)<br>• At least one special character (!@#$%^&* etc.)<br>• Must score at least 'Good' strength<br><br>Use the <b>Generate</b> button for a secure random password, or create your own.<br><br><b>⚠️ Remember to save your password in a password manager!</b></html>", true);
+        var pwdResult = PasswordDialog.showPasswordDialog(editor, "Create Password", reminderField.getText(), "<html>Create a strong password for your encrypted log.<br><br><b>Requirements:</b><br>• At least 20 characters<br>• At least one uppercase letter (A-Z)<br>• At least one special character (!@#$%^&* etc.) <i>unless password scores 'Strong'</i><br>• Must score at least 'Good' strength<br><br>Use the <b>Generate</b> button for a secure random password, or create your own.<br><br><b>⚠️ Remember to save your password in a password manager!</b></html>", true);
         var pwd = pwdResult.password;
         if (pwd == null) return;
 
@@ -343,13 +343,23 @@ public class SettingsPanel extends JPanel {
             if (Character.isUpperCase(c)) hasUpper = true;
             if (!Character.isLetterOrDigit(c)) hasSpecial = true;
         }
-        if (!hasUpper || !hasSpecial) {
-            JOptionPane.showMessageDialog(editor, "Password must contain at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':\",./<>?)");
+        
+        // Check strength score first to determine requirements
+        int score = gui.PasswordStrengthIndicator.calculateStrength(pwd);
+        
+        // For "Strong" passwords (70+ score), relax requirements
+        boolean requiresSpecial = score < 70;
+        
+        if (!hasUpper || (requiresSpecial && !hasSpecial)) {
+            String requirements = "Password must contain at least one uppercase letter";
+            if (requiresSpecial) {
+                requirements += " and one special character (e.g., !@#$%^&*()_+-=[]{}|;':\",./<>?)";
+            }
+            requirements += ".";
+            JOptionPane.showMessageDialog(editor, requirements);
             return;
         }
 
-        // Check strength score
-        int score = gui.PasswordStrengthIndicator.calculateStrength(pwd);
         if (score < 50) { // Require at least 'Good' (50+)
             JOptionPane.showMessageDialog(editor, "Password is too weak. Please create a stronger password (aim for 'Good' or 'Strong' in the indicator).");
             return;

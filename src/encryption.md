@@ -221,6 +221,7 @@ randomizedDelay = Math.max(1000, randomizedDelay);
 ### Password Creation
 - Use 20+ characters with mixed case, numbers, and symbols
 - Generate with password managers (KeePass, Bitwarden)
+- **Built-in Password Generator**: Use .LOG-hog's secure password generator for random passwords or memorable passphrases based on the EFF Diceware word list
 - Avoid dictionary words, patterns, or personal information
 - Never reuse passwords from other services
 
