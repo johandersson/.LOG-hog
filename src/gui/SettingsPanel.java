@@ -17,8 +17,10 @@
 
 package gui;
 
-import filehandling.LogFileHandler;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,7 +28,18 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.Properties;
-import javax.swing.*;
+
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+
+import filehandling.LogFileHandler;
 import main.LogTextEditor;
 import utils.Toast;
 
@@ -311,12 +324,12 @@ public class SettingsPanel extends JPanel {
     }
 
     private void enableEncryption() {
-        var pwdResult = PasswordDialog.showPasswordDialog(editor, "Enter new password (min 16 chars, 1 uppercase, 1 special char)", reminderField.getText(), "Create a new password for your log.");
+        var pwdResult = PasswordDialog.showPasswordDialog(editor, "Enter new password (min 20 chars, 1 uppercase, 1 special char)", reminderField.getText(), "Create a new password for your log.", true);
         var pwd = pwdResult.password;
         if (pwd == null) return;
 
-        if (pwd.length < 16) {
-            JOptionPane.showMessageDialog(editor, "Password must be at least 16 characters");
+        if (pwd.length < 20) {
+            JOptionPane.showMessageDialog(editor, "Password must be at least 20 characters");
             return;
         }
 

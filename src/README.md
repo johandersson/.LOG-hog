@@ -8,7 +8,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 ## Features
 - Tabbed interface for writing and browsing logs
 - Encryption support (optional) with AES-GCM (password retry on incorrect entry)
-  - Password requirements: at least 16 characters, including at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':",./<>?)
+  - Password requirements: at least 20 characters, including at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':",./<>?)
   - Secure password visibility toggle (hold to show, release to hide)
 - **Clipboard Security**: Automatic clearing of copied content with configurable timeout and educational warnings
 - Manual lock/unlock for immediate security

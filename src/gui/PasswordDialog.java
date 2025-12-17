@@ -17,8 +17,19 @@
 
 package gui;
 
-import java.awt.*;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Frame;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.SwingConstants;
 
 public class PasswordDialog extends JDialog {
     private JPasswordField passwordField;
@@ -29,17 +40,18 @@ public class PasswordDialog extends JDialog {
     private boolean visible = false;
     private String reminder;
     private String customMessage;
+    private PasswordStrengthIndicator strengthIndicator;
 
-    public PasswordDialog(Frame parent, String title, String reminder, String customMessage) {
+    public PasswordDialog(Frame parent, String title, String reminder, String customMessage, boolean showStrength) {
         super(parent, title, true);
         this.reminder = reminder;
         this.customMessage = customMessage;
-        initComponents();
+        initComponents(showStrength);
         pack();
         setLocationRelativeTo(parent);
     }
 
-    private void initComponents() {
+    private void initComponents(boolean showStrength) {
         setLayout(new BorderLayout());
         getContentPane().setBackground(new Color(0xF7FAFC));
 
@@ -92,6 +104,22 @@ public class PasswordDialog extends JDialog {
 
         centerPanel.add(fieldPanel, BorderLayout.CENTER);
 
+        if (showStrength) {
+            strengthIndicator = new PasswordStrengthIndicator();
+            centerPanel.add(strengthIndicator, BorderLayout.SOUTH);
+            passwordField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+                @Override
+                public void insertUpdate(javax.swing.event.DocumentEvent e) { updateStrength(); }
+                @Override
+                public void removeUpdate(javax.swing.event.DocumentEvent e) { updateStrength(); }
+                @Override
+                public void changedUpdate(javax.swing.event.DocumentEvent e) { updateStrength(); }
+                private void updateStrength() {
+                    strengthIndicator.updateStrength(passwordField.getPassword());
+                }
+            });
+        }
+
         add(centerPanel, BorderLayout.CENTER);
 
         var buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
@@ -135,13 +163,19 @@ public class PasswordDialog extends JDialog {
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder) {
-        var dialog = new PasswordDialog(parent, title, reminder, null);
+        var dialog = new PasswordDialog(parent, title, reminder, null, false);
         dialog.setVisible(true);
         return new PasswordResult(dialog.getPassword());
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, String customMessage) {
-        var dialog = new PasswordDialog(parent, title, reminder, customMessage);
+        var dialog = new PasswordDialog(parent, title, reminder, customMessage, false);
+        dialog.setVisible(true);
+        return new PasswordResult(dialog.getPassword());
+    }
+
+    public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, String customMessage, boolean showStrength) {
+        var dialog = new PasswordDialog(parent, title, reminder, customMessage, showStrength);
         dialog.setVisible(true);
         return new PasswordResult(dialog.getPassword());
     }
