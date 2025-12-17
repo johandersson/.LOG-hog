@@ -234,6 +234,7 @@ public class EntryLoader {
             }
             StringBuilder entry = new StringBuilder();
             boolean found = false;
+            var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$");
 
             for (String line : lines) {
                 if (!found && line.trim().equals(timeStamp.trim())) {
@@ -243,7 +244,7 @@ public class EntryLoader {
 
                 if (found) {
                     // stop at next timestamp (accounts for entries with or without blank lines)
-                    if (line.trim().matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}.*")) {
+                    if (tsPattern.matcher(line.trim()).matches()) {
                         break;
                     }
                     entry.append(line).append("\n");
