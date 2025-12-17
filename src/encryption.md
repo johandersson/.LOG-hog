@@ -51,7 +51,7 @@ byte[] encrypted = encrypt(data, key);
 |---------|------------|--------------|---------|
 | 1st | 3 seconds | 2.4s - 3.6s | Quick retry for typos |
 | 2nd | 15 seconds | 12s - 18s | Moderate deterrence |
-| 3rd | 60 seconds | 48s - 72s | Strong automation prevention |
+| 3rd | 30 seconds | 24s - 36s | Strong automation prevention |
 
 ### Security Benefits
 - **Timing Attack Prevention**: Randomization breaks automated scripts
@@ -114,34 +114,12 @@ byte[] encrypted = encrypt(data, key);
 
 ---
 
-## 🌐 Network Security: 10/10
-
-### Security by Design
-- **No Network Features**: Zero network attack surface
-- **Offline-Only**: Cannot be compromised remotely
-- **Air-Gapped**: No internet connectivity required or supported
-
----
-
-## 🔧 Platform Security: 7.5/10
-
-### Java Security Benefits
-- **JVM Sandboxing**: Platform-level security isolation
-- **Memory Management**: Automatic garbage collection
-- **Type Safety**: Compile-time security checks
-
-### Platform Limitations
-- **Memory Dumping**: Potential for cold boot attacks (mitigated by immediate clearing)
-- **Process Visibility**: Java processes visible in system monitors
-
----
-
 ## 📊 Attack Vector Analysis
 
 ### Highly Protected Against
 - ✅ **Casual Attackers**: Progressive delays make manual guessing impractical
 - ✅ **Automated Scripts**: Randomization prevents timing-based attacks
-- ✅ **Network Attacks**: No network connectivity
+- ✅ **Remote Network Attacks**: No internet connectivity or external server exposure
 - ✅ **Memory Forensics**: Immediate password/key clearing
 - ✅ **Weak Password Attacks**: High PBKDF2 iteration count
 
