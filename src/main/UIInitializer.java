@@ -169,8 +169,11 @@ public class UIInitializer {
         NavItem n4 = new NavItem("Help", 4, tabPane, null);
         Runnable aboutOnClick = () -> {
             tabPane.setSelectedIndex(5);
-            new SplashScreen().setVisible(true);
-            ((InformationPanel) tabPane.getComponentAt(5)).loadText();
+            SplashScreen splash = new SplashScreen();
+            splash.setVisible(true);
+            if (splash.wasOkPressed()) {
+                ((InformationPanel) tabPane.getComponentAt(5)).loadText();
+            }
         };
         NavItem n5 = new NavItem("About", 5, tabPane, aboutOnClick);
 

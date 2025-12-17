@@ -17,8 +17,20 @@
 
 package gui;
 
-import java.awt.*;
-import javax.swing.*;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Frame;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.RenderingHints;
+
+import javax.swing.JDialog;
+import javax.swing.JPanel;
+
 import utils.WindowShakeAnimation;
 
 public class SplashScreen extends JDialog {
@@ -27,6 +39,7 @@ public class SplashScreen extends JDialog {
     private StandardButton okButton;
     private java.util.List<String> entriesList;
     private Point initialClick;
+    private boolean okPressed = false;
 
     public SplashScreen() {
         super((Frame) null, "Splash", true); // modal dialog
@@ -89,7 +102,10 @@ public class SplashScreen extends JDialog {
 
         okButton = new StandardButton("OK", new Color(0xE0E0E0), new Color(0xB0B0B0));
         okButton.setBounds(200, 250, 50, 30);
-        okButton.addActionListener(e -> dispose());
+        okButton.addActionListener(e -> {
+            okPressed = true;
+            dispose();
+        });
         panel.add(okButton);
 
         setContentPane(panel);
@@ -379,5 +395,9 @@ public class SplashScreen extends JDialog {
             g2d.setStroke(new BasicStroke(2));
             g2d.drawLine(penX, penY, penX + 8, penY - 4); // pen
         }
+    }
+
+    public boolean wasOkPressed() {
+        return okPressed;
     }
 }
