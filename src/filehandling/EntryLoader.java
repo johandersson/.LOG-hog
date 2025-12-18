@@ -204,31 +204,14 @@ public class EntryLoader {
                 lines = Files.readAllLines(LogFileHandler.FILE_PATH);
             }
 
-            // Parse entries like in loadLogEntries
-            var entries = new ArrayList<List<String>>();
-            var currentEntry = new ArrayList<String>();
-            var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$");
-            for (String line : lines) {
-                var trimmed = line.trim();
-                if (trimmed.equalsIgnoreCase(".LOG")) continue;
-                if (tsPattern.matcher(trimmed).matches()) {
-                    if (!currentEntry.isEmpty()) {
-                        entries.add(new ArrayList<>(currentEntry));
-                        currentEntry.clear();
-                    }
-                    currentEntry.add(line);
-                } else {
-                    if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
-                        currentEntry.add(line);
-                    }
-                }
-            }
-            if (!currentEntry.isEmpty()) {
-                entries.add(currentEntry);
-            }
+            // Remove secure clipboard markers from lines
+            lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
+
+            // Parse all entries using the same method as loadLogEntries
+            var allEntries = LogParser.parseAllEntries(lines);
 
             // Find the entry with matching timestamp
-            for (List<String> e : entries) {
+            for (List<String> e : allEntries) {
                 if (!e.isEmpty()) {
                     String rawTs = e.get(0).trim();
                     String displayTs = logFileHandler.getDisplayTimestamp(rawTs);
