@@ -411,6 +411,15 @@ public class LogFileHandler {
             showErrorDialog("<html><b>🔍 Duplicate Check Failed</b><br><br>Unable to check for duplicate timestamps.<br>Proceeding with save.<br><br><i>Tip: This may result in duplicate entries.</i></html>");
             return 0;
         }
+    }
+
+    public String getDisplayTimestamp(String rawTs) {
+        int count = getDuplicateCount(rawTs);
+        if (count > 0) {
+            return rawTs + " (" + count + ")";
+        } else {
+            return rawTs;
+        }
     }    public List<String> getLines() throws Exception {
         if (encrypted) {
             if (cachedLines == null) {

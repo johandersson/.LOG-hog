@@ -118,7 +118,9 @@ public class EntryLoader {
             for (List<String> entry : sortedEntries) {
                 // For the list view, show only the timestamp line (or first line for non-timestamp entries)
                 if (!entry.isEmpty()) {
-                    listModel.addElement(entry.get(0).trim());
+                    String rawTs = entry.get(0).trim();
+                    String displayTs = logFileHandler.getDisplayTimestamp(rawTs);
+                    listModel.addElement(displayTs);
                 }
             }
         } catch (Exception e) {
@@ -258,12 +260,16 @@ public class EntryLoader {
 
             // Find the entry with matching timestamp
             for (List<String> e : entries) {
-                if (!e.isEmpty() && e.get(0).trim().equals(timeStamp.trim())) {
-                    StringBuilder sb = new StringBuilder();
-                    for (int i = 1; i < e.size(); i++) {
-                        sb.append(e.get(i)).append("\n");
+                if (!e.isEmpty()) {
+                    String rawTs = e.get(0).trim();
+                    String displayTs = logFileHandler.getDisplayTimestamp(rawTs);
+                    if (displayTs.equals(timeStamp.trim())) {
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 1; i < e.size(); i++) {
+                            sb.append(e.get(i)).append("\n");
+                        }
+                        return sb.toString().trim();
                     }
-                    return sb.toString().trim();
                 }
             }
 
