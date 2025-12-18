@@ -2,9 +2,6 @@ package filehandling;
 
 import javax.swing.DefaultListModel;
 
-/**
- * Interface for log file handling operations to enable polymorphism and LSP compliance.
- */
 public interface LogHandler {
     void saveText(String text, DefaultListModel<String> listModel) throws Exception;
     String loadEntry(String timeStamp) throws Exception;
