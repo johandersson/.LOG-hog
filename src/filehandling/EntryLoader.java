@@ -232,7 +232,7 @@ public class EntryLoader {
                 if (!e.isEmpty()) {
                     String rawTs = e.get(0).trim();
                     String displayTs = logFileHandler.getDisplayTimestamp(rawTs);
-                    if (rawTs.equals(timeStamp.trim())) {
+                    if (displayTs.equals(timeStamp.trim())) {
                         StringBuilder sb = new StringBuilder();
                         for (int i = 1; i < e.size(); i++) {
                             sb.append(e.get(i)).append("\n");

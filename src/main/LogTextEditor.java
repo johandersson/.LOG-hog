@@ -215,8 +215,7 @@ public class LogTextEditor extends JFrame {
             logList.ensureIndexIsVisible(0);
             String item = listModel.getElementAt(0);
             if (item != null) {
-                var rawTs = logFileHandler.getRawTimestamp(item);
-                String content = logFileHandler.loadEntry(rawTs);
+                String content = logFileHandler.loadEntry(item);
                 logListPanel.getEntryArea().setText(content);
             }
         } else {
