@@ -75,28 +75,29 @@ public class EntryLoader {
                 }
             }
 
-            // Filter timestamp entries to current month
-            var now = LocalDateTime.now();
-            var currentYear = now.getYear();
-            var currentMonth = now.getMonthValue();
-            var filteredTimestampEntries = LogParser.parseEntries(lines, currentYear, currentMonth);
+            // Sort timestamp entries by date descending
+            timestampEntries.sort((a, b) -> {
+                try {
+                    LocalDateTime dateA = utils.DateHandler.parseTimestamp(a.get(0));
+                    LocalDateTime dateB = utils.DateHandler.parseTimestamp(b.get(0));
+                    return dateB.compareTo(dateA);
+                } catch (Exception e) {
+                    return b.get(0).compareTo(a.get(0));
+                }
+            });
 
             List<List<String>> sortedEntries = new ArrayList<>();
             sortedEntries.addAll(nonTimestampEntries); // preamble notes at top
-            sortedEntries.addAll(filteredTimestampEntries);
+            sortedEntries.addAll(timestampEntries);
             Map<String, Integer> countMap = new HashMap<>();
             for (List<String> entry : sortedEntries) {
                 // For the list view, show only the timestamp line (or first line for non-timestamp entries)
                 if (!entry.isEmpty()) {
                     String rawTs = entry.get(0).trim();
                     if (tsPattern.matcher(rawTs).matches()) {
-                        // Generate display timestamp with local duplicate suffixes
-                        // Strip any existing suffix first
+                        // Generate display timestamp without suffixes
                         String baseTs = rawTs.replaceAll(" \\([0-9]+\\)$", "");
-                        int count = countMap.getOrDefault(baseTs, 0);
-                        String displayTs = baseTs + (count > 0 ? " (" + count + ")" : "");
-                        listModel.addElement(displayTs);
-                        countMap.put(baseTs, count + 1);
+                        listModel.addElement(baseTs);
                     } else {
                         listModel.addElement(rawTs);
                     }
@@ -176,19 +177,15 @@ public class EntryLoader {
                 }
             });
             
-            // Generate display timestamps with local duplicate suffixes
+            // Generate display timestamps without suffixes
             Map<String, Integer> countMap = new HashMap<>();
             for (List<String> entry : filteredEntries) {
                 if (!entry.isEmpty()) {
                     String rawTs = entry.get(0).trim();
                     if (tsPattern.matcher(rawTs).matches()) {
-                        // Generate display timestamp with local duplicate suffixes
-                        // Strip any existing suffix first
+                        // Generate display timestamp without suffixes
                         String baseTs = rawTs.replaceAll(" \\([0-9]+\\)$", "");
-                        int count = countMap.getOrDefault(baseTs, 0);
-                        String displayTs = baseTs + (count > 0 ? " (" + count + ")" : "");
-                        listModel.addElement(displayTs);
-                        countMap.put(baseTs, count + 1);
+                        listModel.addElement(baseTs);
                     } else {
                         listModel.addElement(rawTs);
                     }
@@ -234,51 +231,20 @@ public class EntryLoader {
             // Parse all entries
             var allEntries = LogParser.parseAllEntries(lines);
 
-            // Extract raw timestamp and suffix number
-            String rawTimestamp = timeStamp.replaceAll(" \\([0-9]+\\)$", "").trim();
-            int suffixNumber = 0;
-            java.util.regex.Pattern suffixPattern = java.util.regex.Pattern.compile(" \\(([0-9]+)\\)$");
-            java.util.regex.Matcher matcher = suffixPattern.matcher(timeStamp);
-            if (matcher.find()) {
-                suffixNumber = Integer.parseInt(matcher.group(1));
-            }
-
-            // Determine filter criteria from the timestamp
-            int filterYear, filterMonth;
-            try {
-                LocalDateTime tsDate = utils.DateHandler.parseTimestamp(rawTimestamp);
-                LocalDateTime now = LocalDateTime.now();
-                // If the timestamp is from current month/year, assume it came from main view
-                // Otherwise, assume it came from filtered view for that specific month/year
-                if (tsDate.getYear() == now.getYear() && tsDate.getMonthValue() == now.getMonthValue()) {
-                    filterYear = now.getYear();
-                    filterMonth = now.getMonthValue();
-                } else {
-                    filterYear = tsDate.getYear();
-                    filterMonth = tsDate.getMonthValue();
-                }
-            } catch (Exception e) {
-                // Fallback to current month
-                LocalDateTime now = LocalDateTime.now();
-                filterYear = now.getYear();
-                filterMonth = now.getMonthValue();
-            }
-
-            // Filter entries to the same criteria as the display generation
-            var filteredEntries = new ArrayList<List<String>>();
+            // Separate timestamp and non-timestamp entries
+            var timestampEntries = new ArrayList<List<String>>();
+            var nonTimestampEntries = new ArrayList<List<String>>();
+            var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$");
             for (List<String> entry : allEntries) {
-                if (!entry.isEmpty()) {
-                    try {
-                        LocalDateTime dt = utils.DateHandler.parseTimestamp(entry.get(0).trim());
-                        if (dt.getYear() == filterYear && dt.getMonthValue() == filterMonth) {
-                            filteredEntries.add(entry);
-                        }
-                    } catch (Exception ignored) {}
+                if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
+                    timestampEntries.add(entry);
+                } else {
+                    nonTimestampEntries.add(entry);
                 }
             }
 
-            // Sort the same way as display generation (newest first)
-            filteredEntries.sort((a, b) -> {
+            // Sort timestamp entries by date descending
+            timestampEntries.sort((a, b) -> {
                 try {
                     LocalDateTime dateA = utils.DateHandler.parseTimestamp(a.get(0));
                     LocalDateTime dateB = utils.DateHandler.parseTimestamp(b.get(0));
@@ -288,20 +254,16 @@ public class EntryLoader {
                 }
             });
 
-            // Find the entry at the suffix position among entries with matching timestamp
-            int occurrenceCount = 0;
-            for (List<String> entry : filteredEntries) {
-                String entryRawTs = entry.get(0).trim();
-                if (entryRawTs.equals(rawTimestamp)) {
-                    if (occurrenceCount == suffixNumber) {
-                        // Found the correct entry - return content without timestamp
-                        StringBuilder sb = new StringBuilder();
-                        for (int i = 1; i < entry.size(); i++) {
-                            sb.append(entry.get(i)).append("\n");
-                        }
-                        return sb.toString().trim();
+            // Find the first entry with matching timestamp
+            for (List<String> entry : timestampEntries) {
+                String entryTs = entry.get(0).trim().replaceAll(" \\([0-9]+\\)$", "");
+                if (entryTs.equals(timeStamp)) {
+                    // Found the entry - return content without timestamp
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 1; i < entry.size(); i++) {
+                        sb.append(entry.get(i)).append("\n");
                     }
-                    occurrenceCount++;
+                    return sb.toString().trim();
                 }
             }
 
