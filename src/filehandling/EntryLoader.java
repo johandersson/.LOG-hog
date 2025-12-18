@@ -62,6 +62,9 @@ public class EntryLoader {
         // Strip timestamp suffixes that may be in the file
         lines = lines.stream().map(line -> line.replaceAll("^(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}) \\([0-9]+\\)(.*)$", "$1$2")).collect(Collectors.toList());
 
+        // Clean malformed timestamps with Unix timestamp prefixes
+        lines = lines.stream().map(line -> line.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2")).collect(Collectors.toList());
+
         try {
             // Parse all entries
             var allEntries = LogParser.parseAllEntries(lines);
@@ -140,6 +143,8 @@ public class EntryLoader {
             }
             // Strip timestamp suffixes that may be in the file
             lines = lines.stream().map(line -> line.replaceAll("^(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}) \\([0-9]+\\)(.*)$", "$1$2")).collect(Collectors.toList());
+            // Clean malformed timestamps with Unix timestamp prefixes
+            lines = lines.stream().map(line -> line.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2")).collect(Collectors.toList());
             List<List<String>> entries = new ArrayList<>();
             List<String> currentEntry = new ArrayList<>();
             Pattern tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", Pattern.MULTILINE);
