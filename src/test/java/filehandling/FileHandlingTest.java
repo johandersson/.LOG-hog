@@ -144,6 +144,65 @@ public class FileHandlingTest {
     }
 
     @Test
+    @DisplayName("EntryLoader should load entry with duplicate timestamp suffix")
+    void testLoadEntryWithDuplicateSuffix() throws Exception {
+        // Create entries that will have duplicate timestamps
+        LocalDateTime now = LocalDateTime.now();
+        String timestamp = String.format("%02d:%02d %04d-%02d-%02d",
+            now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
+
+        // Create file with duplicate timestamps
+        List<String> testData = Arrays.asList(
+            timestamp,
+            "First entry",
+            "",
+            timestamp,
+            "Second entry with same timestamp",
+            "",
+            timestamp + " (2)",
+            "Third entry with explicit suffix",
+            ""
+        );
+        Files.write(testFilePath, testData);
+
+        // Load entries
+        entryLoader.loadLogEntries(listModel);
+        assertTrue(listModel.getSize() >= 2); // Should have at least 2 entries
+
+        // Test loading entries with different suffixes
+        for (int i = 0; i < listModel.getSize(); i++) {
+            String displayTimestamp = listModel.getElementAt(i);
+            String content = entryLoader.loadEntry(displayTimestamp);
+            assertNotNull(content);
+            assertFalse(content.isEmpty());
+            // Content should not contain the timestamp
+            assertFalse(content.contains(displayTimestamp.trim()));
+        }
+    }
+
+    @Test
+    @DisplayName("EntryLoader should handle raw vs display timestamp consistency")
+    void testLoadEntryRawVsDisplayTimestamp() throws Exception {
+        createTestLogFile();
+
+        // Load entries to get display timestamps
+        entryLoader.loadLogEntries(listModel);
+        assertTrue(listModel.getSize() > 0);
+
+        String displayTimestamp = listModel.getElementAt(0);
+        String rawTimestamp = logFileHandler.getRawTimestamp(displayTimestamp);
+
+        // Both should work for loading (backwards compatibility)
+        String content1 = entryLoader.loadEntry(displayTimestamp);
+        String content2 = entryLoader.loadEntry(rawTimestamp);
+
+        // Should get the same content
+        assertEquals(content1, content2);
+        assertNotNull(content1);
+        assertFalse(content1.isEmpty());
+    }
+
+    @Test
     @DisplayName("EntryLoader should get recent log entries")
     void testGetRecentLogEntries() throws Exception {
         createTestLogFile();
@@ -160,7 +219,114 @@ public class FileHandlingTest {
         }
     }
 
+    @Test
+    @DisplayName("EntryLoader should handle null and empty timestamps gracefully")
+    void testLoadEntryNullEmpty() {
+        // Test null timestamp
+        String result1 = entryLoader.loadEntry(null);
+        assertEquals("", result1);
+
+        // Test empty timestamp
+        String result2 = entryLoader.loadEntry("");
+        assertEquals("", result2);
+
+        // Test whitespace-only timestamp
+        String result3 = entryLoader.loadEntry("   ");
+        assertEquals("", result3);
+    }
+
+    @Test
+    @DisplayName("EntryLoader should load entries with complex content")
+    void testLoadEntryComplexContent() throws Exception {
+        // Create entry with content that might interfere with parsing
+        LocalDateTime now = LocalDateTime.now();
+        String timestamp = String.format("%02d:%02d %04d-%02d-%02d",
+            now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
+
+        List<String> testData = Arrays.asList(
+            timestamp,
+            "Entry with multiple lines",
+            "Line 2 with timestamp-like content: 15:30 2025-12-18",
+            "Line 3 with special characters: @#$%^&*()",
+            "Line 4 with quotes: \"Hello World\"",
+            "Line 5 with empty line above",
+            "",
+            "Line 7 after empty line",
+            ""
+        );
+        Files.write(testFilePath, testData);
+
+        // Load and verify
+        entryLoader.loadLogEntries(listModel);
+        assertEquals(1, listModel.getSize());
+
+        String loadedContent = entryLoader.loadEntry(listModel.getElementAt(0));
+        assertNotNull(loadedContent);
+        assertTrue(loadedContent.contains("Entry with multiple lines"));
+        assertTrue(loadedContent.contains("timestamp-like content"));
+        assertTrue(loadedContent.contains("special characters"));
+        assertTrue(loadedContent.contains("quotes"));
+        assertTrue(loadedContent.contains("empty line above"));
+        assertTrue(loadedContent.contains("after empty line"));
+    }
+
+    @Test
+    @DisplayName("EntryLoader should handle encrypted files correctly")
+    void testLoadEntryEncrypted() throws Exception {
+        // Create test data
+        createTestLogFile();
+
+        // Enable encryption
+        logFileHandler.enableEncryption("testpassword".toCharArray());
+
+        // Reload entries (should work with encrypted file)
+        listModel.clear();
+        entryLoader.loadLogEntries(listModel);
+        assertTrue(listModel.getSize() > 0);
+
+        // Load entry content
+        String timestamp = listModel.getElementAt(0);
+        String content = entryLoader.loadEntry(timestamp);
+
+        assertNotNull(content);
+        assertFalse(content.isEmpty());
+        assertFalse(content.contains(timestamp.trim())); // Should not contain timestamp
+
+        // Clean up
+        logFileHandler.clearSensitiveData();
+    }
+
     // ===== LOG FILE HANDLER TESTS =====
+
+    @Test
+    @DisplayName("LogFileHandler should correctly handle raw vs display timestamps")
+    void testTimestampHandling() throws Exception {
+        // Test getRawTimestamp
+        String displayTs1 = "14:30 2025-12-18";
+        String rawTs1 = logFileHandler.getRawTimestamp(displayTs1);
+        assertEquals(displayTs1, rawTs1); // Currently getDisplayTimestamp just returns rawTs
+
+        String displayTs2 = "14:30 2025-12-18 (1)";
+        String rawTs2 = logFileHandler.getRawTimestamp(displayTs2);
+        assertEquals("14:30 2025-12-18", rawTs2);
+
+        String displayTs3 = "14:30 2025-12-18 (5)";
+        String rawTs3 = logFileHandler.getRawTimestamp(displayTs3);
+        assertEquals("14:30 2025-12-18", rawTs3);
+
+        // Test edge cases
+        String noSuffix = "14:30 2025-12-18";
+        String rawNoSuffix = logFileHandler.getRawTimestamp(noSuffix);
+        assertEquals(noSuffix, rawNoSuffix);
+
+        String empty = "";
+        String rawEmpty = logFileHandler.getRawTimestamp(empty);
+        assertEquals("", rawEmpty);
+
+        String nullInput = null;
+        String rawNull = logFileHandler.getRawTimestamp(nullInput);
+        assertNull(rawNull);
+    }
 
     @Test
     @DisplayName("LogFileHandler should save text and create timestamp")
