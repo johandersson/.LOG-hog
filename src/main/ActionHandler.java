@@ -73,7 +73,7 @@ public class ActionHandler {
                 //Copy both timestamp and entry text
                 var rawTs = logFileHandler.getRawTimestamp(selectedItem);
                 String logContent = logFileHandler.loadEntry(rawTs);
-                clipboard.SecureClipboardManager.copySecureTextToClipboard(
+                clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(
                     selectedItem + "\n\n" + logContent, editor,
                     "Log entry copied to clipboard securely.");
             }

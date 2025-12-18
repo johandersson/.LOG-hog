@@ -17,11 +17,15 @@
 
 package markdown;
 
-import java.awt.*;
+import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import javax.swing.*;
+
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.JTextPane;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.StyledDocument;
 
@@ -183,7 +187,7 @@ public class LinkHandler {
             if (hrefObj instanceof String href) {
                 JPopupMenu popup = new JPopupMenu();
                 JMenuItem copyItem = new JMenuItem("Copy Link");
-                copyItem.addActionListener(ae -> clipboard.SecureClipboardManager.copySecureTextToClipboard(href, pane, "Link copied to clipboard securely!"));
+                copyItem.addActionListener(ae -> clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(href, pane, "Link copied to clipboard securely!"));
                 popup.add(copyItem);
                 popup.show(pane, e.getX(), e.getY());
             }

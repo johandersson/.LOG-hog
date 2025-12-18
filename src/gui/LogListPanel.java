@@ -185,7 +185,7 @@ public class LogListPanel extends JPanel {
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 String selectedText = entryArea.getSelectedText();
                 if (selectedText != null && !selectedText.isEmpty()) {
-                    clipboard.SecureClipboardManager.copySecureTextToClipboard(selectedText, entryArea);
+                    clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(selectedText, entryArea);
                 }
             }
         });

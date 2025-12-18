@@ -75,7 +75,7 @@ public class FullLogPanel extends LogPanel {
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 String selectedText = fullLogPane.getSelectedText();
                 if (selectedText != null && !selectedText.isEmpty()) {
-                    clipboard.SecureClipboardManager.copySecureTextToClipboard(selectedText, fullLogPane);
+                    clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(selectedText, fullLogPane);
                 }
             }
         });
@@ -161,7 +161,7 @@ public class FullLogPanel extends LogPanel {
         }
 
         // Use secure clipboard with automatic clearing
-        clipboard.SecureClipboardManager.copySecureTextToClipboard(text, this,
+        clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(text, this,
             "Full log copied to clipboard securely.");
     }
 
@@ -198,7 +198,7 @@ public class FullLogPanel extends LogPanel {
             List<String> lines;
             if (logFileHandler.isEncrypted()) {
                 var data = Files.readAllBytes(logPath);
-                var decrypted = EncryptionManager.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
+                var decrypted = EncryptionManager.getInstance().decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
                 lines = Arrays.asList(decrypted.split("\n", -1));
             } else {
                 lines = Files.readAllLines(logPath);

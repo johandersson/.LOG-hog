@@ -48,6 +48,12 @@ public class SecureClipboardManager implements ClipboardHandler {
     private static int timeoutSeconds = 30; // Default 30 seconds
     private static boolean autoClearEnabled = true;
 
+    private static final SecureClipboardManager INSTANCE = new SecureClipboardManager();
+
+    public static SecureClipboardManager getInstance() {
+        return INSTANCE;
+    }
+
     /**
      * Set the automatic clipboard clearing timeout in seconds.
      * Valid range: 5-30 seconds
@@ -81,14 +87,16 @@ public class SecureClipboardManager implements ClipboardHandler {
      * Securely copy text to clipboard with automatic clearing.
      * Marks content as coming from .LOG-hog for security tracking.
      */
-    public static void copySecureTextToClipboard(String text, Component parent) {
+    @Override
+    public void copySecureTextToClipboard(String text, Component parent) {
         copySecureTextToClipboard(text, parent, "Text copied to clipboard securely.");
     }
 
     /**
      * Securely copy text to clipboard with automatic clearing and custom message.
      */
-    public static void copySecureTextToClipboard(String text, Component parent, String successMessage) {
+    @Override
+    public void copySecureTextToClipboard(String text, Component parent, String successMessage) {
         // Input validation
         if (text == null) {
             Toolkit.getDefaultToolkit().beep();
@@ -133,16 +141,6 @@ public class SecureClipboardManager implements ClipboardHandler {
         } catch (Exception e) {
             JOptionPane.showMessageDialog(parent, "Unexpected error accessing clipboard. Please try again.", "Clipboard Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    @Override
-    public void copySecureTextToClipboard(String text, Component parent) {
-        SecureClipboardManager.copySecureTextToClipboard(text, parent);
-    }
-
-    @Override
-    public void copySecureTextToClipboard(String text, Component parent, String successMessage) {
-        SecureClipboardManager.copySecureTextToClipboard(text, parent, successMessage);
     }
 
     /**

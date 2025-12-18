@@ -150,7 +150,7 @@ public class PasswordGeneratorDialog extends JDialog {
         copyButton = new StandardButton("Copy to Clipboard", new Color(0xE0E0E0), new Color(0xB0B0B0));
         copyButton.addActionListener(e -> {
             if (!resultField.getText().isEmpty()) {
-                SecureClipboardManager.copySecureTextToClipboard(
+                SecureClipboardManager.getInstance().copySecureTextToClipboard(
                     resultField.getText(), 
                     this, 
                     "Password copied to clipboard securely!"

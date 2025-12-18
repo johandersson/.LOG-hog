@@ -191,7 +191,7 @@ public class MarkdownRenderer {
                 String href = (String) hrefObj;
                 JPopupMenu popup = new JPopupMenu();
                 JMenuItem copyItem = new JMenuItem("Copy Link");
-                copyItem.addActionListener(ae -> clipboard.SecureClipboardManager.copySecureTextToClipboard(href, pane, "Link copied to clipboard securely!"));
+                copyItem.addActionListener(ae -> clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(href, pane, "Link copied to clipboard securely!"));
                 popup.add(copyItem);
                 popup.show(pane, e.getX(), e.getY());
             }

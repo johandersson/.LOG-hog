@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import encryption.EncryptionManager;
+import encryption.EncryptionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,7 +49,7 @@ public class EntryLoader {
                 var data = Files.readAllBytes(LogFileHandler.FILE_PATH);
                 var decrypted = EncryptionManager.getInstance().decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
                 lines = Arrays.asList(decrypted.split("\n", -1));
-            } catch (Exception e) {
+            } catch (EncryptionException e) {
                 throw new RuntimeException(e);
             }
         } else {
