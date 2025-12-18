@@ -59,8 +59,8 @@ public class FileEncryptionManager {
             content = ".LOG\n\n" + content;
         }
 
-        SecretKey key = EncryptionManager.deriveKey(password, salt);
-        byte[] encryptedData = EncryptionManager.encrypt(content, key);
+        SecretKey key = EncryptionManager.getInstance().deriveKey(password, salt);
+        byte[] encryptedData = EncryptionManager.getInstance().encrypt(content, key);
         Files.write(filePath, encryptedData);
     }
 
@@ -68,7 +68,7 @@ public class FileEncryptionManager {
         if (!encrypted) return new String(Files.readAllBytes(filePath));
 
         byte[] data = Files.readAllBytes(filePath);
-        return EncryptionManager.decryptWithFallback(data, password, salt);
+        return EncryptionManager.getInstance().decryptWithFallback(data, password, salt);
     }
 
     public void clearSensitiveData() {

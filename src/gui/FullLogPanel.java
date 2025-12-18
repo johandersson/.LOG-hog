@@ -33,7 +33,7 @@ import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 import notepad.NotepadOpener;
 
-public class FullLogPanel extends JPanel {
+public class FullLogPanel extends LogPanel {
     private final HighlightableTextPane fullLogPane;
     private final JLabel fullLogPathLabel;
     private final LogFileHandler logFileHandler;
@@ -271,5 +271,16 @@ public class FullLogPanel extends JPanel {
                 + System.getProperty("user.dir") + "\\log.txt");
         fullLogPathLabel.setText("Log file: not found");
         fullLogPane.clearHighlights();
+    }
+
+    @Override
+    public void loadLog() {
+        // Load logic is handled by the editor's unlock mechanism
+        // This method can be used for manual reload if needed
+    }
+
+    @Override
+    public void copyToClipboard() {
+        copyFullLogToClipboard();
     }
 }

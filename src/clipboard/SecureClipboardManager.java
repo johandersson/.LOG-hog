@@ -40,7 +40,7 @@ import utils.Toast;
  * Secure clipboard manager that automatically clears clipboard contents after a timeout
  * to prevent sensitive data from remaining accessible to other applications.
  */
-public class SecureClipboardManager {
+public class SecureClipboardManager implements ClipboardHandler {
     private static final String LOGHOG_CLIPBOARD_MARKER = "";
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
@@ -133,6 +133,16 @@ public class SecureClipboardManager {
         } catch (Exception e) {
             JOptionPane.showMessageDialog(parent, "Unexpected error accessing clipboard. Please try again.", "Clipboard Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    @Override
+    public void copySecureTextToClipboard(String text, Component parent) {
+        SecureClipboardManager.copySecureTextToClipboard(text, parent);
+    }
+
+    @Override
+    public void copySecureTextToClipboard(String text, Component parent, String successMessage) {
+        SecureClipboardManager.copySecureTextToClipboard(text, parent, successMessage);
     }
 
     /**

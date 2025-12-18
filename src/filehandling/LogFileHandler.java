@@ -422,7 +422,7 @@ public class LogFileHandler {
     }
 
     public void enableEncryption(char[] pwd) throws Exception {
-        this.salt = EncryptionManager.generateSalt();
+        this.salt = EncryptionManager.getInstance().generateSalt();
         List<String> lines = Files.readAllLines(FILE_PATH);
         // Preserve .LOG header in encrypted files (don't remove it)
         String fullText = String.join("\n", lines);
@@ -491,7 +491,7 @@ public class LogFileHandler {
         
         // Read and decrypt the current file
         byte[] data = Files.readAllBytes(FILE_PATH);
-        String decrypted = EncryptionManager.decryptWithFallback(data, encryptionManager.getPassword(), encryptionManager.getSalt());
+        String decrypted = EncryptionManager.getInstance().decryptWithFallback(data, encryptionManager.getPassword(), encryptionManager.getSalt());
         
         // Save decrypted to backup first (as encrypted bytes)
         Path backupPath = getBackupPath(FILE_PATH.getFileName().toString() + ".bak");
