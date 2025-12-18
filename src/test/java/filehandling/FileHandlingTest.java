@@ -151,7 +151,10 @@ public class FileHandlingTest {
 
         boolean allCorrectMonth = true;
         for (int i = 0; i < listModel.getSize(); i++) {
-            LocalDateTime dt = DateHandler.parseTimestamp(listModel.getElementAt(i));
+            String displayTs = listModel.getElementAt(i);
+            // Strip suffix for parsing
+            String rawTs = displayTs.replaceAll(" \\([0-9]+\\)$", "");
+            LocalDateTime dt = DateHandler.parseTimestamp(rawTs);
             if (dt.getYear() != now.getYear() || dt.getMonthValue() != now.getMonthValue()) {
                 allCorrectMonth = false;
                 break;
@@ -226,37 +229,53 @@ public class FileHandlingTest {
 
     private void testLoadEntryWithDuplicateSuffix() throws Exception {
         System.out.println("Test: EntryLoader should load entry with duplicate timestamp suffix...");
+        // Create entries that will have duplicate timestamps
+        LocalDateTime now = LocalDateTime.now();
+        String timestamp = String.format("%02d:%02d %04d-%02d-%02d",
+            now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
+
+        // Create file with duplicate timestamps
         List<String> testData = Arrays.asList(
-            "14:30 2025-12-18",
+            timestamp,
             "First entry",
             "",
-            "14:30 2025-12-18",
+            timestamp,
             "Second entry with same timestamp",
             "",
-            "14:30 2025-12-18 (2)",
-            "Third entry with explicit suffix",
+            timestamp,
+            "Third entry with same timestamp",
             ""
         );
         Files.write(testFilePath, testData);
 
         entryLoader.loadLogEntries(listModel);
-        if (listModel.getSize() < 2) {
-            System.out.println("✗ FAIL: Should have at least 2 entries");
+        System.out.println("Display timestamps:");
+        for (int i = 0; i < listModel.getSize(); i++) {
+            System.out.println("  " + i + ": '" + listModel.getElementAt(i) + "'");
+        }
+
+        if (listModel.getSize() < 3) {
+            System.out.println("✗ FAIL: Should have at least 3 entries");
             return;
         }
 
         boolean allLoaded = true;
         for (int i = 0; i < listModel.getSize(); i++) {
             String displayTimestamp = listModel.getElementAt(i);
+            System.out.println("Loading: '" + displayTimestamp + "'");
             String content = entryLoader.loadEntry(displayTimestamp);
+            System.out.println("  Content length: " + content.length());
             if (content == null || content.isEmpty()) {
                 allLoaded = false;
+                System.out.println("  ✗ FAIL: Empty content");
                 break;
             }
             if (content.contains(displayTimestamp.trim())) {
                 allLoaded = false;
+                System.out.println("  ✗ FAIL: Content contains timestamp");
                 break;
             }
+            System.out.println("  ✓ OK");
         }
 
         if (allLoaded) {

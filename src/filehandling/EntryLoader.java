@@ -93,11 +93,10 @@ public class EntryLoader {
                         // Generate display timestamp with local duplicate suffixes
                         // Strip any existing suffix first
                         String baseTs = rawTs.replaceAll(" \\([0-9]+\\)$", "");
-                        String minuteTs = baseTs.split(" ")[0];  // Just the HH:mm part
-                        int count = countMap.getOrDefault(minuteTs, 0);
+                        int count = countMap.getOrDefault(baseTs, 0);
                         String displayTs = baseTs + (count > 0 ? " (" + count + ")" : "");
                         listModel.addElement(displayTs);
-                        countMap.put(minuteTs, count + 1);
+                        countMap.put(baseTs, count + 1);
                     } else {
                         listModel.addElement(rawTs);
                     }
@@ -176,9 +175,23 @@ public class EntryLoader {
                     return b.get(0).compareTo(a.get(0));
                 }
             });
+            
+            // Generate display timestamps with local duplicate suffixes
+            Map<String, Integer> countMap = new HashMap<>();
             for (List<String> entry : filteredEntries) {
                 if (!entry.isEmpty()) {
-                    listModel.addElement(entry.get(0).trim());
+                    String rawTs = entry.get(0).trim();
+                    if (tsPattern.matcher(rawTs).matches()) {
+                        // Generate display timestamp with local duplicate suffixes
+                        // Strip any existing suffix first
+                        String baseTs = rawTs.replaceAll(" \\([0-9]+\\)$", "");
+                        int count = countMap.getOrDefault(baseTs, 0);
+                        String displayTs = baseTs + (count > 0 ? " (" + count + ")" : "");
+                        listModel.addElement(displayTs);
+                        countMap.put(baseTs, count + 1);
+                    } else {
+                        listModel.addElement(rawTs);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -218,28 +231,81 @@ public class EntryLoader {
             // Remove secure clipboard markers from lines
             lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
 
-            StringBuilder entry = new StringBuilder();
-            boolean found = false;
+            // Parse all entries
+            var allEntries = LogParser.parseAllEntries(lines);
 
-            // Strip suffix from display timestamp to get raw timestamp for file matching
+            // Extract raw timestamp and suffix number
             String rawTimestamp = timeStamp.replaceAll(" \\([0-9]+\\)$", "").trim();
+            int suffixNumber = 0;
+            java.util.regex.Pattern suffixPattern = java.util.regex.Pattern.compile(" \\(([0-9]+)\\)$");
+            java.util.regex.Matcher matcher = suffixPattern.matcher(timeStamp);
+            if (matcher.find()) {
+                suffixNumber = Integer.parseInt(matcher.group(1));
+            }
 
-            for (String line : lines) {
-                if (!found && line.trim().equals(rawTimestamp)) {
-                    found = true;
-                    continue;
+            // Determine filter criteria from the timestamp
+            int filterYear, filterMonth;
+            try {
+                LocalDateTime tsDate = utils.DateHandler.parseTimestamp(rawTimestamp);
+                LocalDateTime now = LocalDateTime.now();
+                // If the timestamp is from current month/year, assume it came from main view
+                // Otherwise, assume it came from filtered view for that specific month/year
+                if (tsDate.getYear() == now.getYear() && tsDate.getMonthValue() == now.getMonthValue()) {
+                    filterYear = now.getYear();
+                    filterMonth = now.getMonthValue();
+                } else {
+                    filterYear = tsDate.getYear();
+                    filterMonth = tsDate.getMonthValue();
                 }
+            } catch (Exception e) {
+                // Fallback to current month
+                LocalDateTime now = LocalDateTime.now();
+                filterYear = now.getYear();
+                filterMonth = now.getMonthValue();
+            }
 
-                if (found) {
-                    // stop at next timestamp (accounts for entries with or without blank lines)
-                    if (line.trim().matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}.*")) {
-                        break;
-                    }
-                    entry.append(line).append("\n");
+            // Filter entries to the same criteria as the display generation
+            var filteredEntries = new ArrayList<List<String>>();
+            for (List<String> entry : allEntries) {
+                if (!entry.isEmpty()) {
+                    try {
+                        LocalDateTime dt = utils.DateHandler.parseTimestamp(entry.get(0).trim());
+                        if (dt.getYear() == filterYear && dt.getMonthValue() == filterMonth) {
+                            filteredEntries.add(entry);
+                        }
+                    } catch (Exception ignored) {}
                 }
             }
 
-            return entry.toString().trim();
+            // Sort the same way as display generation (newest first)
+            filteredEntries.sort((a, b) -> {
+                try {
+                    LocalDateTime dateA = utils.DateHandler.parseTimestamp(a.get(0));
+                    LocalDateTime dateB = utils.DateHandler.parseTimestamp(b.get(0));
+                    return dateB.compareTo(dateA);
+                } catch (Exception e) {
+                    return b.get(0).compareTo(a.get(0));
+                }
+            });
+
+            // Find the entry at the suffix position among entries with matching timestamp
+            int occurrenceCount = 0;
+            for (List<String> entry : filteredEntries) {
+                String entryRawTs = entry.get(0).trim();
+                if (entryRawTs.equals(rawTimestamp)) {
+                    if (occurrenceCount == suffixNumber) {
+                        // Found the correct entry - return content without timestamp
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 1; i < entry.size(); i++) {
+                            sb.append(entry.get(i)).append("\n");
+                        }
+                        return sb.toString().trim();
+                    }
+                    occurrenceCount++;
+                }
+            }
+
+            return "";
         } catch (Exception e) {
             logFileHandler.showErrorDialog("<html><b>👁️ Display Failed</b><br><br>Unable to display the log entry.<br>" + e.getMessage() + "<br><br><i>Tip: The entry may be corrupted or the file may be locked.</i></html>");
         }
