@@ -84,12 +84,23 @@ public class EntryLoader {
             List<List<String>> sortedEntries = new ArrayList<>();
             sortedEntries.addAll(nonTimestampEntries); // preamble notes at top
             sortedEntries.addAll(filteredTimestampEntries);
+            Map<String, Integer> countMap = new HashMap<>();
             for (List<String> entry : sortedEntries) {
                 // For the list view, show only the timestamp line (or first line for non-timestamp entries)
                 if (!entry.isEmpty()) {
                     String rawTs = entry.get(0).trim();
-                    String displayTs = logFileHandler.getDisplayTimestamp(rawTs);
-                    listModel.addElement(displayTs);
+                    if (tsPattern.matcher(rawTs).matches()) {
+                        // Generate display timestamp with local duplicate suffixes
+                        // Strip any existing suffix first
+                        String baseTs = rawTs.replaceAll(" \\([0-9]+\\)$", "");
+                        String minuteTs = baseTs.split(" ")[0];  // Just the HH:mm part
+                        int count = countMap.getOrDefault(minuteTs, 0);
+                        String displayTs = baseTs + (count > 0 ? " (" + count + ")" : "");
+                        listModel.addElement(displayTs);
+                        countMap.put(minuteTs, count + 1);
+                    } else {
+                        listModel.addElement(rawTs);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -210,8 +221,11 @@ public class EntryLoader {
             StringBuilder entry = new StringBuilder();
             boolean found = false;
 
+            // Strip suffix from display timestamp to get raw timestamp for file matching
+            String rawTimestamp = timeStamp.replaceAll(" \\([0-9]+\\)$", "").trim();
+
             for (String line : lines) {
-                if (!found && line.trim().equals(timeStamp.trim())) {
+                if (!found && line.trim().equals(rawTimestamp)) {
                     found = true;
                     continue;
                 }
