@@ -207,25 +207,25 @@ public class EntryLoader {
             // Remove secure clipboard markers from lines
             lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
 
-            // Parse all entries using the same method as loadLogEntries
-            var allEntries = LogParser.parseAllEntries(lines);
+            StringBuilder entry = new StringBuilder();
+            boolean found = false;
 
-            // Find the entry with matching timestamp
-            for (List<String> e : allEntries) {
-                if (!e.isEmpty()) {
-                    String rawTs = e.get(0).trim();
-                    String displayTs = logFileHandler.getDisplayTimestamp(rawTs);
-                    if (displayTs.equals(timeStamp.trim())) {
-                        StringBuilder sb = new StringBuilder();
-                        for (int i = 1; i < e.size(); i++) {
-                            sb.append(e.get(i)).append("\n");
-                        }
-                        return sb.toString().trim();
+            for (String line : lines) {
+                if (!found && line.trim().equals(timeStamp.trim())) {
+                    found = true;
+                    continue;
+                }
+
+                if (found) {
+                    // stop at next timestamp (accounts for entries with or without blank lines)
+                    if (line.trim().matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}.*")) {
+                        break;
                     }
+                    entry.append(line).append("\n");
                 }
             }
 
-            return "";
+            return entry.toString().trim();
         } catch (Exception e) {
             logFileHandler.showErrorDialog("<html><b>👁️ Display Failed</b><br><br>Unable to display the log entry.<br>" + e.getMessage() + "<br><br><i>Tip: The entry may be corrupted or the file may be locked.</i></html>");
         }
