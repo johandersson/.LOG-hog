@@ -284,6 +284,15 @@ public class LogListPanel extends JPanel {
         dialog.setVisible(true);
     }
 
+    private void loadAndDisplayEntry(String timestamp) {
+        if (timestamp != null && !timestamp.trim().isEmpty()) {
+            String content = logFileHandler.loadEntry(timestamp);
+            entryArea.setText(content);
+        } else {
+            entryArea.setText("");
+        }
+    }
+
     private void setupListeners(JSplitPane split) {
         // Popup menu
         var contextMenu = new JPopupMenu();
@@ -302,22 +311,14 @@ public class LogListPanel extends JPanel {
         logList.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent e) {
                 var selectedItem = logList.getSelectedValue();
-                if (selectedItem != null) {
-                    var logContent = logFileHandler.loadEntry(selectedItem);
-                    entryArea.setText(logContent);
-                }
+                loadAndDisplayEntry(selectedItem);
             }
         });
 
         logList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 var selectedItem = logList.getSelectedValue();
-                if (selectedItem != null) {
-                    var logContent = logFileHandler.loadEntry(selectedItem);
-                    entryArea.setText(logContent);
-                } else {
-                    entryArea.setText("");
-                }
+                loadAndDisplayEntry(selectedItem);
             }
         });
 
@@ -329,10 +330,7 @@ public class LogListPanel extends JPanel {
             logList.setSelectedIndex(0);
             logList.ensureIndexIsVisible(0);
             var item = listModel.getElementAt(0);
-            if (item != null) {
-                var content = logFileHandler.loadEntry(item);
-                entryArea.setText(content);
-            }
+            loadAndDisplayEntry(item);
         } else {
             logList.clearSelection();
             entryArea.setText("");

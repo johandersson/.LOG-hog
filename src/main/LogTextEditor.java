@@ -207,6 +207,15 @@ public class LogTextEditor extends JFrame {
     }
 
     // Helper: choose and show first log if list has any entries
+    private void loadAndDisplayEntry(String timestamp) {
+        if (timestamp != null && !timestamp.trim().isEmpty()) {
+            String content = logFileHandler.loadEntry(timestamp);
+            logListPanel.getEntryArea().setText(content);
+        } else {
+            logListPanel.getEntryArea().setText("");
+        }
+    }
+
     public void selectFirstLogIfAny() {
         if (listModel.getSize() > 0) {
             // choose index 0 (first in model). If your model is sorted newest-first,
@@ -214,10 +223,7 @@ public class LogTextEditor extends JFrame {
             logList.setSelectedIndex(0);
             logList.ensureIndexIsVisible(0);
             String item = listModel.getElementAt(0);
-            if (item != null) {
-                String content = logFileHandler.loadEntry(item);
-                logListPanel.getEntryArea().setText(content);
-            }
+            loadAndDisplayEntry(item);
         } else {
             // nothing to show
             logList.clearSelection();
@@ -352,8 +358,7 @@ public class LogTextEditor extends JFrame {
         for (var logEntry : recentLogs) {
             var logItem = new MenuItem(logEntry);
             logItem.addActionListener(e -> {
-                var logContent = logFileHandler.loadEntry(logEntry);
-                logListPanel.getEntryArea().setText(logContent);
+                loadAndDisplayEntry(logEntry);
                 tabPane.setSelectedIndex(1); // switch to Log Entries tab
                 logList.setSelectedValue(logEntry, true); // select the log entry in the list
             });
