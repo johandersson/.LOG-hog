@@ -63,8 +63,6 @@ public class BackupManager {
             // Copy log file
             Files.copy(logPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
 
-            System.out.println("Automatic backup created: " + backupPath.toString());
-
         } catch (Exception e) {
             System.err.println("Automatic backup failed: " + e.getMessage());
             // Don't show UI errors for automatic backups

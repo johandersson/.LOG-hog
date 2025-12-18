@@ -404,12 +404,7 @@ public class LogFileHandler {
     }
 
     public String getDisplayTimestamp(String rawTs) {
-        int count = getDuplicateCount(rawTs);
-        if (count > 0) {
-            return rawTs + " (" + count + ")";
-        } else {
-            return rawTs;
-        }
+        return rawTs;
     }    
     
     public List<String> getLines() throws Exception {
@@ -441,6 +436,8 @@ public class LogFileHandler {
         // Then encrypt and save
         encryptionManager.setEncryption(pwd, this.salt);
         encryptionManager.encryptFile(fullText);
+        cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\n")));
+        encrypted = true;
     }
 
     private void invalidateEntryCache() {
@@ -632,7 +629,6 @@ public class LogFileHandler {
             cachedEntries = null;
             cachedEntriesLastModified = 0;
         }
-    }
     }
 
     public void showErrorDialog(String message) {

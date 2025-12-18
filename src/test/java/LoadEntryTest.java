@@ -43,8 +43,14 @@ public class LoadEntryTest {
             System.out.println("Original content: '" + originalContent + "'");
 
             // Now enable encryption (simulate locking)
-            logFileHandler.enableEncryption("testpassword".toCharArray());
-            System.out.println("Encryption enabled");
+            try {
+                logFileHandler.enableEncryption("testpassword".toCharArray());
+                System.out.println("Encryption enabled");
+                System.out.println("isEncrypted: " + logFileHandler.isEncrypted());
+            } catch (Exception e) {
+                System.out.println("Encryption failed: " + e);
+                return;
+            }
 
             // Clear list and reload (simulate unlock)
             listModel.clear();
