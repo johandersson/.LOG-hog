@@ -41,7 +41,7 @@ import utils.Toast;
  * to prevent sensitive data from remaining accessible to other applications.
  */
 public class SecureClipboardManager {
-    private static final String LOGHOG_CLIPBOARD_MARKER = "[LOGHOG_SECURE_CONTENT]";
+    private static final String LOGHOG_CLIPBOARD_MARKER = "";
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     private static ScheduledFuture<?> clearTask;
