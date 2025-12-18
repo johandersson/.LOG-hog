@@ -21,13 +21,10 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.event.MouseEvent;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -58,42 +55,7 @@ public class MarkdownRenderer {
         StyledDocument doc = pane.getStyledDocument();
         Map<String, Style> styles = createStyles(doc);
         try {
-            List<List<String>> entries = new ArrayList<>();
-            List<String> currentEntry = new ArrayList<>();
-            Pattern tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$", Pattern.MULTILINE);
-            for (String line : lines) {
-                String trimmed = line.trim();
-                if (trimmed.equalsIgnoreCase(".LOG")) continue;
-                if (tsPattern.matcher(trimmed).matches()) {
-                    if (!currentEntry.isEmpty()) {
-                        entries.add(new ArrayList<>(currentEntry));
-                        currentEntry.clear();
-                    }
-                    currentEntry.add(line);
-                } else {
-                    // Only add non-blank lines, but preserve blank lines within an entry
-                    if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
-                        currentEntry.add(line);
-                    }
-                }
-            }
-            if (!currentEntry.isEmpty()) {
-                entries.add(currentEntry);
-            }
-
-            // Sort entries oldest first
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
-            entries.sort((a, b) -> {
-                try {
-                    String dateStrA = a.get(0).trim().replaceAll(" \\(\\d+\\)", "");
-                    String dateStrB = b.get(0).trim().replaceAll(" \\(\\d+\\)", "");
-                    LocalDateTime dateA = LocalDateTime.parse(dateStrA, formatter);
-                    LocalDateTime dateB = LocalDateTime.parse(dateStrB, formatter);
-                    return dateA.compareTo(dateB);
-                } catch (Exception e) {
-                    return 0;
-                }
-            });
+            List<List<String>> entries = filehandling.LogParser.parseEntriesForFullLog(lines);
 
             renderEntries(entries, doc, styles);
         } catch (BadLocationException e) {

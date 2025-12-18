@@ -29,11 +29,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-import javax.crypto.SecretKey;
 import javax.swing.DefaultListModel;
 import javax.swing.JOptionPane;
 
 import encryption.EncryptionManager;
+import encryption.FileEncryptionManager;
 import utils.DateHandler;
 
 public class LogFileHandler {
@@ -45,8 +45,8 @@ public class LogFileHandler {
         FILE_PATH = testPath;
     }
 
+    private FileEncryptionManager encryptionManager = new FileEncryptionManager(FILE_PATH);
     private boolean encrypted = false;
-    private char[] password;
     private byte[] salt;
     private String backupDirectory = "";
     List<String> cachedLines = new ArrayList<>();
@@ -92,9 +92,7 @@ public class LogFileHandler {
                     cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\n")));
                 }
                 
-                SecretKey key = EncryptionManager.deriveKey(password, salt);
-                byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
-                Files.write(FILE_PATH, encryptedData);
+                encryptionManager.encryptFile(fullText);
                 cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\n")));
             } else {
                 if (Files.exists(FILE_PATH)) {
@@ -123,7 +121,7 @@ public class LogFileHandler {
         if (!Files.exists(FILE_PATH)) return;
 
         List<String> lines;
-        if (encrypted) {
+        if (encryptionManager.isEncrypted()) {
             lines = new ArrayList<>(getLines());
         } else {
             lines = Files.readAllLines(FILE_PATH);
@@ -135,12 +133,10 @@ public class LogFileHandler {
         // Normalize spacing
         List<String> normalized = getNormalized(sortedLines);
 
-        if (encrypted) {
+        if (encryptionManager.isEncrypted()) {
             cachedLines = new ArrayList<>(normalized);
             String fullText = String.join("\n", cachedLines);
-            SecretKey key = EncryptionManager.deriveKey(password, salt);
-            byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
-            Files.write(FILE_PATH, encryptedData);
+            encryptionManager.encryptFile(fullText);
         } else {
             Files.write(FILE_PATH, normalized);
         }
@@ -179,12 +175,10 @@ public class LogFileHandler {
                 }
             }
 
-            if (encrypted) {
+            if (encryptionManager.isEncrypted()) {
                 cachedLines = new ArrayList<>(updatedLines);
                 String fullText = String.join("\n", cachedLines);
-                SecretKey key = EncryptionManager.deriveKey(password, salt);
-                byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
-                Files.write(FILE_PATH, encryptedData);
+                encryptionManager.encryptFile(fullText);
             } else {
                 Files.write(FILE_PATH, updatedLines);
             }
@@ -210,12 +204,10 @@ public class LogFileHandler {
                 }
             }
 
-            if (encrypted) {
+            if (encryptionManager.isEncrypted()) {
                 cachedLines = new ArrayList<>(lines);
                 String fullText = String.join("\n", cachedLines);
-                SecretKey key = EncryptionManager.deriveKey(password, salt);
-                byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
-                Files.write(FILE_PATH, encryptedData);
+                encryptionManager.encryptFile(fullText);
             } else {
                 Files.write(FILE_PATH, lines);
             }
@@ -251,12 +243,10 @@ public class LogFileHandler {
             // Normalize spacing: ensure at most one blank line between entries
             List<String> normalized = getNormalized(sortedLines);
 
-            if (encrypted) {
+            if (encryptionManager.isEncrypted()) {
                 cachedLines = new ArrayList<>(normalized);
                 String fullText = String.join("\n", cachedLines);
-                SecretKey key = EncryptionManager.deriveKey(password, salt);
-                byte[] encryptedData = EncryptionManager.encrypt(fullText, key);
-                Files.write(FILE_PATH, encryptedData);
+                encryptionManager.encryptFile(fullText);
             } else {
                 Files.write(FILE_PATH, normalized);
             }
@@ -420,11 +410,12 @@ public class LogFileHandler {
         } else {
             return rawTs;
         }
-    }    public List<String> getLines() throws Exception {
-        if (encrypted) {
+    }    
+    
+    public List<String> getLines() throws Exception {
+        if (encryptionManager.isEncrypted()) {
             if (cachedLines == null) {
-                byte[] data = Files.readAllBytes(FILE_PATH);
-                String decrypted = EncryptionManager.decryptWithFallback(data, password, salt);
+                String decrypted = encryptionManager.decryptFile();
                 cachedLines = Arrays.stream(decrypted.split("\n")).map(String::trim).collect(Collectors.toList());
             }
             return cachedLines;
@@ -444,16 +435,12 @@ public class LogFileHandler {
         if (!fullText.startsWith(".LOG")) {
             fullText = ".LOG\n\n" + fullText;
         }
-        SecretKey key = EncryptionManager.deriveKey(pwd, this.salt);
-        byte[] encrypted = EncryptionManager.encrypt(fullText, key);
         // Save encrypted to backup first
         Path backupPath = getBackupPath(FILE_PATH.getFileName().toString() + ".bak");
-        Files.write(backupPath, encrypted);
-        // Then save to main file
-        Files.write(FILE_PATH, encrypted);
-        setEncryption(pwd, this.salt);
-        // Clear cached lines so they'll be re-read from encrypted file
-        cachedLines = null;
+        Files.write(backupPath, Files.readAllBytes(FILE_PATH));
+        // Then encrypt and save
+        encryptionManager.setEncryption(pwd, this.salt);
+        encryptionManager.encryptFile(fullText);
     }
 
     private void invalidateEntryCache() {
@@ -501,13 +488,13 @@ public class LogFileHandler {
     }
 
     public void disableEncryption() throws Exception {
-        if (!encrypted) {
+        if (!encryptionManager.isEncrypted()) {
             throw new IllegalStateException("File is not encrypted");
         }
         
         // Read and decrypt the current file
         byte[] data = Files.readAllBytes(FILE_PATH);
-        String decrypted = EncryptionManager.decryptWithFallback(data, password, salt);
+        String decrypted = EncryptionManager.decryptWithFallback(data, encryptionManager.getPassword(), encryptionManager.getSalt());
         
         // Save decrypted to backup first (as encrypted bytes)
         Path backupPath = getBackupPath(FILE_PATH.getFileName().toString() + ".bak");
@@ -523,7 +510,9 @@ public class LogFileHandler {
         Files.writeString(FILE_PATH, contentWithHeader);
         
         // Clear encryption state
-        clearSensitiveData();
+        encrypted = false;
+        this.salt = null;
+        encryptionManager.disableEncryption();
     }
 
     private void sortListModel(DefaultListModel<String> listModel) {
@@ -560,22 +549,12 @@ public class LogFileHandler {
     }
 
     public void setEncryption(char[] pwd, byte[] slt) {
-        // Clear old sensitive data before setting new
-        char[] oldPassword = this.password;
-        byte[] oldSalt = this.salt;
-        this.password = pwd.clone();
-        this.salt = slt.clone();
-        this.encrypted = true;
+        encrypted = true;
+        this.salt = slt;
+        encryptionManager.setEncryption(pwd, slt);
         if (cachedLines != null) {
             cachedLines.clear();
             cachedLines = null;
-        }
-        // Now clear old
-        if (oldPassword != null) {
-            Arrays.fill(oldPassword, '\0');
-        }
-        if (oldSalt != null) {
-            Arrays.fill(oldSalt, (byte) 0);
         }
     }
 
@@ -584,11 +563,11 @@ public class LogFileHandler {
     }
 
     public char[] getPassword() {
-        return password;
+        return encryptionManager.getPassword();
     }
 
     public byte[] getSalt() {
-        return salt;
+        return encryptionManager.getSalt();
     }
 
     public Path getFilePath() {
@@ -638,14 +617,12 @@ public class LogFileHandler {
     }
 
     public void clearSensitiveData() {
-        if (password != null) {
-            Arrays.fill(password, '\0');
-            password = null;
-        }
+        encrypted = false;
         if (salt != null) {
             Arrays.fill(salt, (byte) 0);
             salt = null;
         }
+        encryptionManager.clearSensitiveData();
         if (cachedLines != null) {
             cachedLines.clear();
             cachedLines = null;
@@ -655,7 +632,7 @@ public class LogFileHandler {
             cachedEntries = null;
             cachedEntriesLastModified = 0;
         }
-        encrypted = false;
+    }
     }
 
     public void showErrorDialog(String message) {

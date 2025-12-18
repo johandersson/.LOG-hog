@@ -59,59 +59,27 @@ public class EntryLoader {
         lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
 
         try {
-            var entries = new ArrayList<List<String>>();
-            var currentEntry = new ArrayList<String>();
-            var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", Pattern.MULTILINE);
-            for (String line : lines) {
-                var trimmed = line.trim();
-                if (trimmed.equalsIgnoreCase(".LOG")) continue;
-                if (tsPattern.matcher(trimmed).matches()) {
-                    if (!currentEntry.isEmpty()) {
-                        entries.add(new ArrayList<>(currentEntry));
-                        currentEntry.clear();
-                    }
-                    currentEntry.add(line);
-                } else {
-                    if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
-                        currentEntry.add(line);
-                    }
-                }
-            }
-            if (!currentEntry.isEmpty()) {
-                entries.add(currentEntry);
-            }
-            // Sort only entries that start with a timestamp
+            // Parse all entries
+            var allEntries = LogParser.parseAllEntries(lines);
+
+            // Separate timestamp and non-timestamp entries
             var timestampEntries = new ArrayList<List<String>>();
             var nonTimestampEntries = new ArrayList<List<String>>();
-            for (List<String> entry : entries) {
+            var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$");
+            for (List<String> entry : allEntries) {
                 if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
                     timestampEntries.add(entry);
                 } else {
                     nonTimestampEntries.add(entry);
                 }
             }
-            // Filter to current month
+
+            // Filter timestamp entries to current month
             var now = LocalDateTime.now();
             var currentYear = now.getYear();
             var currentMonth = now.getMonthValue();
-            var filteredTimestampEntries = new ArrayList<List<String>>();
-            for (List<String> entry : timestampEntries) {
-                try {
-                    var dt = utils.DateHandler.parseTimestamp(entry.get(0));
-                    if (dt.getYear() == currentYear && dt.getMonthValue() == currentMonth) {
-                        filteredTimestampEntries.add(entry);
-                    }
-                } catch (Exception ignored) {}
-            }
-            filteredTimestampEntries.sort((a, b) -> {
-                try {
-                    LocalDateTime dateA = utils.DateHandler.parseTimestamp(a.get(0));
-                    LocalDateTime dateB = utils.DateHandler.parseTimestamp(b.get(0));
-                    return dateB.compareTo(dateA);
-                } catch (Exception e) {
-                    return b.get(0).compareTo(a.get(0));
-                }
-            });
+            var filteredTimestampEntries = LogParser.parseEntries(lines, currentYear, currentMonth);
+
             List<List<String>> sortedEntries = new ArrayList<>();
             sortedEntries.addAll(nonTimestampEntries); // preamble notes at top
             sortedEntries.addAll(filteredTimestampEntries);
