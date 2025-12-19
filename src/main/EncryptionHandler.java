@@ -105,7 +105,12 @@ public class EncryptionHandler {
                 }
                 return;
             }
-            logFileHandler.setEncryption(pwd, salt);
+            try {
+                logFileHandler.setEncryption(pwd, salt);
+            } catch (Exception e) {
+                // If setEncryption fails, continue with authentication flow
+                // The method will try to load entries which may trigger proper encryption setup
+            }
             java.util.Arrays.fill(pwd, '\0'); // Zero out password for security
             try {
                 loadLogEntriesCallback.run();
