@@ -101,6 +101,20 @@ public class EncryptionManager implements Encryptor {
         }
     }
 
+    public byte[] encryptLegacy(String data, SecretKey key) throws EncryptionException {
+        if (data == null) {
+            throw new EncryptionException("Data to encrypt cannot be null.");
+        }
+        if (key == null) {
+            throw new EncryptionException("Encryption key cannot be null.");
+        }
+
+        try {
+            return performEncryption(data, key);
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to encrypt your data. Please try again or contact support if the problem persists.", e);
+        }
+    }
     @Override
     public byte[] encrypt(String data, char[] password, byte[] salt) throws EncryptionException {
         if (data == null) {

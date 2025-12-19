@@ -48,8 +48,8 @@ public class EncryptionEdgeCaseTest {
         // Create valid encrypted data then corrupt it
         String testData = "Test data for corruption";
         byte[] salt = encryptionManager.generateSalt();
-        var key = encryptionManager.deriveKey("password".toCharArray(), salt);
-        byte[] encrypted = encryptionManager.encrypt(testData, key);
+        char[] password = "password".toCharArray();
+        byte[] encrypted = encryptionManager.encrypt(testData, password, salt);
 
         // Corrupt the data in various ways
         for (int i = 0; i < encrypted.length; i++) {
@@ -67,15 +67,15 @@ public class EncryptionEdgeCaseTest {
         // Create data that decrypts to invalid UTF-8
         String testData = "Valid UTF-8 data";
         byte[] salt = encryptionManager.generateSalt();
-        var key = encryptionManager.deriveKey("password".toCharArray(), salt);
-        byte[] encrypted = encryptionManager.encrypt(testData, key);
+        char[] password = "password".toCharArray();
+        byte[] encrypted = encryptionManager.encrypt(testData, password, salt);
 
         // Manually corrupt the decrypted content to be invalid UTF-8
         // This is tricky to do reliably, but we can test the UTF-8 validation
         // by mocking or by creating data that would result in invalid UTF-8
 
         // For now, test that valid data works
-        String decrypted = encryptionManager.decryptWithFallback(encrypted, "password".toCharArray(), salt);
+        String decrypted = encryptionManager.decryptWithFallback(encrypted, password, salt);
         assertEquals(testData, decrypted);
     }
 
@@ -84,13 +84,14 @@ public class EncryptionEdgeCaseTest {
         // Test that legacy decryption works when data was encrypted with legacy key
         String testData = "Legacy test data";
         byte[] salt = encryptionManager.generateSalt();
+        char[] password = "password".toCharArray();
 
         // Encrypt with legacy key
-        var legacyKey = encryptionManager.deriveKeyLegacy("password".toCharArray(), salt);
-        byte[] encrypted = encryptionManager.encrypt(testData, legacyKey);
+        var legacyKey = encryptionManager.deriveKeyLegacy(password, salt);
+        byte[] encrypted = encryptionManager.encryptLegacy(testData, legacyKey);
 
         // Decrypt with fallback (should try legacy if current fails)
-        String decrypted = encryptionManager.decryptWithFallback(encrypted, "password".toCharArray(), salt);
+        String decrypted = encryptionManager.decryptWithFallback(encrypted, password, salt);
         assertEquals(testData, decrypted);
     }
 
@@ -123,25 +124,28 @@ public class EncryptionEdgeCaseTest {
     }
 
     @Test
-    void testEncryptWithNullData() {
+    void testEncryptWithNullData() throws Exception {
+        byte[] salt = encryptionManager.generateSalt();
+        char[] password = "password".toCharArray();
         assertThrows(EncryptionException.class, () ->
-            encryptionManager.encrypt(null, null));
+            encryptionManager.encrypt(null, password, salt));
     }
 
     @Test
     void testEncryptWithNullKey() throws Exception {
+        byte[] salt = encryptionManager.generateSalt();
         assertThrows(EncryptionException.class, () ->
-            encryptionManager.encrypt("data", null));
+            encryptionManager.encrypt("data", null, salt));
     }
 
     @Test
     void testUnicodeDataHandling() throws Exception {
         String unicodeData = "Hello 世界 🌍 émojis 🎉";
         byte[] salt = encryptionManager.generateSalt();
-        var key = encryptionManager.deriveKey("password".toCharArray(), salt);
+        char[] password = "password".toCharArray();
 
-        byte[] encrypted = encryptionManager.encrypt(unicodeData, key);
-        String decrypted = encryptionManager.decryptWithFallback(encrypted, "password".toCharArray(), salt);
+        byte[] encrypted = encryptionManager.encrypt(unicodeData, password, salt);
+        String decrypted = encryptionManager.decryptWithFallback(encrypted, password, salt);
 
         assertEquals(unicodeData, decrypted);
     }
@@ -155,10 +159,10 @@ public class EncryptionEdgeCaseTest {
         }
 
         byte[] salt = encryptionManager.generateSalt();
-        var key = encryptionManager.deriveKey("password".toCharArray(), salt);
+        char[] password = "password".toCharArray();
 
-        byte[] encrypted = encryptionManager.encrypt(largeData.toString(), key);
-        String decrypted = encryptionManager.decryptWithFallback(encrypted, "password".toCharArray(), salt);
+        byte[] encrypted = encryptionManager.encrypt(largeData.toString(), password, salt);
+        String decrypted = encryptionManager.decryptWithFallback(encrypted, password, salt);
 
         assertEquals(largeData.toString(), decrypted);
     }
@@ -167,8 +171,8 @@ public class EncryptionEdgeCaseTest {
     void testWrongPasswordWithValidData() throws Exception {
         String testData = "Secret data";
         byte[] salt = encryptionManager.generateSalt();
-        var key = encryptionManager.deriveKey("correctpassword".toCharArray(), salt);
-        byte[] encrypted = encryptionManager.encrypt(testData, key);
+        char[] correctPassword = "correctpassword".toCharArray();
+        byte[] encrypted = encryptionManager.encrypt(testData, correctPassword, salt);
 
         // Try to decrypt with wrong password
         EncryptionException exception = assertThrows(EncryptionException.class, () ->
@@ -192,11 +196,11 @@ public class EncryptionEdgeCaseTest {
         };
 
         byte[] salt = encryptionManager.generateSalt();
-        var key = encryptionManager.deriveKey("password".toCharArray(), salt);
+        char[] password = "password".toCharArray();
 
         for (String testData : testCases) {
-            byte[] encrypted = encryptionManager.encrypt(testData, key);
-            String decrypted = encryptionManager.decryptWithFallback(encrypted, "password".toCharArray(), salt);
+            byte[] encrypted = encryptionManager.encrypt(testData, password, salt);
+            String decrypted = encryptionManager.decryptWithFallback(encrypted, password, salt);
             assertEquals(testData, decrypted, "Data integrity failed for: " + testData);
         }
     }

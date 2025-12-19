@@ -34,4 +34,8 @@ public class TestableEncryptionManager implements Encryptor {
     public javax.crypto.SecretKey deriveKeyLegacy(char[] password, byte[] salt) throws EncryptionException {
         return delegate.deriveKeyLegacy(password, salt);
     }
+
+    public byte[] encryptLegacy(String data, javax.crypto.SecretKey key) throws EncryptionException {
+        return delegate.encryptLegacy(data, key);
+    }
 }
