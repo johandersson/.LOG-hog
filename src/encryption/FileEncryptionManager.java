@@ -12,12 +12,14 @@ import javax.crypto.SecretKey;
 public class FileEncryptionManager {
 
     private final Path filePath;
+    private final Encryptor encryptor;
     private char[] password;
     private byte[] salt;
     private boolean encrypted;
 
-    public FileEncryptionManager(Path filePath) {
+    public FileEncryptionManager(Path filePath, Encryptor encryptor) {
         this.filePath = filePath;
+        this.encryptor = encryptor;
     }
 
     public void setEncryption(char[] pwd, byte[] slt) {
@@ -59,8 +61,8 @@ public class FileEncryptionManager {
             content = ".LOG\n\n" + content;
         }
 
-        SecretKey key = EncryptionManager.getInstance().deriveKey(password, salt);
-        byte[] encryptedData = EncryptionManager.getInstance().encrypt(content, key);
+        SecretKey key = encryptor.deriveKey(password, salt);
+        byte[] encryptedData = encryptor.encrypt(content, key);
         Files.write(filePath, encryptedData);
     }
 
@@ -68,7 +70,7 @@ public class FileEncryptionManager {
         if (!encrypted) return new String(Files.readAllBytes(filePath));
 
         byte[] data = Files.readAllBytes(filePath);
-        return EncryptionManager.getInstance().decryptWithFallback(data, password, salt);
+        return encryptor.decryptWithFallback(data, password, salt);
     }
 
     public void clearSensitiveData() {

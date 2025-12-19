@@ -54,6 +54,19 @@ public class EncryptionManager implements Encryptor {
 
     @Override
     public SecretKey deriveKey(char[] password, byte[] salt) throws EncryptionException {
+        if (password == null) {
+            throw new EncryptionException("Password cannot be null.");
+        }
+        if (password.length == 0) {
+            throw new EncryptionException("Password cannot be empty.");
+        }
+        if (salt == null) {
+            throw new EncryptionException("Salt cannot be null.");
+        }
+        if (salt.length != 16) {
+            throw new EncryptionException("Salt must be 16 bytes long.");
+        }
+
         try {
             var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             var spec = new PBEKeySpec(password, salt, PBKDF2_ITERATIONS, AES_KEY_LENGTH);
@@ -65,6 +78,19 @@ public class EncryptionManager implements Encryptor {
     }
 
     public SecretKey deriveKeyLegacy(char[] password, byte[] salt) throws EncryptionException {
+        if (password == null) {
+            throw new EncryptionException("Password cannot be null.");
+        }
+        if (password.length == 0) {
+            throw new EncryptionException("Password cannot be empty.");
+        }
+        if (salt == null) {
+            throw new EncryptionException("Salt cannot be null.");
+        }
+        if (salt.length != 16) {
+            throw new EncryptionException("Salt must be 16 bytes long.");
+        }
+
         try {
             var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             var spec = new PBEKeySpec(password, salt, PBKDF2_ITERATIONS_LEGACY, AES_KEY_LENGTH);
@@ -77,6 +103,13 @@ public class EncryptionManager implements Encryptor {
 
     @Override
     public byte[] encrypt(String data, SecretKey key) throws EncryptionException {
+        if (data == null) {
+            throw new EncryptionException("Data to encrypt cannot be null.");
+        }
+        if (key == null) {
+            throw new EncryptionException("Encryption key cannot be null.");
+        }
+
         try {
             return performEncryption(data, key);
         } catch (Exception e) {
@@ -102,8 +135,21 @@ public class EncryptionManager implements Encryptor {
 
         try {
             return performDecryption(encryptedData, key);
+        } catch (EncryptionException e) {
+            // Re-throw our custom exceptions as-is
+            throw e;
+        } catch (javax.crypto.AEADBadTagException e) {
+            throw new EncryptionException("Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.", e);
+        } catch (javax.crypto.BadPaddingException e) {
+            throw new EncryptionException("Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.", e);
+        } catch (javax.crypto.IllegalBlockSizeException e) {
+            throw new EncryptionException("Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.", e);
+        } catch (java.security.InvalidKeyException e) {
+            throw new EncryptionException("Unable to process the encryption key. This may be a system compatibility issue.", e);
+        } catch (java.security.InvalidAlgorithmParameterException e) {
+            throw new EncryptionException("Unable to initialize encryption parameters. This may be a system compatibility issue.", e);
         } catch (Exception e) {
-            throw new EncryptionException(getDecryptionErrorMessage(encryptedData, e), e);
+            throw new EncryptionException("Unable to open this file due to an unexpected error. Please try again or contact support.", e);
         }
     }
 
@@ -135,19 +181,6 @@ public class EncryptionManager implements Encryptor {
         }
     }
 
-    private String getDecryptionErrorMessage(byte[] encryptedData, Exception e) {
-        if (encryptedData.length < GCM_IV_LENGTH + GCM_TAG_LENGTH) {
-            return "This file appears to be damaged or incomplete. It doesn't contain enough data to be a valid LogHog file. Please check if the file was properly saved or try restoring from a backup.";
-        }
-        if (e.getMessage() != null && e.getMessage().contains("Tag mismatch")) {
-            return "Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.";
-        }
-        if (e.getMessage() != null && (e.getMessage().contains("invalid characters") || e.getMessage().contains("MalformedInput") || e.getMessage().contains("MalInputFormat"))) {
-            return "The file data appears to be corrupted. Even though the password was accepted, the decrypted content contains invalid characters. Please check if the file was damaged during storage or transfer, and try restoring from a backup.";
-        }
-        return "Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.";
-    }
-
     @Override
     public String decryptWithFallback(byte[] encryptedData, char[] password, byte[] salt) throws EncryptionException {
         validateEncryptedDataForFallback(encryptedData);
@@ -171,22 +204,9 @@ public class EncryptionManager implements Encryptor {
     private String tryLegacyDecryption(byte[] encryptedData, char[] password, byte[] salt, Exception originalException) throws EncryptionException {
         try {
             return decrypt(encryptedData, deriveKeyLegacy(password, salt));
-        } catch (Exception legacyException) {
-            throw new EncryptionException(getFallbackErrorMessage(originalException), originalException);
+        } catch (EncryptionException e) {
+            // Re-throw our custom exceptions as-is
+            throw e;
         }
-    }
-
-    private String getFallbackErrorMessage(Exception e) {
-        String message = e.getMessage();
-        if (message != null && message.contains("Tag mismatch")) {
-            return "Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.";
-        }
-        if (message != null && (message.contains("too short") || message.contains("length"))) {
-            return "This file appears to be damaged or incomplete. It doesn't contain enough data to be a valid LogHog file. Please check if the file was properly saved or try restoring from a backup.";
-        }
-        if (message != null && (message.contains("invalid characters") || message.contains("MalformedInput") || message.contains("MalInputFormat"))) {
-            return "The file data appears to be corrupted. Even though the password was accepted, the decrypted content contains invalid characters. Please check if the file was damaged during storage or transfer, and try restoring from a backup.";
-        }
-        return "Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.";
     }
 }

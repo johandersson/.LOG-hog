@@ -2,6 +2,7 @@ package filehandling;
 
 import org.junit.jupiter.api.*;
 import encryption.EncryptionManager;
+import encryption.TestableEncryptionManager;
 import utils.DateHandler;
 
 import javax.swing.*;
@@ -144,16 +145,13 @@ public class FileHandlingJUnitTest {
 
     @Test
     void testLoadEntryEncrypted() throws Exception {
-        System.out.println("Test: EntryLoader encryption cycle test (KNOWN LIMITATION)...");
+        System.out.println("Test: EntryLoader encryption cycle test...");
 
-        // NOTE: This test documents a known limitation where EntryLoader cannot
-        // load encrypted files in test environments due to encryption manager state.
-        // The core encryption functionality works correctly as verified by other tests.
-
-        // Use a unique test file for this test
+        // Use a unique test file and testable components
         Path uniqueTestFile = Files.createTempFile("encrypted_test", ".txt");
-        LogFileHandler uniqueHandler = new LogFileHandler();
-        LogFileHandler.setTestFilePath(uniqueTestFile);
+        TestableEncryptionManager testableEncryptor = new TestableEncryptionManager();
+        LogFileHandler uniqueHandler = new LogFileHandler(uniqueTestFile, testableEncryptor);
+        EntryLoader uniqueLoader = new EntryLoader(uniqueHandler, testableEncryptor);
 
         try {
             createTestLogFile(uniqueTestFile);
@@ -178,24 +176,18 @@ public class FileHandlingJUnitTest {
 
             System.out.println("✓ PASS: Encryption/decryption cycle preserved content");
         } finally {
-            // Restore original test file path
-            LogFileHandler.setTestFilePath(testFilePath);
             Files.deleteIfExists(uniqueTestFile);
         }
     }
 
     @Test
     void testEncryptionUnlockBug() throws Exception {
-        System.out.println("Test: Encryption/decryption cycle integrity (KNOWN LIMITATION)...");
+        System.out.println("Test: Encryption/decryption cycle integrity...");
 
-        // NOTE: This test documents the original "timestamps load but no content" bug.
-        // The EntryLoader cannot handle encrypted files in test environments due to
-        // encryption manager state issues, but the core encryption/decryption works.
-
-        // Use a unique test file for this test
+        // Use a unique test file and testable components
         Path uniqueTestFile = Files.createTempFile("unlock_bug_test", ".txt");
-        LogFileHandler uniqueHandler = new LogFileHandler();
-        LogFileHandler.setTestFilePath(uniqueTestFile);
+        TestableEncryptionManager testableEncryptor = new TestableEncryptionManager();
+        LogFileHandler uniqueHandler = new LogFileHandler(uniqueTestFile, testableEncryptor);
 
         try {
             // Create test file with content
@@ -221,8 +213,6 @@ public class FileHandlingJUnitTest {
 
             System.out.println("✓ PASS: Content integrity maintained through encryption cycle");
         } finally {
-            // Restore original test file path
-            LogFileHandler.setTestFilePath(testFilePath);
             Files.deleteIfExists(uniqueTestFile);
         }
     }
