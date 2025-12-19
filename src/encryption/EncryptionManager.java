@@ -48,7 +48,7 @@ public class EncryptionManager implements Encryptor {
             random.nextBytes(salt);
             return salt;
         } catch (Exception e) {
-            throw new EncryptionException("Unable to generate encryption salt. This is a system error.", e);
+            throw new EncryptionException("Unable to prepare encryption security settings. This is a system error.", e);
         }
     }
 
@@ -60,7 +60,7 @@ public class EncryptionManager implements Encryptor {
             var tmp = factory.generateSecret(spec);
             return new SecretKeySpec(tmp.getEncoded(), "AES");
         } catch (Exception e) {
-            throw new EncryptionException("Unable to create encryption key from password. Please check your password and try again.", e);
+            throw new EncryptionException("Unable to process your password. Please check your password and try again.", e);
         }
     }
 
@@ -71,7 +71,7 @@ public class EncryptionManager implements Encryptor {
             var tmp = factory.generateSecret(spec);
             return new SecretKeySpec(tmp.getEncoded(), "AES");
         } catch (Exception e) {
-            throw new EncryptionException("Unable to create legacy encryption key. This may be a compatibility issue with older encrypted files.", e);
+            throw new EncryptionException("Unable to process your password with legacy settings. This may be a compatibility issue with older encrypted files.", e);
         }
     }
 
@@ -114,6 +114,9 @@ public class EncryptionManager implements Encryptor {
         if (encryptedData.length == 0) {
             throw new EncryptionException("Cannot decrypt empty data. Please check if your file contains any content.");
         }
+        if (encryptedData.length < GCM_IV_LENGTH) {
+            throw new EncryptionException("This file appears to be corrupted or incomplete. It doesn't contain enough data to be a valid encrypted LogHog file. Please check if the file was properly saved or restore from a backup.");
+        }
     }
 
     private String performDecryption(byte[] encryptedData, SecretKey key) throws Exception {
@@ -130,12 +133,12 @@ public class EncryptionManager implements Encryptor {
 
     private String getDecryptionErrorMessage(byte[] encryptedData, Exception e) {
         if (encryptedData.length < GCM_IV_LENGTH) {
-            return "The file appears to be too short to be a valid encrypted LogHog file. Please check if this is the correct file or if it was corrupted.";
+            return "This file appears to be damaged or incomplete. It doesn't contain enough data to be a valid LogHog file. Please check if the file was properly saved or try restoring from a backup.";
         }
         if (e.getMessage() != null && e.getMessage().contains("Tag mismatch")) {
-            return "Unable to decrypt your file. Please check:\n• Is your password correct?\n• Was the file corrupted during transfer?\n• Are you trying to open a file created with an older version of LogHog?\n\nIf you're sure the password is correct, the file may be corrupted and you should restore from a backup.";
+            return "Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.";
         }
-        return "Unable to decrypt the data. This may indicate file corruption or an incorrect password.";
+        return "Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.";
     }
 
     @Override
@@ -151,10 +154,10 @@ public class EncryptionManager implements Encryptor {
 
     private void validateEncryptedDataForFallback(byte[] encryptedData) throws EncryptionException {
         if (encryptedData == null || encryptedData.length == 0) {
-            throw new EncryptionException("Cannot decrypt an empty file. Please check if your log file contains any data.");
+            throw new EncryptionException("Cannot open an empty file. Please check if your log file contains any data.");
         }
         if (encryptedData.length < GCM_IV_LENGTH) {
-            throw new EncryptionException("This file appears to be unencrypted or uses an incompatible encryption format. Please check if you have the correct file or if encryption was disabled for this file.");
+            throw new EncryptionException("This file appears to be damaged or uses an incompatible format. It doesn't contain enough data to be a valid LogHog file. Please check if this is the correct file or try restoring from a backup.");
         }
     }
 
@@ -169,11 +172,11 @@ public class EncryptionManager implements Encryptor {
     private String getFallbackErrorMessage(Exception e) {
         String message = e.getMessage();
         if (message != null && message.contains("Tag mismatch")) {
-            return "Unable to decrypt your file. Please check:\n• Is your password correct?\n• Was the file corrupted during transfer?\n• Are you trying to open a file created with an older version of LogHog?\n\nIf you're sure the password is correct, the file may be corrupted and you should restore from a backup.";
+            return "Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.";
         }
         if (message != null && message.contains("too short")) {
-            return "This file appears to be corrupted or incomplete. The encrypted data is too short to be valid. Please check if the file was properly saved or restore from a backup.";
+            return "This file appears to be damaged or incomplete. It doesn't contain enough data to be a valid LogHog file. Please check if the file was properly saved or try restoring from a backup.";
         }
-        return "Unable to decrypt your file. Please check:\n• Is your password correct?\n• Was the file corrupted during transfer?\n• Are you trying to open a file created with an older version of LogHog?\n\nIf you're sure the password is correct, the file may be corrupted and you should restore from a backup.";
+        return "Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.";
     }
 }
