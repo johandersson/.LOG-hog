@@ -112,14 +112,18 @@ public class EncryptionManagerTest {
     void testTooShortDataHandling() {
         System.out.println("🧪 Testing too short data handling...");
 
-        // Test with data shorter than IV + minimum encrypted content
+        // Test with data shorter than IV length
         byte[] tooShortData = new byte[10]; // Less than GCM_IV_LENGTH (12)
 
-        assertThrows(EncryptionException.class, () -> {
+        EncryptionException exception = assertThrows(EncryptionException.class, () -> {
             encryptionManager.decryptWithFallback(tooShortData, testPassword, testSalt);
         }, "Should reject data that's too short");
 
-        System.out.println("✅ Too short data rejected correctly");
+        // Verify the error message is specific to short data
+        assertTrue(exception.getMessage().contains("unencrypted or uses an incompatible encryption format"),
+                  "Should give specific error for short data");
+
+        System.out.println("✅ Too short data rejected with appropriate error message");
     }
 
     @Test
