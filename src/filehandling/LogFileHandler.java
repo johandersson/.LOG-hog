@@ -33,26 +33,42 @@ import javax.swing.DefaultListModel;
 import javax.swing.JOptionPane;
 
 import encryption.EncryptionManager;
+import encryption.Encryptor;
 import encryption.FileEncryptionManager;
 import utils.DateHandler;
 
-public class LogFileHandler {
-    static Path FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
+public class LogFileHandler implements LogFileOperations {
+    private static Path DEFAULT_FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
 
-    // For testing only
+    // For testing only - deprecated, use constructor instead
     public static void setTestFilePath(Path testPath) {
-        FILE_PATH = testPath;
+        DEFAULT_FILE_PATH = testPath;
     }
 
-    private FileEncryptionManager encryptionManager = new FileEncryptionManager(FILE_PATH);
+    private final Path filePath;
+    private final Encryptor encryptor;
+    private FileEncryptionManager encryptionManager;
     private boolean encrypted = false;
     private byte[] salt;
     private String backupDirectory = "";
     List<String> cachedLines = new ArrayList<>();
     private List<List<String>> cachedEntries = null;
     private long cachedEntriesLastModified = 0;
-    private final EntryLoader entryLoader = new EntryLoader(this);
+    private EntryLoader entryLoader;
+
+    // Default constructor for backward compatibility
+    public LogFileHandler() {
+        this(DEFAULT_FILE_PATH, EncryptionManager.getInstance());
+    }
+
+    // Constructor for testing with dependencies
+    public LogFileHandler(Path filePath, Encryptor encryptor) {
+        this.filePath = filePath;
+        this.encryptor = encryptor;
+        this.encryptionManager = new FileEncryptionManager(filePath, encryptor);
+        this.entryLoader = new EntryLoader(this, encryptor);
+    }
 
     public static String removeSecureMarker(String text) {
         if (text == null) return null;
@@ -68,6 +84,7 @@ public class LogFileHandler {
         return text;
     }
 
+    @Override
     public void saveText(String text, DefaultListModel<String> listModel) {
         if (text == null || text.isBlank()) return;
 
@@ -95,15 +112,15 @@ public class LogFileHandler {
                 encryptionManager.encryptFile(fullText);
                 cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\n")));
             } else {
-                if (Files.exists(FILE_PATH)) {
+                if (Files.exists(filePath)) {
                     // Inspect last line to avoid creating multiple blank lines between entries.
-                    List<String> existing = Files.readAllLines(FILE_PATH);
+                    List<String> existing = Files.readAllLines(filePath);
                     String toWrite = uniqueTimeStamp + ls + text + ls;
-                    Files.writeString(FILE_PATH, toWrite, java.nio.file.StandardOpenOption.APPEND);
+                    Files.writeString(filePath, toWrite, java.nio.file.StandardOpenOption.APPEND);
                 } else {
                     // For new files, ensure .LOG header exists for Notepad compatibility
                     String contentWithHeader = ".LOG" + ls + ls + entry;
-                    Files.writeString(FILE_PATH, contentWithHeader, java.nio.file.StandardOpenOption.CREATE);
+                    Files.writeString(filePath, contentWithHeader, java.nio.file.StandardOpenOption.CREATE);
                 }
             }
 
@@ -118,13 +135,13 @@ public class LogFileHandler {
 
     //sort and normalize file
     private void sortAndNormalizeFile() throws Exception {
-        if (!Files.exists(FILE_PATH)) return;
+        if (!Files.exists(filePath)) return;
 
         List<String> lines;
         if (encryptionManager.isEncrypted()) {
             lines = new ArrayList<>(getLines());
         } else {
-            lines = Files.readAllLines(FILE_PATH);
+            lines = Files.readAllLines(filePath);
         }
         
         // Sort entries by timestamp
@@ -138,19 +155,19 @@ public class LogFileHandler {
             String fullText = String.join("\n", cachedLines);
             encryptionManager.encryptFile(fullText);
         } else {
-            Files.write(FILE_PATH, normalized);
+            Files.write(filePath, normalized);
         }
     }
 
     public void updateEntry(String timeStamp, String newText) {
-        if (newText.isBlank() || !Files.exists(FILE_PATH)) return;
+        if (newText.isBlank() || !Files.exists(filePath)) return;
 
         try {
             List<String> lines;
             if (encrypted) {
                 lines = new ArrayList<>(getLines());
             } else {
-                lines = Files.readAllLines(FILE_PATH);
+                lines = Files.readAllLines(filePath);
             }
             List<String> updatedLines = new ArrayList<>();
             boolean inTargetEntry = false;
@@ -180,7 +197,7 @@ public class LogFileHandler {
                 String fullText = String.join("\n", cachedLines);
                 encryptionManager.encryptFile(fullText);
             } else {
-                Files.write(FILE_PATH, updatedLines);
+                Files.write(filePath, updatedLines);
             }
         } catch (Exception e) {
             showErrorDialog("<html><b>✏️ Update Failed</b><br><br>Unable to update the log entry.<br>Please try again.<br><br><i>Tip: Ensure the entry exists and the file is writable.</i></html>");
@@ -188,14 +205,14 @@ public class LogFileHandler {
     }
 
     public void changeTimestamp(String oldTimestamp, String newTimestamp, DefaultListModel<String> listModel) {
-        if (!Files.exists(FILE_PATH)) return;
+        if (!Files.exists(filePath)) return;
 
         try {
             List<String> lines;
             if (encrypted) {
                 lines = new ArrayList<>(getLines());
             } else {
-                lines = Files.readAllLines(FILE_PATH);
+                lines = Files.readAllLines(filePath);
             }
             for (int i = 0; i < lines.size(); i++) {
                 if (lines.get(i).trim().equals(oldTimestamp.trim())) {
@@ -209,7 +226,7 @@ public class LogFileHandler {
                 String fullText = String.join("\n", cachedLines);
                 encryptionManager.encryptFile(fullText);
             } else {
-                Files.write(FILE_PATH, lines);
+                Files.write(filePath, lines);
             }
             
             // Update the list model
@@ -226,14 +243,14 @@ public class LogFileHandler {
 
     // delete certain log entry
     private void deleteLogEntry(String timeStamp, DefaultListModel<String> listModel) {
-        if (!Files.exists(FILE_PATH)) return;
+        if (!Files.exists(filePath)) return;
 
         try {
             List<String> lines;
             if (encrypted) {
                 lines = new ArrayList<>(getLines());
             } else {
-                lines = Files.readAllLines(FILE_PATH);
+                lines = Files.readAllLines(filePath);
             }
             List<String> updatedLines = getUpdatedLines(timeStamp, lines);
 
@@ -248,9 +265,11 @@ public class LogFileHandler {
                 String fullText = String.join("\n", cachedLines);
                 encryptionManager.encryptFile(fullText);
             } else {
-                Files.write(FILE_PATH, normalized);
+                Files.write(filePath, normalized);
             }
-            listModel.removeElement(timeStamp);
+            if (listModel != null) {
+                listModel.removeElement(timeStamp);
+            }
         } catch (Exception e) {
             showErrorDialog("<html><b>🗑️ Delete Failed</b><br><br>Unable to delete the log entry.<br>Please try again.<br><br><i>Tip: Ensure the entry exists and the file is not locked.</i></html>");
         }
@@ -390,7 +409,7 @@ public class LogFileHandler {
     }
 
     public int getDuplicateCount(String timeStamp) {
-        if (!Files.exists(FILE_PATH)) return 0;
+        if (!Files.exists(filePath)) return 0;
 
         try {
             List<String> lines = getLines();
@@ -415,15 +434,16 @@ public class LogFileHandler {
             }
             return cachedLines;
         } else {
-            List<String> lines = Files.readAllLines(FILE_PATH);
+            List<String> lines = Files.readAllLines(filePath);
             // Keep .LOG in unencrypted files for Notepad compatibility
             return lines.stream().map(String::trim).collect(Collectors.toList());
         }
     }
 
+    @Override
     public void enableEncryption(char[] pwd) throws Exception {
-        this.salt = EncryptionManager.getInstance().generateSalt();
-        List<String> lines = Files.readAllLines(FILE_PATH);
+        this.salt = encryptor.generateSalt();
+        List<String> lines = Files.readAllLines(filePath);
         // Preserve .LOG header in encrypted files (don't remove it)
         String fullText = String.join("\n", lines);
         // Ensure .LOG header is present
@@ -431,8 +451,8 @@ public class LogFileHandler {
             fullText = ".LOG\n\n" + fullText;
         }
         // Save encrypted to backup first
-        Path backupPath = getBackupPath(FILE_PATH.getFileName().toString() + ".bak");
-        Files.write(backupPath, Files.readAllBytes(FILE_PATH));
+        Path backupPath = getBackupPath(filePath.getFileName().toString() + ".bak");
+        Files.write(backupPath, Files.readAllBytes(filePath));
         // Then encrypt and save
         encryptionManager.setEncryption(pwd, this.salt);
         encryptionManager.encryptFile(fullText);
@@ -446,11 +466,11 @@ public class LogFileHandler {
     }
 
     public List<List<String>> getParsedEntries() throws Exception {
-        if (!Files.exists(FILE_PATH)) {
+        if (!Files.exists(filePath)) {
             return new ArrayList<>();
         }
 
-        long currentModified = Files.getLastModifiedTime(FILE_PATH).toMillis();
+        long currentModified = Files.getLastModifiedTime(filePath).toMillis();
         if (cachedEntries == null || currentModified > cachedEntriesLastModified) {
             List<String> lines = getLines();
             cachedEntries = parseEntriesFromLines(lines);
@@ -484,17 +504,50 @@ public class LogFileHandler {
         return entries;
     }
 
+    public void enableEncryption() throws Exception {
+
+        String plainContent = Files.readString(filePath);
+
+        // Ensure .LOG header is present
+        if (!plainContent.startsWith(".LOG")) {
+            plainContent = ".LOG\n\n" + plainContent;
+        }
+
+        // Save plain text to backup first
+        Path backupPath = getBackupPath(filePath.getFileName().toString() + ".bak");
+        Files.writeString(backupPath, plainContent);
+
+        // Encrypt and write the content
+        encryptionManager.encryptFile(plainContent);
+
+        // Set encryption state
+        encrypted = true;
+        this.salt = encryptionManager.getSalt().clone();
+
+        // Clear any cached data since encryption state changed
+        if (cachedLines != null) {
+            cachedLines.clear();
+            cachedLines = null;
+        }
+        if (cachedEntries != null) {
+            cachedEntries.clear();
+            cachedEntries = null;
+            cachedEntriesLastModified = 0;
+        }
+    }
+
+    @Override
     public void disableEncryption() throws Exception {
         if (!encryptionManager.isEncrypted()) {
             throw new IllegalStateException("File is not encrypted");
         }
         
         // Read and decrypt the current file
-        byte[] data = Files.readAllBytes(FILE_PATH);
-        String decrypted = EncryptionManager.getInstance().decryptWithFallback(data, encryptionManager.getPassword(), encryptionManager.getSalt());
+        byte[] data = Files.readAllBytes(filePath);
+        String decrypted = encryptor.decryptWithFallback(data, encryptionManager.getPassword(), encryptionManager.getSalt());
         
         // Save decrypted to backup first (as encrypted bytes)
-        Path backupPath = getBackupPath(FILE_PATH.getFileName().toString() + ".bak");
+        Path backupPath = getBackupPath(filePath.getFileName().toString() + ".bak");
         Files.write(backupPath, data);
         
         // Ensure .LOG header is present (for backward compatibility with old encrypted files)
@@ -504,7 +557,7 @@ public class LogFileHandler {
         }
         
         // Write decrypted content as plain text (using writeString to preserve encoding)
-        Files.writeString(FILE_PATH, contentWithHeader);
+        Files.writeString(filePath, contentWithHeader);
         
         // Clear encryption state
         encrypted = false;
@@ -527,6 +580,7 @@ public class LogFileHandler {
         sortedEntries.forEach(listModel::addElement);
     }
 
+    @Override
     public void loadLogEntries(DefaultListModel<String> listModel) throws Exception {
         entryLoader.loadLogEntries(listModel);
     }
@@ -541,34 +595,42 @@ public class LogFileHandler {
         return entryLoader.filterModelByYearMonth(sourceModel, year, month);
     }
 
+    @Override
     public String loadEntry(String timeStamp) {
         return entryLoader.loadEntry(timeStamp);
     }
 
-    public void setEncryption(char[] pwd, byte[] slt) {
-        encrypted = true;
-        this.salt = slt;
+    public void setEncryption(char[] pwd, byte[] slt) throws Exception {
+        // Set credentials first
         encryptionManager.setEncryption(pwd, slt);
-        if (cachedLines != null) {
-            cachedLines.clear();
-            cachedLines = null;
-        }
+        
+        // Then encrypt the existing file content
+        enableEncryption();
     }
 
+    @Override
     public boolean isEncrypted() {
         return encrypted;
     }
 
+    @Override
     public char[] getPassword() {
         return encryptionManager.getPassword();
     }
 
+    @Override
     public byte[] getSalt() {
         return encryptionManager.getSalt();
     }
 
+    @Override
     public Path getFilePath() {
-        return FILE_PATH;
+        return filePath;
+    }
+
+    @Override
+    public void deleteEntry(String timestamp) throws Exception {
+        deleteLogEntry(timestamp, null);
     }
 
     public void setBackupDirectory(String backupDirectory) {
@@ -581,17 +643,17 @@ public class LogFileHandler {
             // Validate that the backup directory is within allowed paths
             if (!isValidFilePath(dir)) {
                 // Fall back to sibling if backup directory is not valid
-                return FILE_PATH.resolveSibling(filename);
+                return filePath.resolveSibling(filename);
             }
             try {
                 Files.createDirectories(dir);
             } catch (Exception e) {
                 // If can't create, fall back to sibling
-                return FILE_PATH.resolveSibling(filename);
+                return filePath.resolveSibling(filename);
             }
             return dir.resolve(filename);
         } else {
-            return FILE_PATH.resolveSibling(filename);
+            return filePath.resolveSibling(filename);
         }
     }
 
@@ -653,5 +715,10 @@ public class LogFileHandler {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    @Override
+    public Encryptor getEncryptor() {
+        return encryptor;
     }
 }

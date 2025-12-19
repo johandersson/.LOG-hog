@@ -49,111 +49,256 @@ public class EncryptionManager implements Encryptor {
             random.nextBytes(salt);
             return salt;
         } catch (Exception e) {
-            throw new EncryptionException("Failed to generate salt", e);
+            throw new EncryptionException("Unable to prepare encryption security settings. This is a system error.", e);
         }
     }
 
     @Override
     public SecretKey deriveKey(char[] password, byte[] salt) throws EncryptionException {
+        if (password == null) {
+            throw new EncryptionException("Password cannot be null.");
+        }
+        if (password.length == 0) {
+            throw new EncryptionException("Password cannot be empty.");
+        }
+        if (salt == null) {
+            throw new EncryptionException("Salt cannot be null.");
+        }
+        if (salt.length != 16) {
+            throw new EncryptionException("Salt must be 16 bytes long.");
+        }
+
         try {
             var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             var spec = new PBEKeySpec(password, salt, PBKDF2_ITERATIONS, AES_KEY_LENGTH);
             var tmp = factory.generateSecret(spec);
             return new SecretKeySpec(tmp.getEncoded(), "AES");
         } catch (Exception e) {
-            throw new EncryptionException("Failed to derive key", e);
+            throw new EncryptionException("Unable to process your password. Please check your password and try again.", e);
         }
     }
 
     public SecretKey deriveKeyLegacy(char[] password, byte[] salt) throws EncryptionException {
+        if (password == null) {
+            throw new EncryptionException("Password cannot be null.");
+        }
+        if (password.length == 0) {
+            throw new EncryptionException("Password cannot be empty.");
+        }
+        if (salt == null) {
+            throw new EncryptionException("Salt cannot be null.");
+        }
+        if (salt.length != 16) {
+            throw new EncryptionException("Salt must be 16 bytes long.");
+        }
+
         try {
             var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             var spec = new PBEKeySpec(password, salt, PBKDF2_ITERATIONS_LEGACY, AES_KEY_LENGTH);
             var tmp = factory.generateSecret(spec);
             return new SecretKeySpec(tmp.getEncoded(), "AES");
         } catch (Exception e) {
-            throw new EncryptionException("Failed to derive legacy key", e);
+            throw new EncryptionException("Unable to process your password with legacy settings. This may be a compatibility issue with older encrypted files.", e);
+        }
+    }
+
+    public byte[] encryptLegacy(String data, SecretKey key) throws EncryptionException {
+        if (data == null) {
+            throw new EncryptionException("Data to encrypt cannot be null.");
+        }
+        if (key == null) {
+            throw new EncryptionException("Encryption key cannot be null.");
+        }
+
+        try {
+            return performEncryption(data, key);
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to encrypt your data. Please try again or contact support if the problem persists.", e);
+        }
+    }
+    @Override
+    public byte[] encrypt(String data, char[] password, byte[] salt) throws EncryptionException {
+        if (data == null) {
+            throw new EncryptionException("Data to encrypt cannot be null.");
+        }
+        if (password == null) {
+            throw new EncryptionException("Password cannot be null.");
+        }
+        if (salt == null) {
+            throw new EncryptionException("Salt cannot be null.");
+        }
+
+        try {
+            SecretKey key = deriveKey(password, salt);
+            byte[] encrypted = performEncryption(data, key);
+            // Return salt + encrypted
+            byte[] result = new byte[salt.length + encrypted.length];
+            System.arraycopy(salt, 0, result, 0, salt.length);
+            System.arraycopy(encrypted, 0, result, salt.length, encrypted.length);
+            return result;
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to encrypt your data. Please try again or contact support if the problem persists.", e);
+        }
+    }
+
+    private byte[] performEncryption(String data, SecretKey key) throws Exception {
+        var cipher = Cipher.getInstance(ALGORITHM);
+        var iv = new byte[GCM_IV_LENGTH];
+        new SecureRandom().nextBytes(iv);
+        var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        var encrypted = cipher.doFinal(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        var result = new byte[iv.length + encrypted.length];
+        System.arraycopy(iv, 0, result, 0, iv.length);
+        System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
+        return result;
+    }
+
+    public String decrypt(byte[] encryptedData, SecretKey key) throws EncryptionException {
+        validateEncryptedData(encryptedData);
+
+        try {
+            return performDecryption(encryptedData, key);
+        } catch (EncryptionException e) {
+            // Re-throw our custom exceptions as-is
+            throw e;
+        } catch (javax.crypto.AEADBadTagException e) {
+            throw new EncryptionException("Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.", e);
+        } catch (javax.crypto.BadPaddingException e) {
+            throw new EncryptionException("Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.", e);
+        } catch (javax.crypto.IllegalBlockSizeException e) {
+            throw new EncryptionException("Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.", e);
+        } catch (java.security.InvalidKeyException e) {
+            throw new EncryptionException("Unable to process the encryption key. This may be a system compatibility issue.", e);
+        } catch (java.security.InvalidAlgorithmParameterException e) {
+            throw new EncryptionException("Unable to initialize encryption parameters. This may be a system compatibility issue.", e);
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to open this file due to an unexpected error. Please try again or contact support.", e);
+        }
+    }
+
+    private void validateEncryptedData(byte[] encryptedData) throws EncryptionException {
+        if (encryptedData == null) {
+            throw new EncryptionException("Cannot decrypt null data. Please check if your file exists and is readable.");
+        }
+        if (encryptedData.length == 0) {
+            throw new EncryptionException("Cannot decrypt empty data. Please check if your file contains any content.");
+        }
+        if (encryptedData.length < GCM_IV_LENGTH + GCM_TAG_LENGTH) {
+            throw new EncryptionException("This file appears to be corrupted or incomplete. It doesn't contain enough data to be a valid encrypted LogHog file. Please check if the file was properly saved or restore from a backup.");
         }
     }
 
     @Override
-    public byte[] encrypt(String data, SecretKey key) throws EncryptionException {
+    public String decrypt(byte[] data, char[] password) throws EncryptionException {
+        if (data == null) {
+            throw new EncryptionException("Data to decrypt cannot be null.");
+        }
+        if (password == null) {
+            throw new EncryptionException("Password cannot be null.");
+        }
+
         try {
-            var cipher = Cipher.getInstance(ALGORITHM);
-            var iv = new byte[GCM_IV_LENGTH];
-            var random = new SecureRandom();
-            random.nextBytes(iv);
-            var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
-            cipher.init(Cipher.ENCRYPT_MODE, key, spec);
-            var encrypted = cipher.doFinal(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            var result = new byte[iv.length + encrypted.length];
-            System.arraycopy(iv, 0, result, 0, iv.length);
-            System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
-            return result;
+            // Read salt from the beginning
+            if (data.length < 16) {
+                throw new EncryptionException("Encrypted data is too short.");
+            }
+            byte[] salt = new byte[16];
+            System.arraycopy(data, 0, salt, 0, 16);
+            byte[] encrypted = new byte[data.length - 16];
+            System.arraycopy(data, 16, encrypted, 0, encrypted.length);
+            SecretKey key = deriveKey(password, salt);
+            return performDecryption(encrypted, key);
+        } catch (EncryptionException e) {
+            throw e;
         } catch (Exception e) {
-            throw new EncryptionException("Failed to encrypt data", e);
+            throw new EncryptionException("Unable to decrypt your data. Please check your password and try again.", e);
         }
     }
 
-    public String decrypt(byte[] encryptedData, SecretKey key) throws EncryptionException {
+    private String decryptLegacy(byte[] encryptedData, SecretKey key) throws EncryptionException {
+        validateEncryptedData(encryptedData);
+
         try {
-            var cipher = Cipher.getInstance(ALGORITHM);
-            var iv = new byte[GCM_IV_LENGTH];
-            System.arraycopy(encryptedData, 0, iv, 0, iv.length);
-            var encrypted = new byte[encryptedData.length - iv.length];
-            System.arraycopy(encryptedData, iv.length, encrypted, 0, encrypted.length);
-            var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
-            cipher.init(Cipher.DECRYPT_MODE, key, spec);
-            var decrypted = cipher.doFinal(encrypted);
+            return performDecryption(encryptedData, key);
+        } catch (EncryptionException e) {
+            throw e;
+        } catch (javax.crypto.AEADBadTagException e) {
+            throw new EncryptionException("Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.", e);
+        } catch (javax.crypto.BadPaddingException e) {
+            throw new EncryptionException("Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.", e);
+        } catch (javax.crypto.IllegalBlockSizeException e) {
+            throw new EncryptionException("Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.", e);
+        } catch (java.security.InvalidKeyException e) {
+            throw new EncryptionException("Unable to process the encryption key. This may be a system compatibility issue.", e);
+        } catch (java.security.InvalidAlgorithmParameterException e) {
+            throw new EncryptionException("Unable to initialize encryption parameters. This may be a system compatibility issue.", e);
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to open this file due to an unexpected error. Please try again or contact support.", e);
+        }
+    }
+
+    private String performDecryption(byte[] encryptedData, SecretKey key) throws Exception {
+        var cipher = Cipher.getInstance(ALGORITHM);
+        var iv = new byte[GCM_IV_LENGTH];
+        System.arraycopy(encryptedData, 0, iv, 0, iv.length);
+        var encrypted = new byte[encryptedData.length - iv.length];
+        System.arraycopy(encryptedData, iv.length, encrypted, 0, encrypted.length);
+        var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        var decrypted = cipher.doFinal(encrypted);
+        try {
             return new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new EncryptionException("Failed to decrypt data", e);
+            throw new EncryptionException("The decrypted data contains invalid characters. This usually means the file is corrupted or you're using the wrong password.", e);
         }
     }
 
     @Override
     public String decryptWithFallback(byte[] encryptedData, char[] password, byte[] salt) throws EncryptionException {
+        validateEncryptedDataForFallback(encryptedData);
+
         try {
-            // Determine whether the provided data includes a 16-byte salt prefix.
-            byte[] dataToDecrypt = encryptedData;
-            if (salt != null && salt.length == 16 && encryptedData != null && encryptedData.length > 16) {
-                boolean startsWithSalt = true;
-                for (int i = 0; i < 16; i++) {
-                    if (encryptedData[i] != salt[i]) {
-                        startsWithSalt = false;
-                        break;
-                    }
-                }
-                if (startsWithSalt) {
-                    dataToDecrypt = Arrays.copyOfRange(encryptedData, 16, encryptedData.length);
-                }
-            }
+            byte[] dataToDecrypt = stripSaltPrefixIfPresent(encryptedData, salt);
 
             // Try with current iterations first
             SecretKey key = deriveKey(password, salt);
             return decrypt(dataToDecrypt, key);
         } catch (Exception e) {
             try {
-                // Fallback to legacy iterations for backward compatibility
-                byte[] dataToDecrypt = encryptedData;
-                if (salt != null && salt.length == 16 && encryptedData != null && encryptedData.length > 16) {
-                    boolean startsWithSalt = true;
-                    for (int i = 0; i < 16; i++) {
-                        if (encryptedData[i] != salt[i]) {
-                            startsWithSalt = false;
-                            break;
-                        }
-                    }
-                    if (startsWithSalt) {
-                        dataToDecrypt = Arrays.copyOfRange(encryptedData, 16, encryptedData.length);
-                    }
-                }
-
+                byte[] dataToDecrypt = stripSaltPrefixIfPresent(encryptedData, salt);
                 SecretKey legacyKey = deriveKeyLegacy(password, salt);
-                return decrypt(dataToDecrypt, legacyKey);
+                return decryptLegacy(dataToDecrypt, legacyKey);
             } catch (Exception legacyException) {
                 throw new EncryptionException("Decryption failed: invalid password or corrupted file", legacyException);
             }
         }
     }
+
+    private byte[] stripSaltPrefixIfPresent(byte[] encryptedData, byte[] salt) {
+        if (salt == null || salt.length != 16 || encryptedData == null || encryptedData.length <= 16) {
+            return encryptedData;
+        }
+        boolean startsWithSalt = true;
+        for (int i = 0; i < 16; i++) {
+            if (encryptedData[i] != salt[i]) {
+                startsWithSalt = false;
+                break;
+            }
+        }
+        if (startsWithSalt) {
+            return Arrays.copyOfRange(encryptedData, 16, encryptedData.length);
+        }
+        return encryptedData;
+    }
+
+    private void validateEncryptedDataForFallback(byte[] encryptedData) throws EncryptionException {
+        if (encryptedData == null || encryptedData.length == 0) {
+            throw new EncryptionException("Cannot open an empty file. Please check if your log file contains any data.");
+        }
+        if (encryptedData.length < GCM_IV_LENGTH + GCM_TAG_LENGTH) {
+            throw new EncryptionException("This file appears to be damaged or uses an incompatible format. It doesn't contain enough data to be a valid LogHog file. Please check if this is the correct file or try restoring from a backup.");
+        }
+    }
 }
+

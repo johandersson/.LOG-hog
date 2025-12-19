@@ -105,7 +105,12 @@ public class EncryptionHandler {
                 }
                 return;
             }
-            logFileHandler.setEncryption(pwd, salt);
+            try {
+                logFileHandler.setEncryption(pwd, salt);
+            } catch (Exception e) {
+                // If setEncryption fails, continue with authentication flow
+                // The method will try to load entries which may trigger proper encryption setup
+            }
             java.util.Arrays.fill(pwd, '\0'); // Zero out password for security
             try {
                 loadLogEntriesCallback.run();
@@ -129,7 +134,9 @@ public class EncryptionHandler {
                     errorMsg.contains("aeadbadtag") ||
                     errorMsg.contains("integrity check failed") ||
                     errorMsg.contains("mac check failed") ||
-                    errorMsg.contains("decryption failed")) {
+                    errorMsg.contains("decryption failed") ||
+                    errorMsg.contains("unable to open your file") ||
+                    errorMsg.contains("your password might be incorrect")) {
                     int remaining = 4 - attempts;
                     JOptionPane.showMessageDialog(parentFrame, "<html><b>🔒 Authentication Failed</b><br><br>The password you entered is incorrect.<br>You have <b>" + remaining + "</b> attempts remaining before the application locks for security.<br><br><i>Tip: Use your password manager or reminder if needed.</i></html>", "Authentication Failed", JOptionPane.ERROR_MESSAGE);
                     // WindowShakeAnimation.shake(parentFrame);

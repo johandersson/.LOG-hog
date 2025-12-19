@@ -31,29 +31,37 @@ import encryption.EncryptionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import encryption.Encryptor;
+
 public class EntryLoader {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
     private final LogFileHandler logFileHandler;
+    private final Encryptor encryptor;
 
     public EntryLoader(LogFileHandler logFileHandler) {
+        this(logFileHandler, EncryptionManager.getInstance());
+    }
+
+    public EntryLoader(LogFileHandler logFileHandler, Encryptor encryptor) {
         this.logFileHandler = logFileHandler;
+        this.encryptor = encryptor;
     }
 
     public void loadLogEntries(DefaultListModel<String> listModel) throws Exception {
         listModel.clear();
-        if (!Files.exists(LogFileHandler.FILE_PATH)) return;
+        if (!Files.exists(logFileHandler.getFilePath())) return;
 
         List<String> lines;
         if (logFileHandler.isEncrypted()) {
             try {
-                var data = Files.readAllBytes(LogFileHandler.FILE_PATH);
-                var decrypted = EncryptionManager.getInstance().decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
+                var data = Files.readAllBytes(logFileHandler.getFilePath());
+                var decrypted = encryptor.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
                 lines = Arrays.asList(decrypted.split("\n", -1));
             } catch (EncryptionException e) {
                 throw new RuntimeException(e);
             }
         } else {
-            lines = Files.readAllLines(LogFileHandler.FILE_PATH);
+            lines = Files.readAllLines(logFileHandler.getFilePath());
         }
 
         // Remove secure clipboard markers from lines
@@ -130,16 +138,16 @@ public class EntryLoader {
 
     public void loadFilteredEntries(DefaultListModel<String> listModel, int year, int month) {
         listModel.clear();
-        if (!Files.exists(LogFileHandler.FILE_PATH)) return;
+        if (!Files.exists(logFileHandler.getFilePath())) return;
 
         try {
             List<String> lines;
             if (logFileHandler.isEncrypted()) {
-                byte[] data = Files.readAllBytes(LogFileHandler.FILE_PATH);
-                String decrypted = EncryptionManager.getInstance().decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
+                byte[] data = Files.readAllBytes(logFileHandler.getFilePath());
+                String decrypted = encryptor.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
                 lines = Arrays.asList(decrypted.split("\n", -1));
             } else {
-                lines = Files.readAllLines(LogFileHandler.FILE_PATH);
+                lines = Files.readAllLines(logFileHandler.getFilePath());
             }
             // Strip timestamp suffixes that may be in the file
             lines = lines.stream().map(line -> line.replaceAll("^(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}) \\([0-9]+\\)(.*)$", "$1$2")).collect(Collectors.toList());
@@ -223,16 +231,16 @@ public class EntryLoader {
     }
 
     public String loadEntry(String timeStamp) {
-        if (!Files.exists(LogFileHandler.FILE_PATH)) return "";
+        if (!Files.exists(logFileHandler.getFilePath())) return "";
 
         try {
             List<String> lines;
             if (logFileHandler.isEncrypted()) {
-                byte[] data = Files.readAllBytes(LogFileHandler.FILE_PATH);
+                byte[] data = Files.readAllBytes(logFileHandler.getFilePath());
                 String decrypted = EncryptionManager.getInstance().decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
                 lines = Arrays.asList(decrypted.split("\n", -1));
             } else {
-                lines = Files.readAllLines(LogFileHandler.FILE_PATH);
+                lines = Files.readAllLines(logFileHandler.getFilePath());
             }
 
             // Remove secure clipboard markers from lines
@@ -289,7 +297,7 @@ public class EntryLoader {
 
     public List<String> getRecentLogEntries(int i) {
         List<String> recentEntries = new ArrayList<>();
-        if (!Files.exists(LogFileHandler.FILE_PATH)) return recentEntries;
+        if (!Files.exists(logFileHandler.getFilePath())) return recentEntries;
 
         try {
             List<String> lines = logFileHandler.getLines();

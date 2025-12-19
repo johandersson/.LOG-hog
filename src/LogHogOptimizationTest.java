@@ -106,10 +106,8 @@ public class LogHogOptimizationTest {
         String testData = "Test data for encryption";
         byte[] salt = EncryptionManager.getInstance().generateSalt();
         char[] testPassword = generateTestPassword();
-        byte[] encrypted = EncryptionManager.getInstance().encrypt(testData,
-            EncryptionManager.getInstance().deriveKey(testPassword, salt));
-        String decrypted = EncryptionManager.getInstance().decrypt(encrypted,
-            EncryptionManager.getInstance().deriveKey(testPassword, salt));
+        byte[] encrypted = EncryptionManager.getInstance().encrypt(testData, testPassword, salt);
+        String decrypted = EncryptionManager.getInstance().decrypt(encrypted, testPassword);
 
         if (!testData.equals(decrypted)) {
             throw new RuntimeException("Encryption/decryption failed");

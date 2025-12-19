@@ -5,20 +5,20 @@ REM Runs all JUnit tests with coverage
 echo Running LogHog JUnit Tests...
 
 REM Set classpath to include main classes, test classes, and JUnit libraries
-set CLASSPATH=%~dp0src;%~dp0src\test\java;%~dp0lib\jacoco-agent-0.8.13-runtime.jar;%~dp0lib\junit-platform-console-standalone-1.10.2.jar
+set CLASSPATH=%~dp0src;%~dp0src\test\java;%~dp0src\lib\*
 
-REM Run tests with JaCoCo coverage
-java -javaagent:%~dp0lib\jacoco-agent-0.8.13-runtime.jar=destfile=%~dp0jacoco.exec -cp %CLASSPATH% org.junit.platform.console.ConsoleLauncher --select-package test
+REM Run tests (JaCoCo agent removed - using CoverageAnalyzer instead)
+java -cp %CLASSPATH% org.junit.platform.console.ConsoleLauncher --scan-classpath
 
 echo.
 echo Test execution completed.
-echo Coverage report saved to jacoco.exec
 echo.
 
-REM Generate HTML coverage report (optional)
-echo Generating HTML coverage report...
-java -jar %~dp0lib\jacoco-cli-0.8.13.jar report %~dp0jacoco.exec --classfiles %~dp0src\loghog.jar --sourcefiles %~dp0src --html %~dp0coverage
-
+REM Generate actual coverage report using CoverageAnalyzer
 echo.
-echo HTML coverage report generated in 'coverage' directory
+echo ========================================
+echo         CODE COVERAGE ANALYSIS
+echo ========================================
 echo.
+cd /d "%~dp0"
+java -cp "src\lib\*;." CoverageAnalyzer
