@@ -18,6 +18,7 @@
 package encryption;
 
 import java.security.SecureRandom;
+import java.util.Arrays;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -113,14 +114,43 @@ public class EncryptionManager implements Encryptor {
     @Override
     public String decryptWithFallback(byte[] encryptedData, char[] password, byte[] salt) throws EncryptionException {
         try {
+            // Determine whether the provided data includes a 16-byte salt prefix.
+            byte[] dataToDecrypt = encryptedData;
+            if (salt != null && salt.length == 16 && encryptedData != null && encryptedData.length > 16) {
+                boolean startsWithSalt = true;
+                for (int i = 0; i < 16; i++) {
+                    if (encryptedData[i] != salt[i]) {
+                        startsWithSalt = false;
+                        break;
+                    }
+                }
+                if (startsWithSalt) {
+                    dataToDecrypt = Arrays.copyOfRange(encryptedData, 16, encryptedData.length);
+                }
+            }
+
             // Try with current iterations first
             SecretKey key = deriveKey(password, salt);
-            return decrypt(encryptedData, key);
+            return decrypt(dataToDecrypt, key);
         } catch (Exception e) {
             try {
                 // Fallback to legacy iterations for backward compatibility
+                byte[] dataToDecrypt = encryptedData;
+                if (salt != null && salt.length == 16 && encryptedData != null && encryptedData.length > 16) {
+                    boolean startsWithSalt = true;
+                    for (int i = 0; i < 16; i++) {
+                        if (encryptedData[i] != salt[i]) {
+                            startsWithSalt = false;
+                            break;
+                        }
+                    }
+                    if (startsWithSalt) {
+                        dataToDecrypt = Arrays.copyOfRange(encryptedData, 16, encryptedData.length);
+                    }
+                }
+
                 SecretKey legacyKey = deriveKeyLegacy(password, salt);
-                return decrypt(encryptedData, legacyKey);
+                return decrypt(dataToDecrypt, legacyKey);
             } catch (Exception legacyException) {
                 throw new EncryptionException("Decryption failed: invalid password or corrupted file", legacyException);
             }
