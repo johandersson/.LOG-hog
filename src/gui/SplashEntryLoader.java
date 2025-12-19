@@ -23,7 +23,11 @@ import java.io.InputStreamReader;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Utility class for loading and processing splash screen entries from resources.
@@ -33,24 +37,33 @@ public class SplashEntryLoader {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     /**
-     * Loads entries from the resources/entries.txt file, shuffles them,
-     * selects the first 5, and sorts them by date.
+     * Loads entries from the resources/entries.txt file using reservoir sampling
+     * to select 5 random entries without loading the entire file into memory.
+     * Then sorts them by date.
      * <p>
-     * Performance: O(N) where N is the total number of entries in the file,
-     * due to the need to read and shuffle all entries before selection.
+     * Performance: O(N) time for reading, O(1) space (besides the 5 selected entries).
      *
      * @return A sorted list of up to 5 random entries
      */
     public static List<String> loadSplashEntries() {
-        List<String> allEntries;
+        List<String> reservoir = new ArrayList<>(5);
+        SecureRandom random = new SecureRandom();
         try {
             var is = SplashEntryLoader.class.getResourceAsStream("/resources/entries.txt");
             if (is != null) {
                 var reader = new BufferedReader(new InputStreamReader(is));
-                allEntries = new ArrayList<>();
                 String line;
+                int count = 0;
                 while ((line = reader.readLine()) != null) {
-                    allEntries.add(line);
+                    if (count < 5) {
+                        reservoir.add(line);
+                    } else {
+                        int r = random.nextInt(count + 1);
+                        if (r < 5) {
+                            reservoir.set(r, line);
+                        }
+                    }
+                    count++;
                 }
                 reader.close();
             } else {
@@ -58,7 +71,7 @@ public class SplashEntryLoader {
             }
         } catch (IOException e) {
             // Fallback to hardcoded entries
-            allEntries = Arrays.asList(
+            reservoir = Arrays.asList(
                 "2025-11-20 14:30: Started coding",
                 "2025-11-20 14:35: Fixed infinite loop",
                 "2025-11-20 14:40: Added cool feature",
@@ -67,15 +80,15 @@ public class SplashEntryLoader {
             );
         }
 
-        // Shuffle and select entries - O(N) shuffle, then O(K) selection where K=5
-        Collections.shuffle(allEntries);
-        List<String> selectedEntries = allEntries.subList(0, Math.min(5, allEntries.size()));
+        // If fewer than 5 entries, reservoir has all; otherwise, it's 5 random ones
+        // Shuffle the reservoir for additional randomness (optional, but reservoir sampling is already uniform)
+        Collections.shuffle(reservoir, random);
 
         // Sort by date - O(K log K) where K=5, effectively O(1)
-        Collections.sort(selectedEntries, Comparator.comparing(s ->
+        Collections.sort(reservoir, Comparator.comparing(s ->
             LocalDateTime.parse(s.substring(0, 16), DATE_FORMATTER)));
 
-        return selectedEntries;
+        return reservoir;
     }
 
     /**
