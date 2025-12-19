@@ -40,6 +40,7 @@ manifest.txt
 build.bat
 run.bat
 javadocs/
+src/lib/
 ### Logs ###
 debug.log
 

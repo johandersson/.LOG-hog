@@ -48,7 +48,7 @@ public class EncryptionManager implements Encryptor {
             random.nextBytes(salt);
             return salt;
         } catch (Exception e) {
-            throw new EncryptionException("Failed to generate salt", e);
+            throw new EncryptionException("Unable to generate encryption salt. This is a system error.", e);
         }
     }
 
@@ -60,7 +60,7 @@ public class EncryptionManager implements Encryptor {
             var tmp = factory.generateSecret(spec);
             return new SecretKeySpec(tmp.getEncoded(), "AES");
         } catch (Exception e) {
-            throw new EncryptionException("Failed to derive key", e);
+            throw new EncryptionException("Unable to create encryption key from password. Please check your password and try again.", e);
         }
     }
 
@@ -71,7 +71,7 @@ public class EncryptionManager implements Encryptor {
             var tmp = factory.generateSecret(spec);
             return new SecretKeySpec(tmp.getEncoded(), "AES");
         } catch (Exception e) {
-            throw new EncryptionException("Failed to derive legacy key", e);
+            throw new EncryptionException("Unable to create legacy encryption key. This may be a compatibility issue with older encrypted files.", e);
         }
     }
 
@@ -90,11 +90,15 @@ public class EncryptionManager implements Encryptor {
             System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
             return result;
         } catch (Exception e) {
-            throw new EncryptionException("Failed to encrypt data", e);
+            throw new EncryptionException("Unable to encrypt your data. Please try again or contact support if the problem persists.", e);
         }
     }
 
     public String decrypt(byte[] encryptedData, SecretKey key) throws EncryptionException {
+        if (encryptedData == null || encryptedData.length < GCM_IV_LENGTH + GCM_TAG_LENGTH) {
+            throw new EncryptionException("The encrypted file appears to be corrupted or incomplete. Please check if the file was properly saved or restored from a backup.");
+        }
+
         try {
             var cipher = Cipher.getInstance(ALGORITHM);
             var iv = new byte[GCM_IV_LENGTH];
@@ -106,12 +110,16 @@ public class EncryptionManager implements Encryptor {
             var decrypted = cipher.doFinal(encrypted);
             return new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new EncryptionException("Failed to decrypt data", e);
+            throw new EncryptionException("Unable to decrypt the data. This may indicate file corruption or an incorrect password.", e);
         }
     }
 
     @Override
     public String decryptWithFallback(byte[] encryptedData, char[] password, byte[] salt) throws EncryptionException {
+        if (encryptedData == null || encryptedData.length == 0) {
+            throw new EncryptionException("Cannot decrypt an empty file. Please check if your log file contains any data.");
+        }
+
         try {
             // Try with current iterations first
             SecretKey key = deriveKey(password, salt);
@@ -122,7 +130,7 @@ public class EncryptionManager implements Encryptor {
                 SecretKey legacyKey = deriveKeyLegacy(password, salt);
                 return decrypt(encryptedData, legacyKey);
             } catch (Exception legacyException) {
-                throw new EncryptionException("Decryption failed: invalid password or corrupted file", legacyException);
+                throw new EncryptionException("Unable to decrypt your file. Please check:\n• Is your password correct?\n• Was the file corrupted during transfer?\n• Are you trying to open a file created with an older version of LogHog?\n\nIf you're sure the password is correct, the file may be corrupted and you should restore from a backup.", legacyException);
             }
         }
     }
