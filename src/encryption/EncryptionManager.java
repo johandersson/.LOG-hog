@@ -128,7 +128,11 @@ public class EncryptionManager implements Encryptor {
         var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
         cipher.init(Cipher.DECRYPT_MODE, key, spec);
         var decrypted = cipher.doFinal(encrypted);
-        return new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
+        try {
+            return new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new EncryptionException("The decrypted data contains invalid characters. This usually means the file is corrupted or you're using the wrong password.", e);
+        }
     }
 
     private String getDecryptionErrorMessage(byte[] encryptedData, Exception e) {
@@ -137,6 +141,9 @@ public class EncryptionManager implements Encryptor {
         }
         if (e.getMessage() != null && e.getMessage().contains("Tag mismatch")) {
             return "Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.";
+        }
+        if (e.getMessage() != null && (e.getMessage().contains("invalid characters") || e.getMessage().contains("MalformedInput") || e.getMessage().contains("MalInputFormat"))) {
+            return "The file data appears to be corrupted. Even though the password was accepted, the decrypted content contains invalid characters. Please check if the file was damaged during storage or transfer, and try restoring from a backup.";
         }
         return "Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.";
     }
@@ -174,8 +181,11 @@ public class EncryptionManager implements Encryptor {
         if (message != null && message.contains("Tag mismatch")) {
             return "Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.";
         }
-        if (message != null && message.contains("too short")) {
+        if (message != null && (message.contains("too short") || message.contains("length"))) {
             return "This file appears to be damaged or incomplete. It doesn't contain enough data to be a valid LogHog file. Please check if the file was properly saved or try restoring from a backup.";
+        }
+        if (message != null && (message.contains("invalid characters") || message.contains("MalformedInput") || message.contains("MalInputFormat"))) {
+            return "The file data appears to be corrupted. Even though the password was accepted, the decrypted content contains invalid characters. Please check if the file was damaged during storage or transfer, and try restoring from a backup.";
         }
         return "Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.";
     }
