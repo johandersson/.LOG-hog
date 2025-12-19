@@ -50,10 +50,11 @@ import gui.SystemTrayMenu;
 
 public class LogTextEditor extends JFrame {
 
-
+    private final Application application;
     private final JList<String> logList = new JList<>();
 
-    private LogFileHandler logFileHandler = new LogFileHandler();
+    // For backward compatibility - delegate to application
+    private LogFileHandler logFileHandler;
     LogFileHandler getLogFileHandler() {
         return logFileHandler;
     }
@@ -125,6 +126,13 @@ public class LogTextEditor extends JFrame {
     private EncryptionHandler encryptionHandler;
 
     public LogTextEditor() {
+        // Initialize application with services
+        java.nio.file.Path logFilePath = java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt");
+        application = new Application(logFilePath);
+
+        // For backward compatibility
+        logFileHandler = (LogFileHandler) application.getLogFileOperations();
+
         // Initialize secure settings
         secureSettings = new SecureSettings();
         try {

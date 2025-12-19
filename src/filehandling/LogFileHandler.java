@@ -709,4 +709,9 @@ public class LogFileHandler implements LogFileOperations {
             return false;
         }
     }
+
+    @Override
+    public Encryptor getEncryptor() {
+        return encryptor;
+    }
 }

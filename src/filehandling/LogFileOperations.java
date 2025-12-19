@@ -1,9 +1,10 @@
 package filehandling;
 
-import encryption.Encryptor;
-
-import javax.swing.*;
 import java.nio.file.Path;
+
+import javax.swing.DefaultListModel;
+
+import encryption.Encryptor;
 
 /**
  * Interface for log file operations to enable better testing
@@ -18,4 +19,7 @@ public interface LogFileOperations {
     char[] getPassword();
     byte[] getSalt();
     Path getFilePath();
+    void updateEntry(String timestamp, String newText) throws Exception;
+    void deleteEntry(String timestamp) throws Exception;
+    Encryptor getEncryptor();
 }
