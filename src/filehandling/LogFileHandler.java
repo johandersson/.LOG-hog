@@ -267,7 +267,9 @@ public class LogFileHandler implements LogFileOperations {
             } else {
                 Files.write(filePath, normalized);
             }
-            listModel.removeElement(timeStamp);
+            if (listModel != null) {
+                listModel.removeElement(timeStamp);
+            }
         } catch (Exception e) {
             showErrorDialog("<html><b>🗑️ Delete Failed</b><br><br>Unable to delete the log entry.<br>Please try again.<br><br><i>Tip: Ensure the entry exists and the file is not locked.</i></html>");
         }
@@ -624,6 +626,11 @@ public class LogFileHandler implements LogFileOperations {
     @Override
     public Path getFilePath() {
         return filePath;
+    }
+
+    @Override
+    public void deleteEntry(String timestamp) throws Exception {
+        deleteLogEntry(timestamp, null);
     }
 
     public void setBackupDirectory(String backupDirectory) {

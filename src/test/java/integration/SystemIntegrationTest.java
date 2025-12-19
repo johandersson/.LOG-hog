@@ -4,6 +4,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
 
+import encryption.EncryptionException;
 import encryption.EncryptionManager;
 import filehandling.LogFileHandler;
 import main.BackupManager;
@@ -99,7 +100,7 @@ public class SystemIntegrationTest {
     }
 
     @Test
-    void testEncryptionDecryptionRoundTrip() {
+    void testEncryptionDecryptionRoundTrip() throws EncryptionException {
         System.out.println("🧪 Testing encryption/decryption round-trip...");
 
         String originalText = "Sensitive information that needs encryption";

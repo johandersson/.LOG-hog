@@ -3,6 +3,7 @@ package performance;
 import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import encryption.EncryptionException;
 import encryption.EncryptionManager;
 import filehandling.LogFileHandler;
 
@@ -29,7 +30,7 @@ public class PerformanceTest {
     }
 
     @Test
-    void testEncryptionPerformance() {
+    void testEncryptionPerformance() throws EncryptionException {
         System.out.println("🧪 Testing encryption performance...");
 
         String testData = "This is a test message for performance evaluation. " +
@@ -59,7 +60,7 @@ public class PerformanceTest {
     }
 
     @Test
-    void testDecryptionPerformance() {
+    void testDecryptionPerformance() throws EncryptionException {
         System.out.println("🧪 Testing decryption performance...");
 
         String testData = "Performance test data for decryption speed measurement.";
@@ -94,7 +95,7 @@ public class PerformanceTest {
     }
 
     @Test
-    void testLargeDataEncryption() {
+    void testLargeDataEncryption() throws EncryptionException {
         System.out.println("🧪 Testing large data encryption...");
 
         // Create a large data set (1MB)
@@ -132,7 +133,7 @@ public class PerformanceTest {
     }
 
     @Test
-    void testConcurrentEncryptionOperations() {
+    void testConcurrentEncryptionOperations() throws EncryptionException {
         System.out.println("🧪 Testing concurrent encryption operations...");
 
         String testData = "Concurrent encryption test data.";
@@ -247,7 +248,7 @@ public class PerformanceTest {
     }
 
     @Test
-    void testKeyDerivationPerformance() {
+    void testKeyDerivationPerformance() throws EncryptionException {
         System.out.println("🧪 Testing key derivation performance...");
 
         char[] password = "keyDerivationPerformanceTestPassword123!".toCharArray();

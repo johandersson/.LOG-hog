@@ -102,16 +102,25 @@ public class EncryptionManager implements Encryptor {
     }
 
     @Override
-    public byte[] encrypt(String data, SecretKey key) throws EncryptionException {
+    public byte[] encrypt(String data, char[] password, byte[] salt) throws EncryptionException {
         if (data == null) {
             throw new EncryptionException("Data to encrypt cannot be null.");
         }
-        if (key == null) {
-            throw new EncryptionException("Encryption key cannot be null.");
+        if (password == null) {
+            throw new EncryptionException("Password cannot be null.");
+        }
+        if (salt == null) {
+            throw new EncryptionException("Salt cannot be null.");
         }
 
         try {
-            return performEncryption(data, key);
+            SecretKey key = deriveKey(password, salt);
+            byte[] encrypted = performEncryption(data, key);
+            // Return salt + encrypted
+            byte[] result = new byte[salt.length + encrypted.length];
+            System.arraycopy(salt, 0, result, 0, salt.length);
+            System.arraycopy(encrypted, 0, result, salt.length, encrypted.length);
+            return result;
         } catch (Exception e) {
             throw new EncryptionException("Unable to encrypt your data. Please try again or contact support if the problem persists.", e);
         }
@@ -165,6 +174,55 @@ public class EncryptionManager implements Encryptor {
         }
     }
 
+    @Override
+    public String decrypt(byte[] data, char[] password) throws EncryptionException {
+        if (data == null) {
+            throw new EncryptionException("Data to decrypt cannot be null.");
+        }
+        if (password == null) {
+            throw new EncryptionException("Password cannot be null.");
+        }
+
+        try {
+            // Read salt from the beginning
+            if (data.length < 16) {
+                throw new EncryptionException("Encrypted data is too short.");
+            }
+            byte[] salt = new byte[16];
+            System.arraycopy(data, 0, salt, 0, 16);
+            byte[] encrypted = new byte[data.length - 16];
+            System.arraycopy(data, 16, encrypted, 0, encrypted.length);
+            SecretKey key = deriveKey(password, salt);
+            return performDecryption(encrypted, key);
+        } catch (EncryptionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to decrypt your data. Please check your password and try again.", e);
+        }
+    }
+
+    private String decryptLegacy(byte[] encryptedData, SecretKey key) throws EncryptionException {
+        validateEncryptedData(encryptedData);
+
+        try {
+            return performDecryption(encryptedData, key);
+        } catch (EncryptionException e) {
+            throw e;
+        } catch (javax.crypto.AEADBadTagException e) {
+            throw new EncryptionException("Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.", e);
+        } catch (javax.crypto.BadPaddingException e) {
+            throw new EncryptionException("Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.", e);
+        } catch (javax.crypto.IllegalBlockSizeException e) {
+            throw new EncryptionException("Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.", e);
+        } catch (java.security.InvalidKeyException e) {
+            throw new EncryptionException("Unable to process the encryption key. This may be a system compatibility issue.", e);
+        } catch (java.security.InvalidAlgorithmParameterException e) {
+            throw new EncryptionException("Unable to initialize encryption parameters. This may be a system compatibility issue.", e);
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to open this file due to an unexpected error. Please try again or contact support.", e);
+        }
+    }
+
     private String performDecryption(byte[] encryptedData, SecretKey key) throws Exception {
         var cipher = Cipher.getInstance(ALGORITHM);
         var iv = new byte[GCM_IV_LENGTH];
@@ -186,7 +244,7 @@ public class EncryptionManager implements Encryptor {
         validateEncryptedDataForFallback(encryptedData);
 
         try {
-            return decrypt(encryptedData, deriveKey(password, salt));
+            return decrypt(encryptedData, password);
         } catch (Exception e) {
             return tryLegacyDecryption(encryptedData, password, salt, e);
         }
@@ -203,7 +261,8 @@ public class EncryptionManager implements Encryptor {
 
     private String tryLegacyDecryption(byte[] encryptedData, char[] password, byte[] salt, Exception originalException) throws EncryptionException {
         try {
-            return decrypt(encryptedData, deriveKeyLegacy(password, salt));
+            SecretKey key = deriveKeyLegacy(password, salt);
+            return decryptLegacy(encryptedData, key);
         } catch (EncryptionException e) {
             // Re-throw our custom exceptions as-is
             throw e;

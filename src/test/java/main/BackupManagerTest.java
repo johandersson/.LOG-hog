@@ -82,7 +82,7 @@ public class BackupManagerTest {
     }
 
     @Test
-    void testPerformAutomaticBackupWhenDisabled() {
+    void testPerformAutomaticBackupWhenDisabled() throws IOException {
         System.out.println("🧪 Testing automatic backup when disabled...");
 
         // Ensure auto backup is disabled

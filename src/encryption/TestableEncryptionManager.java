@@ -17,8 +17,13 @@ public class TestableEncryptionManager implements Encryptor {
     }
 
     @Override
-    public byte[] encrypt(String data, javax.crypto.SecretKey key) throws EncryptionException {
-        return delegate.encrypt(data, key);
+    public byte[] encrypt(String data, char[] password, byte[] salt) throws EncryptionException {
+        return delegate.encrypt(data, password, salt);
+    }
+
+    @Override
+    public String decrypt(byte[] data, char[] password) throws EncryptionException {
+        return delegate.decrypt(data, password);
     }
 
     @Override

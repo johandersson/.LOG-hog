@@ -2,6 +2,7 @@ package utils;
 
 import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.*;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;

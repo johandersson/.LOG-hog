@@ -4,8 +4,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 
-import javax.crypto.SecretKey;
-
 /**
  * Handles file encryption and decryption operations.
  */
@@ -61,8 +59,7 @@ public class FileEncryptionManager {
             content = ".LOG\n\n" + content;
         }
 
-        SecretKey key = encryptor.deriveKey(password, salt);
-        byte[] encryptedData = encryptor.encrypt(content, key);
+        var encryptedData = encryptor.encrypt(content, password, salt);
         Files.write(filePath, encryptedData);
     }
 
