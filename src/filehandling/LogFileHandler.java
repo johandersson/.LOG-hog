@@ -484,6 +484,38 @@ public class LogFileHandler {
         return entries;
     }
 
+    public void enableEncryption() throws Exception {
+
+        String plainContent = Files.readString(FILE_PATH);
+
+        // Ensure .LOG header is present
+        if (!plainContent.startsWith(".LOG")) {
+            plainContent = ".LOG\n\n" + plainContent;
+        }
+
+        // Save plain text to backup first
+        Path backupPath = getBackupPath(FILE_PATH.getFileName().toString() + ".bak");
+        Files.writeString(backupPath, plainContent);
+
+        // Encrypt and write the content
+        encryptionManager.encryptFile(plainContent);
+
+        // Set encryption state
+        encrypted = true;
+        this.salt = encryptionManager.getSalt().clone();
+
+        // Clear any cached data since encryption state changed
+        if (cachedLines != null) {
+            cachedLines.clear();
+            cachedLines = null;
+        }
+        if (cachedEntries != null) {
+            cachedEntries.clear();
+            cachedEntries = null;
+            cachedEntriesLastModified = 0;
+        }
+    }
+
     public void disableEncryption() throws Exception {
         if (!encryptionManager.isEncrypted()) {
             throw new IllegalStateException("File is not encrypted");
@@ -545,14 +577,12 @@ public class LogFileHandler {
         return entryLoader.loadEntry(timeStamp);
     }
 
-    public void setEncryption(char[] pwd, byte[] slt) {
-        encrypted = true;
-        this.salt = slt;
+    public void setEncryption(char[] pwd, byte[] slt) throws Exception {
+        // Set credentials first
         encryptionManager.setEncryption(pwd, slt);
-        if (cachedLines != null) {
-            cachedLines.clear();
-            cachedLines = null;
-        }
+        
+        // Then encrypt the existing file content
+        enableEncryption();
     }
 
     public boolean isEncrypted() {

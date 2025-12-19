@@ -49,6 +49,11 @@ debug.log
 ### Copilot ###
 copilot_instructions.md
 
+### Test and Coverage Files ###
+jacoco.exec
+coverage/
+lib/*.jar
+
 ### Testing ###
 # JUnit and coverage JARs
 lib/*.jar
