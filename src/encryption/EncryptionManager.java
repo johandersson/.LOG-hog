@@ -114,7 +114,7 @@ public class EncryptionManager implements Encryptor {
         if (encryptedData.length == 0) {
             throw new EncryptionException("Cannot decrypt empty data. Please check if your file contains any content.");
         }
-        if (encryptedData.length < GCM_IV_LENGTH) {
+        if (encryptedData.length < GCM_IV_LENGTH + GCM_TAG_LENGTH) {
             throw new EncryptionException("This file appears to be corrupted or incomplete. It doesn't contain enough data to be a valid encrypted LogHog file. Please check if the file was properly saved or restore from a backup.");
         }
     }
@@ -132,7 +132,7 @@ public class EncryptionManager implements Encryptor {
     }
 
     private String getDecryptionErrorMessage(byte[] encryptedData, Exception e) {
-        if (encryptedData.length < GCM_IV_LENGTH) {
+        if (encryptedData.length < GCM_IV_LENGTH + GCM_TAG_LENGTH) {
             return "This file appears to be damaged or incomplete. It doesn't contain enough data to be a valid LogHog file. Please check if the file was properly saved or try restoring from a backup.";
         }
         if (e.getMessage() != null && e.getMessage().contains("Tag mismatch")) {
@@ -156,7 +156,7 @@ public class EncryptionManager implements Encryptor {
         if (encryptedData == null || encryptedData.length == 0) {
             throw new EncryptionException("Cannot open an empty file. Please check if your log file contains any data.");
         }
-        if (encryptedData.length < GCM_IV_LENGTH) {
+        if (encryptedData.length < GCM_IV_LENGTH + GCM_TAG_LENGTH) {
             throw new EncryptionException("This file appears to be damaged or uses an incompatible format. It doesn't contain enough data to be a valid LogHog file. Please check if this is the correct file or try restoring from a backup.");
         }
     }

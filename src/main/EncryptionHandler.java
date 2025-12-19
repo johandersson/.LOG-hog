@@ -135,8 +135,8 @@ public class EncryptionHandler {
                     errorMsg.contains("integrity check failed") ||
                     errorMsg.contains("mac check failed") ||
                     errorMsg.contains("decryption failed") ||
-                    errorMsg.contains("unable to decrypt your file") ||
-                    errorMsg.contains("is your password correct")) {
+                    errorMsg.contains("unable to open your file") ||
+                    errorMsg.contains("your password might be incorrect")) {
                     int remaining = 4 - attempts;
                     JOptionPane.showMessageDialog(parentFrame, "<html><b>🔒 Authentication Failed</b><br><br>The password you entered is incorrect.<br>You have <b>" + remaining + "</b> attempts remaining before the application locks for security.<br><br><i>Tip: Use your password manager or reminder if needed.</i></html>", "Authentication Failed", JOptionPane.ERROR_MESSAGE);
                     // WindowShakeAnimation.shake(parentFrame);
