@@ -135,7 +135,19 @@ public class UIInitializer {
 
     private void setupStatusBar() {
         StatusBar statusBar = new StatusBar();
+        editor.setStatusBar(statusBar);
         editor.getContentPane().add(statusBar, BorderLayout.SOUTH);
+        
+        // Update status bar based on selected tab
+        tabPane.addChangeListener(e -> {
+            int selectedIndex = tabPane.getSelectedIndex();
+            // Show "Write something" message only on editing tabs (index 0 and 1)
+            if (selectedIndex == 0 || selectedIndex == 1) {
+                statusBar.setMessage("Write something and hit CTRL+S");
+            } else {
+                statusBar.setMessage("");
+            }
+        });
     }
 
     private void setupLookAndFeel() {

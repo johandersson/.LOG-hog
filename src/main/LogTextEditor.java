@@ -79,6 +79,16 @@ public class LogTextEditor extends JFrame {
         return tabPane;
     }
 
+    private gui.StatusBar statusBar;
+
+    public gui.StatusBar getStatusBar() {
+        return statusBar;
+    }
+
+    void setStatusBar(gui.StatusBar statusBar) {
+        this.statusBar = statusBar;
+    }
+
     @Override
     public JRootPane getRootPane() {
         return super.getRootPane();

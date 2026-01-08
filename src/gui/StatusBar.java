@@ -17,8 +17,12 @@
 
 package gui;
 
-import java.awt.*;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
+
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
 public class StatusBar extends JPanel {
@@ -29,7 +33,7 @@ public class StatusBar extends JPanel {
         setBorder(new EmptyBorder(8, 12, 8, 12));
         setBackground(Color.WHITE);
 
-        messageLabel = new JLabel("Write something and hit CTRL+S");
+        messageLabel = new JLabel(""); // Start empty, will be set by tab listener
         messageLabel.setFont(messageLabel.getFont().deriveFont(Font.PLAIN, 12f));
         messageLabel.setForeground(new Color(0x394B54));
         add(messageLabel, BorderLayout.WEST);

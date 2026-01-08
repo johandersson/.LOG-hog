@@ -323,7 +323,20 @@ public class SettingsPanel extends JPanel {
         
         // Load auto-lock timeout in minutes
         int timeoutSeconds = Integer.parseInt(settings.getProperty("autoLockTimeout", "900"));
-        int timeoutMinutes = Math.max(15, Math.min(1440, timeoutSeconds / 60)); // Clamp to valid range
+        int timeoutMinutes = timeoutSeconds / 60;
+        
+        // Check if timeout is outside valid range and alert user
+        if (timeoutMinutes < 15 || timeoutMinutes > 1440) {
+            int clampedMinutes = Math.max(15, Math.min(1440, timeoutMinutes));
+            JOptionPane.showMessageDialog(editor, 
+                "<html><b>Auto-Lock Timeout Adjusted</b><br><br>" +
+                "The saved auto-lock timeout (" + timeoutMinutes + " minutes) is outside the valid range.<br>" +
+                "Valid range: 15-1440 minutes (15 minutes to 24 hours).<br><br>" +
+                "Timeout has been adjusted to: " + clampedMinutes + " minutes.</html>", 
+                "Settings Validation", 
+                JOptionPane.WARNING_MESSAGE);
+            timeoutMinutes = clampedMinutes;
+        }
         autoLockTimeoutSpinner.setValue(timeoutMinutes);
         
         var isEncrypted = "true".equals(settings.getProperty("encrypted"));
