@@ -372,7 +372,7 @@ public class SettingsPanel extends JPanel {
 
         // Validate clipboard timeout
         if (!isValidClipboardTimeout(newClipboardTimeout)) {
-            JOptionPane.showMessageDialog(editor, "Clipboard timeout must be a number between 1 and 3600 seconds (1 hour).", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(editor, "Clipboard timeout must be a number between 5 and 30 seconds.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
             loadCurrentSettings(); // Reset to current valid values
             return;
         }
@@ -704,8 +704,8 @@ public class SettingsPanel extends JPanel {
 
         try {
             int timeout = Integer.parseInt(timeoutStr.trim());
-            // Timeout must be between 1 second and 1 hour (3600 seconds)
-            return timeout >= 1 && timeout <= 3600;
+            // Timeout must be between 5 and 30 seconds (matches SecureClipboardManager enforcement)
+            return timeout >= 5 && timeout <= 30;
         } catch (NumberFormatException e) {
             return false;
         }

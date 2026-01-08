@@ -51,7 +51,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 
 **Key Security Features:**
 - **AES-256-GCM authenticated encryption** with PBKDF2-100,000 iterations key derivation
-- **Progressive brute-force protection** (3s → 15s → 60s) with cryptographically secure randomization
+- **Progressive brute-force protection** (3s → 15s → 30s) with cryptographically secure randomization
 - **4-attempt limit** with application restart requirement and real-time countdown
 - **Immediate memory clearing** of all sensitive data (passwords, keys, cached content)
 - **Automatic clipboard security** with configurable timeout (1-3600 seconds) and educational warnings

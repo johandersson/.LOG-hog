@@ -41,10 +41,11 @@ byte[] encrypted = encrypt(data, key);
 ## 🔑 Password Security: 8.5/10
 
 ### Anti-Brute-Force Protection
-- **Progressive Delays**: 3s → 15s → 60s with ±20% randomization
+- **Progressive Delays**: 3s → 15s → 30s with ±20% randomization
 - **Attempt Limits**: Maximum 4 password attempts
 - **Application Restart**: Required after 4 failed attempts
-- **Real-time Feedback**: Live countdown during delays
+- **Real-time Feedback**: Live countdown with percentage and time remaining during delays
+- **Loading Progress**: Visual progress dialog with percentage and time estimation during file decryption
 
 ### Delay System Details
 | Attempt | Base Delay | Actual Range | Purpose |
@@ -53,11 +54,18 @@ byte[] encrypted = encrypt(data, key);
 | 2nd | 15 seconds | 12s - 18s | Moderate deterrence |
 | 3rd | 30 seconds | 24s - 36s | Strong automation prevention |
 
+### Progress Dialog Enhancements
+- **Unified UI Design**: Consistent styling across security delay and loading progress dialogs
+- **Loading Feedback**: Shows percentage complete and estimated time remaining during file decryption
+- **Dynamic Updates**: Real-time progress tracking based on processing speed
+- **Shared Architecture**: Base class (`ProgressDialogBase`) ensures UI consistency
+
 ### Security Benefits
 - **Timing Attack Prevention**: Randomization breaks automated scripts
-- **User Experience**: Transparent countdown prevents confusion
+- **User Experience**: Transparent countdown with progress percentage prevents confusion
 - **Memory Protection**: Passwords wiped immediately after use
 - **UI Security**: Hold-to-reveal password toggle
+- **Visual Feedback**: Progress dialogs provide clear indication of long-running operations
 
 ---
 

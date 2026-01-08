@@ -7,7 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [Unreleased]
+### Added (January 2026)
+- **Progress dialog enhancements** with unified UI design across security delay and loading dialogs
+- **Loading progress feedback** showing percentage complete and estimated time remaining during file decryption
+- **Auto-lock feature** with configurable timeout (15-1440 minutes) to automatically lock encrypted files after inactivity
+- **ProgressDialogBase class** providing shared architecture for consistent dialog styling
+
+### Changed (January 2026)
+- **Progress dialogs refactored** to use shared base class, eliminating code duplication
+- **Password strength indicator improved** with enhanced scoring algorithm, pattern detection (repetitive characters, sequences, repeated patterns), and better passphrase support
+- **Passphrase scoring adjusted** to align with industry standards (4-word passphrases now rate as Strong)
+- **Documentation updated** to reflect current security delays (3s → 15s → 30s) and progress dialog features
+- **Splash screen entries shortened** for better display in About tab
+
+### Fixed (January 2026)
+- **Critical encryption bug** where setEncryption was corrupting encrypted files
+- **Password zeroing bug** that caused decryption to fail by clearing password before use
+- **MalformedInputException** in decryption process
+- **Password retry mechanism** now properly displays security delays
+- **Timestamp handling** to strip suffixes and Unix timestamp prefixes for full compatibility
+
+## [Previous Releases]
 
 ### Added
 - GPL3 copyright notices and author attribution to all Java files
