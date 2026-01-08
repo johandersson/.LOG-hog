@@ -383,30 +383,27 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
-        var hasUpper = false;
-        var hasSpecial = false;
-        for (char c : pwd) {
-            if (Character.isUpperCase(c)) hasUpper = true;
-            if (!Character.isLetterOrDigit(c)) hasSpecial = true;
-        }
-        
-        // Check strength score first to determine requirements
+        // Check strength score first
         int score = gui.PasswordStrengthIndicator.calculateStrength(pwd);
         
-        // For "Strong" passwords (70+ score), relax requirements
-        boolean requiresSpecial = score < 70;
-        
-        if (!hasUpper || (requiresSpecial && !hasSpecial)) {
-            String requirements = "Password must contain at least one uppercase letter";
-            if (requiresSpecial) {
-                requirements += " and one special character (e.g., !@#$%^&*()_+-=[]{}|;':\",./<>?)";
+        // If password scores "Strong" or better (65+), accept it regardless of character requirements
+        // This allows strong passphrases without uppercase/special chars
+        if (score < 65) {
+            var hasUpper = false;
+            var hasSpecial = false;
+            for (char c : pwd) {
+                if (Character.isUpperCase(c)) hasUpper = true;
+                if (!Character.isLetterOrDigit(c) && c != ' ') hasSpecial = true; // spaces don't count as special
             }
-            requirements += ".";
-            JOptionPane.showMessageDialog(editor, requirements);
-            return;
+            
+            if (!hasUpper || !hasSpecial) {
+                String requirements = "Password must contain at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':\",./<>?), OR score 'Strong' or higher in the strength indicator.";
+                JOptionPane.showMessageDialog(editor, requirements);
+                return;
+            }
         }
 
-        if (score < 50) { // Require at least 'Good' (50+)
+        if (score < 45) { // Require at least 'Good' (45+)
             JOptionPane.showMessageDialog(editor, "Password is too weak. Please create a stronger password (aim for 'Good' or 'Strong' in the indicator).");
             return;
         }
