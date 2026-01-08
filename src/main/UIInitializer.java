@@ -230,7 +230,7 @@ public class UIInitializer {
         tabPane.addTab("Full Log", editor.getFullLogPanel());
         tabPane.addTab("Settings", editor.getSettingsPanel());
         tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help", false, true));
-        tabPane.addTab("About", new InformationPanel(tabPane, "license.md", "About", true, "true".equals(settings.getProperty("showSplashOnStartup", "true"))));
+        tabPane.addTab("About", new InformationPanel(tabPane, "license.md", "About", true, true));
         tabPane.addChangeListener(e -> {
             if (tabPane.getSelectedIndex() == 2) {
                 editor.getFullLogPanel().loadFullLog();
@@ -238,14 +238,9 @@ public class UIInitializer {
                 editor.getSettingsPanel().loadCurrentSettings();
             } else if (tabPane.getSelectedIndex() == 5) {
                 ((InformationPanel) tabPane.getComponentAt(5)).unloadText();
-                boolean showSplash = "true".equals(settings.getProperty("showSplashOnStartup", "true"));
-                if (showSplash) {
-                    SplashScreen splash = new SplashScreen();
-                    splash.setVisible(true);
-                    if (splash.wasOkPressed()) {
-                        ((InformationPanel) tabPane.getComponentAt(5)).loadText();
-                    }
-                } else {
+                SplashScreen splash = new SplashScreen();
+                splash.setVisible(true);
+                if (splash.wasOkPressed()) {
                     ((InformationPanel) tabPane.getComponentAt(5)).loadText();
                 }
             } else if (tabPane.getSelectedIndex() == 0) {

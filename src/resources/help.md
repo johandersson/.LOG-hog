@@ -5,39 +5,6 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 
 .LOG-hog is compatible with Notepad's .LOG feature. In Notepad, creating a file that starts with '.LOG' on the first line enables automatic timestamp insertion on each open or save (see [how .LOG works in Notepad](https://www.howtogeek.com/359463/what-is-a-log-file/)). .LOG-hog can read, edit, and manage such log files, offering advanced features like encryption, search, and formatting while preserving the timestamped structure.
 
-## Security Overview
-.LOG-hog implements **enterprise-grade security** with comprehensive protection against modern threats. The application has undergone extensive security hardening to address all identified vulnerabilities.
-
-**Key Security Features:**
-- **AES-256-GCM authenticated encryption** with PBKDF2-100,000 iterations key derivation
-- **Progressive brute-force protection** (3s → 15s → 60s) with cryptographically secure randomization
-- **4-attempt limit** with application restart requirement and real-time countdown
-- **Immediate memory clearing** of all sensitive data (passwords, keys, cached content)
-- **Automatic clipboard security** with configurable timeout (1-3600 seconds) and educational warnings
-- **Secure Ctrl+C functionality** in all text areas with automatic clearing
-- **Path validation and confinement** preventing directory traversal and command injection
-- **Thread-safe operations** with proper synchronization
-- **Generic error messages** preventing information disclosure
-- **Comprehensive input validation** with bounds checking and sanitization
-- **File operation restrictions** to user home and working directories only
-
-**Security Rating: EXCELLENT (9.5/10)** - Enterprise-grade security suitable for sensitive personal and professional data storage. Features AES-256-GCM authenticated encryption, PBKDF2-100,000 iterations, progressive brute-force protection, 6-layer backup system with secure deletion, and comprehensive memory clearing of all sensitive data. Enhanced password requirements enforce minimum strength scoring, blocking weak passwords that meet basic criteria.
-
-.LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager.
-
-### Clipboard Security
-.LOG-hog includes advanced clipboard security features to protect sensitive log data from being inadvertently exposed through clipboard operations:
-
-- **Automatic Clipboard Clearing**: When copying log entries or full logs to the clipboard, the content is automatically cleared after a configurable timeout (default: 30 seconds). This prevents sensitive information from remaining in the clipboard indefinitely.
-- **Secure Content Marking**: Copied content is marked as secure .LOG-hog data, allowing the application to distinguish and manage it appropriately.
-- **Manual Clear Option**: Users can manually clear the secure clipboard at any time through the system tray menu.
-- **Educational Warnings**: Before copying encrypted or full log content, users receive detailed warnings about clipboard security risks and best practices.
-- **Configurable Settings**: Clipboard auto-clear timeout and behavior can be customized in the Settings tab under "Clipboard Security".
-
-**⚠️ Important Security Note**: If .LOG-hog is terminated unexpectedly (system crash, power outage, task manager kill), secure clipboard content may remain accessible. Always use the "Clear Clipboard" option from the system tray after unexpected terminations.
-
-Access clipboard security settings through the system tray icon (right-click the tray icon → "Clipboard Security") or the Settings tab in the main application.
-
 ## Key Features
 - **Tabbed Interface**: Effortlessly switch between writing new entries and browsing past logs.
 - **Quick Entry**: Add notes instantly with automatic timestamps.
@@ -120,6 +87,39 @@ See CHANGELOG.md for a detailed history of changes and new features.
 
 ## Github repo:
 [GitHub Repository](http://github.com/johandersson/.LOG-hog)
+
+## Security Overview
+.LOG-hog implements **enterprise-grade security** with comprehensive protection against modern threats. The application has undergone extensive security hardening to address all identified vulnerabilities.
+
+**Key Security Features:**
+- **AES-256-GCM authenticated encryption** with PBKDF2-100,000 iterations key derivation
+- **Progressive brute-force protection** (3s → 15s → 60s) with cryptographically secure randomization
+- **4-attempt limit** with application restart requirement and real-time countdown
+- **Immediate memory clearing** of all sensitive data (passwords, keys, cached content)
+- **Automatic clipboard security** with configurable timeout (1-3600 seconds) and educational warnings
+- **Secure Ctrl+C functionality** in all text areas with automatic clearing
+- **Path validation and confinement** preventing directory traversal and command injection
+- **Thread-safe operations** with proper synchronization
+- **Generic error messages** preventing information disclosure
+- **Comprehensive input validation** with bounds checking and sanitization
+- **File operation restrictions** to user home and working directories only
+
+**Security Rating: EXCELLENT (9.5/10)** - Enterprise-grade security suitable for sensitive personal and professional data storage. Features AES-256-GCM authenticated encryption, PBKDF2-100,000 iterations, progressive brute-force protection, 6-layer backup system with secure deletion, and comprehensive memory clearing of all sensitive data. Enhanced password requirements enforce minimum strength scoring, blocking weak passwords that meet basic criteria.
+
+.LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager.
+
+### Clipboard Security
+.LOG-hog includes advanced clipboard security features to protect sensitive log data from being inadvertently exposed through clipboard operations:
+
+- **Automatic Clipboard Clearing**: When copying log entries or full logs to the clipboard, the content is automatically cleared after a configurable timeout (default: 30 seconds). This prevents sensitive information from remaining in the clipboard indefinitely.
+- **Secure Content Marking**: Copied content is marked as secure .LOG-hog data, allowing the application to distinguish and manage it appropriately.
+- **Manual Clear Option**: Users can manually clear the secure clipboard at any time through the system tray menu.
+- **Educational Warnings**: Before copying encrypted or full log content, users receive detailed warnings about clipboard security risks and best practices.
+- **Configurable Settings**: Clipboard auto-clear timeout and behavior can be customized in the Settings tab under "Clipboard Security".
+
+**⚠️ Important Security Note**: If .LOG-hog is terminated unexpectedly (system crash, power outage, task manager kill), secure clipboard content may remain accessible. Always use the "Clear Clipboard" option from the system tray after unexpected terminations.
+
+Access clipboard security settings through the system tray icon (right-click the tray icon → "Clipboard Security") or the Settings tab in the main application.
 
 ## Keyboard Shortcuts:
 - **Ctrl+S** — Save a new entry

@@ -31,7 +31,6 @@ import java.util.Base64;
 import java.util.Properties;
 
 import javax.swing.BorderFactory;
-import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -65,8 +64,6 @@ public class SettingsPanel extends JPanel {
     private JCheckBox clipboardAutoClearCheckBox;
     private JTextField clipboardTimeoutField;
     private JCheckBox autoBackupCheckBox;
-    private JTextField autoBackupDirField;
-    private JButton browseAutoBackupButton;
 
     public SettingsPanel(LogTextEditor editor, Properties settings, Path settingsPath, LogFileHandler logFileHandler) {
         this.editor = editor;
@@ -192,18 +189,7 @@ public class SettingsPanel extends JPanel {
         autoBackupCheckBox.setBackground(Color.WHITE);
         autoBackupCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
-        var autoBackupDirLabel = new JLabel("Auto-backup directory (optional): ");
-        autoBackupDirLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        autoBackupDirField = new JTextField(20);
-        autoBackupDirField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        browseAutoBackupButton = new StandardButton("Browse...", new Color(0xE0E0E0), new Color(0xB0B0B0));
-        browseAutoBackupButton.addActionListener(e -> browseAutoBackupDirectory());
-
         panel.add(autoBackupCheckBox);
-        panel.add(Box.createHorizontalStrut(20)); // Add some spacing
-        panel.add(autoBackupDirLabel);
-        panel.add(autoBackupDirField);
-        panel.add(browseAutoBackupButton);
         return panel;
     }
 
@@ -289,7 +275,6 @@ public class SettingsPanel extends JPanel {
         reminderField.setText(secureSettings.getDecryptedProperty(settings, "passwordReminder", ""));
         backupDirField.setText(settings.getProperty("backupDirectory", ""));
         autoBackupCheckBox.setSelected("true".equals(settings.getProperty("autoBackupEnabled", "false")));
-        autoBackupDirField.setText(settings.getProperty("autoBackupDirectory", ""));
         splashOnStartupCheckBox.setSelected("true".equals(settings.getProperty("showSplashOnStartup", "true")));
         clipboardAutoClearCheckBox.setSelected("true".equals(settings.getProperty("clipboardAutoClear", "true")));
         clipboardTimeoutField.setText(settings.getProperty("clipboardTimeout", "30"));
@@ -324,7 +309,6 @@ public class SettingsPanel extends JPanel {
         var newReminder = reminderField.getText();
         var newBackupDir = backupDirField.getText();
         var newAutoBackupEnabled = autoBackupCheckBox.isSelected();
-        var newAutoBackupDir = autoBackupDirField.getText();
         var newSplashOnStartup = splashOnStartupCheckBox.isSelected();
         var newClipboardAutoClear = clipboardAutoClearCheckBox.isSelected();
         var newClipboardTimeout = clipboardTimeoutField.getText();
@@ -351,10 +335,9 @@ public class SettingsPanel extends JPanel {
         }
 
         var currentAutoBackupEnabled = "true".equals(settings.getProperty("autoBackupEnabled", "false"));
-        var currentAutoBackupDir = settings.getProperty("autoBackupDirectory", "");
 
         var settingsChanged = !currentReminder.equals(newReminder) || !currentBackupDir.equals(newBackupDir) ||
-                            currentAutoBackupEnabled != newAutoBackupEnabled || !currentAutoBackupDir.equals(newAutoBackupDir) ||
+                            currentAutoBackupEnabled != newAutoBackupEnabled ||
                             currentSplashOnStartup != newSplashOnStartup ||
                             currentClipboardAutoClear != newClipboardAutoClear ||
                             !currentClipboardTimeout.equals(newClipboardTimeout);
@@ -370,7 +353,6 @@ public class SettingsPanel extends JPanel {
         editor.updatePasswordReminder(newReminder);
         settings.setProperty("backupDirectory", newBackupDir);
         settings.setProperty("autoBackupEnabled", newAutoBackupEnabled ? "true" : "false");
-        settings.setProperty("autoBackupDirectory", newAutoBackupDir);
         settings.setProperty("showSplashOnStartup", newSplashOnStartup ? "true" : "false");
         settings.setProperty("clipboardAutoClear", newClipboardAutoClear ? "true" : "false");
         settings.setProperty("clipboardTimeout", newClipboardTimeout);
@@ -491,19 +473,6 @@ public class SettingsPanel extends JPanel {
         var res = chooser.showOpenDialog(editor);
         if (res == JFileChooser.APPROVE_OPTION) {
             backupDirField.setText(chooser.getSelectedFile().getAbsolutePath());
-        }
-    }
-
-    private void browseAutoBackupDirectory() {
-        var chooser = new JFileChooser();
-        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        var current = autoBackupDirField.getText();
-        if (!current.isEmpty()) {
-            chooser.setCurrentDirectory(new java.io.File(current));
-        }
-        var res = chooser.showOpenDialog(editor);
-        if (res == JFileChooser.APPROVE_OPTION) {
-            autoBackupDirField.setText(chooser.getSelectedFile().getAbsolutePath());
         }
     }
 

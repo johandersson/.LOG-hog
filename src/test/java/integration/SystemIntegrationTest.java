@@ -44,7 +44,7 @@ public class SystemIntegrationTest {
 
         // Configure backup settings
         testSettings.setProperty("autoBackupEnabled", "true");
-        testSettings.setProperty("autoBackupDirectory", tempDir.resolve("backups").toString());
+        testSettings.setProperty("backupDirectory", tempDir.resolve("backups").toString());
 
         // Create backup directory
         Files.createDirectories(tempDir.resolve("backups"));
@@ -219,7 +219,7 @@ public class SystemIntegrationTest {
         System.out.println("🧪 Testing error recovery scenarios...");
 
         // Test with invalid backup directory
-        testSettings.setProperty("autoBackupDirectory", "/invalid/path/that/does/not/exist");
+        testSettings.setProperty("backupDirectory", "/invalid/path/that/does/not/exist");
 
         assertDoesNotThrow(() -> {
             // Should not crash even with invalid backup path
@@ -228,7 +228,7 @@ public class SystemIntegrationTest {
         });
 
         // Reset to valid directory
-        testSettings.setProperty("autoBackupDirectory", tempDir.resolve("backups").toString());
+        testSettings.setProperty("backupDirectory", tempDir.resolve("backups").toString());
 
         assertDoesNotThrow(() -> {
             // Should work again with valid path

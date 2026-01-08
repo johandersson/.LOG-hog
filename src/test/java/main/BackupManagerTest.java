@@ -39,7 +39,7 @@ public class BackupManagerTest {
 
         // Override the log file path for testing
         System.setProperty("user.home", tempDir.toString());
-        testSettings.setProperty("autoBackupDirectory", tempBackupDir.toString());
+        testSettings.setProperty("backupDirectory", tempBackupDir.toString());
     }
 
     @Test
@@ -64,14 +64,9 @@ public class BackupManagerTest {
     void testGetAutoBackupDirectory() {
         System.out.println("🧪 Testing auto backup directory retrieval...");
 
-        // Test with auto backup directory set
-        testSettings.setProperty("autoBackupDirectory", "/custom/backup/path");
+        // Test with backup directory set
+        testSettings.setProperty("backupDirectory", "/custom/backup/path");
         assertEquals("/custom/backup/path", backupManager.getAutoBackupDirectory());
-
-        // Test fallback to manual backup directory
-        testSettings.remove("autoBackupDirectory");
-        testSettings.setProperty("backupDirectory", "/manual/backup/path");
-        assertEquals("/manual/backup/path", backupManager.getAutoBackupDirectory());
 
         // Test fallback to user home
         testSettings.remove("backupDirectory");
@@ -150,7 +145,7 @@ public class BackupManagerTest {
 
         // Set invalid backup directory
         testSettings.setProperty("autoBackupEnabled", "true");
-        testSettings.setProperty("autoBackupDirectory", "/invalid/path/that/does/not/exist");
+        testSettings.setProperty("backupDirectory", "/invalid/path/that/does/not/exist");
 
         // Should handle gracefully without throwing exceptions
         assertDoesNotThrow(() -> {

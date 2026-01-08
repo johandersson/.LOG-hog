@@ -256,16 +256,12 @@ public class BackupManager {
      * Gets the configured auto-backup directory.
      */
     public String getAutoBackupDirectory() {
-        String autoDir = settings.getProperty("autoBackupDirectory", "");
-        if (autoDir.isEmpty()) {
-            // Fallback to manual backup directory
-            autoDir = settings.getProperty("backupDirectory", "");
+        String backupDir = settings.getProperty("backupDirectory", "");
+        if (backupDir.isEmpty()) {
+            // Fallback to user home
+            backupDir = System.getProperty("user.home");
         }
-        if (autoDir.isEmpty()) {
-            // Final fallback to user home
-            autoDir = System.getProperty("user.home");
-        }
-        return autoDir;
+        return backupDir;
     }
 
     /**
