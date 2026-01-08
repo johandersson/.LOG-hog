@@ -18,6 +18,7 @@
 package gui;
 
 import java.awt.Frame;
+
 import javax.swing.SwingUtilities;
 
 /**
@@ -55,7 +56,7 @@ public class LoadingProgressDialog extends ProgressDialogBase {
      * @param status the status message
      */
     public void setStatus(String status) {
-        SwingUtilities.invokeLater(() -> statusLabel.setText(status));
+        SwingUtilities.invokeLater(() -> messageLabel.setText(status));
     }
     
     /**
@@ -85,7 +86,7 @@ public class LoadingProgressDialog extends ProgressDialogBase {
      */
     public void setProgress(int value) {
         SwingUtilities.invokeLater(() -> {
-            progressBar.setValue(value);message
+            progressBar.setValue(value);
             progressLabel.setText(value + "%");
         });
     }

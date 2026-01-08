@@ -67,8 +67,7 @@ public class EntryLoader {
         // Remove secure clipboard markers from lines
         lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
 
-        // Strip timestamp suffixes that may be in the file
-        lines = lines.stream().map(line -> line.replaceAll("^(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}) \\([0-9]+\\)(.*)$", "$1$2")).collect(Collectors.toList());
+        // Don't strip timestamp suffixes - we need them to distinguish duplicate entries
 
         // Clean malformed timestamps with Unix timestamp prefixes
         lines = lines.stream().map(line -> line.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2")).collect(Collectors.toList());
@@ -109,9 +108,8 @@ public class EntryLoader {
                 if (!entry.isEmpty()) {
                     String rawTs = entry.get(0).trim();
                     if (tsPattern.matcher(rawTs).matches()) {
-                        // Generate display timestamp without suffixes
-                        String baseTs = rawTs.replaceAll(" \\([0-9]+\\)$", "");
-                        listModel.addElement(baseTs);
+                        // Keep the suffix to distinguish duplicate entries
+                        listModel.addElement(rawTs);
                     } else {
                         listModel.addElement(rawTs);
                     }
@@ -149,8 +147,8 @@ public class EntryLoader {
             } else {
                 lines = Files.readAllLines(logFileHandler.getFilePath());
             }
-            // Strip timestamp suffixes that may be in the file
-            lines = lines.stream().map(line -> line.replaceAll("^(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}) \\([0-9]+\\)(.*)$", "$1$2")).collect(Collectors.toList());
+            // Don't strip timestamp suffixes - we need them to distinguish duplicate entries
+            
             // Clean malformed timestamps with Unix timestamp prefixes
             lines = lines.stream().map(line -> line.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2")).collect(Collectors.toList());
             List<List<String>> entries = new ArrayList<>();
@@ -195,15 +193,14 @@ public class EntryLoader {
                 }
             });
             
-            // Generate display timestamps without suffixes
+            // Keep suffixes to distinguish duplicate entries
             Map<String, Integer> countMap = new HashMap<>();
             for (List<String> entry : filteredEntries) {
                 if (!entry.isEmpty()) {
                     String rawTs = entry.get(0).trim();
                     if (tsPattern.matcher(rawTs).matches()) {
-                        // Generate display timestamp without suffixes
-                        String baseTs = rawTs.replaceAll(" \\([0-9]+\\)$", "");
-                        listModel.addElement(baseTs);
+                        // Keep the suffix to distinguish duplicate entries
+                        listModel.addElement(rawTs);
                     } else {
                         listModel.addElement(rawTs);
                     }
@@ -246,9 +243,8 @@ public class EntryLoader {
             // Remove secure clipboard markers from lines
             lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
 
-            // Strip timestamp suffixes that may be in the file
-            lines = lines.stream().map(line -> line.replaceAll("^(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}) \\([0-9]+\\)(.*)$", "$1$2")).collect(Collectors.toList());
-
+            // Don't strip timestamp suffixes - we need them to distinguish duplicate entries
+            
             // Parse all entries
             var allEntries = LogParser.parseAllEntries(lines);
 
@@ -275,10 +271,15 @@ public class EntryLoader {
                 }
             });
 
-            // Find the first entry with matching timestamp
+            // Find the entry with matching timestamp (including suffix for duplicates)
             for (List<String> entry : timestampEntries) {
-                String entryTs = entry.get(0).trim().replaceAll(" \\([0-9]+\\)$", "");
-                if (entryTs.equals(timeStamp)) {
+                String entryTs = entry.get(0).trim();
+                // Try exact match first (with suffix), then try base match (without suffix)
+                String baseTsParam = timeStamp.trim().replaceAll(" \\([0-9]+\\)$", "");
+                String baseTsEntry = entryTs.replaceAll(" \\([0-9]+\\)$", "");
+                
+                if (entryTs.equals(timeStamp.trim()) || 
+                    (baseTsEntry.equals(baseTsParam) && !timeStamp.contains("("))) {
                     // Found the entry - return content without timestamp
                     StringBuilder sb = new StringBuilder();
                     for (int i = 1; i < entry.size(); i++) {
