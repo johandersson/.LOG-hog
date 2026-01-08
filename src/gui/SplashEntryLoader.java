@@ -70,13 +70,13 @@ public class SplashEntryLoader {
                 throw new IOException("Resource not found");
             }
         } catch (IOException e) {
-            // Fallback to hardcoded entries
+            // Fallback to hardcoded entries (all under 55 chars)
             reservoir = Arrays.asList(
                 "2025-11-20 14:30: Started coding",
-                "2025-11-20 14:35: Fixed infinite loop",
-                "2025-11-20 14:40: Added cool feature",
-                "2025-11-20 14:45: Tested the app",
-                "2025-11-20 14:50: Committed to git"
+                "2025-11-20 14:35: Fixed bug",
+                "2025-11-20 14:40: Added feature",
+                "2025-11-20 14:45: Tested app",
+                "2025-11-20 14:50: Committed"
             );
         }
 

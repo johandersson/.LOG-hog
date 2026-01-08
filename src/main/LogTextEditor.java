@@ -106,6 +106,8 @@ public class LogTextEditor extends JFrame {
     private String passwordReminder = "";
     private boolean isLocked = false;
     private final Object lockObject = new Object();
+    private BackupManager backupManager;
+    private javax.swing.Timer periodicBackupTimer;
 
     public boolean isLocked() {
         synchronized (lockObject) {
@@ -135,6 +137,11 @@ public class LogTextEditor extends JFrame {
 
         // Initialize secure settings
         secureSettings = new SecureSettings();
+        
+        // Initialize backup manager
+        backupManager = new BackupManager(settings);
+        logFileHandler.setBackupManager(backupManager);
+        
         try {
             // Initialize action handler first (needed by components)
             actionHandler = new ActionHandler(this, logFileHandler, logList, listModel);
@@ -177,6 +184,12 @@ public class LogTextEditor extends JFrame {
 
             // Update system tray recent logs menu now that settings are loaded
             SystemTrayMenu.updateRecentLogsMenu();
+            
+            // Perform startup backup to protect against crashes
+            backupManager.performStartupBackup();
+            
+            // Start periodic backup timer (checks every minute for changes)
+            startPeriodicBackupTimer();
 
             setVisible(true);
 
@@ -185,7 +198,6 @@ public class LogTextEditor extends JFrame {
 
         } catch (Exception e) {
             System.err.println("Error in LogTextEditor constructor: " + e.getMessage());
-            e.printStackTrace();
             throw e;
         }
     }
@@ -350,8 +362,7 @@ public class LogTextEditor extends JFrame {
                 editor.setVisible(true);
                 editor.startSingleInstanceListener();
             } catch (Exception e) {
-                System.err.println("Error during GUI initialization: " + e.getMessage());
-                e.printStackTrace();
+                System.err.println("Error during GUI initialization: " + e.getClass().getSimpleName());
                 System.exit(1);
             }
         });
@@ -472,9 +483,33 @@ public class LogTextEditor extends JFrame {
     }
 
     public void manualUnlock() {
-        encryptionHandler.reloadEncryptedLog();
+        boolean success = encryptionHandler.reloadEncryptedLog();
+        if (success) {
+            synchronized (lockObject) {
+                isLocked = false;
+                updateUILockState();
+            }
+        } else {
+            // Show feedback that file is still locked
+            JOptionPane.showMessageDialog(this, 
+                "<html><b>🔒 File Still Locked</b><br><br>" +
+                "The file remains locked because the unlock operation was cancelled or failed.<br><br>" +
+                "<i>You can try again by clicking the Unlock button.</i></html>", 
+                "File Locked", 
+                JOptionPane.WARNING_MESSAGE);
+        }
+    }    
+    /**
+     * Starts a timer that periodically checks if backup is needed.
+     * Runs every 60 seconds with minimal overhead.
+     */
+    private void startPeriodicBackupTimer() {
+        periodicBackupTimer = new javax.swing.Timer(60000, e -> {
+            // Run backup check in background to avoid blocking UI
+            new Thread(() -> backupManager.checkPeriodicBackup()).start();
+        });
+        periodicBackupTimer.start();
     }
-
     private void updateUILockState() {
         entryPanel.setLocked(isLocked);
         logListPanel.setLocked(isLocked);

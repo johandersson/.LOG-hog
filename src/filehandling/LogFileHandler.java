@@ -34,6 +34,7 @@ import javax.swing.JOptionPane;
 import encryption.EncryptionManager;
 import encryption.Encryptor;
 import encryption.FileEncryptionManager;
+import main.BackupManager;
 import utils.DateHandler;
 
 public class LogFileHandler implements LogFileOperations {
@@ -48,6 +49,7 @@ public class LogFileHandler implements LogFileOperations {
     private final Path filePath;
     private final Encryptor encryptor;
     private FileEncryptionManager encryptionManager;
+    private BackupManager backupManager; // Optional backup manager
     private boolean encrypted = false;
     private byte[] salt;
     private String backupDirectory = "";
@@ -115,6 +117,9 @@ public class LogFileHandler implements LogFileOperations {
                     // Inspect last line to avoid creating multiple blank lines between entries.
                     List<String> existing = Files.readAllLines(filePath);
                     String toWrite = uniqueTimeStamp + ls + text + ls;
+                    if (backupManager != null) {
+                        backupManager.createNumberedBackup();
+                    }
                     Files.writeString(filePath, toWrite, java.nio.file.StandardOpenOption.APPEND);
                 } else {
                     // For new files, ensure .LOG header exists for Notepad compatibility
@@ -194,8 +199,16 @@ public class LogFileHandler implements LogFileOperations {
             if (encryptionManager.isEncrypted()) {
                 cachedLines = new ArrayList<>(updatedLines);
                 String fullText = String.join("\n", cachedLines);
+                // Create numbered backup before encryption
+                if (backupManager != null) {
+                    backupManager.createNumberedBackup();
+                }
                 encryptionManager.encryptFile(fullText);
             } else {
+                // Create numbered backup before writing
+                if (backupManager != null) {
+                    backupManager.createNumberedBackup();
+                }
                 Files.write(filePath, updatedLines);
             }
         } catch (Exception e) {
@@ -223,8 +236,16 @@ public class LogFileHandler implements LogFileOperations {
             if (encryptionManager.isEncrypted()) {
                 cachedLines = new ArrayList<>(lines);
                 String fullText = String.join("\n", cachedLines);
+                // Create numbered backup before encryption
+                if (backupManager != null) {
+                    backupManager.createNumberedBackup();
+                }
                 encryptionManager.encryptFile(fullText);
             } else {
+                // Create numbered backup before writing
+                if (backupManager != null) {
+                    backupManager.createNumberedBackup();
+                }
                 Files.write(filePath, lines);
             }
             
@@ -262,8 +283,16 @@ public class LogFileHandler implements LogFileOperations {
             if (encryptionManager.isEncrypted()) {
                 cachedLines = new ArrayList<>(normalized);
                 String fullText = String.join("\n", cachedLines);
+                // Create numbered backup before encryption
+                if (backupManager != null) {
+                    backupManager.createNumberedBackup();
+                }
                 encryptionManager.encryptFile(fullText);
             } else {
+                // Create numbered backup before writing
+                if (backupManager != null) {
+                    backupManager.createNumberedBackup();
+                }
                 Files.write(filePath, normalized);
             }
             if (listModel != null) {
@@ -429,7 +458,7 @@ public class LogFileHandler implements LogFileOperations {
         if (encryptionManager.isEncrypted()) {
             if (cachedLines == null) {
                 String decrypted = encryptionManager.decryptFile();
-                cachedLines = Arrays.asList(decrypted.split("\r?\n", -1));
+                cachedLines = new ArrayList<>(Arrays.asList(decrypted.split("\r?\n", -1)));
             }
             return cachedLines;
         } else {
@@ -441,6 +470,11 @@ public class LogFileHandler implements LogFileOperations {
 
     @Override
     public void enableEncryption(char[] pwd) throws Exception {
+        // Safety check: don't re-encrypt if already encrypted
+        if (encrypted && encryptionManager.isEncrypted()) {
+            throw new IllegalStateException("File is already encrypted. Use setEncryption() to set credentials.");
+        }
+        
         this.salt = encryptor.generateSalt();
         List<String> lines = Files.readAllLines(filePath);
         // Preserve .LOG header in encrypted files (don't remove it)
@@ -637,7 +671,11 @@ public class LogFileHandler implements LogFileOperations {
     public void setBackupDirectory(String backupDirectory) {
         this.backupDirectory = backupDirectory != null ? backupDirectory : "";
     }
-
+    
+    public void setBackupManager(BackupManager backupManager) {
+        this.backupManager = backupManager;
+    }
+    
     private Path getBackupPath(String filename) {
         if (backupDirectory != null && !backupDirectory.isEmpty()) {
             Path dir = Paths.get(backupDirectory);

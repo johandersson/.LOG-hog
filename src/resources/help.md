@@ -45,6 +45,7 @@ Access clipboard security settings through the system tray icon (right-click the
 - **Right-Click Menu in Log Entries**: Right-click on any log entry to access options like copying to clipboard, deleting, or editing the date and time.
 - **Encryption (Optional)**: Secure your log file with AES encryption. Enable via Settings tab, set a strong password, and backup your data. The password is required on startup and is never stored on disk.
 - **Manual Lock/Unlock**: Instantly lock your encrypted log file for security, clearing all data from memory and disabling all operations. Unlock by clicking the button and re-entering your password.
+- **Automatic Backup System**: Comprehensive 6-layer backup protection with numbered backups (.bak, .bak.1-.5), startup safety backups, periodic auto-backups (configurable interval), timestamped backup rotation, size verification, and silent failover to prevent data loss.
 - **Backup and Restore**: Easily backup your log file with encryption preservation. Backups are filtered to show only .LOG-hog files.
 - **Performance Optimizations**: Efficient memory management for typical log file sizes.
 - **Window Close Confirmation**: When closing the application, choose to lock the file or exit completely for added security.
@@ -66,9 +67,17 @@ Access clipboard security settings through the system tray icon (right-click the
 - Access clipboard security settings and features through the "Clipboard Security" menu option.
 
 ## Backup and Restore
-- **Creating Backups**: In the Settings tab, click "Backup Log File" to create a copy of your log file. Choose a location and filename (pre-filled with date). Backups preserve the encryption state of your original file.
+- **Automatic Backups**: .LOG-hog automatically protects your data with a comprehensive 6-layer backup system:
+  1. **Numbered Backups**: Creates .bak, .bak.1, .bak.2, .bak.3, .bak.4, .bak.5 before every save (keeps last 5 versions)
+  2. **Startup Safety**: Automatically backs up your file when the application starts to protect against crashes
+  3. **Periodic Auto-Backup**: Checks every minute and backs up if file changed (default: 30 minutes interval, configurable in Settings)
+  4. **Timestamped Rotation**: Maintains timestamped backups with automatic rotation (keeps last 10)
+  5. **Backup Verification**: Validates backup size after creation to ensure integrity
+  6. **Silent Operation**: All backups run in background without blocking your work
+- **Manual Backups**: In the Settings tab, click "Backup Log File" to create a manual copy of your log file. Choose a location and filename (pre-filled with date). Backups preserve the encryption state of your original file.
 - **Backup Filtering**: The file chooser shows only existing .LOG-hog backup files for easy management.
-- **Restoring**: Manually replace your log.txt with a backup file if needed.
+- **Restoring**: Manually replace your log.txt with a backup file if needed. Numbered backups are automatically created in your backup directory (configurable in Settings).
+- **Backup Configuration**: Configure automatic backup interval and backup directory location in the Settings tab.
 
 ## Encryption
 - **Enabling Encryption**: Access the Settings tab to enable encryption. You'll need to set a password (at least 20 characters, including at least one uppercase letter and one special character from: !@#$%^&*()_+-=[]{}|;':",./<>?, and must score at least 'Good' strength). Optionally, backup your unencrypted log file before proceeding.

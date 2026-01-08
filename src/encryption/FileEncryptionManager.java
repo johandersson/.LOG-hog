@@ -72,6 +72,7 @@ public class FileEncryptionManager {
     }
 
     public void clearSensitiveData() {
+        this.encrypted = false;
         if (password != null) {
             Arrays.fill(password, '\0');
             password = null;

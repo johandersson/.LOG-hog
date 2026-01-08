@@ -243,7 +243,7 @@ public class ActionHandler {
         try {
             editor.loadLogEntries();
         } catch (Exception e) {
-            e.printStackTrace();
+            // Failed to reload entries after timestamp change
         }
         // reload full log and update menu
         fullLogPanel.loadFullLog();

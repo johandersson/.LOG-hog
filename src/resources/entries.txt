@@ -101,9 +101,9 @@
 2025-11-21 04:05: Sought advice on coding
 2025-11-21 04:10: Dog watched while debugging
 2025-11-21 04:15: Mom struggled with git rebase
-2025-11-21 04:20: Rebase enables time travel for commits
+2025-11-21 04:20: Rebase enables commit time travel
 2025-11-21 04:25: Merged branches incorrectly
-2025-11-21 04:30: Merge conflicts resemble family arguments
+2025-11-21 04:30: Merge conflicts like family drama
 2025-11-21 04:35: Explored agile methodologies
 2025-11-21 04:40: Agile feels like yoga for projects
 2025-11-21 04:45: Mom experimented with scrum
@@ -133,7 +133,7 @@
 2025-11-21 06:45: Applied single responsibility
 2025-11-21 06:50: Gave each class one job
 2025-11-21 06:55: Used open closed principle
-2025-11-21 07:00: Kept code open for extension, closed for modification
+2025-11-21 07:00: Open for extension, closed for change
 2025-11-21 07:05: Explored Liskov substitution
 2025-11-21 07:10: Ensured subtypes replace base types
 2025-11-21 07:15: Implemented interface segregation
@@ -141,7 +141,7 @@
 2025-11-21 07:25: Applied dependency inversion
 2025-11-21 07:30: Depended on abstractions
 2025-11-21 07:35: Asked about functional programming
-2025-11-21 07:40: Discovered functions are first class citizens
+2025-11-21 07:40: Functions are first class citizens
 2025-11-21 07:45: Experimented with Haskell
 2025-11-21 07:50: Dog barked at Haskell code
 2025-11-21 07:55: Got confused by monads
@@ -171,7 +171,7 @@
 2025-11-21 09:55: Mom tried smart contracts
 2025-11-21 10:00: Mom created self executing contracts
 2025-11-21 10:05: Mom mined cryptocurrency
-2025-11-21 10:10: Mom understood proof of work consensus
+2025-11-21 10:10: Mom learned proof of work
 2025-11-21 10:15: Mom learned about NFTs
 2025-11-21 10:20: Mom grasped non fungible tokens
 2025-11-21 10:25: Mom created an NFT
@@ -193,7 +193,7 @@
 2025-11-21 11:45: Mom benefited from 5G
 2025-11-21 11:50: Mom appreciated low latency
 2025-11-21 11:55: Mom asked about quantum computing
-2025-11-21 12:00: Mom explored superposition and entanglement
+2025-11-21 12:00: Mom explored quantum computing
 2025-11-21 12:05: Mom simulated quantum algorithms
 2025-11-21 12:10: Mom worked with quantum bits
 2025-11-21 12:15: Mom learned AI ethics
@@ -201,11 +201,11 @@
 2025-11-21 12:25: Mom debated AI implications
 2025-11-21 12:30: Mom prioritized ethical AI
 2025-11-21 12:35: Mom asked about AGI
-2025-11-21 12:40: Mom considered artificial general intelligence
+2025-11-21 12:40: Mom considered AGI possibilities
 2025-11-21 12:45: Mom worried about AGI impact
 2025-11-21 12:50: Mom accepted AGI is far away
-2025-11-21 12:55: Mom discussed technological singularity
-2025-11-21 13:00: Mom anticipated exponential technological growth
+2025-11-21 12:55: Mom discussed tech singularity
+2025-11-21 13:00: Mom saw exponential tech growth
 2025-11-21 13:05: Mom prepared for singularity
 2025-11-21 13:10: Mom embraced exponential change
 2025-11-21 13:15: Mom learned about metaverse
@@ -220,13 +220,13 @@
 2025-11-21 14:00: Mom asked about Web3
 2025-11-21 14:05: Mom explored decentralized web
 2025-11-21 14:10: Mom used Web3 technologies
-2025-11-21 14:15: Mom adopted blockchain based solutions
+2025-11-21 14:15: Mom adopted blockchain solutions
 2025-11-21 14:20: Mom learned decentralized finance
 2025-11-21 14:25: Mom invested in DeFi
 2025-11-21 14:30: Mom earned crypto yields
 2025-11-21 14:35: Mom asked about DAOs
-2025-11-21 14:40: Mom joined decentralized organizations
-2025-11-21 14:45: Mom participated in community governance
+2025-11-21 14:40: Mom joined a DAO
+2025-11-21 14:45: Mom voted in community governance
 2025-11-21 14:50: Mom voted in DAO
 2025-11-21 14:55: Mom made democratic decisions
 2025-11-21 15:00: Mom learned about sustainability
@@ -285,7 +285,7 @@
 2025-11-21 19:25: Mom celebrated achievements
 2025-11-21 19:30: Mom felt proud of progress
 2025-11-21 19:35: Mom reflected on journey
-2025-11-21 19:40: Mom progressed from beginner to expert
+2025-11-21 19:40: Mom went from beginner to expert
 2025-11-21 19:45: Mom expressed gratitude
 2025-11-21 19:50: Mom felt gratitude
 2025-11-21 19:55: Mom ordered celebratory pizza

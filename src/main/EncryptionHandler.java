@@ -24,6 +24,7 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import filehandling.LogFileHandler;
+import gui.LoadingProgressDialog;
 import gui.PasswordDialog;
 import gui.SecurityDelayDialog;
 
@@ -79,10 +80,12 @@ public class EncryptionHandler {
 
     /**
      * Reloads an encrypted log by prompting for password and handling authentication.
+     *
+     * @return true if unlock was successful, false if cancelled or failed
      */
-    public void reloadEncryptedLog() {
+    public boolean reloadEncryptedLog() {
         byte[] salt = Base64.getDecoder().decode(settings.getProperty("salt"));
-        performPasswordAuthentication(salt, "Reload Encrypted Log", false);
+        return performPasswordAuthentication(salt, "🔓 Unlock File", false);
     }
 
     /**
@@ -91,8 +94,9 @@ public class EncryptionHandler {
      * @param salt the salt for encryption
      * @param dialogTitle the title for the password dialog
      * @param exitOnCancel whether to exit the application if password entry is cancelled
+     * @return true if authentication was successful, false if cancelled or failed
      */
-    private void performPasswordAuthentication(byte[] salt, String dialogTitle, boolean exitOnCancel) {
+    private boolean performPasswordAuthentication(byte[] salt, String dialogTitle, boolean exitOnCancel) {
         String passwordReminder = secureSettings.getDecryptedProperty(settings, "passwordReminder", "");
         boolean success = false;
         int attempts = 0;
@@ -103,7 +107,7 @@ public class EncryptionHandler {
                 if (exitOnCancel) {
                     System.exit(0);
                 }
-                return;
+                return false; // User cancelled
             }
             try {
                 logFileHandler.setEncryption(pwd, salt);
@@ -112,13 +116,22 @@ public class EncryptionHandler {
                 // The method will try to load entries which may trigger proper encryption setup
             }
             try {
-                loadLogEntriesCallback.run();
-                success = true;
-                if (!exitOnCancel) {
-                    // For reload, update UI state
-                    updateUILockStateCallback.run();
-                    loadFullLogCallback.run();
+                // Show progress dialog for large file decryption
+                LoadingProgressDialog progressDialog = new LoadingProgressDialog(parentFrame, "Loading");
+                progressDialog.show();
+                
+                try {
+                    loadLogEntriesCallback.run();
+                    success = true;
+                    if (!exitOnCancel) {
+                        // For reload, update UI state
+                        updateUILockStateCallback.run();
+                        loadFullLogCallback.run();
+                    }
+                } finally {
+                    progressDialog.close();
                 }
+                
                 // Only zero out password after successful use
                 java.util.Arrays.fill(pwd, '\0');
             } catch (Exception e) {
@@ -171,9 +184,10 @@ public class EncryptionHandler {
                     if (exitOnCancel) {
                         System.exit(0);
                     }
-                    return; // Don't retry on non-authentication errors
+                    return false; // Don't retry on non-authentication errors
                 }
             }
         }
+        return true; // Success
     }
 }
