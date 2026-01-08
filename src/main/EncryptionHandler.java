@@ -111,7 +111,6 @@ public class EncryptionHandler {
                 // If setEncryption fails, continue with authentication flow
                 // The method will try to load entries which may trigger proper encryption setup
             }
-            java.util.Arrays.fill(pwd, '\0'); // Zero out password for security
             try {
                 loadLogEntriesCallback.run();
                 success = true;
@@ -120,6 +119,8 @@ public class EncryptionHandler {
                     updateUILockStateCallback.run();
                     loadFullLogCallback.run();
                 }
+                // Only zero out password after successful use
+                java.util.Arrays.fill(pwd, '\0');
             } catch (Exception e) {
                 attempts++;
                 if (attempts >= 4) {

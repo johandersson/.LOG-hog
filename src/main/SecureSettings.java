@@ -100,29 +100,34 @@ public class SecureSettings {
                 String encryptedData = storedValue.substring(ENCRYPTED_PREFIX.length());
                 byte[] encryptedBytes = Base64.getDecoder().decode(encryptedData);
                 
-                // Try GCM first (new format)
-                if (encryptedBytes.length >= GCM_IV_LENGTH + GCM_TAG_LENGTH) {
-                    try {
-                        byte[] iv = new byte[GCM_IV_LENGTH];
-                        System.arraycopy(encryptedBytes, 0, iv, 0, GCM_IV_LENGTH);
-                        byte[] encrypted = new byte[encryptedBytes.length - GCM_IV_LENGTH];
-                        System.arraycopy(encryptedBytes, GCM_IV_LENGTH, encrypted, 0, encrypted.length);
-                        
-                        Cipher cipher = Cipher.getInstance(ALGORITHM);
-                        GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
-                        cipher.init(Cipher.DECRYPT_MODE, settingsKey, spec);
-                        byte[] decrypted = cipher.doFinal(encrypted);
-                        return new String(decrypted, StandardCharsets.UTF_8);
-                    } catch (Exception gcmException) {
-                        // Fall through to legacy ECB decryption
-                    }
+                // Try ECB first for backward compatibility (most existing data)
+                // ECB data doesn't have IV prefix, so try this first
+                try {
+                    Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+                    cipher.init(Cipher.DECRYPT_MODE, settingsKey);
+                    byte[] decrypted = cipher.doFinal(encryptedBytes);
+                    return new String(decrypted, StandardCharsets.UTF_8);
+                } catch (Exception ecbException) {
+                    // Not ECB format, try GCM
                 }
                 
-                // Fallback to legacy ECB (for backward compatibility)
-                Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-                cipher.init(Cipher.DECRYPT_MODE, settingsKey);
-                byte[] decrypted = cipher.doFinal(encryptedBytes);
-                return new String(decrypted, StandardCharsets.UTF_8);
+                // Try GCM (new format with IV prefix)
+                if (encryptedBytes.length >= GCM_IV_LENGTH + GCM_TAG_LENGTH) {
+                    byte[] iv = new byte[GCM_IV_LENGTH];
+                    System.arraycopy(encryptedBytes, 0, iv, 0, GCM_IV_LENGTH);
+                    byte[] encrypted = new byte[encryptedBytes.length - GCM_IV_LENGTH];
+                    System.arraycopy(encryptedBytes, GCM_IV_LENGTH, encrypted, 0, encrypted.length);
+                    
+                    Cipher cipher = Cipher.getInstance(ALGORITHM);
+                    GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+                    cipher.init(Cipher.DECRYPT_MODE, settingsKey, spec);
+                    byte[] decrypted = cipher.doFinal(encrypted);
+                    return new String(decrypted, StandardCharsets.UTF_8);
+                }
+                
+                // If we get here, decryption failed
+                System.err.println("Failed to decrypt setting value - unknown format");
+                return storedValue;
             } catch (Exception e) {
                 System.err.println("Failed to decrypt setting value");
                 // Return the encrypted value as-is if decryption fails
