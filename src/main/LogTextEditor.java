@@ -108,6 +108,9 @@ public class LogTextEditor extends JFrame {
     private final Object lockObject = new Object();
     private BackupManager backupManager;
     private javax.swing.Timer periodicBackupTimer;
+    private javax.swing.Timer autoLockTimer;
+    private boolean autoLockEnabled = false;
+    private int autoLockTimeoutSeconds = 900; // Default 15 minutes
 
     public boolean isLocked() {
         synchronized (lockObject) {
@@ -181,6 +184,12 @@ public class LogTextEditor extends JFrame {
             // Setup key bindings and system components
             setupKeyBindings();
             loadSettings();
+
+            // Initialize clipboard security settings
+            initializeSecureClipboard();
+
+            // Initialize auto-lock timer
+            initializeAutoLock();
 
             // Update system tray recent logs menu now that settings are loaded
             SystemTrayMenu.updateRecentLogsMenu();
@@ -479,6 +488,11 @@ public class LogTextEditor extends JFrame {
             fullLogPanel.loadFullLog(); // This will show empty since locked
             isLocked = true;
             updateUILockState();
+            
+            // Stop auto-lock timer since file is now locked
+            if (autoLockTimer != null) {
+                autoLockTimer.stop();
+            }
         }
     }
 
@@ -488,6 +502,11 @@ public class LogTextEditor extends JFrame {
             synchronized (lockObject) {
                 isLocked = false;
                 updateUILockState();
+                
+                // Restart auto-lock timer if enabled
+                if (autoLockEnabled) {
+                    startAutoLockTimer();
+                }
             }
         } else {
             // Show feedback that file is still locked
@@ -499,6 +518,99 @@ public class LogTextEditor extends JFrame {
                 JOptionPane.WARNING_MESSAGE);
         }
     }    
+
+    /**
+     * Initializes the auto-lock timer if enabled.
+     * Reads settings and sets up activity tracking.
+     */
+    private void initializeAutoLock() {
+        autoLockEnabled = "true".equals(settings.getProperty("autoLockEnabled", "false"));
+        try {
+            autoLockTimeoutSeconds = Integer.parseInt(settings.getProperty("autoLockTimeout", "900"));
+        } catch (NumberFormatException e) {
+            autoLockTimeoutSeconds = 900; // Default to 15 minutes
+        }
+
+        if (autoLockEnabled) {
+            startAutoLockTimer();
+            setupActivityTracking();
+        }
+    }
+
+    /**
+     * Updates auto-lock settings and restarts timer if needed.
+     */
+    public void updateAutoLockSettings(boolean enabled, String timeoutStr) {
+        autoLockEnabled = enabled;
+        try {
+            autoLockTimeoutSeconds = Integer.parseInt(timeoutStr);
+        } catch (NumberFormatException e) {
+            autoLockTimeoutSeconds = 900;
+        }
+
+        // Stop existing timer
+        if (autoLockTimer != null) {
+            autoLockTimer.stop();
+            autoLockTimer = null;
+        }
+
+        // Start new timer if enabled
+        if (autoLockEnabled && !isLocked) {
+            startAutoLockTimer();
+        }
+    }
+
+    /**
+     * Starts the auto-lock timer that will lock the file after inactivity.
+     */
+    private void startAutoLockTimer() {
+        if (autoLockTimer != null) {
+            autoLockTimer.stop();
+        }
+
+        // Convert seconds to milliseconds for Timer
+        int timeoutMs = autoLockTimeoutSeconds * 1000;
+        autoLockTimer = new javax.swing.Timer(timeoutMs, e -> {
+            if (!isLocked && autoLockEnabled) {
+                SwingUtilities.invokeLater(() -> {
+                    manualLock();
+                    JOptionPane.showMessageDialog(this,
+                        "<html><b>🔒 File Auto-Locked</b><br><br>" +
+                        "The file has been locked due to inactivity.<br><br>" +
+                        "<i>Press Unlock in Full log view to unlock it again.</i></html>",
+                        "Auto-Lock",
+                        JOptionPane.INFORMATION_MESSAGE);
+                });
+            }
+        });
+        autoLockTimer.setRepeats(false); // Only fire once
+        autoLockTimer.start();
+    }
+
+    /**
+     * Resets the auto-lock timer when user activity is detected.
+     */
+    private void resetAutoLockTimer() {
+        if (autoLockEnabled && !isLocked && autoLockTimer != null) {
+            autoLockTimer.restart();
+        }
+    }
+
+    /**
+     * Sets up activity tracking to reset auto-lock timer on user interaction.
+     */
+    private void setupActivityTracking() {
+        // Add global mouse and keyboard listeners to detect activity
+        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(event -> {
+            if (event instanceof java.awt.event.MouseEvent || 
+                event instanceof java.awt.event.KeyEvent) {
+                resetAutoLockTimer();
+            }
+        }, java.awt.AWTEvent.MOUSE_EVENT_MASK | 
+           java.awt.AWTEvent.KEY_EVENT_MASK |
+           java.awt.AWTEvent.MOUSE_MOTION_EVENT_MASK);
+    }
+
     /**
      * Starts a timer that periodically checks if backup is needed.
      * Runs every 60 seconds with minimal overhead.

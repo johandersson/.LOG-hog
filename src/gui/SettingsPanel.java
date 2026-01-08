@@ -38,7 +38,9 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JSpinner;
 import javax.swing.JTextField;
+import javax.swing.SpinnerNumberModel;
 
 import filehandling.LogFileHandler;
 import main.BackupManager;
@@ -64,6 +66,8 @@ public class SettingsPanel extends JPanel {
     private JCheckBox clipboardAutoClearCheckBox;
     private JTextField clipboardTimeoutField;
     private JCheckBox autoBackupCheckBox;
+    private JCheckBox autoLockCheckBox;
+    private JSpinner autoLockTimeoutSpinner;
 
     public SettingsPanel(LogTextEditor editor, Properties settings, Path settingsPath, LogFileHandler logFileHandler) {
         this.editor = editor;
@@ -108,6 +112,9 @@ public class SettingsPanel extends JPanel {
 
         // Clipboard security section
         contentPanel.add(createClipboardSecurityPanel());
+
+        // Auto-lock section
+        contentPanel.add(createAutoLockPanel());
 
         // Button section
         contentPanel.add(createButtonPanel());
@@ -244,6 +251,40 @@ public class SettingsPanel extends JPanel {
         return panel;
     }
 
+    private JPanel createAutoLockPanel() {
+        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createTitledBorder("Auto-Lock File"));
+
+        autoLockCheckBox = new JCheckBox("Lock file after inactivity");
+        autoLockCheckBox.setBackground(Color.WHITE);
+        autoLockCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        autoLockCheckBox.setSelected("true".equals(settings.getProperty("autoLockEnabled", "false")));
+
+        var timeoutLabel = new JLabel("Timeout (minutes): ");
+        timeoutLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        
+        // Get timeout in seconds and convert to minutes, default is 15 minutes (900 seconds)
+        int timeoutSeconds = Integer.parseInt(settings.getProperty("autoLockTimeout", "900"));
+        int timeoutMinutes = timeoutSeconds / 60;
+        
+        // Spinner: min=15, max=1440 (24 hours), step=5, initial=timeoutMinutes
+        SpinnerNumberModel spinnerModel = new SpinnerNumberModel(
+            Math.max(15, Math.min(1440, timeoutMinutes)), // value (clamped)
+            15,    // min: 15 minutes
+            1440,  // max: 24 hours
+            5      // step: 5 minutes
+        );
+        autoLockTimeoutSpinner = new JSpinner(spinnerModel);
+        autoLockTimeoutSpinner.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        ((JSpinner.DefaultEditor) autoLockTimeoutSpinner.getEditor()).getTextField().setColumns(5);
+
+        panel.add(autoLockCheckBox);
+        panel.add(timeoutLabel);
+        panel.add(autoLockTimeoutSpinner);
+        return panel;
+    }
+
     private JPanel createButtonPanel() {
         var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panel.setBackground(Color.WHITE);
@@ -278,6 +319,13 @@ public class SettingsPanel extends JPanel {
         splashOnStartupCheckBox.setSelected("true".equals(settings.getProperty("showSplashOnStartup", "true")));
         clipboardAutoClearCheckBox.setSelected("true".equals(settings.getProperty("clipboardAutoClear", "true")));
         clipboardTimeoutField.setText(settings.getProperty("clipboardTimeout", "30"));
+        autoLockCheckBox.setSelected("true".equals(settings.getProperty("autoLockEnabled", "false")));
+        
+        // Load auto-lock timeout in minutes
+        int timeoutSeconds = Integer.parseInt(settings.getProperty("autoLockTimeout", "900"));
+        int timeoutMinutes = Math.max(15, Math.min(1440, timeoutSeconds / 60)); // Clamp to valid range
+        autoLockTimeoutSpinner.setValue(timeoutMinutes);
+        
         var isEncrypted = "true".equals(settings.getProperty("encrypted"));
         encryptionCheckBox.setSelected(isEncrypted);
         encryptionCheckBox.setEnabled(!isEncrypted); // Disable if already encrypted
@@ -306,12 +354,21 @@ public class SettingsPanel extends JPanel {
         var currentSplashOnStartup = "true".equals(settings.getProperty("showSplashOnStartup", "true"));
         var currentClipboardAutoClear = "true".equals(settings.getProperty("clipboardAutoClear", "true"));
         var currentClipboardTimeout = settings.getProperty("clipboardTimeout", "30");
+        var currentAutoLockEnabled = "true".equals(settings.getProperty("autoLockEnabled", "false"));
+        int currentAutoLockTimeoutSeconds = Integer.parseInt(settings.getProperty("autoLockTimeout", "900"));
         var newReminder = reminderField.getText();
         var newBackupDir = backupDirField.getText();
         var newAutoBackupEnabled = autoBackupCheckBox.isSelected();
         var newSplashOnStartup = splashOnStartupCheckBox.isSelected();
         var newClipboardAutoClear = clipboardAutoClearCheckBox.isSelected();
         var newClipboardTimeout = clipboardTimeoutField.getText();
+        var newAutoLockEnabled = autoLockCheckBox.isSelected();
+        
+        // Get spinner value (in minutes) and convert to seconds, with validation
+        int newAutoLockMinutes = (Integer) autoLockTimeoutSpinner.getValue();
+        // Clamp to valid range (15-1440 minutes) and convert to seconds
+        newAutoLockMinutes = Math.max(15, Math.min(1440, newAutoLockMinutes));
+        int newAutoLockTimeoutSeconds = newAutoLockMinutes * 60;
 
         // Validate clipboard timeout
         if (!isValidClipboardTimeout(newClipboardTimeout)) {
@@ -319,6 +376,8 @@ public class SettingsPanel extends JPanel {
             loadCurrentSettings(); // Reset to current valid values
             return;
         }
+
+        // Auto-lock timeout is already validated by spinner bounds (15-1440 minutes)
 
         // Validate reminder field
         if (!isValidReminder(newReminder)) {
@@ -340,7 +399,9 @@ public class SettingsPanel extends JPanel {
                             currentAutoBackupEnabled != newAutoBackupEnabled ||
                             currentSplashOnStartup != newSplashOnStartup ||
                             currentClipboardAutoClear != newClipboardAutoClear ||
-                            !currentClipboardTimeout.equals(newClipboardTimeout);
+                            !currentClipboardTimeout.equals(newClipboardTimeout) ||
+                            currentAutoLockEnabled != newAutoLockEnabled ||
+                            currentAutoLockTimeoutSeconds != newAutoLockTimeoutSeconds;
 
         if (!settingsChanged) {
             statusLabel.setText("No changes to apply.");
@@ -356,6 +417,8 @@ public class SettingsPanel extends JPanel {
         settings.setProperty("showSplashOnStartup", newSplashOnStartup ? "true" : "false");
         settings.setProperty("clipboardAutoClear", newClipboardAutoClear ? "true" : "false");
         settings.setProperty("clipboardTimeout", newClipboardTimeout);
+        settings.setProperty("autoLockEnabled", newAutoLockEnabled ? "true" : "false");
+        settings.setProperty("autoLockTimeout", String.valueOf(newAutoLockTimeoutSeconds));
         saveSettings();
 
         // Update secure clipboard settings immediately
@@ -368,6 +431,9 @@ public class SettingsPanel extends JPanel {
         } catch (IllegalArgumentException e) {
             JOptionPane.showMessageDialog(editor, "Clipboard timeout must be between 5 and 30 seconds.", "Settings Error", JOptionPane.WARNING_MESSAGE);
         }
+
+        // Update auto-lock settings immediately (pass timeout in seconds as string)
+        editor.updateAutoLockSettings(newAutoLockEnabled, String.valueOf(newAutoLockTimeoutSeconds));
 
         loadCurrentSettings(); // Refresh fields with saved values
         Toast.showToast(editor, "Settings saved!");
@@ -640,6 +706,20 @@ public class SettingsPanel extends JPanel {
             int timeout = Integer.parseInt(timeoutStr.trim());
             // Timeout must be between 1 second and 1 hour (3600 seconds)
             return timeout >= 1 && timeout <= 3600;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private boolean isValidAutoLockTimeout(String timeoutStr) {
+        if (timeoutStr == null || timeoutStr.trim().isEmpty()) {
+            return false;
+        }
+
+        try {
+            int timeout = Integer.parseInt(timeoutStr.trim());
+            // Timeout must be between 10 seconds and 24 hours (86400 seconds)
+            return timeout >= 10 && timeout <= 86400;
         } catch (NumberFormatException e) {
             return false;
         }
