@@ -600,11 +600,13 @@ public class LogFileHandler implements LogFileOperations {
     }
 
     public void setEncryption(char[] pwd, byte[] slt) throws Exception {
-        // Set credentials first
+        // Just set credentials - don't re-encrypt if already encrypted
         encryptionManager.setEncryption(pwd, slt);
-        
-        // Then encrypt the existing file content
-        enableEncryption();
+        this.salt = slt;
+        this.encrypted = true;
+        // Clear cache to force re-read with new credentials
+        cachedLines = null;
+        invalidateEntryCache();
     }
 
     @Override

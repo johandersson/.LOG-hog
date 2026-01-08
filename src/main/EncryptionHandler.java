@@ -122,6 +122,9 @@ public class EncryptionHandler {
                 // Only zero out password after successful use
                 java.util.Arrays.fill(pwd, '\0');
             } catch (Exception e) {
+                // Zero out the failed password attempt before showing error
+                java.util.Arrays.fill(pwd, '\0');
+                
                 attempts++;
                 if (attempts >= 4) {
                     JOptionPane.showMessageDialog(parentFrame, "<html><b>🚫 Security Lock</b><br><br>Too many failed password attempts.<br>The application is now locked for security.<br><br>Please restart the application to try again.</html>", "Security Error", JOptionPane.ERROR_MESSAGE);
@@ -142,6 +145,8 @@ public class EncryptionHandler {
                     errorMsg.contains("decryption failed") ||
                     errorMsg.contains("unable to open your file") ||
                     errorMsg.contains("your password might be incorrect") ||
+                    errorMsg.contains("malformedinput") ||
+                    errorMsg.contains("input length") ||
                     exceptionType.contains("indexoutofbounds") ||
                     exceptionType.contains("nullpointer") ||
                     errorMsg.contains("malformed") ||
