@@ -17,11 +17,12 @@
 
 package gui;
 
-import java.awt.*;
+import java.awt.Frame;
 import java.security.SecureRandom;
-import javax.swing.*;
 
-public class SecurityDelayDialog {
+import javax.swing.Timer;
+
+public class SecurityDelayDialog extends ProgressDialogBase {
     private static final SecureRandom secureRandom = new SecureRandom();
 
     public static void showDialog(long delayMillis, Frame parent) {
@@ -36,47 +37,52 @@ public class SecurityDelayDialog {
         // Ensure minimum 1 second delay
         randomizedDelay = Math.max(1000, randomizedDelay);
         
-        var dialog = new JDialog(parent, "Security Delay", true);
-        dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-        dialog.setLayout(new BorderLayout());
-
-        // Create center panel with message and countdown
-        var centerPanel = new JPanel(new BorderLayout());
-        centerPanel.add(new JLabel(message, SwingConstants.CENTER), BorderLayout.NORTH);
-        var countdownLabel = new JLabel("", SwingConstants.CENTER);
-        countdownLabel.setFont(countdownLabel.getFont().deriveFont(14.0f));
-        centerPanel.add(countdownLabel, BorderLayout.SOUTH);
-
-        dialog.add(centerPanel, BorderLayout.CENTER);
-        var progressBar = new JProgressBar(0, 100);
-        dialog.add(progressBar, BorderLayout.SOUTH);
-        dialog.setSize(350, 120);
-        dialog.setLocationRelativeTo(parent);
-
-        // Use Swing Timer for smooth progress updates
-        var timer = new javax.swing.Timer(50, null);
+        var securityDialog = new SecurityDelayDialog(parent, "Security Delay", message);
+        securityDialog.startCountdown(randomizedDelay);
+    }
+    
+    /**
+     * Creates a security delay dialog.
+     *
+     * @param parent the parent frame
+     * @param title the dialog title
+     * @param message the message to display
+     */
+    private SecurityDelayDialog(Frame parent, String title, String message) {
+        super(parent, title, true); // Modal dialog
+        messageLabel.setText(message);
+    }
+    
+    /**
+     * Starts the countdown timer.
+     *
+     * @param delayMillis the delay in milliseconds
+     */
+    private void startCountdown(long delayMillis) {
         final long startTime = System.currentTimeMillis();
-        final long endTime = startTime + randomizedDelay;
-
+        final long endTime = startTime + delayMillis;
+        
+        // Use Swing Timer for smooth progress updates
+        var timer = new Timer(50, null);
         timer.addActionListener(e -> {
             long currentTime = System.currentTimeMillis();
             if (currentTime >= endTime) {
                 progressBar.setValue(100);
-                countdownLabel.setText("0 seconds remaining");
+                progressLabel.setText(formatProgress(100, 0));
                 timer.stop();
                 dialog.dispose();
             } else {
                 long elapsed = currentTime - startTime;
                 int progress = (int) (elapsed * 100 / delayMillis);
                 progressBar.setValue(progress);
-
-                // Update countdown every second
+                
+                // Update countdown every tick
                 long remainingMillis = endTime - currentTime;
                 long remainingSeconds = (remainingMillis + 999) / 1000; // Round up
-                countdownLabel.setText(remainingSeconds + " seconds remaining");
+                progressLabel.setText(formatProgress(progress, remainingSeconds));
             }
         });
-
+        
         timer.start();
         dialog.setVisible(true);
     }
