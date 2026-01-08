@@ -62,6 +62,8 @@ public class LogListPanel extends JPanel {
     private final JScrollPane entryScroll;
     private final JLabel lockLabel;
     private final JPanel entryContainer;
+    private JComboBox<Integer> yearCombo;
+    private JComboBox<String> monthCombo;
 
     public LogListPanel(LogTextEditor editor, LogFileHandler logFileHandler, DefaultListModel<String> listModel, JList<String> logList) {
         this.editor = editor;
@@ -99,7 +101,7 @@ public class LogListPanel extends JPanel {
 
         var currentYear = Year.now().getValue();
         var years = IntStream.rangeClosed(2000, currentYear).boxed().toArray(Integer[]::new);
-        var yearCombo = new JComboBox<>(years);
+        yearCombo = new JComboBox<>(years);
         yearCombo.setSelectedItem(currentYear);
         filterPanel.add(yearCombo);
 
@@ -108,7 +110,7 @@ public class LogListPanel extends JPanel {
                 "05 - May", "06 - Jun", "07 - Jul", "08 - Aug",
                 "09 - Sep", "10 - Oct", "11 - Nov", "12 - Dec"
         };
-        var monthCombo = new JComboBox<>(months);
+        monthCombo = new JComboBox<>(months);
         monthCombo.setSelectedIndex(LocalDate.now().getMonthValue() - 1);
         filterPanel.add(monthCombo);
 
@@ -120,6 +122,11 @@ public class LogListPanel extends JPanel {
     }
 
     private void applyFilter(JComboBox<Integer> yearCombo, JComboBox<String> monthCombo) {
+        // Don't filter if locked - controls should be disabled but add extra safety
+        if (editor.isLocked()) {
+            return;
+        }
+        
         try {
             var year = (Integer) yearCombo.getSelectedItem();
             var month = monthCombo.getSelectedIndex() + 1;
@@ -351,6 +358,15 @@ public class LogListPanel extends JPanel {
 
     public void setLocked(boolean locked) {
         entryArea.setEditable(!locked);
+        
+        // Disable filter controls when locked
+        if (yearCombo != null) {
+            yearCombo.setEnabled(!locked);
+        }
+        if (monthCombo != null) {
+            monthCombo.setEnabled(!locked);
+        }
+        
         if (locked) {
             entryArea.setText("");
             entryContainer.remove(entryScroll);
