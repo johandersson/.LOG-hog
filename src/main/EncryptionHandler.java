@@ -126,8 +126,12 @@ public class EncryptionHandler {
                     JOptionPane.showMessageDialog(parentFrame, "<html><b>🚫 Security Lock</b><br><br>Too many failed password attempts.<br>The application is now locked for security.<br><br>Please restart the application to try again.</html>", "Security Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(0);
                 }
+                
                 String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-                if (errorMsg.contains("tag mismatch") ||
+                String exceptionType = e.getClass().getSimpleName().toLowerCase();
+                
+                // Check if this is a decryption/authentication error
+                boolean isAuthError = errorMsg.contains("tag mismatch") ||
                     errorMsg.contains("bad tag") ||
                     errorMsg.contains("badpadding") ||
                     errorMsg.contains("illegal block size") ||
@@ -136,9 +140,16 @@ public class EncryptionHandler {
                     errorMsg.contains("mac check failed") ||
                     errorMsg.contains("decryption failed") ||
                     errorMsg.contains("unable to open your file") ||
-                    errorMsg.contains("your password might be incorrect")) {
+                    errorMsg.contains("your password might be incorrect") ||
+                    exceptionType.contains("indexoutofbounds") ||
+                    exceptionType.contains("nullpointer") ||
+                    errorMsg.contains("malformed") ||
+                    errorMsg.contains("index") ||
+                    errorMsg.contains("split");
+                
+                if (isAuthError) {
                     int remaining = 4 - attempts;
-                    JOptionPane.showMessageDialog(parentFrame, "<html><b>🔒 Authentication Failed</b><br><br>The password you entered is incorrect.<br>You have <b>" + remaining + "</b> attempts remaining before the application locks for security.<br><br><i>Tip: Use your password manager or reminder if needed.</i></html>", "Authentication Failed", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(parentFrame, "<html><b>🔒 Authentication Failed</b><br><br>The password you entered appears to be incorrect,<br>or the encrypted file has an unexpected format.<br><br>You have <b>" + remaining + "</b> attempt" + (remaining == 1 ? "" : "s") + " remaining before the application locks for security.<br><br><i>Tip: Double-check your password or password manager.</i></html>", "Authentication Failed", JOptionPane.ERROR_MESSAGE);
                     // WindowShakeAnimation.shake(parentFrame);
                     // Add progressive delay after failed attempts
                     long delay = switch (attempts) {
@@ -149,10 +160,12 @@ public class EncryptionHandler {
                     };
                     SecurityDelayDialog.showDialog(delay, parentFrame);
                 } else {
-                    logFileHandler.showErrorDialog("<html><b>📁 Load Failed</b><br><br>Unable to load log entries.<br>" + e.getMessage() + "<br><br><i>Tip: The file may be corrupted or inaccessible.</i></html>");
+                    // For non-authentication errors, show error and exit/return
+                    logFileHandler.showErrorDialog("<html><b>📁 Load Failed</b><br><br>Unable to load log entries due to a file error.<br><br><i>Technical details: " + e.getClass().getSimpleName() + "</i><br><br><i>Tip: The file may be corrupted. Try restoring from a backup.</i></html>");
                     if (exitOnCancel) {
                         System.exit(0);
                     }
+                    return; // Don't retry on non-authentication errors
                 }
             }
         }

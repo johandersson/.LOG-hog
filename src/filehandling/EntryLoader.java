@@ -56,7 +56,7 @@ public class EntryLoader {
             try {
                 var data = Files.readAllBytes(logFileHandler.getFilePath());
                 var decrypted = encryptor.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
-                lines = Arrays.asList(decrypted.split("\n", -1));
+                lines = Arrays.asList(decrypted.split("\r?\n", -1));
             } catch (EncryptionException e) {
                 throw new RuntimeException(e);
             }
@@ -145,7 +145,7 @@ public class EntryLoader {
             if (logFileHandler.isEncrypted()) {
                 byte[] data = Files.readAllBytes(logFileHandler.getFilePath());
                 String decrypted = encryptor.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
-                lines = Arrays.asList(decrypted.split("\n", -1));
+                lines = Arrays.asList(decrypted.split("\r?\n", -1));
             } else {
                 lines = Files.readAllLines(logFileHandler.getFilePath());
             }
@@ -238,7 +238,7 @@ public class EntryLoader {
             if (logFileHandler.isEncrypted()) {
                 byte[] data = Files.readAllBytes(logFileHandler.getFilePath());
                 String decrypted = EncryptionManager.getInstance().decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
-                lines = Arrays.asList(decrypted.split("\n", -1));
+                lines = Arrays.asList(decrypted.split("\r?\n", -1));
             } else {
                 lines = Files.readAllLines(logFileHandler.getFilePath());
             }

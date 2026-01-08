@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JOptionPane;
@@ -100,17 +99,17 @@ public class LogFileHandler implements LogFileOperations {
 
         try {
             if (encrypted) {
-                cachedLines.addAll(Arrays.asList(entry.split("\n", -1)));
+                cachedLines.addAll(Arrays.asList(entry.split("\r?\n", -1)));
                 String fullText = String.join("\n", cachedLines);
                 
                 // Ensure .LOG header is present for encrypted files
                 if (!fullText.startsWith(".LOG")) {
                     fullText = ".LOG\n\n" + fullText;
-                    cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\n")));
+                    cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1)));
                 }
                 
                 encryptionManager.encryptFile(fullText);
-                cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\n")));
+                cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1)));
             } else {
                 if (Files.exists(filePath)) {
                     // Inspect last line to avoid creating multiple blank lines between entries.
@@ -430,13 +429,13 @@ public class LogFileHandler implements LogFileOperations {
         if (encryptionManager.isEncrypted()) {
             if (cachedLines == null) {
                 String decrypted = encryptionManager.decryptFile();
-                cachedLines = Arrays.stream(decrypted.split("\n")).map(String::trim).collect(Collectors.toList());
+                cachedLines = Arrays.asList(decrypted.split("\r?\n", -1));
             }
             return cachedLines;
         } else {
             List<String> lines = Files.readAllLines(filePath);
             // Keep .LOG in unencrypted files for Notepad compatibility
-            return lines.stream().map(String::trim).collect(Collectors.toList());
+            return lines;
         }
     }
 
@@ -456,7 +455,7 @@ public class LogFileHandler implements LogFileOperations {
         // Then encrypt and save
         encryptionManager.setEncryption(pwd, this.salt);
         encryptionManager.encryptFile(fullText);
-        cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\n")));
+        cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1)));
         encrypted = true;
     }
 

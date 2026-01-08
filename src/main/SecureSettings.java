@@ -19,19 +19,26 @@ package main;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Properties;
 
 import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Secure settings storage for sensitive configuration data.
  * Uses deterministic key derivation to avoid salt bootstrapping issues.
+ * Updated to use AES/GCM instead of insecure AES/ECB mode.
  */
 public class SecureSettings {
     private static final String ENCRYPTED_PREFIX = "encrypted:";
+    private static final String ALGORITHM = "AES/GCM/NoPadding";
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH = 16;
     private final SecretKeySpec settingsKey;
+    private final SecureRandom secureRandom;
 
     public SecureSettings() {
         // Generate deterministic key for settings encryption
@@ -44,31 +51,43 @@ public class SecureSettings {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] keyBytes = digest.digest(keySeed.getBytes(StandardCharsets.UTF_8));
             this.settingsKey = new SecretKeySpec(keyBytes, 0, 16, "AES"); // Use first 128 bits
+            this.secureRandom = new SecureRandom();
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize secure settings", e);
         }
     }
 
     /**
-     * Encrypt a sensitive value for storage in settings.
+     * Encrypt a sensitive value for storage in settings using AES/GCM.
      */
     public String encryptValue(String value) {
         if (value == null || value.isEmpty()) {
             return value;
         }
         try {
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, settingsKey);
+            // Generate random IV for GCM
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            secureRandom.nextBytes(iv);
+            
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+            cipher.init(Cipher.ENCRYPT_MODE, settingsKey, spec);
             byte[] encrypted = cipher.doFinal(value.getBytes(StandardCharsets.UTF_8));
-            return ENCRYPTED_PREFIX + Base64.getEncoder().encodeToString(encrypted);
+            
+            // Prepend IV to encrypted data
+            byte[] result = new byte[iv.length + encrypted.length];
+            System.arraycopy(iv, 0, result, 0, iv.length);
+            System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
+            
+            return ENCRYPTED_PREFIX + Base64.getEncoder().encodeToString(result);
         } catch (Exception e) {
-            System.err.println("Failed to encrypt setting value: " + e.getMessage());
+            System.err.println("Failed to encrypt setting value");
             return value; // Return plain text as fallback
         }
     }
 
     /**
-     * Decrypt a value from settings, handling both encrypted and plain text values.
+     * Decrypt a value from settings, handling both GCM and legacy ECB encrypted values.
      */
     public String decryptValue(String storedValue) {
         if (storedValue == null) {
@@ -80,13 +99,32 @@ public class SecureSettings {
             try {
                 String encryptedData = storedValue.substring(ENCRYPTED_PREFIX.length());
                 byte[] encryptedBytes = Base64.getDecoder().decode(encryptedData);
-
+                
+                // Try GCM first (new format)
+                if (encryptedBytes.length >= GCM_IV_LENGTH + GCM_TAG_LENGTH) {
+                    try {
+                        byte[] iv = new byte[GCM_IV_LENGTH];
+                        System.arraycopy(encryptedBytes, 0, iv, 0, GCM_IV_LENGTH);
+                        byte[] encrypted = new byte[encryptedBytes.length - GCM_IV_LENGTH];
+                        System.arraycopy(encryptedBytes, GCM_IV_LENGTH, encrypted, 0, encrypted.length);
+                        
+                        Cipher cipher = Cipher.getInstance(ALGORITHM);
+                        GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+                        cipher.init(Cipher.DECRYPT_MODE, settingsKey, spec);
+                        byte[] decrypted = cipher.doFinal(encrypted);
+                        return new String(decrypted, StandardCharsets.UTF_8);
+                    } catch (Exception gcmException) {
+                        // Fall through to legacy ECB decryption
+                    }
+                }
+                
+                // Fallback to legacy ECB (for backward compatibility)
                 Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
                 cipher.init(Cipher.DECRYPT_MODE, settingsKey);
                 byte[] decrypted = cipher.doFinal(encryptedBytes);
                 return new String(decrypted, StandardCharsets.UTF_8);
             } catch (Exception e) {
-                System.err.println("Failed to decrypt setting value: " + e.getMessage());
+                System.err.println("Failed to decrypt setting value");
                 // Return the encrypted value as-is if decryption fails
                 return storedValue;
             }

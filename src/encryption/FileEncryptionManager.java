@@ -44,7 +44,8 @@ public class FileEncryptionManager {
     }
 
     public char[] getPassword() {
-        return password;
+        // Return a clone to prevent external modification of the password
+        return password != null ? password.clone() : null;
     }
 
     public byte[] getSalt() {

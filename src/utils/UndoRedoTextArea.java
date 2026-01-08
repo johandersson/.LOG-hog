@@ -56,7 +56,7 @@ public class UndoRedoTextArea extends JTextArea {
                         undoManager.undo();
                     }
                 } catch (CannotUndoException ex) {
-                    ex.printStackTrace();
+                    // Silently ignore undo errors to prevent information leakage
                 }
             }
         });
@@ -70,7 +70,7 @@ public class UndoRedoTextArea extends JTextArea {
                         undoManager.redo();
                     }
                 } catch (CannotRedoException ex) {
-                    ex.printStackTrace();
+                    // Silently ignore redo errors to prevent information leakage
                 }
             }
         });

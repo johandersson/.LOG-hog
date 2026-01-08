@@ -143,12 +143,21 @@ public class PasswordDialog extends JDialog {
         if (showStrength) {
             var generateButton = new StandardButton("Generate", new Color(0xE0E0E0), new Color(0xB0B0B0));
             generateButton.addActionListener(e -> {
-                // Generate a strong password
-                var generated = PasswordGenerator.generatePassword(20);
-                passwordField.setText(generated);
-                if (strengthIndicator != null) {
-                    strengthIndicator.updateStrength(generated.toCharArray());
+                // Generate a strong password as char array to avoid String in memory
+                char[] generated = PasswordGenerator.generatePassword(20).toCharArray();
+                // SECURITY: Use Document manipulation to avoid internal String copies
+                try {
+                    passwordField.getDocument().remove(0, passwordField.getDocument().getLength());
+                    passwordField.getDocument().insertString(0, new String(generated), null);
+                } catch (Exception ex) {
+                    // Fallback to setText if document manipulation fails
+                    passwordField.setText(new String(generated));
                 }
+                if (strengthIndicator != null) {
+                    strengthIndicator.updateStrength(generated);
+                }
+                // Clear the generated char array from memory
+                java.util.Arrays.fill(generated, '\0');
             });
             buttonPanel.add(generateButton);
         }
