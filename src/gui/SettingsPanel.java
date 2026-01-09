@@ -76,6 +76,7 @@ public class SettingsPanel extends JPanel {
         this.logFileHandler = logFileHandler;
         this.secureSettings = new SecureSettings();
         this.backupManager = new BackupManager(settings);
+        this.backupManager.setParentFrame(editor); // Set parent for progress dialogs
 
         initComponents();
     }
@@ -192,7 +193,7 @@ public class SettingsPanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createTitledBorder("Automatic Backup"));
 
-        autoBackupCheckBox = new JCheckBox("Enable automatic backup after encryption changes");
+        autoBackupCheckBox = new JCheckBox("Enable automatic periodic backup (every 30 minutes when file changes)");
         autoBackupCheckBox.setBackground(Color.WHITE);
         autoBackupCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 

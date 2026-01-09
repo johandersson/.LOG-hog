@@ -17,6 +17,7 @@
 
 package main;
 
+import java.awt.Frame;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +31,10 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import javax.swing.SwingUtilities;
+
+import gui.LoadingProgressDialog;
+
 /**
  * Manages automatic and manual backups of log files.
  * Provides secure backup operations with configurable settings.
@@ -39,11 +44,20 @@ public class BackupManager {
     private final SecureRandom random = new SecureRandom();
     private static final int MAX_NUMBERED_BACKUPS = 5;
     private static final int MAX_AUTO_BACKUPS = 10;
+    private static final long SHOW_PROGRESS_THRESHOLD = 1024 * 1024; // Show progress for files > 1MB
     private long lastBackupTime = 0;
     private long lastFileModified = 0;
+    private Frame parentFrame;
 
     public BackupManager(Properties settings) {
         this.settings = settings;
+    }
+    
+    /**
+     * Sets the parent frame for showing progress dialogs.
+     */
+    public void setParentFrame(Frame parent) {
+        this.parentFrame = parent;
     }
 
     /**
@@ -105,25 +119,59 @@ public class BackupManager {
             return;
         }
 
+        LoadingProgressDialog progressDialog = null;
+        
         try {
             Path backupPath = createBackupPath();
             Path logPath = getLogFilePath();
+            
+            // Show progress dialog for larger files
+            long fileSize = Files.exists(logPath) ? Files.size(logPath) : 0;
+            if (fileSize > SHOW_PROGRESS_THRESHOLD && parentFrame != null) {
+                progressDialog = new LoadingProgressDialog(parentFrame, "Automatic Backup");
+                LoadingProgressDialog finalDialog = progressDialog;
+                SwingUtilities.invokeLater(() -> {
+                    finalDialog.setStatus("Saving backup...");
+                    finalDialog.setProgress(0);
+                    finalDialog.show();
+                });
+            }
 
             // Ensure backup directory exists
             Files.createDirectories(backupPath.getParent());
+            
+            if (progressDialog != null) {
+                LoadingProgressDialog finalDialog = progressDialog;
+                SwingUtilities.invokeLater(() -> finalDialog.setProgress(25));
+            }
 
             // Securely delete existing file if it exists
             if (Files.exists(backupPath)) {
                 secureDelete(backupPath);
             }
+            
+            if (progressDialog != null) {
+                LoadingProgressDialog finalDialog = progressDialog;
+                SwingUtilities.invokeLater(() -> finalDialog.setProgress(50));
+            }
 
             // Copy log file
             Files.copy(logPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
+            
+            if (progressDialog != null) {
+                LoadingProgressDialog finalDialog = progressDialog;
+                SwingUtilities.invokeLater(() -> finalDialog.setProgress(75));
+            }
             
             // Verify backup was created successfully
             if (!verifyBackup(logPath, backupPath)) {
                 System.err.println("Backup verification failed");
                 return;
+            }
+            
+            if (progressDialog != null) {
+                LoadingProgressDialog finalDialog = progressDialog;
+                SwingUtilities.invokeLater(() -> finalDialog.setProgress(100));
             }
             
             // Rotate old backups asynchronously to avoid blocking
@@ -132,6 +180,19 @@ public class BackupManager {
         } catch (Exception e) {
             System.err.println("Automatic backup failed: " + e.getMessage());
             // Don't show UI errors for automatic backups
+        } finally {
+            // Close progress dialog after a brief delay to show completion
+            if (progressDialog != null) {
+                LoadingProgressDialog finalDialog = progressDialog;
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(500); // Show completion briefly
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    finalDialog.close();
+                }).start();
+            }
         }
     }
 

@@ -153,6 +153,7 @@ public class LogTextEditor extends JFrame {
         
         // Initialize backup manager
         backupManager = new BackupManager(settings);
+        backupManager.setParentFrame(this); // Set parent for progress dialogs
         logFileHandler.setBackupManager(backupManager);
         
         try {
