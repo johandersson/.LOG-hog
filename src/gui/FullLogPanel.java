@@ -68,7 +68,8 @@ public class FullLogPanel extends LogPanel {
 
         fullLogPane.setEditable(false);
         fullLogPane.setBackground(Color.WHITE);
-        fullLogPane.setContentType("text/plain");
+        // Don't set content type to "text/plain" - we need StyledDocument for markdown links
+        // fullLogPane.setContentType("text/plain");
         fullLogPane.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         // fullLogPane.setFont(new Font("Georgia", Font.PLAIN, 14)); // Remove to let document styles control font
 
