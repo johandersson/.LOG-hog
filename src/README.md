@@ -133,6 +133,7 @@ java -jar loghog.jar
 4. Compile and run with standard Java commands
 
 ## Documentation
+- [Architecture Documentation](ARCHITECTURE.md) - Comprehensive technical documentation with system diagrams, workflows, and design patterns
 - [API Documentation (Javadocs)](../javadocs/index.html)
 
 ## Usage

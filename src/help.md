@@ -3,8 +3,6 @@
 ## Purpose
 The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen focuses directly on the editor window for immediate writing. After composing your note, press Ctrl+S or click Save to clear the text field and save the entry into a dated log. This clearing allows you to write a new log entry right away, facilitating rapid and efficient note-taking.
 
-**📐 Technical Documentation:** For developers and those interested in the program's architecture, see [ARCHITECTURE.md](ARCHITECTURE.md) for comprehensive technical documentation including system diagrams, workflows, and design patterns.
-
 **✨ .LOG-hog works on Windows, macOS, and Linux!** The program is fully platform-independent, providing automatic timestamp management, encryption, search, and formatting features across all operating systems. You can use any text editor on any platform to view and edit your log files.
 
 **Already using .LOG files?** Perfect! .LOG-hog is designed to work seamlessly with your existing .LOG format files. Simply point the program to your existing log file and start using it right away. You'll get all the powerful enhancements—advanced search, optional encryption, markdown rendering, automated backups, and more—while your file remains a simple text file you can still open in Notepad or any text editor.
