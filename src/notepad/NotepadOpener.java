@@ -97,12 +97,18 @@ public class NotepadOpener {
 
             // Check that the path doesn't contain suspicious characters or command injection attempts
             String pathString = absolutePath.toString();
-            String[] forbiddenChars = {"..", "&", "|", ";", "`", "$", "<", ">", "*", "?", "[", "]", "{", "}",
-                                     "\"", "'", "\n", "\r", "\t", "\0", "\\", "/"};
+            // Note: backslash and forward slash are normal path separators, not forbidden
+            String[] forbiddenChars = {"&", "|", ";", "`", "<", ">", "*", "?", "[", "]", "{", "}",
+                                     "\"", "'", "\n", "\r", "\t", "\0"};
             for (String forbidden : forbiddenChars) {
                 if (pathString.contains(forbidden)) {
                     return false;
                 }
+            }
+            
+            // Check for ".." in the normalized path (path traversal attempt)
+            if (pathString.contains("..")) {
+                return false;
             }
 
             // Check for command injection patterns
