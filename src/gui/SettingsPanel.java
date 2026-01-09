@@ -123,7 +123,14 @@ public class SettingsPanel extends JPanel {
         // Status section
         contentPanel.add(createStatusPanel());
 
-        add(contentPanel, BorderLayout.NORTH);
+        // Wrap contentPanel in a JScrollPane for scrollable content
+        var scrollPane = new JScrollPane(contentPanel);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+        add(scrollPane, BorderLayout.CENTER);
 
         loadCurrentSettings();
     }
