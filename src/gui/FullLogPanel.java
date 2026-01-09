@@ -99,7 +99,7 @@ public class FullLogPanel extends LogPanel {
         bottom.setOpaque(false);
         copyFullLogButton.addActionListener(e -> copyFullLogToClipboard());
         bottom.add(copyFullLogButton);
-        openInNotepadButton.addActionListener(e -> NotepadOpener.openLogInNotepad());
+        openInNotepadButton.addActionListener(e -> openInExternalEditor());
         bottom.add(openInNotepadButton);
         lockFileButton.addActionListener(e -> {
             if (editor.isLocked()) {
@@ -276,6 +276,35 @@ public class FullLogPanel extends LogPanel {
                 + Path.of(System.getProperty("user.dir"), "log.txt"));
         fullLogPathLabel.setText("Log file: not found");
         fullLogPane.clearHighlights();
+    }
+    
+    private void openInExternalEditor() {
+        // Warn if file is encrypted
+        if (logFileHandler.isEncrypted()) {
+            int choice = JOptionPane.showOptionDialog(
+                this,
+                "<html><b>⚠️ File is Encrypted</b><br><br>" +
+                "Your log file is encrypted with AES-256 encryption.<br>" +
+                "Opening it in a text editor will show encrypted data (unreadable gibberish),<br>" +
+                "not your actual log entries.<br><br>" +
+                "<b>To read the content:</b><br>" +
+                "• Use the Full Log view in .LOG-hog (decrypts automatically)<br>" +
+                "• Or disable encryption first in Settings<br><br>" +
+                "Do you still want to open the encrypted file?</html>",
+                "Encrypted File Warning",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                new Object[]{"Open Anyway", "Cancel"},
+                "Cancel"
+            );
+            
+            if (choice != 0) { // User chose Cancel or closed dialog
+                return;
+            }
+        }
+        
+        NotepadOpener.openLogInNotepad();
     }
 
     @Override

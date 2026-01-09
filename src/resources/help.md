@@ -5,16 +5,52 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 
 **✨ .LOG-hog works on Windows, macOS, and Linux!** The program is fully platform-independent, providing automatic timestamp management, encryption, search, and formatting features across all operating systems. You can use any text editor on any platform to view and edit your log files.
 
-**About the .LOG Format:** .LOG-hog is inspired by [Windows Notepad's .LOG feature](https://www.howtogeek.com/359463/what-is-a-log-file/), where files starting with '.LOG' automatically insert timestamps. .LOG-hog brings this convenient timestamping concept to all platforms with powerful enhancements like encryption, search, markdown rendering, and advanced backup systems—all while keeping your log files as simple text files you can open anywhere.
+**Already using .LOG files?** Perfect! .LOG-hog is designed to work seamlessly with your existing .LOG format files. Simply point the program to your existing log file and start using it right away. You'll get all the powerful enhancements—advanced search, optional encryption, markdown rendering, automated backups, and more—while your file remains a simple text file you can still open in Notepad or any text editor.
+
+**About the .LOG Format:** .LOG-hog is inspired by [Windows Notepad's .LOG feature](https://www.howtogeek.com/359463/what-is-a-log-file/), where files starting with '.LOG' automatically insert timestamps. .LOG-hog brings this convenient timestamping concept to all platforms with powerful enhancements—all while keeping your log files as simple text files you can open anywhere.
+
+## Security Overview
+.LOG-hog implements **enterprise-grade security** with comprehensive protection against modern threats. The application has undergone extensive security hardening to address all identified vulnerabilities.
+
+**Key Security Features:**
+- **AES-256-GCM authenticated encryption** with PBKDF2-100,000 iterations key derivation
+- **Progressive brute-force protection** (3s → 15s → 30s) with cryptographically secure randomization and progress feedback
+- **4-attempt limit** with application restart requirement and real-time countdown
+- **Immediate memory clearing** of all sensitive data (passwords, keys, cached content)
+- **Automatic clipboard security** with configurable timeout (1-3600 seconds) and educational warnings
+- **Secure Ctrl+C functionality** in all text areas with automatic clearing
+- **Automatic secure backups** after encryption/decryption operations with multiple overwrite deletion
+- **Path validation and confinement** preventing directory traversal and command injection
+- **Thread-safe operations** with proper synchronization
+- **Generic error messages** preventing information disclosure
+- **Comprehensive input validation** with bounds checking and sanitization
+- **File operation restrictions** to user home and working directories only
+- **Settings encryption** using deterministic keys for defense in depth
+
+**Security Rating: HIGH (9.5/10)** - Suitable for sensitive personal and professional data storage. Enhanced password requirements now enforce minimum strength scoring, blocking weak passwords that meet basic criteria.
+
+.LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager.
+
+### Clipboard Security
+.LOG-hog includes advanced clipboard security features to protect sensitive log data from being inadvertently exposed through clipboard operations:
+
+- **Automatic Clipboard Clearing**: When copying log entries or full logs to the clipboard, the content is automatically cleared after a configurable timeout (default: 30 seconds). This prevents sensitive information from remaining in the clipboard indefinitely.
+- **Secure Content Marking**: Copied content is marked as secure .LOG-hog data, allowing the application to distinguish and manage it appropriately.
+- **Manual Clear Option**: Users can manually clear the secure clipboard at any time through the system tray menu.
+- **Educational Warnings**: Before copying encrypted or full log content, users receive detailed warnings about clipboard security risks and best practices.
+- **Configurable Settings**: Clipboard auto-clear timeout and behavior can be customized in the Settings tab under "Clipboard Security".
+
+**⚠️ Important Security Note**: If .LOG-hog is terminated unexpectedly (system crash, power outage, task manager kill), secure clipboard content may remain accessible. Always use the "Clear Clipboard" option from the system tray after unexpected terminations.
+
+Access clipboard security settings through the system tray icon (right-click the tray icon → "Clipboard Security") or the Settings tab in the main application.
 
 ## Key Features
 - **Tabbed Interface**: Effortlessly switch between writing new entries and browsing past logs.
 - **Quick Entry**: Add notes instantly with automatic timestamps.
 - **Single-Instance Enforcement**: Only one instance of the application can run at a time to prevent conflicts.
 - **Right-Click Menu in Log Entries**: Right-click on any log entry to access options like copying to clipboard, deleting, or editing the date and time.
-- **Encryption (Optional)**: Secure your log file with AES encryption. Enable via Settings tab, set a strong password, and backup your data. The password is required on startup and is never stored on disk.
+- **Encryption (Optional but Highly Secure)**: Protect your log file with industry-standard AES-256-GCM encryption—completely optional but extremely safe when you need it. Enable via Settings tab, set a strong password, and backup your data. The password is required on startup and is never stored on disk.
 - **Manual Lock/Unlock**: Instantly lock your encrypted log file for security, clearing all data from memory and disabling all operations. Unlock by clicking the button and re-entering your password.
-- **Automatic Backup System**: Comprehensive 6-layer backup protection with numbered backups (.bak, .bak.1-.5), startup safety backups, periodic auto-backups (configurable interval), timestamped backup rotation, size verification, and silent failover to prevent data loss.
 - **Backup and Restore**: Easily backup your log file with encryption preservation. Backups are filtered to show only .LOG-hog files.
 - **Performance Optimizations**: Efficient memory management for typical log file sizes.
 - **Window Close Confirmation**: When closing the application, choose to lock the file or exit completely for added security.
@@ -36,23 +72,18 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - Access clipboard security settings and features through the "Clipboard Security" menu option.
 
 ## Backup and Restore
-- **Automatic Backups**: .LOG-hog automatically protects your data with a comprehensive 6-layer backup system:
-  1. **Numbered Backups**: Creates .bak, .bak.1, .bak.2, .bak.3, .bak.4, .bak.5 before every save (keeps last 5 versions)
-  2. **Startup Safety**: Automatically backs up your file when the application starts to protect against crashes
-  3. **Periodic Auto-Backup**: Checks every minute and backs up if file changed (default: 30 minutes interval, configurable in Settings)
-  4. **Timestamped Rotation**: Maintains timestamped backups with automatic rotation (keeps last 10)
-  5. **Backup Verification**: Validates backup size after creation to ensure integrity
-  6. **Silent Operation**: All backups run in background without blocking your work
-- **Manual Backups**: In the Settings tab, click "Backup Log File" to create a manual copy of your log file. Choose a location and filename (pre-filled with date). Backups preserve the encryption state of your original file.
+- **Creating Backups**: In the Settings tab, click "Backup Log File" to create a copy of your log file. Choose a location and filename (pre-filled with date). Backups preserve the encryption state of your original file.
+- **Automatic Backup**: When enabled in Settings, automatic secure backups are created after encryption or decryption operations. Configure the backup directory and enable/disable this feature in the Settings tab under "Automatic Backup".
+- **Backup Security**: All backups use secure deletion (multiple overwrites) when replacing existing files to prevent data recovery.
 - **Backup Filtering**: The file chooser shows only existing .LOG-hog backup files for easy management.
-- **Restoring**: Manually replace your log.txt with a backup file if needed. Numbered backups are automatically created in your backup directory (configurable in Settings).
-- **Backup Configuration**: Configure automatic backup interval and backup directory location in the Settings tab.
+- **Restoring**: Manually replace your log.txt with a backup file if needed.
 
 ## Encryption
-- **Enabling Encryption**: Access the Settings tab to enable encryption. You'll need to set a password (at least 20 characters, including at least one uppercase letter and one special character from: !@#$%^&*()_+-=[]{}|;':",./<>?, and must score at least 'Good' strength). Optionally, backup your unencrypted log file before proceeding.
+- **Enabling Encryption**: Access the Settings tab to enable encryption. You'll need to set a password (at least 20 characters, including at least one uppercase letter, one special character unless the password scores 'Strong', and must score at least 'Good' strength). Optionally, backup your unencrypted log file before proceeding.
 - **Password Visibility**: When prompted for your password at startup, you can choose to always show the password in plain text by checking the "Always show password in plain text" box. This setting is saved and will apply to future password prompts.
 - **Security Notes**: Your log file is encrypted using AES with a key derived from your password. The password is only kept in memory while the app runs and is never saved to disk. <span style="color:red">If you forget your password, your data cannot be recovered.</span> In terms of security, AES-GCM is a strong, industry-standard encryption method. As long as you use a strong, unique password and keep it secret, your data is very safe from unauthorized access. .LOG-hog clears passwords from memory immediately after use and adds progressive delays (1-30 seconds) after incorrect password attempts to slow down automated attacks.
 - **Password Guidance**: To maximize security, use a long passphrase (20+ characters) that's random and unique. Avoid dictionary words, patterns (like "Qwerty123!"), or personal details. Use a password manager to generate and store strong passwords. Remember, even with encryption, a weak password can be cracked—treat it like a key to your safe. In terms of security, AES-GCM is a strong, industry-standard encryption method. As long as you use a strong, unique password and keep it secret, your data is very safe from unauthorized access.
+- **Password Generator**: Access a built-in secure password generator from the Settings tab or password creation dialog. Generate random passwords or memorable passphrases using the EFF Diceware word list. The generator includes real-time strength indication and clipboard integration for easy copying.
 - **Usage**: When encryption is enabled, you'll be prompted for your password each time you start the app. If the password is incorrect, you'll see a clear error message and can retry immediately.
 - **Manual Lock/Unlock**: For immediate security, click the "Lock File" button in the Full Log tab to instantly lock your encrypted log. This clears all decrypted data from memory, empties all views, and disables all editing operations. A lock message will appear in all relevant areas. To unlock, click the "Unlock File" button and re-enter your password.
 - **Performance**: Encryption adds a small delay to saving and loading, but decrypted content is cached in memory for fast access during your session. **Note**: Enabling encryption may cause the program to load slower, especially in the settings tab when applying changes and in the full log view.
@@ -89,39 +120,6 @@ See CHANGELOG.md for a detailed history of changes and new features.
 
 ## Github repo:
 [GitHub Repository](http://github.com/johandersson/.LOG-hog)
-
-## Security Overview
-.LOG-hog implements **enterprise-grade security** with comprehensive protection against modern threats. The application has undergone extensive security hardening to address all identified vulnerabilities.
-
-**Key Security Features:**
-- **AES-256-GCM authenticated encryption** with PBKDF2-100,000 iterations key derivation
-- **Progressive brute-force protection** (3s → 15s → 30s) with cryptographically secure randomization and progress feedback
-- **4-attempt limit** with application restart requirement and real-time countdown
-- **Immediate memory clearing** of all sensitive data (passwords, keys, cached content)
-- **Automatic clipboard security** with configurable timeout (1-3600 seconds) and educational warnings
-- **Secure Ctrl+C functionality** in all text areas with automatic clearing
-- **Path validation and confinement** preventing directory traversal and command injection
-- **Thread-safe operations** with proper synchronization
-- **Generic error messages** preventing information disclosure
-- **Comprehensive input validation** with bounds checking and sanitization
-- **File operation restrictions** to user home and working directories only
-
-**Security Rating: EXCELLENT (9.5/10)** - Enterprise-grade security suitable for sensitive personal and professional data storage. Features AES-256-GCM authenticated encryption, PBKDF2-100,000 iterations, progressive brute-force protection, 6-layer backup system with secure deletion, and comprehensive memory clearing of all sensitive data. Enhanced password requirements enforce minimum strength scoring, blocking weak passwords that meet basic criteria.
-
-.LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager.
-
-### Clipboard Security
-.LOG-hog includes advanced clipboard security features to protect sensitive log data from being inadvertently exposed through clipboard operations:
-
-- **Automatic Clipboard Clearing**: When copying log entries or full logs to the clipboard, the content is automatically cleared after a configurable timeout (default: 30 seconds). This prevents sensitive information from remaining in the clipboard indefinitely.
-- **Secure Content Marking**: Copied content is marked as secure .LOG-hog data, allowing the application to distinguish and manage it appropriately.
-- **Manual Clear Option**: Users can manually clear the secure clipboard at any time through the system tray menu.
-- **Educational Warnings**: Before copying encrypted or full log content, users receive detailed warnings about clipboard security risks and best practices.
-- **Configurable Settings**: Clipboard auto-clear timeout and behavior can be customized in the Settings tab under "Clipboard Security".
-
-**⚠️ Important Security Note**: If .LOG-hog is terminated unexpectedly (system crash, power outage, task manager kill), secure clipboard content may remain accessible. Always use the "Clear Clipboard" option from the system tray after unexpected terminations.
-
-Access clipboard security settings through the system tray icon (right-click the tray icon → "Clipboard Security") or the Settings tab in the main application.
 
 ## Keyboard Shortcuts:
 - **Ctrl+S** — Save a new entry

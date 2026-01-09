@@ -5,7 +5,9 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 
 **✨ .LOG-hog works on Windows, macOS, and Linux!** The program is fully platform-independent, providing automatic timestamp management, encryption, search, and formatting features across all operating systems. You can use any text editor on any platform to view and edit your log files.
 
-**About the .LOG Format:** .LOG-hog is inspired by [Windows Notepad's .LOG feature](https://www.howtogeek.com/359463/what-is-a-log-file/), where files starting with '.LOG' automatically insert timestamps. .LOG-hog brings this convenient timestamping concept to all platforms with powerful enhancements like encryption, search, markdown rendering, and advanced backup systems—all while keeping your log files as simple text files you can open anywhere.
+**Already using .LOG files?** Perfect! .LOG-hog is designed to work seamlessly with your existing .LOG format files. Simply point the program to your existing log file and start using it right away. You'll get all the powerful enhancements—advanced search, optional encryption, markdown rendering, automated backups, and more—while your file remains a simple text file you can still open in Notepad or any text editor.
+
+**About the .LOG Format:** .LOG-hog is inspired by [Windows Notepad's .LOG feature](https://www.howtogeek.com/359463/what-is-a-log-file/), where files starting with '.LOG' automatically insert timestamps. .LOG-hog brings this convenient timestamping concept to all platforms with powerful enhancements—all while keeping your log files as simple text files you can open anywhere.
 
 ## Security Overview
 .LOG-hog implements **enterprise-grade security** with comprehensive protection against modern threats. The application has undergone extensive security hardening to address all identified vulnerabilities.
@@ -47,7 +49,7 @@ Access clipboard security settings through the system tray icon (right-click the
 - **Quick Entry**: Add notes instantly with automatic timestamps.
 - **Single-Instance Enforcement**: Only one instance of the application can run at a time to prevent conflicts.
 - **Right-Click Menu in Log Entries**: Right-click on any log entry to access options like copying to clipboard, deleting, or editing the date and time.
-- **Encryption (Optional)**: Secure your log file with AES encryption. Enable via Settings tab, set a strong password, and backup your data. The password is required on startup and is never stored on disk.
+- **Encryption (Optional but Highly Secure)**: Protect your log file with industry-standard AES-256-GCM encryption—completely optional but extremely safe when you need it. Enable via Settings tab, set a strong password, and backup your data. The password is required on startup and is never stored on disk.
 - **Manual Lock/Unlock**: Instantly lock your encrypted log file for security, clearing all data from memory and disabling all operations. Unlock by clicking the button and re-entering your password.
 - **Backup and Restore**: Easily backup your log file with encryption preservation. Backups are filtered to show only .LOG-hog files.
 - **Performance Optimizations**: Efficient memory management for typical log file sizes.

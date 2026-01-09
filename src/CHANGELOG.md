@@ -8,12 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added (January 2026)
+- **Cross-platform support** for Windows, macOS, and Linux with platform-specific native look and feel
+- **Desktop API integration** for opening log files in external editors across all platforms
+- **Platform-specific editor fallbacks** (Windows: notepad.exe, macOS: open -e, Linux: xdg-open/gedit/nano)
+- **Encryption warning dialog** when opening encrypted files in external text editors to prevent user confusion
+- **Platform-aware button labels** ("Open in Notepad" on Windows, "Open in Text Editor" on other platforms)
 - **Progress dialog enhancements** with unified UI design across security delay and loading dialogs
 - **Loading progress feedback** showing percentage complete and estimated time remaining during file decryption
 - **Auto-lock feature** with configurable timeout (15-1440 minutes) to automatically lock encrypted files after inactivity
 - **ProgressDialogBase class** providing shared architecture for consistent dialog styling
 
 ### Changed (January 2026)
+- **Cross-platform documentation** in help files and README emphasizing compatibility with Windows, macOS, and Linux
+- **Help file messaging** updated to highlight seamless integration with existing .LOG format files
+- **Encryption description enhanced** to emphasize optional but highly secure AES-256-GCM implementation
+- **Path validation security** improved to allow platform-specific path separators while preventing directory traversal attacks
 - **Progress dialogs refactored** to use shared base class, eliminating code duplication
 - **Password strength indicator improved** with enhanced scoring algorithm, pattern detection (repetitive characters, sequences, repeated patterns), and better passphrase support
 - **Passphrase scoring adjusted** to align with industry standards (4-word passphrases now rate as Strong)
@@ -21,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Splash screen entries shortened** for better display in About tab
 
 ### Fixed (January 2026)
+- **Path validation bug** that blocked all Windows paths due to backslash character being incorrectly flagged as forbidden
+- **Build compilation errors** fixed (getLogFile() → getFilePath(), showBackupRestoreDialog visibility)
 - **Critical encryption bug** where setEncryption was corrupting encrypted files
 - **Password zeroing bug** that caused decryption to fail by clearing password before use
 - **MalformedInputException** in decryption process
