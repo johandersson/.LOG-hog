@@ -52,10 +52,13 @@
 
 **Technical Benefits:**
 - **Minimal Attack Surface**: No third-party code to audit; reduces supply chain vulnerabilities
-- **Binary Size Optimization**: 230KB vs 15-50MB for Spring Boot equivalents
+- **Binary Size Optimization**: 230KB vs typical desktop apps:
+  - Electron apps: 100-200MB (bundles Chromium + Node.js runtime)
+  - JavaFX apps with dependencies: 5-20MB (JavaFX libs + third-party utilities)
+  - Java desktop apps with logging/JSON/utils libraries: 2-10MB
 - **Zero Dependency Conflicts**: No version incompatibilities or transitive dependency issues  
-- **Startup Performance**: Sub-second cold start; no classpath scanning or bean initialization
-- **Memory Efficiency**: ~25MB runtime footprint vs 100-500MB for framework-based apps
+- **Startup Performance**: Sub-second cold start; no classpath scanning or framework initialization
+- **Memory Efficiency**: ~25MB runtime footprint vs 100-500MB for Electron-based apps
 - **Long-term Maintainability**: Immune to library deprecation and breaking API changes
 - **Deployment Simplicity**: Single JAR artifact; no dependency management required
 - **Security Patching**: Only JRE updates needed; no library vulnerability tracking
@@ -66,7 +69,7 @@
 - Platform-specific code paths for cross-OS compatibility (Windows/macOS/Linux)
 - Hand-coded UI layouts instead of declarative frameworks
 
-This approach demonstrates that the Java standard library provides enterprise-grade capabilities (cryptography, GUI, I/O, networking) sufficient for building feature-complete applications without external dependencies.
+This approach demonstrates that the Java standard library provides enterprise-grade capabilities (cryptography, GUI, I/O, networking) sufficient for building feature-complete desktop applications without external dependencies—achieving the same functionality as larger applications at a fraction of the size.
 
 ---
 
