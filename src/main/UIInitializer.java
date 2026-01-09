@@ -69,7 +69,7 @@ public class UIInitializer {
     private void setupFrame() {
         editor.setUndecorated(false);
         editor.setTitle(".LOG hog");
-        editor.setSize(1200, 660);
+        editor.setSize(1200, 750);
         editor.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         editor.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
