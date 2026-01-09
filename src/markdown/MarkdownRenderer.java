@@ -48,6 +48,10 @@ public class MarkdownRenderer {
     private static final Pattern ITALIC_PATTERN = Pattern.compile("\\*(.*?)\\*");
     private static final Pattern INLINE_CODE_PATTERN = Pattern.compile("`([^`]*)`");
     private static final Pattern RED_PATTERN = Pattern.compile("<span style=\"color:red\">(.*?)</span>", Pattern.DOTALL);
+    private static final Pattern INLINE_HEADING_PATTERN = Pattern.compile("(###|##|#) ");
+    
+    // Quick check patterns for early exit optimization
+    private static final Pattern HAS_MARKDOWN_PATTERN = Pattern.compile("[\\[*`<#]");
 
     private record TextElement(int start, int end, String type, String text, String href) {}
 
@@ -201,7 +205,7 @@ public class MarkdownRenderer {
     }
 
     private static Map<String, Style> createStyles(StyledDocument doc) {
-        Map<String, Style> styles = new HashMap<>();
+        Map<String, Style> styles = new HashMap<>(12); // Pre-size with expected capacity
 
         Style defaultStyle = doc.addStyle("default", null);
         StyleConstants.setFontFamily(defaultStyle, "Segoe UI");
@@ -276,8 +280,8 @@ public class MarkdownRenderer {
         boolean firstEntry = true;
         boolean previousHadCode = false;
         
-        // Trim trailing blank lines from entries
-        List<List<String>> trimmedEntries = new ArrayList<>();
+        // Trim trailing blank lines from entries - pre-size for efficiency
+        List<List<String>> trimmedEntries = new ArrayList<>(entries.size());
         for (List<String> entry : entries) {
             List<String> trimmed = new ArrayList<>(entry);
             while (!trimmed.isEmpty() && trimmed.get(trimmed.size() - 1).trim().isEmpty()) {
@@ -339,21 +343,14 @@ public class MarkdownRenderer {
                     appendLineWithFormatting(doc, text, styles.get("h3"), styles);
                     doc.insertString(doc.getLength(), "\n", styles.get("h3"));
                 } else {
-                    // Parse for inline headings
+                    // Parse for inline headings - optimized with single pattern
+                    Matcher headingMatcher = INLINE_HEADING_PATTERN.matcher(line);
                     Set<Integer> headingSet = new TreeSet<>();
                     headingSet.add(0);
-                    Matcher h3Matcher = Pattern.compile("### ").matcher(line);
-                    while (h3Matcher.find()) {
-                        headingSet.add(h3Matcher.start());
+                    while (headingMatcher.find()) {
+                        headingSet.add(headingMatcher.start());
                     }
-                    Matcher h2Matcher = Pattern.compile("## ").matcher(line);
-                    while (h2Matcher.find()) {
-                        headingSet.add(h2Matcher.start());
-                    }
-                    Matcher h1Matcher = Pattern.compile("# ").matcher(line);
-                    while (h1Matcher.find()) {
-                        headingSet.add(h1Matcher.start());
-                    }
+                    
                     List<Integer> headingStarts = new ArrayList<>(headingSet);
                     headingStarts.add(line.length());
                     for (int j = 0; j < headingStarts.size() - 1; j++) {
@@ -404,7 +401,14 @@ public class MarkdownRenderer {
     }
 
     private static void appendLineWithFormatting(StyledDocument doc, String line, Style baseStyle, Map<String, Style> styles) throws BadLocationException {
-        List<TextElement> elements = new ArrayList<>();
+        // Early exit optimization: if line has no markdown syntax, insert as plain text
+        if (!HAS_MARKDOWN_PATTERN.matcher(line).find()) {
+            doc.insertString(doc.getLength(), line, baseStyle);
+            return;
+        }
+        
+        // Pre-size with reasonable capacity (most lines have < 10 formatting elements)
+        List<TextElement> elements = new ArrayList<>(10);
 
         // Find bold
         Matcher boldMatcher = BOLD_PATTERN.matcher(line);
@@ -423,8 +427,7 @@ public class MarkdownRenderer {
         while (linkMatcher.find()) {
             String display = linkMatcher.group(1);
             String target = linkMatcher.group(2);
-            String textToShow = display;
-            elements.add(new TextElement(linkMatcher.start(), linkMatcher.end(), "link", textToShow, target));
+            elements.add(new TextElement(linkMatcher.start(), linkMatcher.end(), "link", display, target));
         }
 
         // Find inline code
@@ -439,7 +442,11 @@ public class MarkdownRenderer {
             elements.add(new TextElement(redMatcher.start(), redMatcher.end(), "red", redMatcher.group(1), null));
         }
 
-        // Sort by start position
+        // Sort by start position (only if we have elements to sort)
+        if (elements.isEmpty()) {
+            doc.insertString(doc.getLength(), line, baseStyle);
+            return;
+        }
         elements.sort(Comparator.comparingInt(TextElement::start));
 
         // Insert
