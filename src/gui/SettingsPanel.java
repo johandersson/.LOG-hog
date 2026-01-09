@@ -427,6 +427,12 @@ public class SettingsPanel extends JPanel {
         secureSettings.setEncryptedProperty(settings, "passwordReminder", newReminder);
         editor.updatePasswordReminder(newReminder);
         settings.setProperty("backupDirectory", newBackupDir);
+        
+        // If auto-backup is being enabled for the first time, ensure directory is configured
+        if (newAutoBackupEnabled && !currentAutoBackupEnabled) {
+            backupManager.ensureBackupDirectoryConfigured();
+        }
+        
         settings.setProperty("autoBackupEnabled", newAutoBackupEnabled ? "true" : "false");
         settings.setProperty("showSplashOnStartup", newSplashOnStartup ? "true" : "false");
         settings.setProperty("clipboardAutoClear", newClipboardAutoClear ? "true" : "false");

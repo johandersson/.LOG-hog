@@ -18,6 +18,7 @@
 package main;
 
 import java.awt.Frame;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,6 +32,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import gui.LoadingProgressDialog;
@@ -59,15 +62,167 @@ public class BackupManager {
     public void setParentFrame(Frame parent) {
         this.parentFrame = parent;
     }
+    
+    /**
+     * Checks if backup directory is configured, and prompts user to set it up if not.
+     * Should be called once on first use of auto-backup feature.
+     */
+    public void ensureBackupDirectoryConfigured() {
+        String backupDir = settings.getProperty("backupDirectory", "");
+        String configuredFlag = settings.getProperty("backupDirectoryConfigured", "false");
+        
+        // If already configured (either explicitly set or user made a choice), skip
+        if (!backupDir.isEmpty() || "true".equals(configuredFlag)) {
+            return;
+        }
+        
+        // Show one-time setup dialog
+        if (parentFrame != null) {
+            SwingUtilities.invokeLater(() -> showBackupDirectorySetupDialog());
+        }
+    }
+    
+    /**
+     * Shows a dialog prompting user to configure backup directory.
+     */
+    private void showBackupDirectorySetupDialog() {
+        String homeDir = System.getProperty("user.home");
+        String message = String.format(
+            "<html><b>Backup Directory Not Configured</b><br><br>" +
+            "You haven't set up a backup directory yet.<br><br>" +
+            "<b>Current default:</b> %s<br><br>" +
+            "Would you like to:<br>" +
+            "• <b>Use your home directory</b> (default, easy)<br>" +
+            "• <b>Configure a custom directory</b> (recommended)<br><br>" +
+            "<i>This dialog will only appear once.</i></html>",
+            homeDir
+        );
+        
+        Object[] options = {"Configure Directory", "Use Home Directory"};
+        int choice = JOptionPane.showOptionDialog(
+            parentFrame,
+            message,
+            "Backup Directory Setup",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]
+        );
+        
+        if (choice == 0) {
+            // Configure custom directory
+            configureCustomBackupDirectory();
+        } else if (choice == 1) {
+            // Use home directory
+            settings.setProperty("backupDirectory", homeDir);
+            settings.setProperty("backupDirectoryConfigured", "true");
+            saveSettings();
+            
+            JOptionPane.showMessageDialog(
+                parentFrame,
+                "<html>Backups will be saved to:<br><b>" + homeDir + "</b><br><br>" +
+                "You can change this later in Settings.</html>",
+                "Backup Directory Set",
+                JOptionPane.INFORMATION_MESSAGE
+            );
+        } else {
+            // User closed dialog - use home directory as default
+            settings.setProperty("backupDirectory", homeDir);
+            settings.setProperty("backupDirectoryConfigured", "true");
+            saveSettings();
+        }
+    }
+    
+    /**
+     * Opens file chooser for user to select custom backup directory.
+     */
+    private void configureCustomBackupDirectory() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        fileChooser.setDialogTitle("Select Backup Directory");
+        fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+        
+        int result = fileChooser.showDialog(parentFrame, "Select");
+        
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedDir = fileChooser.getSelectedFile();
+            String dirPath = selectedDir.getAbsolutePath();
+            
+            // Verify directory is writable
+            if (!selectedDir.canWrite()) {
+                JOptionPane.showMessageDialog(
+                    parentFrame,
+                    "<html><b>Permission Denied</b><br><br>" +
+                    "Cannot write to selected directory.<br>" +
+                    "Please choose a different location.</html>",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+                );
+                // Try again
+                configureCustomBackupDirectory();
+                return;
+            }
+            
+            settings.setProperty("backupDirectory", dirPath);
+            settings.setProperty("backupDirectoryConfigured", "true");
+            saveSettings();
+            
+            JOptionPane.showMessageDialog(
+                parentFrame,
+                "<html>Backups will be saved to:<br><b>" + dirPath + "</b><br><br>" +
+                "You can change this later in Settings.</html>",
+                "Backup Directory Set",
+                JOptionPane.INFORMATION_MESSAGE
+            );
+        } else {
+            // User cancelled - ask if they want to use home directory instead
+            String homeDir = System.getProperty("user.home");
+            int fallback = JOptionPane.showConfirmDialog(
+                parentFrame,
+                "<html>No directory selected.<br><br>" +
+                "Use home directory (<b>" + homeDir + "</b>) instead?</html>",
+                "Use Default?",
+                JOptionPane.YES_NO_OPTION
+            );
+            
+            if (fallback == JOptionPane.YES_OPTION) {
+                settings.setProperty("backupDirectory", homeDir);
+                settings.setProperty("backupDirectoryConfigured", "true");
+                saveSettings();
+            }
+        }
+    }
+    
+    /**
+     * Saves settings to file.
+     */
+    private void saveSettings() {
+        try {
+            Path settingsPath = Paths.get(System.getProperty("user.home"), ".loghog", "settings.properties");
+            Files.createDirectories(settingsPath.getParent());
+            try (var out = new java.io.FileOutputStream(settingsPath.toFile())) {
+                settings.store(out, "LogHog Settings");
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to save backup settings: " + e.getMessage());
+        }
+    }
 
     /**
      * Creates a backup on application startup if file exists.
      * This protects against data loss from crashes or bugs.
+     * Also ensures backup directory is configured if auto-backup is enabled.
      */
     public void performStartupBackup() {
         if (!isAutoBackupEnabled()) {
             return;
         }
+        
+        // Ensure backup directory is configured (only if auto-backup is already enabled)
+        // Note: On first startup, auto-backup is disabled, so this won't trigger.
+        // The main trigger is when user enables auto-backup in Settings.
+        ensureBackupDirectoryConfigured();
         
         try {
             Path logPath = getLogFilePath();
