@@ -678,6 +678,10 @@ public class LogFileHandler implements LogFileOperations {
         entryLoader.loadFilteredEntries(listModel, year, month);
     }
 
+    public void loadFilteredEntriesByYear(DefaultListModel<String> listModel, int year) {
+        entryLoader.loadFilteredEntriesByYear(listModel, year);
+    }
+
     // produce a filtered DefaultListModel from an existing model
     public DefaultListModel<String> filterModelByYearMonth(DefaultListModel<String> sourceModel, int year, int month) {
         return entryLoader.filterModelByYearMonth(sourceModel, year, month);

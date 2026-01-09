@@ -201,6 +201,83 @@ public class EntryLoader {
         }
     }
 
+    public void loadFilteredEntriesByYear(DefaultListModel<String> listModel, int year) {
+        listModel.clear();
+        if (!Files.exists(logFileHandler.getFilePath())) return;
+
+        try {
+            List<String> lines;
+            if (logFileHandler.isEncrypted()) {
+                byte[] data = Files.readAllBytes(logFileHandler.getFilePath());
+                String decrypted = encryptor.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
+                lines = Arrays.asList(decrypted.split("\r?\n", -1));
+            } else {
+                lines = Files.readAllLines(logFileHandler.getFilePath());
+            }
+            // Don't strip timestamp suffixes - we need them to distinguish duplicate entries
+            
+            // Clean malformed timestamps with Unix timestamp prefixes
+            lines = lines.stream().map(line -> line.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2")).collect(Collectors.toList());
+            List<List<String>> entries = new ArrayList<>();
+            List<String> currentEntry = new ArrayList<>();
+            Pattern tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", Pattern.MULTILINE);
+            for (String line : lines) {
+                String trimmed = line.trim();
+                if (trimmed.equalsIgnoreCase(".LOG")) continue;
+                if (tsPattern.matcher(trimmed).matches()) {
+                    if (!currentEntry.isEmpty()) {
+                        entries.add(new ArrayList<>(currentEntry));
+                        currentEntry.clear();
+                    }
+                    currentEntry.add(line);
+                } else {
+                    if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
+                        currentEntry.add(line);
+                    }
+                }
+            }
+            if (!currentEntry.isEmpty()) {
+                entries.add(currentEntry);
+            }
+            List<List<String>> filteredEntries = new ArrayList<>();
+            for (List<String> entry : entries) {
+                if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
+                    try {
+                        LocalDateTime dt = utils.DateHandler.parseTimestamp(entry.get(0).trim());
+                        // Filter by year only - all months
+                        if (dt.getYear() == year) {
+                            filteredEntries.add(entry);
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+            filteredEntries.sort((a, b) -> {
+                try {
+                    LocalDateTime dateA = utils.DateHandler.parseTimestamp(a.get(0));
+                    LocalDateTime dateB = utils.DateHandler.parseTimestamp(b.get(0));
+                    return dateB.compareTo(dateA);
+                } catch (Exception e) {
+                    return b.get(0).compareTo(a.get(0));
+                }
+            });
+            
+            // Keep suffixes to distinguish duplicate entries
+            for (List<String> entry : filteredEntries) {
+                if (!entry.isEmpty()) {
+                    String rawTs = entry.get(0).trim();
+                    if (tsPattern.matcher(rawTs).matches()) {
+                        // Keep the suffix to distinguish duplicate entries
+                        listModel.addElement(rawTs);
+                    } else {
+                        listModel.addElement(rawTs);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logFileHandler.showErrorDialog("<html><b>🔍 Filter Failed</b><br><br>Unable to load filtered log entries.<br>" + e.getMessage() + "<br><br><i>Tip: Check the log file format and try reloading.</i></html>");
+        }
+    }
+
     public void loadFilteredEntries(DefaultListModel<String> listModel, int year, int month) {
         listModel.clear();
         if (!Files.exists(logFileHandler.getFilePath())) return;

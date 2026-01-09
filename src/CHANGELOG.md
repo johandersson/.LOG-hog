@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Loading progress feedback** showing percentage complete and estimated time remaining during file decryption
 - **Auto-lock feature** with configurable timeout (15-1440 minutes) to automatically lock encrypted files after inactivity
 - **ProgressDialogBase class** providing shared architecture for consistent dialog styling
+- **"All Months" filter option** in log list view to display all entries for the selected year instead of a specific month
 
 ### Changed (January 2026)
 - **Cross-platform documentation** in help files and README emphasizing compatibility with Windows, macOS, and Linux

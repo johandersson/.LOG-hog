@@ -106,12 +106,13 @@ public class LogListPanel extends JPanel {
         filterPanel.add(yearCombo);
 
         var months = new String[]{
+                "All Months",
                 "01 - Jan", "02 - Feb", "03 - Mar", "04 - Apr",
                 "05 - May", "06 - Jun", "07 - Jul", "08 - Aug",
                 "09 - Sep", "10 - Oct", "11 - Nov", "12 - Dec"
         };
         monthCombo = new JComboBox<>(months);
-        monthCombo.setSelectedIndex(LocalDate.now().getMonthValue() - 1);
+        monthCombo.setSelectedIndex(LocalDate.now().getMonthValue()); // Offset by 1 due to "All Months" at index 0
         filterPanel.add(monthCombo);
 
         // Filter actions
@@ -129,9 +130,16 @@ public class LogListPanel extends JPanel {
         
         try {
             var year = (Integer) yearCombo.getSelectedItem();
-            var month = monthCombo.getSelectedIndex() + 1;
+            var monthIndex = monthCombo.getSelectedIndex();
             if (year != null) {
-                logFileHandler.loadFilteredEntries(listModel, year, month);
+                if (monthIndex == 0) {
+                    // "All Months" selected - show all entries for the year
+                    logFileHandler.loadFilteredEntriesByYear(listModel, year);
+                } else {
+                    // Specific month selected - monthIndex is offset by 1 due to "All Months" at index 0
+                    var month = monthIndex;
+                    logFileHandler.loadFilteredEntries(listModel, year, month);
+                }
             }
         } catch (Exception ex) {
             logFileHandler.showErrorDialog("<html><b>📅 Filter Failed</b><br><br>Unable to apply date filter.<br>" + ex.getMessage() + "<br><br><i>Tip: Check the selected year and month.</i></html>");
