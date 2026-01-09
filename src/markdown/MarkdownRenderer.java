@@ -60,12 +60,25 @@ public class MarkdownRenderer {
         Map<String, Style> styles = createStyles(doc);
         try {
             List<List<String>> entries = filehandling.LogParser.parseEntriesForFullLog(lines);
-
             renderEntries(entries, doc, styles);
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
         // Removed: pane.setCaretPosition(pane.getDocument().getLength()); to prevent auto-scroll to bottom
+    }
+    
+    /**
+     * Render markdown from pre-parsed entries (avoids duplicate parsing).
+     * Used by lazy loading to render only a subset of entries.
+     */
+    public static void renderMarkdownFromEntries(JTextPane pane, List<List<String>> entries) {
+        StyledDocument doc = pane.getStyledDocument();
+        Map<String, Style> styles = createStyles(doc);
+        try {
+            renderEntries(entries, doc, styles);
+        } catch (BadLocationException e) {
+            throw new RuntimeException("Error rendering markdown", e);
+        }
     }
 
     private static void handleLinkClick(JTextPane pane, MouseEvent e) {
@@ -299,6 +312,21 @@ public class MarkdownRenderer {
             boolean currentHasCode = false;
             for (int i = 0; i < entry.size(); i++) {
                 String line = entry.get(i);
+                
+                // Early exit optimization: Skip regex processing for plain text lines
+                boolean isTimestamp = (i == 0);
+                boolean isCodeBlockMarker = line.trim().equals("```");
+                
+                if (!isTimestamp && !isCodeBlockMarker && !inCodeBlock && 
+                    !HAS_MARKDOWN_PATTERN.matcher(line).find()) {
+                    // Plain text line with no markdown - fast path
+                    doc.insertString(doc.getLength(), line, defaultStyle);
+                    if (i < entry.size() - 1) {
+                        doc.insertString(doc.getLength(), "\n", defaultStyle);
+                    }
+                    continue;
+                }
+                
                 if (line.trim().equals("```")) {
                     inCodeBlock = !inCodeBlock;
                     currentHasCode = true;

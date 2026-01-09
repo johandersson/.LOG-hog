@@ -112,6 +112,9 @@ public class ActionHandler {
         if (selectedItem == null) return;
 
         logFileHandler.updateEntry(selectedItem, logListPanel.getEntryArea().getText());
+        
+        // Flush writes immediately on explicit save
+        logFileHandler.flushPendingWrites();
 
         // Preserve the selection after reloading by finding the updated item
         try {
@@ -196,10 +199,8 @@ public class ActionHandler {
                 JOptionPane.WARNING_MESSAGE);
 
         if (confirm == JOptionPane.YES_OPTION) {
-            // Delete all selected entries
-            for (String selectedItem : selectedItems) {
-                logFileHandler.deleteEntry(selectedItem, listModel);
-            }
+            // Use batch delete for efficiency (single file I/O instead of N operations)
+            logFileHandler.deleteLogEntries(selectedItems, listModel);
             editor.updateLogListView();
             //select top if any
             editor.selectFirstLogIfAny();

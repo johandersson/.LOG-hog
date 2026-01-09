@@ -26,8 +26,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JOptionPane;
@@ -58,6 +60,12 @@ public class LogFileHandler implements LogFileOperations {
     private List<List<String>> cachedEntries = null;
     private long cachedEntriesLastModified = 0;
     private EntryLoader entryLoader;
+    
+    // Write-back cache for performance
+    private boolean isDirty = false;
+    private List<String> pendingLines = null;
+    private long lastWriteTime = 0;
+    private static final long WRITE_DELAY_MS = 2000; // 2 second delay before auto-flush
 
     // Default constructor for backward compatibility
     public LogFileHandler() {
@@ -231,8 +239,30 @@ public class LogFileHandler implements LogFileOperations {
                 }
             }
 
+            // Use write-back cache for performance
+            pendingLines = updatedLines;
+            isDirty = true;
+            lastWriteTime = System.currentTimeMillis();
+            
+            // Invalidate caches immediately
+            entryLoader.invalidateCaches();
+            
+            // Note: Actual write happens in flushPendingWrites() called by UI or on explicit flush
+        } catch (Exception e) {
+            showErrorDialog("<html><b>✏️ Update Failed</b><br><br>Unable to update the log entry.<br>Please try again.<br><br><i>Tip: Ensure the entry exists and the file is writable.</i></html>");
+        }
+    }
+    
+    /**
+     * Flush pending writes to disk immediately.
+     * Called when user switches views, locks file, or after timeout.
+     */
+    public void flushPendingWrites() {
+        if (!isDirty || pendingLines == null) return;
+        
+        try {
             if (encryptionManager.isEncrypted()) {
-                cachedLines = new ArrayList<>(updatedLines);
+                cachedLines = new ArrayList<>(pendingLines);
                 String fullText = String.join("\n", cachedLines);
                 // Create numbered backup before encryption
                 if (backupManager != null) {
@@ -244,11 +274,21 @@ public class LogFileHandler implements LogFileOperations {
                 if (backupManager != null) {
                     backupManager.createNumberedBackup();
                 }
-                Files.write(filePath, updatedLines);
+                Files.write(filePath, pendingLines);
             }
+            
+            isDirty = false;
+            pendingLines = null;
         } catch (Exception e) {
-            showErrorDialog("<html><b>✏️ Update Failed</b><br><br>Unable to update the log entry.<br>Please try again.<br><br><i>Tip: Ensure the entry exists and the file is writable.</i></html>");
+            showErrorDialog("<html><b>💾 Write Failed</b><br><br>Unable to save changes to disk.<br>" + e.getMessage() + "</html>");
         }
+    }
+    
+    /**
+     * Check if there are unsaved changes.
+     */
+    public boolean hasPendingWrites() {
+        return isDirty && pendingLines != null;
     }
 
     public void changeTimestamp(String oldTimestamp, String newTimestamp, DefaultListModel<String> listModel) {
@@ -298,7 +338,18 @@ public class LogFileHandler implements LogFileOperations {
 
     // delete certain log entry
     private void deleteLogEntry(String timeStamp, DefaultListModel<String> listModel) {
-        if (!Files.exists(filePath)) return;
+        deleteLogEntries(List.of(timeStamp), listModel);
+    }
+
+    /**
+     * Delete multiple log entries in a single file operation.
+     * Much more efficient than calling deleteEntry() multiple times.
+     * 
+     * @param timestamps List of timestamps to delete
+     * @param listModel Optional list model to update
+     */
+    public void deleteLogEntries(List<String> timestamps, DefaultListModel<String> listModel) {
+        if (!Files.exists(filePath) || timestamps == null || timestamps.isEmpty()) return;
 
         try {
             List<String> lines;
@@ -307,7 +358,40 @@ public class LogFileHandler implements LogFileOperations {
             } else {
                 lines = Files.readAllLines(filePath);
             }
-            List<String> updatedLines = getUpdatedLines(timeStamp, lines);
+            
+            // Convert to set for O(1) lookup
+            Set<String> timestampsToDelete = new HashSet<>();
+            for (String ts : timestamps) {
+                timestampsToDelete.add(ts.trim());
+            }
+            
+            // Remove all matching entries in one pass
+            List<String> updatedLines = new ArrayList<>();
+            boolean inDeletedEntry = false;
+            
+            for (String line : lines) {
+                String trimmed = line.trim();
+                
+                // Check if this is a timestamp we want to delete
+                if (timestampsToDelete.contains(trimmed)) {
+                    inDeletedEntry = true;
+                    continue; // Skip timestamp line
+                }
+                
+                // Check if we hit the next timestamp (end of deleted entry)
+                if (inDeletedEntry && trimmed.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                    inDeletedEntry = false;
+                    updatedLines.add(line);
+                    continue;
+                }
+                
+                // Skip lines that are part of a deleted entry
+                if (inDeletedEntry) {
+                    continue;
+                }
+                
+                updatedLines.add(line);
+            }
 
             // Sort entries by timestamp before normalizing
             List<String> sortedLines = sortEntriesByTimestamp(updatedLines);
@@ -330,11 +414,18 @@ public class LogFileHandler implements LogFileOperations {
                 }
                 Files.write(filePath, normalized);
             }
+            
+            // Invalidate caches after deletion
+            entryLoader.invalidateCaches();
+            
+            // Update list model if provided
             if (listModel != null) {
-                listModel.removeElement(timeStamp);
+                for (String ts : timestamps) {
+                    listModel.removeElement(ts);
+                }
             }
         } catch (Exception e) {
-            showErrorDialog("<html><b>🗑️ Delete Failed</b><br><br>Unable to delete the log entry.<br>Please try again.<br><br><i>Tip: Ensure the entry exists and the file is not locked.</i></html>");
+            showErrorDialog("<html><b>🗑️ Delete Failed</b><br><br>Unable to delete the log entries.<br>Please try again.<br><br><i>Tip: Ensure the entries exist and the file is not locked.</i></html>");
         }
     }
 

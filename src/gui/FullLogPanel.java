@@ -43,6 +43,7 @@ public class FullLogPanel extends LogPanel {
     private final JButton openInNotepadButton;
     private final JButton searchButton;
     private SearchDialog searchDialog;
+    private static final int MAX_ENTRIES_TO_RENDER = 5000; // Limit for performance
 
     public FullLogPanel(LogTextEditor editor, LogFileHandler logFileHandler) {
         this.editor = editor;
@@ -211,7 +212,25 @@ public class FullLogPanel extends LogPanel {
             }
             // Remove secure clipboard markers from lines
             lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
-            MarkdownRenderer.renderMarkdown(fullLogPane, lines);
+            
+            // Lazy loading: Only render recent N entries for performance
+            List<List<String>> allEntries = filehandling.LogParser.parseEntriesForFullLog(lines);
+            List<List<String>> entriesToRender;
+            
+            if (allEntries.size() > MAX_ENTRIES_TO_RENDER) {
+                // Take the most recent N entries (already sorted newest first)
+                entriesToRender = allEntries.subList(0, MAX_ENTRIES_TO_RENDER);
+                // Add info message at top
+                List<String> infoEntry = new ArrayList<>();
+                infoEntry.add("Showing " + MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + allEntries.size() + " total)");
+                infoEntry.add("Use the Log List view with filters to browse older entries.");
+                entriesToRender = new ArrayList<>(entriesToRender);
+                entriesToRender.add(0, infoEntry);
+            } else {
+                entriesToRender = allEntries;
+            }
+            
+            MarkdownRenderer.renderMarkdownFromEntries(fullLogPane, entriesToRender);
             LinkHandler.addLinkListeners(fullLogPane);
         } catch (Exception ex) {
             handleLoadException(ex, logPath);
