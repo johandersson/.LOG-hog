@@ -171,6 +171,9 @@ public class EntryLoader {
             entryContentCache.clear();
             List<String> timestamps = new ArrayList<>();
             
+            // Collect all elements first for batched update
+            List<String> elementsToAdd = new ArrayList<>(sortedEntries.size());
+            
             for (List<String> entry : sortedEntries) {
                 // For the list view, show only the timestamp line (or first line for non-timestamp entries)
                 if (!entry.isEmpty()) {
@@ -185,12 +188,18 @@ public class EntryLoader {
                     
                     if (tsPattern.matcher(rawTs).matches()) {
                         // Keep the suffix to distinguish duplicate entries
-                        listModel.addElement(rawTs);
+                        elementsToAdd.add(rawTs);
                         timestamps.add(rawTs);
                     } else {
-                        listModel.addElement(rawTs);
+                        elementsToAdd.add(rawTs);
                     }
                 }
+            }
+            
+            // Batch update: Clear and add all at once to minimize event firing
+            listModel.removeAllElements();
+            for (String element : elementsToAdd) {
+                listModel.addElement(element);
             }
             
             // Cache timestamp list for getRecentLogEntries
@@ -216,8 +225,10 @@ public class EntryLoader {
     }
 
     public void loadFilteredEntriesByYear(DefaultListModel<String> listModel, int year) {
-        listModel.clear();
-        if (!Files.exists(logFileHandler.getFilePath())) return;
+        if (!Files.exists(logFileHandler.getFilePath())) {
+            listModel.removeAllElements();
+            return;
+        }
 
         try {
             // Use cache if valid, otherwise parse and cache
@@ -226,16 +237,17 @@ public class EntryLoader {
             }
             
             // Fast O(M) filtering from cached parsed entries
-            List<ParsedEntry> filtered = new ArrayList<>();
+            List<String> filtered = new ArrayList<>();
             for (ParsedEntry entry : parsedEntriesCache) {
                 if (entry.dateTime != null && entry.dateTime.getYear() == year) {
-                    filtered.add(entry);
+                    filtered.add(entry.timestamp);
                 }
             }
             
-            // Already sorted in cache by descending date
-            for (ParsedEntry entry : filtered) {
-                listModel.addElement(entry.timestamp);
+            // Batch update: Clear and add all at once
+            listModel.removeAllElements();
+            for (String timestamp : filtered) {
+                listModel.addElement(timestamp);
             }
         } catch (Exception e) {
             logFileHandler.showErrorDialog("<html><b>🔍 Filter Failed</b><br><br>Unable to load filtered log entries.<br>" + e.getMessage() + "<br><br><i>Tip: Check the log file format and try reloading.</i></html>");
@@ -243,8 +255,10 @@ public class EntryLoader {
     }
 
     public void loadFilteredEntries(DefaultListModel<String> listModel, int year, int month) {
-        listModel.clear();
-        if (!Files.exists(logFileHandler.getFilePath())) return;
+        if (!Files.exists(logFileHandler.getFilePath())) {
+            listModel.removeAllElements();
+            return;
+        }
 
         try {
             // Use cache if valid, otherwise parse and cache
@@ -253,18 +267,19 @@ public class EntryLoader {
             }
             
             // Fast O(M) filtering from cached parsed entries
-            List<ParsedEntry> filtered = new ArrayList<>();
+            List<String> filtered = new ArrayList<>();
             for (ParsedEntry entry : parsedEntriesCache) {
                 if (entry.dateTime != null && 
                     entry.dateTime.getYear() == year && 
                     entry.dateTime.getMonthValue() == month) {
-                    filtered.add(entry);
+                    filtered.add(entry.timestamp);
                 }
             }
             
-            // Already sorted in cache by descending date
-            for (ParsedEntry entry : filtered) {
-                listModel.addElement(entry.timestamp);
+            // Batch update: Clear and add all at once
+            listModel.removeAllElements();
+            for (String timestamp : filtered) {
+                listModel.addElement(timestamp);
             }
         } catch (Exception e) {
             logFileHandler.showErrorDialog("<html><b>🔍 Filter Failed</b><br><br>Unable to load filtered log entries.<br>" + e.getMessage() + "<br><br><i>Tip: Check the log file format and try reloading.</i></html>");
