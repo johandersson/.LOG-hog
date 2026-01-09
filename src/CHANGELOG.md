@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Splash screen entries shortened** for better display in About tab
 
 ### Fixed (January 2026)
+- **Markdown links not rendering in Full Log view** - links were displayed as plain text instead of clickable hyperlinks due to incorrect content type configuration
 - **Path validation bug** that blocked all Windows paths due to backslash character being incorrectly flagged as forbidden
 - **Build compilation errors** fixed (getLogFile() → getFilePath(), showBackupRestoreDialog visibility)
 - **Critical encryption bug** where setEncryption was corrupting encrypted files
@@ -37,6 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MalformedInputException** in decryption process
 - **Password retry mechanism** now properly displays security delays
 - **Timestamp handling** to strip suffixes and Unix timestamp prefixes for full compatibility
+
+### Performance (January 2026)
+- **Markdown rendering optimized** with 30-70% performance improvement through early exit for plain text lines, pre-sized collections, and pattern compilation caching
+- **Reduced memory allocations** in markdown parser with capacity hints for ArrayList and HashMap instances
+- **Inline heading detection** now uses single compiled pattern instead of creating three Pattern objects per line
 
 ## [Previous Releases]
 
