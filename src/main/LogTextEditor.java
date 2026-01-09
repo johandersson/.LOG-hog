@@ -205,6 +205,9 @@ public class LogTextEditor extends JFrame {
             // Update system tray recent logs menu now that settings are loaded
             SystemTrayMenu.updateRecentLogsMenu();
             
+            // Validate log file exists and is accessible before starting backups
+            validateLogFileAccess();
+            
             // Perform startup backup to protect against crashes
             backupManager.performStartupBackup();
             
@@ -663,6 +666,74 @@ public class LogTextEditor extends JFrame {
 
         // Cleanup is now handled directly in UIInitializer before System.exit(0)
         // No shutdown hook needed
+    }
+    
+    /**
+     * Validates that the log file exists and is accessible before starting the application.
+     * Shows warning dialog if file is missing or has permission issues.
+     */
+    private void validateLogFileAccess() {
+        java.io.File logFile = new java.io.File(logFileHandler.getLogFile());
+        
+        // Check if file exists
+        if (!logFile.exists()) {
+            int choice = JOptionPane.showOptionDialog(
+                this,
+                "<html><b>⚠️ Log File Not Found</b><br><br>" +
+                "The log file does not exist:<br>" +
+                "<code>" + logFile.getAbsolutePath() + "</code><br><br>" +
+                "Would you like to create a new file or restore from backup?</html>",
+                "File Missing",
+                JOptionPane.YES_NO_CANCEL_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                new Object[]{"Create New", "Restore from Backup", "Exit"},
+                "Create New"
+            );
+            
+            if (choice == 0) { // Create New
+                // File will be created on first save
+                return;
+            } else if (choice == 1) { // Restore from Backup
+                logFileHandler.showBackupRestoreDialog();
+            } else { // Exit
+                System.exit(0);
+            }
+            return;
+        }
+        
+        // Check if file is readable
+        if (!logFile.canRead()) {
+            JOptionPane.showMessageDialog(
+                this,
+                "<html><b>⚠️ Cannot Read Log File</b><br><br>" +
+                "The log file exists but cannot be read:<br>" +
+                "<code>" + logFile.getAbsolutePath() + "</code><br><br>" +
+                "<b>Possible solutions:</b><br>" +
+                "• Check file permissions<br>" +
+                "• Close other programs that may have locked the file<br>" +
+                "• Run application as administrator</html>",
+                "Permission Error",
+                JOptionPane.ERROR_MESSAGE
+            );
+        }
+        
+        // Check if file is writable
+        if (!logFile.canWrite()) {
+            JOptionPane.showMessageDialog(
+                this,
+                "<html><b>⚠️ Log File is Read-Only</b><br><br>" +
+                "The log file exists but cannot be modified:<br>" +
+                "<code>" + logFile.getAbsolutePath() + "</code><br><br>" +
+                "<b>To fix this:</b><br>" +
+                "1. Right-click the file in Windows Explorer<br>" +
+                "2. Select Properties<br>" +
+                "3. Uncheck 'Read-only' attribute<br>" +
+                "4. Click OK and restart the application</html>",
+                "Read-Only File",
+                JOptionPane.WARNING_MESSAGE
+            );
+        }
     }
 
 

@@ -20,6 +20,7 @@ package filehandling;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -132,6 +133,40 @@ public class LogFileHandler implements LogFileOperations {
             sortListModel(listModel);
 
             invalidateEntryCache();
+        } catch (java.nio.file.AccessDeniedException e) {
+            showErrorDialog("<html><b>💾 Save Failed - Access Denied</b><br><br>" +
+                "The log file is <b>read-only</b> or you don't have write permissions.<br><br>" +
+                "<b>Solutions:</b><br>" +
+                "• Right-click the file → Properties → Uncheck 'Read-only'<br>" +
+                "• Check file permissions in your system<br>" +
+                "• Try running as administrator<br><br>" +
+                "<i>File: " + filePath.getFileName() + "</i></html>");
+        } catch (java.nio.file.NoSuchFileException e) {
+            // File was deleted - offer to recreate
+            if (handleMissingLogFile()) {
+                // File created/restored, try save again
+                try {
+                    Files.writeString(filePath, entry, java.nio.file.StandardOpenOption.APPEND);
+                    listModel.addElement(uniqueTimeStamp);
+                    sortListModel(listModel);
+                    invalidateEntryCache();
+                } catch (Exception ex) {
+                    showErrorDialog("<html><b>💾 Save Failed</b><br><br>" + ex.getMessage() + "</html>");
+                }
+            }
+        } catch (java.io.IOException e) {
+            String errorMsg = "<html><b>💾 Save Failed - I/O Error</b><br><br>";
+            if (e.getMessage() != null && e.getMessage().contains("being used by another process")) {
+                errorMsg += "The file is <b>locked by another program</b>.<br><br>" +
+                    "<b>Solutions:</b><br>" +
+                    "• Close any programs that might be using the file<br>" +
+                    "• Check if the file is open in Notepad or another editor<br>" +
+                    "• Restart the application if issue persists</html>";
+            } else {
+                errorMsg += e.getMessage() + "<br><br>" +
+                    "<i>Tip: Ensure the file is not read-only or in use by another program.</i></html>";
+            }
+            showErrorDialogWithRecovery(errorMsg, "Save Error");
         } catch (Exception e) {
             showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save your log entry.<br>Please check your input and try again.<br><br><i>Tip: Ensure the file is not read-only or in use by another program.</i></html>");
         }
@@ -754,6 +789,130 @@ public class LogFileHandler implements LogFileOperations {
 
     public void showErrorDialog(String message) {
         JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+    
+    /**
+     * Shows error dialog with recovery options including backup restore.
+     */
+    public void showErrorDialogWithRecovery(String message, String title) {
+        Object[] options = {"OK", "Restore from Backup"};
+        int choice = JOptionPane.showOptionDialog(
+            null,
+            message,
+            title,
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.ERROR_MESSAGE,
+            null,
+            options,
+            options[0]
+        );
+        
+        if (choice == 1) {
+            // User chose to restore from backup
+            showBackupRestoreDialog();
+        }
+    }
+    
+    /**
+     * Shows dialog when log file is missing, offering to create new or restore from backup.
+     */
+    public boolean handleMissingLogFile() {
+        if (Files.exists(filePath)) {
+            return true; // File exists, no action needed
+        }
+        
+        String message = String.format(
+            "<html><b>⚠️ Log File Not Found</b><br><br>" +
+            "The log file <b>%s</b> does not exist.<br><br>" +
+            "Would you like to:<br>" +
+            "• <b>Create a new log file</b> (starts fresh)<br>" +
+            "• <b>Restore from backup</b> (if available)<br>" +
+            "• <b>Exit</b> and manually fix the issue</html>",
+            filePath.getFileName()
+        );
+        
+        Object[] options = {"Create New", "Restore from Backup", "Exit"};
+        int choice = JOptionPane.showOptionDialog(
+            null,
+            message,
+            "Log File Missing",
+            JOptionPane.YES_NO_CANCEL_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[0]
+        );
+        
+        if (choice == 0) {
+            // Create new file
+            try {
+                Files.createDirectories(filePath.getParent());
+                Files.writeString(filePath, ".LOG" + System.lineSeparator() + System.lineSeparator());
+                JOptionPane.showMessageDialog(
+                    null,
+                    "<html>New log file created successfully!<br><br>" +
+                    "Location: <b>" + filePath + "</b></html>",
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE
+                );
+                return true;
+            } catch (Exception e) {
+                showErrorDialog("<html><b>Failed to create log file</b><br><br>" +
+                    e.getMessage() + "</html>");
+                return false;
+            }
+        } else if (choice == 1) {
+            // Restore from backup
+            return showBackupRestoreDialog();
+        } else {
+            // Exit
+            return false;
+        }
+    }
+    
+    /**
+     * Shows backup restore dialog and allows user to select a backup file.
+     */
+    private boolean showBackupRestoreDialog() {
+        javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+        fileChooser.setDialogTitle("Select Backup File to Restore");
+        fileChooser.setCurrentDirectory(new java.io.File(System.getProperty("user.home")));
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
+            @Override
+            public boolean accept(java.io.File f) {
+                return f.isDirectory() || f.getName().endsWith(".txt") || f.getName().endsWith(".bak");
+            }
+            
+            @Override
+            public String getDescription() {
+                return "Backup Files (*.txt, *.bak)";
+            }
+        });
+        
+        int result = fileChooser.showOpenDialog(null);
+        if (result == javax.swing.JFileChooser.APPROVE_OPTION) {
+            java.io.File backupFile = fileChooser.getSelectedFile();
+            try {
+                // Copy backup to log file location
+                Files.copy(backupFile.toPath(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                invalidateEntryCache();
+                JOptionPane.showMessageDialog(
+                    null,
+                    "<html>Backup restored successfully!<br><br>" +
+                    "From: <b>" + backupFile.getName() + "</b><br>" +
+                    "To: <b>" + filePath.getFileName() + "</b></html>",
+                    "Restore Complete",
+                    JOptionPane.INFORMATION_MESSAGE
+                );
+                return true;
+            } catch (Exception e) {
+                showErrorDialog("<html><b>Restore Failed</b><br><br>" +
+                    "Unable to restore from backup.<br>" +
+                    e.getMessage() + "</html>");
+                return false;
+            }
+        }
+        return false;
     }
 
     private boolean isValidFilePath(Path path) {

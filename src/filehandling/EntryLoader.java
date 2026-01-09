@@ -91,7 +91,17 @@ public class EntryLoader {
 
     public void loadLogEntries(DefaultListModel<String> listModel) throws Exception {
         listModel.clear();
-        if (!Files.exists(logFileHandler.getFilePath())) return;
+        
+        // Check if file exists and handle missing file
+        if (!Files.exists(logFileHandler.getFilePath())) {
+            if (!logFileHandler.handleMissingLogFile()) {
+                return; // User cancelled or couldn't recover
+            }
+            // File was created/restored, but might be empty
+            if (!Files.exists(logFileHandler.getFilePath())) {
+                return;
+            }
+        }
 
         List<String> lines;
         if (logFileHandler.isEncrypted()) {
