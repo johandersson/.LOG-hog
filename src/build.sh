@@ -10,6 +10,10 @@ if [ $? -ne 0 ]; then
     echo "WARNING: Failed to sync help files"
 fi
 
+# Clean all .class files to ensure fresh compilation
+echo "Cleaning old .class files..."
+find "$SCRIPT_DIR" -name "*.class" -type f -delete
+
 # Stop any running loghog instances
 pkill -f "java.*loghog" 2>/dev/null || true
 
