@@ -8,6 +8,10 @@ if %errorlevel% neq 0 (
     echo WARNING: Failed to sync help files
 )
 
+REM Clean all .class files to ensure fresh compilation
+echo Cleaning old .class files...
+powershell -Command "Get-ChildItem -Path '%~dp0' -Recurse -Filter *.class | Remove-Item -Force"
+
 powershell -Command "Get-Process javaw -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*loghog*' } | Stop-Process -Force"
 set "files="
 for /f "delims=" %%i in ('dir /s /b *.java ^| findstr /v test') do set "files=!files! "%%i""
