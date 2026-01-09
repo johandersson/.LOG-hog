@@ -44,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Markdown rendering optimized** with 30-70% performance improvement through early exit for plain text lines, pre-sized collections, and pattern compilation caching
 - **Reduced memory allocations** in markdown parser with capacity hints for ArrayList and HashMap instances
 - **Inline heading detection** now uses single compiled pattern instead of creating three Pattern objects per line
+- **Date filter optimization** with intelligent caching - file parsing now O(N) once, then O(M) for subsequent filter changes instead of O(N) every time
+- **Pre-parsed timestamp cache** eliminates redundant timestamp parsing and sorting on every filter selection
 
 ## [Previous Releases]
 

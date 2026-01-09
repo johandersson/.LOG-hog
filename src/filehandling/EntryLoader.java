@@ -40,6 +40,19 @@ public class EntryLoader {
     private List<String> timestampListCache = null;
     private final Map<String, Integer> duplicateCountCache = new HashMap<>();
     private long cacheLastModified = 0;
+    // Cached parsed entries with pre-parsed timestamps for fast filtering
+    private List<ParsedEntry> parsedEntriesCache = null;
+    
+    // Helper class to store parsed entry with timestamp
+    private static class ParsedEntry {
+        final String timestamp;
+        final LocalDateTime dateTime;
+        
+        ParsedEntry(String timestamp, LocalDateTime dateTime) {
+            this.timestamp = timestamp;
+            this.dateTime = dateTime;
+        }
+    }
 
     public EntryLoader(LogFileHandler logFileHandler) {
         this(logFileHandler, EncryptionManager.getInstance());
@@ -58,6 +71,7 @@ public class EntryLoader {
         entryContentCache.clear();
         timestampListCache = null;
         duplicateCountCache.clear();
+        parsedEntriesCache = null;
         cacheLastModified = 0;
     }
     
@@ -206,72 +220,22 @@ public class EntryLoader {
         if (!Files.exists(logFileHandler.getFilePath())) return;
 
         try {
-            List<String> lines;
-            if (logFileHandler.isEncrypted()) {
-                byte[] data = Files.readAllBytes(logFileHandler.getFilePath());
-                String decrypted = encryptor.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
-                lines = Arrays.asList(decrypted.split("\r?\n", -1));
-            } else {
-                lines = Files.readAllLines(logFileHandler.getFilePath());
+            // Use cache if valid, otherwise parse and cache
+            if (!isCacheValid() || parsedEntriesCache == null) {
+                parseParsedEntriesCache();
             }
-            // Don't strip timestamp suffixes - we need them to distinguish duplicate entries
             
-            // Clean malformed timestamps with Unix timestamp prefixes
-            lines = lines.stream().map(line -> line.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2")).collect(Collectors.toList());
-            List<List<String>> entries = new ArrayList<>();
-            List<String> currentEntry = new ArrayList<>();
-            Pattern tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", Pattern.MULTILINE);
-            for (String line : lines) {
-                String trimmed = line.trim();
-                if (trimmed.equalsIgnoreCase(".LOG")) continue;
-                if (tsPattern.matcher(trimmed).matches()) {
-                    if (!currentEntry.isEmpty()) {
-                        entries.add(new ArrayList<>(currentEntry));
-                        currentEntry.clear();
-                    }
-                    currentEntry.add(line);
-                } else {
-                    if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
-                        currentEntry.add(line);
-                    }
+            // Fast O(M) filtering from cached parsed entries
+            List<ParsedEntry> filtered = new ArrayList<>();
+            for (ParsedEntry entry : parsedEntriesCache) {
+                if (entry.dateTime != null && entry.dateTime.getYear() == year) {
+                    filtered.add(entry);
                 }
             }
-            if (!currentEntry.isEmpty()) {
-                entries.add(currentEntry);
-            }
-            List<List<String>> filteredEntries = new ArrayList<>();
-            for (List<String> entry : entries) {
-                if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
-                    try {
-                        LocalDateTime dt = utils.DateHandler.parseTimestamp(entry.get(0).trim());
-                        // Filter by year only - all months
-                        if (dt.getYear() == year) {
-                            filteredEntries.add(entry);
-                        }
-                    } catch (Exception ignored) {}
-                }
-            }
-            filteredEntries.sort((a, b) -> {
-                try {
-                    LocalDateTime dateA = utils.DateHandler.parseTimestamp(a.get(0));
-                    LocalDateTime dateB = utils.DateHandler.parseTimestamp(b.get(0));
-                    return dateB.compareTo(dateA);
-                } catch (Exception e) {
-                    return b.get(0).compareTo(a.get(0));
-                }
-            });
             
-            // Keep suffixes to distinguish duplicate entries
-            for (List<String> entry : filteredEntries) {
-                if (!entry.isEmpty()) {
-                    String rawTs = entry.get(0).trim();
-                    if (tsPattern.matcher(rawTs).matches()) {
-                        // Keep the suffix to distinguish duplicate entries
-                        listModel.addElement(rawTs);
-                    } else {
-                        listModel.addElement(rawTs);
-                    }
-                }
+            // Already sorted in cache by descending date
+            for (ParsedEntry entry : filtered) {
+                listModel.addElement(entry.timestamp);
             }
         } catch (Exception e) {
             logFileHandler.showErrorDialog("<html><b>🔍 Filter Failed</b><br><br>Unable to load filtered log entries.<br>" + e.getMessage() + "<br><br><i>Tip: Check the log file format and try reloading.</i></html>");
@@ -283,75 +247,96 @@ public class EntryLoader {
         if (!Files.exists(logFileHandler.getFilePath())) return;
 
         try {
-            List<String> lines;
-            if (logFileHandler.isEncrypted()) {
-                byte[] data = Files.readAllBytes(logFileHandler.getFilePath());
-                String decrypted = encryptor.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
-                lines = Arrays.asList(decrypted.split("\r?\n", -1));
-            } else {
-                lines = Files.readAllLines(logFileHandler.getFilePath());
+            // Use cache if valid, otherwise parse and cache
+            if (!isCacheValid() || parsedEntriesCache == null) {
+                parseParsedEntriesCache();
             }
-            // Don't strip timestamp suffixes - we need them to distinguish duplicate entries
             
-            // Clean malformed timestamps with Unix timestamp prefixes
-            lines = lines.stream().map(line -> line.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2")).collect(Collectors.toList());
-            List<List<String>> entries = new ArrayList<>();
-            List<String> currentEntry = new ArrayList<>();
-            Pattern tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", Pattern.MULTILINE);
-            for (String line : lines) {
-                String trimmed = line.trim();
-                if (trimmed.equalsIgnoreCase(".LOG")) continue;
-                if (tsPattern.matcher(trimmed).matches()) {
-                    if (!currentEntry.isEmpty()) {
-                        entries.add(new ArrayList<>(currentEntry));
-                        currentEntry.clear();
-                    }
-                    currentEntry.add(line);
-                } else {
-                    if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
-                        currentEntry.add(line);
-                    }
+            // Fast O(M) filtering from cached parsed entries
+            List<ParsedEntry> filtered = new ArrayList<>();
+            for (ParsedEntry entry : parsedEntriesCache) {
+                if (entry.dateTime != null && 
+                    entry.dateTime.getYear() == year && 
+                    entry.dateTime.getMonthValue() == month) {
+                    filtered.add(entry);
                 }
             }
-            if (!currentEntry.isEmpty()) {
-                entries.add(currentEntry);
-            }
-            List<List<String>> filteredEntries = new ArrayList<>();
-            for (List<String> entry : entries) {
-                if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
-                    try {
-                        LocalDateTime dt = utils.DateHandler.parseTimestamp(entry.get(0).trim());
-                        if (dt.getYear() == year && dt.getMonthValue() == month) {
-                            filteredEntries.add(entry);
-                        }
-                    } catch (Exception ignored) {}
-                }
-            }
-            filteredEntries.sort((a, b) -> {
-                try {
-                    LocalDateTime dateA = utils.DateHandler.parseTimestamp(a.get(0));
-                    LocalDateTime dateB = utils.DateHandler.parseTimestamp(b.get(0));
-                    return dateB.compareTo(dateA);
-                } catch (Exception e) {
-                    return b.get(0).compareTo(a.get(0));
-                }
-            });
             
-            // Keep suffixes to distinguish duplicate entries
-            for (List<String> entry : filteredEntries) {
-                if (!entry.isEmpty()) {
-                    String rawTs = entry.get(0).trim();
-                    if (tsPattern.matcher(rawTs).matches()) {
-                        // Keep the suffix to distinguish duplicate entries
-                        listModel.addElement(rawTs);
-                    } else {
-                        listModel.addElement(rawTs);
-                    }
-                }
+            // Already sorted in cache by descending date
+            for (ParsedEntry entry : filtered) {
+                listModel.addElement(entry.timestamp);
             }
         } catch (Exception e) {
             logFileHandler.showErrorDialog("<html><b>🔍 Filter Failed</b><br><br>Unable to load filtered log entries.<br>" + e.getMessage() + "<br><br><i>Tip: Check the log file format and try reloading.</i></html>");
         }
+    }
+
+    /**
+     * Parse file once and cache all entries with pre-parsed timestamps.
+     * This enables O(M) filtering instead of O(N) file parsing on every filter change.
+     */
+    private void parseParsedEntriesCache() throws Exception {
+        List<String> lines;
+        if (logFileHandler.isEncrypted()) {
+            byte[] data = Files.readAllBytes(logFileHandler.getFilePath());
+            String decrypted = encryptor.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
+            lines = Arrays.asList(decrypted.split("\r?\n", -1));
+        } else {
+            lines = Files.readAllLines(logFileHandler.getFilePath());
+        }
+        
+        // Clean malformed timestamps
+        lines = lines.stream()
+            .map(line -> line.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2"))
+            .collect(Collectors.toList());
+        
+        // Parse entries
+        List<List<String>> entries = new ArrayList<>();
+        List<String> currentEntry = new ArrayList<>();
+        Pattern tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", Pattern.MULTILINE);
+        
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.equalsIgnoreCase(".LOG")) continue;
+            if (tsPattern.matcher(trimmed).matches()) {
+                if (!currentEntry.isEmpty()) {
+                    entries.add(new ArrayList<>(currentEntry));
+                    currentEntry.clear();
+                }
+                currentEntry.add(line);
+            } else {
+                if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
+                    currentEntry.add(line);
+                }
+            }
+        }
+        if (!currentEntry.isEmpty()) {
+            entries.add(currentEntry);
+        }
+        
+        // Parse timestamps and create cached entries
+        List<ParsedEntry> parsed = new ArrayList<>(entries.size());
+        for (List<String> entry : entries) {
+            if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
+                String timestamp = entry.get(0).trim();
+                LocalDateTime dateTime = null;
+                try {
+                    dateTime = utils.DateHandler.parseTimestamp(timestamp);
+                } catch (Exception ignored) {}
+                parsed.add(new ParsedEntry(timestamp, dateTime));
+            }
+        }
+        
+        // Sort by date descending (once, not on every filter)
+        parsed.sort((a, b) -> {
+            if (a.dateTime == null || b.dateTime == null) {
+                return (a.timestamp).compareTo(b.timestamp);
+            }
+            return b.dateTime.compareTo(a.dateTime);
+        });
+        
+        parsedEntriesCache = parsed;
+        updateCacheTimestamp();
     }
 
     public DefaultListModel<String> filterModelByYearMonth(DefaultListModel<String> sourceModel, int year, int month) {
