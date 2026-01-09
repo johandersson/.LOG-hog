@@ -690,7 +690,7 @@ public class LogTextEditor extends JFrame {
      * Shows warning dialog if file is missing or has permission issues.
      */
     private void validateLogFileAccess() {
-        java.io.File logFile = new java.io.File(logFileHandler.getLogFile());
+        java.io.File logFile = new java.io.File(logFileHandler.getFilePath().toString());
         
         // Check if file exists
         if (!logFile.exists()) {

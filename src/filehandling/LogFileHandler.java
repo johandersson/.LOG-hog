@@ -873,7 +873,7 @@ public class LogFileHandler implements LogFileOperations {
     /**
      * Shows backup restore dialog and allows user to select a backup file.
      */
-    private boolean showBackupRestoreDialog() {
+    public boolean showBackupRestoreDialog() {
         javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
         fileChooser.setDialogTitle("Select Backup File to Restore");
         fileChooser.setCurrentDirectory(new java.io.File(System.getProperty("user.home")));
