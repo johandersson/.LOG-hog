@@ -89,6 +89,7 @@ public class InformationPanel extends JPanel {
             var informationTextToDisplay = loadPanelText(fileName);
             MarkdownRenderer.renderMarkdown(textPane, informationTextToDisplay.lines().toList());
             LinkHandler.addLinkListeners(textPane);
+            textPane.setCaretPosition(0);
         }
     }
 
