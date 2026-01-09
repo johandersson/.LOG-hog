@@ -17,6 +17,7 @@
 
 package notepad;
 
+import java.awt.Desktop;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -36,19 +37,42 @@ public class NotepadOpener {
             return;
         }
 
-        try {
-            new ProcessBuilder("notepad.exe", logPath.toAbsolutePath().toString()).start();
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Error opening log in Notepad. Please check file permissions and try again.", "Error", JOptionPane.ERROR_MESSAGE);
-            // Try vim on Linux/Mac
+        // Try Desktop API first (cross-platform)
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.EDIT)) {
             try {
-                String os = System.getProperty("os.name").toLowerCase();
-                if (os.contains("linux") || os.contains("mac")) {
-                    new ProcessBuilder("vim", logPath.toAbsolutePath().toString()).start();
-                }
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(null, "Error opening log in vim. Please check file permissions and try again.", "Error", JOptionPane.ERROR_MESSAGE);
+                Desktop.getDesktop().edit(logPath.toFile());
+                return;
+            } catch (Exception e) {
+                // Fall through to platform-specific methods
             }
+        }
+        
+        // Platform-specific fallbacks
+        String os = System.getProperty("os.name").toLowerCase();
+        try {
+            if (os.contains("windows")) {
+                new ProcessBuilder("notepad.exe", logPath.toAbsolutePath().toString()).start();
+            } else if (os.contains("mac")) {
+                new ProcessBuilder("open", "-e", logPath.toAbsolutePath().toString()).start();
+            } else if (os.contains("linux")) {
+                // Try common Linux editors in order
+                try {
+                    new ProcessBuilder("xdg-open", logPath.toAbsolutePath().toString()).start();
+                } catch (Exception e1) {
+                    try {
+                        new ProcessBuilder("gedit", logPath.toAbsolutePath().toString()).start();
+                    } catch (Exception e2) {
+                        new ProcessBuilder("nano", logPath.toAbsolutePath().toString()).start();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, 
+                "<html><b>Unable to Open Editor</b><br><br>" +
+                "Could not open the log file in a text editor.<br>" +
+                "Please open it manually:<br>" +
+                "<code>" + logPath.toAbsolutePath() + "</code></html>", 
+                "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 

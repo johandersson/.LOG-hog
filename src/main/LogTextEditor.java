@@ -359,12 +359,29 @@ public class LogTextEditor extends JFrame {
             System.exit(1);
         }
         
-        // Set up look and feel (same as LogHog.main)
+        // Set up native look and feel for all platforms
         try {
-            for (var info : UIManager.getInstalledLookAndFeels()) {
-                if ("Windows".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
+            String os = System.getProperty("os.name").toLowerCase();
+            if (os.contains("mac")) {
+                // macOS-specific settings
+                System.setProperty("apple.laf.useScreenMenuBar", "true");
+                System.setProperty("apple.awt.application.name", "LogHog");
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } else if (os.contains("linux")) {
+                // Try GTK+ on Linux for native look
+                try {
+                    UIManager.setLookAndFeel("com.sun.java.swing.plaf.gtk.GTKLookAndFeel");
+                } catch (Exception e) {
+                    // Fall back to system default
+                    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                }
+            } else {
+                // Windows or other - use Windows L&F if available
+                for (var info : UIManager.getInstalledLookAndFeels()) {
+                    if ("Windows".equals(info.getName())) {
+                        UIManager.setLookAndFeel(info.getClassName());
+                        break;
+                    }
                 }
             }
         } catch (Exception ignored) {
@@ -726,8 +743,8 @@ public class LogTextEditor extends JFrame {
                 "The log file exists but cannot be modified:<br>" +
                 "<code>" + logFile.getAbsolutePath() + "</code><br><br>" +
                 "<b>To fix this:</b><br>" +
-                "1. Right-click the file in Windows Explorer<br>" +
-                "2. Select Properties<br>" +
+                "1. Right-click the file in your file manager<br>" +
+                "2. Select Properties (or Get Info on macOS)<br>" +
                 "3. Uncheck 'Read-only' attribute<br>" +
                 "4. Click OK and restart the application</html>",
                 "Read-Only File",

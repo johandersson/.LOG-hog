@@ -267,8 +267,8 @@ public class FullLogPanel extends LogPanel {
         var userHome = System.getProperty("user.home");
         fullLogPane.setText("log.txt not found in user home or current working directory.\n"
                 + "Checked paths:\n"
-                + userHome + "\\log.txt\n"
-                + System.getProperty("user.dir") + "\\log.txt");
+                + Path.of(userHome, "log.txt") + "\n"
+                + Path.of(System.getProperty("user.dir"), "log.txt"));
         fullLogPathLabel.setText("Log file: not found");
         fullLogPane.clearHighlights();
     }

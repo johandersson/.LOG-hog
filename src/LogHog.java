@@ -23,11 +23,29 @@ import main.LogTextEditor;
 
 public class LogHog {
     public static void main(String[] args) {
+    // Set up native look and feel for all platforms
     try {
-        for (var info : UIManager.getInstalledLookAndFeels()) {
-            if ("Windows".equals(info.getName())) {
-                UIManager.setLookAndFeel(info.getClassName());
-                break;
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("mac")) {
+            // macOS-specific settings
+            System.setProperty("apple.laf.useScreenMenuBar", "true");
+            System.setProperty("apple.awt.application.name", "LogHog");
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } else if (os.contains("linux")) {
+            // Try GTK+ on Linux for native look
+            try {
+                UIManager.setLookAndFeel("com.sun.java.swing.plaf.gtk.GTKLookAndFeel");
+            } catch (Exception e) {
+                // Fall back to system default
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            }
+        } else {
+            // Windows or other - use Windows L&F if available
+            for (var info : UIManager.getInstalledLookAndFeels()) {
+                if ("Windows".equals(info.getName())) {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
             }
         }
     } catch (Exception ignored) {
