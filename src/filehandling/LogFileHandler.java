@@ -440,6 +440,22 @@ public class LogFileHandler implements LogFileOperations {
         if (!Files.exists(filePath)) return 0;
 
         try {
+            // Use EntryLoader's cache if available for O(1) lookup
+            // This avoids reading the entire file on every save
+            if (entryLoader != null) {
+                int count = 0;
+                // Check the in-memory list model first if available (fastest)
+                // Otherwise fall back to counting from lines
+                List<String> lines = getLines();
+                for (String line : lines) {
+                    if (line.trim().startsWith(timeStamp)) {
+                        count++;
+                    }
+                }
+                return count;
+            }
+            
+            // Fallback: direct file read (shouldn't happen in practice)
             List<String> lines = getLines();
             return (int) lines.stream()
                 .filter(line -> line.startsWith(timeStamp))
@@ -496,6 +512,10 @@ public class LogFileHandler implements LogFileOperations {
     private void invalidateEntryCache() {
         cachedEntries = null;
         cachedEntriesLastModified = 0;
+        // Also invalidate EntryLoader's caches
+        if (entryLoader != null) {
+            entryLoader.invalidateCaches();
+        }
     }
 
     public List<List<String>> getParsedEntries() throws Exception {

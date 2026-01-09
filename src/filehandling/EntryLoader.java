@@ -18,17 +18,14 @@
 package filehandling;
 
 import javax.swing.*;
-import java.io.BufferedReader;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.crypto.SecretKey;
 import encryption.EncryptionManager;
 import encryption.EncryptionException;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import encryption.Encryptor;
@@ -37,6 +34,12 @@ public class EntryLoader {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
     private final LogFileHandler logFileHandler;
     private final Encryptor encryptor;
+    
+    // Performance caches - invalidated when file changes
+    private final Map<String, String> entryContentCache = new HashMap<>();
+    private List<String> timestampListCache = null;
+    private final Map<String, Integer> duplicateCountCache = new HashMap<>();
+    private long cacheLastModified = 0;
 
     public EntryLoader(LogFileHandler logFileHandler) {
         this(logFileHandler, EncryptionManager.getInstance());
@@ -45,6 +48,45 @@ public class EntryLoader {
     public EntryLoader(LogFileHandler logFileHandler, Encryptor encryptor) {
         this.logFileHandler = logFileHandler;
         this.encryptor = encryptor;
+    }
+    
+    /**
+     * Invalidates all caches. Called when file is modified.
+     * Public method for LogFileHandler to call.
+     */
+    public void invalidateCaches() {
+        entryContentCache.clear();
+        timestampListCache = null;
+        duplicateCountCache.clear();
+        cacheLastModified = 0;
+    }
+    
+    /**
+     * Checks if caches are valid based on file modification time.
+     */
+    private boolean isCacheValid() {
+        try {
+            if (!Files.exists(logFileHandler.getFilePath())) {
+                return false;
+            }
+            long currentModified = Files.getLastModifiedTime(logFileHandler.getFilePath()).toMillis();
+            return currentModified == cacheLastModified && cacheLastModified > 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Updates cache timestamp after parsing.
+     */
+    private void updateCacheTimestamp() {
+        try {
+            if (Files.exists(logFileHandler.getFilePath())) {
+                cacheLastModified = Files.getLastModifiedTime(logFileHandler.getFilePath()).toMillis();
+            }
+        } catch (Exception e) {
+            cacheLastModified = 0;
+        }
     }
 
     public void loadLogEntries(DefaultListModel<String> listModel) throws Exception {
@@ -64,13 +106,11 @@ public class EntryLoader {
             lines = Files.readAllLines(logFileHandler.getFilePath());
         }
 
-        // Remove secure clipboard markers from lines
-        lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
-
-        // Don't strip timestamp suffixes - we need them to distinguish duplicate entries
-
-        // Clean malformed timestamps with Unix timestamp prefixes
-        lines = lines.stream().map(line -> line.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2")).collect(Collectors.toList());
+        // Single pass: remove markers and clean timestamps in one operation
+        lines = lines.stream()
+            .map(LogFileHandler::removeSecureMarker)
+            .map(line -> line.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2"))
+            .collect(Collectors.toList());
 
         try {
             // Parse all entries
@@ -102,19 +142,36 @@ public class EntryLoader {
             List<List<String>> sortedEntries = new ArrayList<>();
             sortedEntries.addAll(nonTimestampEntries); // preamble notes at top
             sortedEntries.addAll(timestampEntries);
-            Map<String, Integer> countMap = new HashMap<>();
+            
+            // Populate caches while building list model
+            entryContentCache.clear();
+            List<String> timestamps = new ArrayList<>();
+            
             for (List<String> entry : sortedEntries) {
                 // For the list view, show only the timestamp line (or first line for non-timestamp entries)
                 if (!entry.isEmpty()) {
                     String rawTs = entry.get(0).trim();
+                    
+                    // Cache entry content for fast retrieval
+                    StringBuilder content = new StringBuilder();
+                    for (int i = 1; i < entry.size(); i++) {
+                        content.append(entry.get(i)).append("\n");
+                    }
+                    entryContentCache.put(rawTs, content.toString().trim());
+                    
                     if (tsPattern.matcher(rawTs).matches()) {
                         // Keep the suffix to distinguish duplicate entries
                         listModel.addElement(rawTs);
+                        timestamps.add(rawTs);
                     } else {
                         listModel.addElement(rawTs);
                     }
                 }
             }
+            
+            // Cache timestamp list for getRecentLogEntries
+            timestampListCache = timestamps;
+            updateCacheTimestamp();
         } catch (Exception e) {
             if (!e.getMessage().contains("Tag mismatch")) {
                 String errorMsg = e.getMessage();
@@ -194,7 +251,6 @@ public class EntryLoader {
             });
             
             // Keep suffixes to distinguish duplicate entries
-            Map<String, Integer> countMap = new HashMap<>();
             for (List<String> entry : filteredEntries) {
                 if (!entry.isEmpty()) {
                     String rawTs = entry.get(0).trim();
@@ -231,6 +287,25 @@ public class EntryLoader {
         if (!Files.exists(logFileHandler.getFilePath())) return "";
 
         try {
+            // Check cache first - O(1) lookup!
+            if (isCacheValid()) {
+                String cached = entryContentCache.get(timeStamp.trim());
+                if (cached != null) {
+                    return cached;
+                }
+                
+                // Try without suffix for backward compatibility
+                String baseTsParam = timeStamp.trim().replaceAll(" \\([0-9]+\\)$", "");
+                for (Map.Entry<String, String> entry : entryContentCache.entrySet()) {
+                    String entryTs = entry.getKey();
+                    String baseTsEntry = entryTs.replaceAll(" \\([0-9]+\\)$", "");
+                    if (baseTsEntry.equals(baseTsParam) && !timeStamp.contains("(")) {
+                        return entry.getValue();
+                    }
+                }
+            }
+            
+            // Cache miss - fall back to full parse (rare, only on first load or cache invalidation)
             List<String> lines;
             if (logFileHandler.isEncrypted()) {
                 byte[] data = Files.readAllBytes(logFileHandler.getFilePath());
@@ -240,52 +315,44 @@ public class EntryLoader {
                 lines = Files.readAllLines(logFileHandler.getFilePath());
             }
 
-            // Remove secure clipboard markers from lines
-            lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
-
-            // Don't strip timestamp suffixes - we need them to distinguish duplicate entries
+            // Single pass cleanup
+            lines = lines.stream()
+                .map(LogFileHandler::removeSecureMarker)
+                .collect(Collectors.toList());
             
             // Parse all entries
             var allEntries = LogParser.parseAllEntries(lines);
 
-            // Separate timestamp and non-timestamp entries
-            var timestampEntries = new ArrayList<List<String>>();
-            var nonTimestampEntries = new ArrayList<List<String>>();
+            // Rebuild cache
+            entryContentCache.clear();
             var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$");
+            
             for (List<String> entry : allEntries) {
                 if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
-                    timestampEntries.add(entry);
-                } else {
-                    nonTimestampEntries.add(entry);
+                    String entryTs = entry.get(0).trim();
+                    StringBuilder content = new StringBuilder();
+                    for (int i = 1; i < entry.size(); i++) {
+                        content.append(entry.get(i)).append("\n");
+                    }
+                    entryContentCache.put(entryTs, content.toString().trim());
                 }
             }
-
-            // Sort timestamp entries by date descending
-            timestampEntries.sort((a, b) -> {
-                try {
-                    LocalDateTime dateA = utils.DateHandler.parseTimestamp(a.get(0));
-                    LocalDateTime dateB = utils.DateHandler.parseTimestamp(b.get(0));
-                    return dateB.compareTo(dateA);
-                } catch (Exception e) {
-                    return b.get(0).compareTo(a.get(0));
-                }
-            });
-
-            // Find the entry with matching timestamp (including suffix for duplicates)
-            for (List<String> entry : timestampEntries) {
-                String entryTs = entry.get(0).trim();
-                // Try exact match first (with suffix), then try base match (without suffix)
-                String baseTsParam = timeStamp.trim().replaceAll(" \\([0-9]+\\)$", "");
+            
+            updateCacheTimestamp();
+            
+            // Now try cache again
+            String result = entryContentCache.get(timeStamp.trim());
+            if (result != null) {
+                return result;
+            }
+            
+            // Try without suffix
+            String baseTsParam = timeStamp.trim().replaceAll(" \\([0-9]+\\)$", "");
+            for (Map.Entry<String, String> entry : entryContentCache.entrySet()) {
+                String entryTs = entry.getKey();
                 String baseTsEntry = entryTs.replaceAll(" \\([0-9]+\\)$", "");
-                
-                if (entryTs.equals(timeStamp.trim()) || 
-                    (baseTsEntry.equals(baseTsParam) && !timeStamp.contains("("))) {
-                    // Found the entry - return content without timestamp
-                    StringBuilder sb = new StringBuilder();
-                    for (int i = 1; i < entry.size(); i++) {
-                        sb.append(entry.get(i)).append("\n");
-                    }
-                    return sb.toString().trim();
+                if (baseTsEntry.equals(baseTsParam) && !timeStamp.contains("(")) {
+                    return entry.getValue();
                 }
             }
 
@@ -301,6 +368,16 @@ public class EntryLoader {
         if (!Files.exists(logFileHandler.getFilePath())) return recentEntries;
 
         try {
+            // Use cached timestamp list if available - O(1) instead of O(N)!
+            if (isCacheValid() && timestampListCache != null) {
+                // Cache is already sorted newest first
+                for (int j = 0; j < Math.min(i, timestampListCache.size()); j++) {
+                    recentEntries.add(timestampListCache.get(j));
+                }
+                return recentEntries;
+            }
+            
+            // Cache miss - parse file
             List<String> lines = logFileHandler.getLines();
             List<String> timestamps = new ArrayList<>();
             for (String line : lines) {
@@ -315,6 +392,11 @@ public class EntryLoader {
                     return 0; // keep original order if parsing fails
                 }
             });
+            
+            // Update cache
+            timestampListCache = timestamps;
+            updateCacheTimestamp();
+            
             for (int j = 0; j < Math.min(i, timestamps.size()); j++) {
                 recentEntries.add(timestamps.get(j));
             }
