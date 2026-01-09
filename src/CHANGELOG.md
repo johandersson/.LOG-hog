@@ -48,7 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DateHandler utility class** for centralized timestamp parsing and formatting
 - **EncryptionHandler class** for managing password authentication and encryption setup
 - **Javadocs generation** with comprehensive API documentation
-- **Expanded timestamp format support** for better Notepad compatibility across locales (supports 23+ common formats including ISO, US, European, German, and 12-hour variants)
+- **Expanded timestamp format support** across all platforms (supports 23+ common formats including ISO, US, European, German, and 12-hour variants)
+- **Cross-platform compatibility** - fully functional on Windows, macOS, and Linux with native look and feel
 - **BackupManager component** for centralized backup handling with secure deletion
 - **Automatic backup functionality** triggered after encryption/decryption operations
 - **Secure random password generation** for tests (removed hardcoded passwords)

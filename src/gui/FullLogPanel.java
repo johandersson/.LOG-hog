@@ -51,7 +51,7 @@ public class FullLogPanel extends LogPanel {
         this.fullLogPathLabel = new JLabel("Log file: (not loaded)");
         this.lockFileButton = new AccentButton(editor.isLocked() ? "Unlock File" : "Lock File");
         this.copyFullLogButton = new AccentButton("Copy Full Log to Clipboard");
-        this.openInNotepadButton = new AccentButton("Open in Notepad");
+        this.openInNotepadButton = new AccentButton("Open in Text Editor");
         this.searchButton = new AccentButton("Search");
         initPanel();
         updateLockButton(); // Ensure buttons are in correct state based on lock status

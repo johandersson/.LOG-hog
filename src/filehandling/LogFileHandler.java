@@ -160,7 +160,7 @@ public class LogFileHandler implements LogFileOperations {
                 errorMsg += "The file is <b>locked by another program</b>.<br><br>" +
                     "<b>Solutions:</b><br>" +
                     "• Close any programs that might be using the file<br>" +
-                    "• Check if the file is open in Notepad or another editor<br>" +
+                    "• Check if the file is open in a text editor<br>" +
                     "• Restart the application if issue persists</html>";
             } else {
                 errorMsg += e.getMessage() + "<br><br>" +

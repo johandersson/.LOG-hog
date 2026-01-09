@@ -1,12 +1,14 @@
 # .LOG-hog
 
-A secure, feature-rich Java Swing logging application.
+**A secure, feature-rich Java Swing logging application that works on Windows, macOS, and Linux.**
 
 ## Security
 **Security Rating: HIGH (9.5/10)** - Enterprise-grade encryption with AES-256-GCM, PBKDF2 key derivation, progressive delays, enforced password strength, automatic secure backups, and comprehensive input validation. Suitable for sensitive personal and professional data.
 
 ## Purpose
 The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen focuses directly on the editor window for immediate writing. After composing your note, press Ctrl+S or click Save to clear the text field and save the entry into a dated log. This clearing allows you to write a new log entry right away, facilitating rapid and efficient note-taking.
+
+**✨ Works seamlessly on Windows, macOS, and Linux!** Use your favorite text editor on any platform to view and edit your log files.
 
 ## Features
 - Tabbed interface for writing and browsing logs
@@ -36,6 +38,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - Java 17 or higher
 - 25 MB RAM (recommended 50 MB)
 - 200 MB free disk space
+- **Supports:** Windows, macOS, and Linux
 
 **Tiny Disk Footprint:**
 - **Application JAR**: ~145 KB (148,731 bytes)
