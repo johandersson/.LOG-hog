@@ -1,8 +1,11 @@
 #!/bin/bash
 
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Sync help.md to resources folder before building
 echo "Syncing help.md to resources..."
-cp -f help.md resources/help.md
+cp -f "$SCRIPT_DIR/help.md" "$SCRIPT_DIR/resources/help.md"
 if [ $? -ne 0 ]; then
     echo "WARNING: Failed to sync help files"
 fi
@@ -20,7 +23,7 @@ fi
 
 # Create JAR file
 echo "Creating JAR file..."
-jar cvfm loghog.jar manifest.txt \
+jar cvfm loghog.jar "$SCRIPT_DIR/manifest.txt" \
     LogHog.class \
     main/LogTextEditor.class \
     gui/*.class \
@@ -33,7 +36,7 @@ jar cvfm loghog.jar manifest.txt \
     main/*.class \
     services/*.class \
     utils/*.class \
-    resources/
+    -C "$SCRIPT_DIR" resources/
 
 if [ $? -eq 0 ]; then
     echo "Production build completed: loghog.jar"
