@@ -19,7 +19,6 @@ package markdown;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -27,7 +26,6 @@ import java.util.regex.Pattern;
 
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
-import javax.swing.text.StyledDocument;
 
 /**
  * Handles rendering of individual markdown entries.
@@ -42,8 +40,8 @@ public class MarkdownEntryRenderer {
         processor.processEntry();
     }
 
-    private static void processEntryLines(List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
-        Style defaultStyle = styles.get("default");
+    private static void processEntryLines(List<String> entry, MarkdownRenderingContext context) throws BadLocationException {
+        Style defaultStyle = context.getDefaultStyle();
         boolean inCodeBlock = false;
         List<String> paragraphLines = new ArrayList<>();
 
@@ -59,27 +57,27 @@ public class MarkdownEntryRenderer {
             boolean hasInlineHeading = INLINE_HEADING_PATTERN.matcher(line).find();
 
             // If we have accumulated paragraph lines and this line starts a new block, render the paragraph first
-            flushParagraphIfNeeded(isBlank || isList || isQuote || isHeading || hasInlineHeading || isCodeBlockMarker || inCodeBlock, paragraphLines, doc, defaultStyle, styles);
+            flushParagraphIfNeeded(isBlank || isList || isQuote || isHeading || hasInlineHeading || isCodeBlockMarker || inCodeBlock, paragraphLines, context);
 
             if (isCodeBlockMarker) {
-                inCodeBlock = handleCodeBlockMarker(inCodeBlock, doc, styles);
+                inCodeBlock = handleCodeBlockMarker(inCodeBlock, context);
                 continue;
             }
 
             if (inCodeBlock) {
-                renderCodeLine(line, doc, styles.get("code"));
+                renderCodeLine(line, context);
             } else if (isTimestamp) {
-                renderTimestamp(line, doc, styles.get("timestamp"));
+                renderTimestamp(line, context);
             } else if (isBlank) {
                 continue;
             } else if (isList) {
-                i += handleList(i, entry, doc, styles);
+                i += handleList(i, entry, context);
             } else if (isQuote) {
-                i += handleQuote(i, entry, doc, styles);
+                i += handleQuote(i, entry, context);
             } else if (isHeading) {
-                renderHeading(line, doc, styles);
+                renderHeading(line, context);
             } else if (hasInlineHeading) {
-                renderInlineHeading(line, doc, defaultStyle, styles);
+                renderInlineHeading(line, context);
             } else {
                 paragraphLines.add(line);
             }
@@ -87,13 +85,13 @@ public class MarkdownEntryRenderer {
 
         // Render any remaining paragraph lines
         if (!paragraphLines.isEmpty()) {
-            renderParagraph(paragraphLines, doc, defaultStyle, styles);
+            renderParagraph(paragraphLines, context);
         }
     }
 
-    private static void flushParagraphIfNeeded(boolean condition, List<String> paragraphLines, StyledDocument doc, Style defaultStyle, Map<String, Style> styles) throws BadLocationException {
+    private static void flushParagraphIfNeeded(boolean condition, List<String> paragraphLines, MarkdownRenderingContext context) throws BadLocationException {
         if (condition && !paragraphLines.isEmpty()) {
-            renderParagraph(paragraphLines, doc, defaultStyle, styles);
+            renderParagraph(paragraphLines, context);
             paragraphLines.clear();
         }
     }
@@ -106,42 +104,44 @@ public class MarkdownEntryRenderer {
         return line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
     }
 
-    private static boolean handleCodeBlockMarker(boolean inCodeBlock, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
+    private static boolean handleCodeBlockMarker(boolean inCodeBlock, MarkdownRenderingContext context) throws BadLocationException {
         boolean wasInCodeBlock = inCodeBlock;
         inCodeBlock = !inCodeBlock;
         if (wasInCodeBlock && !inCodeBlock) {
-            doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, styles.get("code"));
+            context.getDocument().insertString(context.getDocument().getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, context.getCodeStyle());
         }
         return inCodeBlock;
     }
 
-    private static void renderTimestamp(String line, StyledDocument doc, Style tsStyle) throws BadLocationException {
-        doc.insertString(doc.getLength(), line + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, tsStyle);
+    private static void renderTimestamp(String line, MarkdownRenderingContext context) throws BadLocationException {
+        context.getDocument().insertString(context.getDocument().getLength(), line + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, context.getTimestampStyle());
     }
 
-    private static void renderListBlock(List<String> listLines, StyledDocument doc, Style listStyle, Map<String, Style> styles) throws BadLocationException {
+    private static void renderListBlock(List<String> listLines, MarkdownRenderingContext context) throws BadLocationException {
+        Style listStyle = context.getListStyle();
         for (int j = 0; j < listLines.size(); j++) {
             String line = listLines.get(j);
             String text = "• " + line.substring(2);
-            MarkdownFormatter.appendLineWithFormatting(doc, text, listStyle, styles);
+            MarkdownFormatter.appendLineWithFormatting(context.getDocument(), text, listStyle, context.getStyles());
             if (j < listLines.size() - 1) {
-                doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, listStyle);
+                context.getDocument().insertString(context.getDocument().getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, listStyle);
             } else {
-                doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, listStyle);
+                context.getDocument().insertString(context.getDocument().getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, listStyle);
             }
         }
     }
 
-    private static void renderHeading(String line, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
+    private static void renderHeading(String line, MarkdownRenderingContext context) throws BadLocationException {
         String text = line.startsWith("### ") ? line.substring(4) :
                      line.startsWith("## ") ? line.substring(3) : line.substring(2);
-        Style headingStyle = line.startsWith("### ") ? styles.get("h3") :
-                            line.startsWith("## ") ? styles.get("h2") : styles.get("h1");
-        MarkdownFormatter.appendLineWithFormatting(doc, text, headingStyle, styles);
-        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, headingStyle);
+        Style headingStyle = line.startsWith("### ") ? context.getH3Style() :
+                            line.startsWith("## ") ? context.getH2Style() : context.getH1Style();
+        MarkdownFormatter.appendLineWithFormatting(context.getDocument(), text, headingStyle, context.getStyles());
+        context.getDocument().insertString(context.getDocument().getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, headingStyle);
     }
 
-    private static void renderInlineHeading(String line, StyledDocument doc, Style defaultStyle, Map<String, Style> styles) throws BadLocationException {
+    private static void renderInlineHeading(String line, MarkdownRenderingContext context) throws BadLocationException {
+        Style defaultStyle = context.getDefaultStyle();
         Matcher headingMatcher = INLINE_HEADING_PATTERN.matcher(line);
         Set<Integer> headingSet = new TreeSet<>();
         headingSet.add(0);
@@ -163,21 +163,22 @@ public class MarkdownEntryRenderer {
             else if (part.startsWith("# ")) marker = "# ";
             if (marker != null) {
                 partStyle = switch (marker) {
-                    case "### " -> styles.get("h3");
-                    case "## " -> styles.get("h2");
-                    case "# " -> styles.get("h1");
+                    case "### " -> context.getH3Style();
+                    case "## " -> context.getH2Style();
+                    case "# " -> context.getH1Style();
                     default -> defaultStyle;
                 };
                 text = part.substring(marker.length());
             }
-            MarkdownFormatter.appendLineWithFormatting(doc, text, partStyle, styles);
-            doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, partStyle);
+            MarkdownFormatter.appendLineWithFormatting(context.getDocument(), text, partStyle, context.getStyles());
+            context.getDocument().insertString(context.getDocument().getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, partStyle);
         }
     }
 
-    private static void renderCodeLine(String line, StyledDocument doc, Style codeStyle) throws BadLocationException {
-        doc.insertString(doc.getLength(), line, codeStyle);
-        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, codeStyle);
+    private static void renderCodeLine(String line, MarkdownRenderingContext context) throws BadLocationException {
+        Style codeStyle = context.getCodeStyle();
+        context.getDocument().insertString(context.getDocument().getLength(), line, codeStyle);
+        context.getDocument().insertString(context.getDocument().getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, codeStyle);
     }
 
     private static List<String> collectQuoteLines(List<String> entry, int startIndex) {
@@ -196,20 +197,22 @@ public class MarkdownEntryRenderer {
         return listLines;
     }
 
-    private static int handleList(int i, List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
+    private static int handleList(int i, List<String> entry, MarkdownRenderingContext context) throws BadLocationException {
         List<String> listLines = collectListLines(entry, i);
-        renderListBlock(listLines, doc, styles.get("list"), styles);
+        renderListBlock(listLines, context);
         return listLines.size() - 1;
     }
 
-    private static int handleQuote(int i, List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
+    private static int handleQuote(int i, List<String> entry, MarkdownRenderingContext context) throws BadLocationException {
         List<String> quoteLines = collectQuoteLines(entry, i);
-        renderBlockquote(doc, quoteLines, styles);
+        renderBlockquote(context, quoteLines);
         return quoteLines.size() - 1;
     }
 
-    private static void renderParagraph(List<String> lines, StyledDocument doc, Style defaultStyle, Map<String, Style> styles) throws BadLocationException {
+    private static void renderParagraph(List<String> lines, MarkdownRenderingContext context) throws BadLocationException {
         if (lines.isEmpty()) return;
+
+        Style defaultStyle = context.getDefaultStyle();
 
         // Join lines with spaces to form a paragraph
         StringBuilder paragraph = new StringBuilder();
@@ -222,31 +225,31 @@ public class MarkdownEntryRenderer {
 
         // Check if the paragraph has markdown formatting
         if (MarkdownFormatter.hasMarkdown(paragraphText)) {
-            MarkdownFormatter.appendLineWithFormatting(doc, paragraphText, defaultStyle, styles);
+            MarkdownFormatter.appendLineWithFormatting(context.getDocument(), paragraphText, defaultStyle, context.getStyles());
         } else {
-            doc.insertString(doc.getLength(), paragraphText, defaultStyle);
+            context.getDocument().insertString(context.getDocument().getLength(), paragraphText, defaultStyle);
         }
 
         // Add spacing after paragraph
-        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, defaultStyle);
+        context.getDocument().insertString(context.getDocument().getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, defaultStyle);
     }
 
-    private static void renderBlockquote(StyledDocument doc, List<String> quoteLines, Map<String, Style> styles) throws BadLocationException {
-        Style quoteStyle = styles.get("quote");
-        Style quoteBorderStyle = styles.get("quoteBorder");
+    private static void renderBlockquote(MarkdownRenderingContext context, List<String> quoteLines) throws BadLocationException {
+        Style quoteStyle = context.getQuoteStyle();
+        Style quoteBorderStyle = context.getQuoteBorderStyle();
 
         for (int k = 0; k < quoteLines.size(); k++) {
             String line = quoteLines.get(k);
             String text = line.substring(2);
 
             // Insert vertical bar as border
-            doc.insertString(doc.getLength(), "│ ", quoteBorderStyle);
+            context.getDocument().insertString(context.getDocument().getLength(), "│ ", quoteBorderStyle);
             // Insert the text with formatting
-            MarkdownFormatter.appendLineWithFormatting(doc, text, quoteStyle, styles);
+            MarkdownFormatter.appendLineWithFormatting(context.getDocument(), text, quoteStyle, context.getStyles());
             if (k < quoteLines.size() - 1) {
-                doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, quoteStyle);
+                context.getDocument().insertString(context.getDocument().getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, quoteStyle);
             }
         }
-        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, quoteStyle);
+        context.getDocument().insertString(context.getDocument().getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, quoteStyle);
     }
 }
