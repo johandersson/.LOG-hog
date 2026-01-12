@@ -38,6 +38,10 @@ public class MarkdownEntryRenderer {
     private static final Pattern INLINE_HEADING_PATTERN = Pattern.compile("(###|##|#) ");
 
     public static void renderEntry(List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
+        processEntryLines(entry, doc, styles);
+    }
+
+    private static void processEntryLines(List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
         Style defaultStyle = styles.get("default");
         boolean inCodeBlock = false;
         List<String> paragraphLines = new ArrayList<>();
@@ -71,14 +75,8 @@ public class MarkdownEntryRenderer {
             } else if (isBlank) {
                 continue;
             } else if (isList) {
-                List<String> listLines = new ArrayList<>();
-                listLines.add(line);
-                int j = i + 1;
-                while (j < entry.size() && entry.get(j).startsWith("- ")) {
-                    listLines.add(entry.get(j));
-                    j++;
-                }
-                i = j - 1;
+                List<String> listLines = collectListLines(entry, i);
+                i += listLines.size() - 1;
                 renderListBlock(listLines, doc, styles.get("list"), styles);
             } else if (isQuote) {
                 List<String> quoteLines = collectQuoteLines(entry, i);
@@ -187,6 +185,14 @@ public class MarkdownEntryRenderer {
             quoteLines.add(entry.get(j));
         }
         return quoteLines;
+    }
+
+    private static List<String> collectListLines(List<String> entry, int startIndex) {
+        List<String> listLines = new ArrayList<>();
+        for (int j = startIndex; j < entry.size() && entry.get(j).startsWith("- "); j++) {
+            listLines.add(entry.get(j));
+        }
+        return listLines;
     }
 
     private static void renderParagraph(List<String> lines, StyledDocument doc, Style defaultStyle, Map<String, Style> styles) throws BadLocationException {
