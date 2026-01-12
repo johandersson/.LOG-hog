@@ -364,10 +364,22 @@ public class FullLogPanel extends LogPanel {
                 
                 try {
                     javax.swing.text.StyledDocument doc = fullLogPane.getStyledDocument();
-                    javax.swing.text.Element elem = doc.getParagraphElement(pos);
-                    int start = elem.getStartOffset();
-                    int end = elem.getEndOffset();
-                    String line = doc.getText(start, end - start).trim();
+                    
+                    // Get the line at the click position
+                    int lineStart = pos;
+                    int lineEnd = pos;
+                    
+                    // Find start of line
+                    while (lineStart > 0 && doc.getText(lineStart - 1, 1).charAt(0) != '\n') {
+                        lineStart--;
+                    }
+                    
+                    // Find end of line
+                    while (lineEnd < doc.getLength() && doc.getText(lineEnd, 1).charAt(0) != '\n') {
+                        lineEnd++;
+                    }
+                    
+                    String line = doc.getText(lineStart, lineEnd - lineStart).trim();
                     
                     // Check if this line is a timestamp (format: HH:MM YYYY-MM-DD or HH:MM YYYY-MM-DD (N))
                     if (line.matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
