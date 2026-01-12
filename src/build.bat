@@ -12,7 +12,19 @@ REM Clean all .class files to ensure fresh compilation
 echo Cleaning old .class files...
 powershell -Command "Get-ChildItem -Path '%~dp0' -Recurse -Filter *.class | Remove-Item -Force"
 
+REM Kill any running LogHog processes
+echo Killing any running LogHog processes...
 powershell -Command "Get-Process javaw -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*loghog*' } | Stop-Process -Force"
+powershell -Command "Get-Process java -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*loghog*' } | Stop-Process -Force"
+
+REM Wait a moment for processes to fully terminate
+timeout /t 2 /nobreak >nul
+
+REM Delete existing JAR file if it exists
+if exist loghog.jar (
+    echo Deleting existing JAR file...
+    del /f /q loghog.jar
+)
 set "files="
 for /f "delims=" %%i in ('dir /s /b *.java ^| findstr /v test') do set "files=!files! "%%i""
 javac -d . %files%

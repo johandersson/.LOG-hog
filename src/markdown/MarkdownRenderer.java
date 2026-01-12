@@ -45,7 +45,7 @@ import javax.swing.text.StyledDocument;
  * All markdown display goes through this class to ensure consistency.
  * 
  * SPACING RULES (strictly enforced):
- * - Between entries: Always 3 blank lines (controlled by LogFileFormat.DISPLAY_ENTRY_SEPARATOR_BLANKS)
+ * - Between entries: Always 2 blank lines (controlled by LogFileFormat.DISPLAY_ENTRY_SEPARATOR_BLANKS)
  * - Within entries: Single newline between lines (MarkdownStyle.DOCUMENT_LINE_SEPARATOR)
  * - After special blocks (quotes, code, headings): Same as above - consistency guaranteed
  * 
@@ -385,8 +385,9 @@ public class MarkdownRenderer {
                 // Render timestamp
                 doc.insertString(doc.getLength(), line + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, tsStyle);
             } else if (isBlank) {
-                // Blank lines create paragraph breaks
-                doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, sepStyle);
+                // Blank lines are paragraph separators - don't render them as visible breaks
+                // The paragraph rendering is already handled above when paragraphLines is not empty
+                continue;
             } else if (isList) {
                 String text = "• " + line.substring(2);
                 Style listStyle = styles.get("list");
@@ -475,8 +476,7 @@ public class MarkdownRenderer {
             doc.insertString(doc.getLength(), paragraphText, defaultStyle);
         }
         
-        // Add newline after paragraph
-        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, defaultStyle);
+        // Don't add extra newline after paragraph - let natural paragraph spacing handle it
     }
 
     private static void renderBlockquote(StyledDocument doc, List<String> quoteLines, Map<String, Style> styles) throws BadLocationException {
