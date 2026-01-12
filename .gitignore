@@ -48,6 +48,10 @@ debug.log
 *.bak
 
 ### Copilot ###
+
+### Security Audits ###
+*SECURITY_AUDIT*.md
+REAL_SECURITY_AUDIT_2026.md
 copilot_instructions.md
 
 ### Test and Coverage Files ###
