@@ -18,7 +18,6 @@
 package markdown;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,7 +71,15 @@ public class MarkdownEntryRenderer {
             } else if (isBlank) {
                 continue;
             } else if (isList) {
-                renderList(line, doc, styles.get("list"), styles);
+                List<String> listLines = new ArrayList<>();
+                listLines.add(line);
+                int j = i + 1;
+                while (j < entry.size() && entry.get(j).startsWith("- ")) {
+                    listLines.add(entry.get(j));
+                    j++;
+                }
+                i = j - 1;
+                renderListBlock(listLines, doc, styles.get("list"), styles);
             } else if (isQuote) {
                 List<String> quoteLines = collectQuoteLines(entry, i);
                 renderBlockquote(doc, quoteLines, styles);
@@ -104,7 +111,7 @@ public class MarkdownEntryRenderer {
         boolean wasInCodeBlock = inCodeBlock;
         inCodeBlock = !inCodeBlock;
         if (wasInCodeBlock && !inCodeBlock) {
-            doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, styles.get("code"));
+            doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, styles.get("code"));
         }
         return inCodeBlock;
     }
@@ -113,10 +120,17 @@ public class MarkdownEntryRenderer {
         doc.insertString(doc.getLength(), line + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, tsStyle);
     }
 
-    private static void renderList(String line, StyledDocument doc, Style listStyle, Map<String, Style> styles) throws BadLocationException {
-        String text = "• " + line.substring(2);
-        MarkdownFormatter.appendLineWithFormatting(doc, text, listStyle, styles);
-        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, listStyle);
+    private static void renderListBlock(List<String> listLines, StyledDocument doc, Style listStyle, Map<String, Style> styles) throws BadLocationException {
+        for (int j = 0; j < listLines.size(); j++) {
+            String line = listLines.get(j);
+            String text = line;
+            MarkdownFormatter.appendLineWithFormatting(doc, text, listStyle, styles);
+            if (j < listLines.size() - 1) {
+                doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, listStyle);
+            } else {
+                doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, listStyle);
+            }
+        }
     }
 
     private static void renderHeading(String line, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
@@ -194,7 +208,8 @@ public class MarkdownEntryRenderer {
             doc.insertString(doc.getLength(), paragraphText, defaultStyle);
         }
 
-        // Don't add extra newline after paragraph - let natural paragraph spacing handle it
+        // Add spacing after paragraph
+        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, defaultStyle);
     }
 
     private static void renderBlockquote(StyledDocument doc, List<String> quoteLines, Map<String, Style> styles) throws BadLocationException {
