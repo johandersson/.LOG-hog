@@ -92,6 +92,8 @@ public class UIInitializer {
                     showSecurityProgressDialog(editor);
                     // Clean shutdown of all background processes
                     editor.shutdown();
+                    // Dispose the window
+                    editor.dispose();
                     // Clean up before exit
                     clipboard.SecureClipboardManager.clearSecureClipboard();
                     editor.getLogFileHandler().clearSensitiveData();

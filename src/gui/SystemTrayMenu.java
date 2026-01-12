@@ -115,6 +115,7 @@ public class SystemTrayMenu {
             exitItem.addActionListener(e -> {
                 if (logTextEditor != null) {
                     logTextEditor.shutdown();
+                    logTextEditor.dispose();
                 }
                 System.exit(0);
             });

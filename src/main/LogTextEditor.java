@@ -19,6 +19,7 @@ package main;
 
 import java.awt.Menu;
 import java.awt.MenuItem;
+import java.awt.SystemTray;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
@@ -120,6 +121,7 @@ public class LogTextEditor extends JFrame {
     private BackupManager backupManager;
     private javax.swing.Timer periodicBackupTimer;
     private javax.swing.Timer autoLockTimer;
+    private Thread listenerThread;
     private boolean autoLockEnabled = false;
     private int autoLockTimeoutSeconds = 900; // Default 15 minutes
 
@@ -438,7 +440,7 @@ public class LogTextEditor extends JFrame {
     }
 
     private void startSingleInstanceListener() {
-        var listenerThread = new Thread(() -> {
+        listenerThread = new Thread(() -> {
             try {
                 while (true) {
                     var clientSocket = SingleInstanceManager.getServerSocket().accept();
@@ -779,6 +781,25 @@ public class LogTextEditor extends JFrame {
 
         // Shutdown clipboard manager
         clipboard.SecureClipboardManager.shutdown();
+
+        // Remove system tray icon
+        if (SystemTray.isSupported() && gui.SystemTrayMenu.trayIcon != null) {
+            SystemTray.getSystemTray().remove(gui.SystemTrayMenu.trayIcon);
+        }
+
+        // Close single instance server socket
+        try {
+            if (SingleInstanceManager.getServerSocket() != null) {
+                SingleInstanceManager.getServerSocket().close();
+            }
+        } catch (java.io.IOException e) {
+            // Ignore
+        }
+
+        // Interrupt listener thread
+        if (listenerThread != null) {
+            listenerThread.interrupt();
+        }
 
         // Clear sensitive data
         if (logFileHandler != null) {
