@@ -338,7 +338,7 @@ public class MarkdownRenderer {
             }
             firstEntry = false;
             
-            MarkdownEntryRenderer.renderEntry(entry, doc, styles);
+            MarkdownEntryRenderer.renderEntry(entry, new MarkdownRenderingContext(doc, styles));
             
             // Trim trailing newlines from the rendered entry to prevent extra spacing between entries
             try {

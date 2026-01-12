@@ -37,8 +37,9 @@ public class MarkdownEntryRenderer {
 
     private static final Pattern INLINE_HEADING_PATTERN = Pattern.compile("(###|##|#) ");
 
-    public static void renderEntry(List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
-        processEntryLines(entry, doc, styles);
+    public static void renderEntry(List<String> entry, MarkdownRenderingContext context) throws BadLocationException {
+        MarkdownEntryProcessor processor = new MarkdownEntryProcessor(entry, context);
+        processor.processEntry();
     }
 
     private static void processEntryLines(List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
