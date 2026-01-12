@@ -431,6 +431,49 @@ public class FullLogPanel extends LogPanel {
                 }
             }
         }, java.awt.AWTEvent.MOUSE_EVENT_MASK);
+        
+        // Add visual feedback: change cursor and show tooltip when hovering over timestamps
+        fullLogPane.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(java.awt.event.MouseEvent e) {
+                try {
+                    int pos = fullLogPane.viewToModel2D(e.getPoint());
+                    if (pos < 0) {
+                        fullLogPane.setCursor(java.awt.Cursor.getDefaultCursor());
+                        fullLogPane.setToolTipText(null);
+                        return;
+                    }
+                    
+                    javax.swing.text.StyledDocument doc = fullLogPane.getStyledDocument();
+                    String text = doc.getText(0, doc.getLength());
+                    
+                    // Find line boundaries
+                    int lineStart = pos;
+                    while (lineStart > 0 && text.charAt(lineStart - 1) != '\n') {
+                        lineStart--;
+                    }
+                    
+                    int lineEnd = pos;
+                    while (lineEnd < text.length() && text.charAt(lineEnd) != '\n') {
+                        lineEnd++;
+                    }
+                    
+                    String lineText = text.substring(lineStart, lineEnd).trim();
+                    
+                    // Check if hovering over a timestamp line
+                    if (lineText.matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
+                        fullLogPane.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+                        fullLogPane.setToolTipText("Double-click to edit this entry");
+                    } else {
+                        fullLogPane.setCursor(java.awt.Cursor.getDefaultCursor());
+                        fullLogPane.setToolTipText(null);
+                    }
+                } catch (Exception ex) {
+                    fullLogPane.setCursor(java.awt.Cursor.getDefaultCursor());
+                    fullLogPane.setToolTipText(null);
+                }
+            }
+        });
     }
 
     /**
