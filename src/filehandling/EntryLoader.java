@@ -53,6 +53,17 @@ public class EntryLoader {
             this.dateTime = dateTime;
         }
     }
+    
+    // Helper class for pre-parsed timestamp sorting optimization
+    private static class TimestampEntry {
+        final List<String> entry;
+        final LocalDateTime dateTime;
+        
+        TimestampEntry(List<String> entry, LocalDateTime dateTime) {
+            this.entry = entry;
+            this.dateTime = dateTime;
+        }
+    }
 
     public EntryLoader(LogFileHandler logFileHandler) {
         this(logFileHandler, EncryptionManager.getInstance());
@@ -141,27 +152,40 @@ public class EntryLoader {
             var allEntries = LogParser.parseAllEntries(lines);
 
             // Separate timestamp and non-timestamp entries
-            var timestampEntries = new ArrayList<List<String>>();
+            // Pre-parse timestamps for O(N) instead of O(N log N) parsing during sort
+            var timestampEntriesWithDates = new ArrayList<TimestampEntry>();
             var nonTimestampEntries = new ArrayList<List<String>>();
             var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$");
+            
             for (List<String> entry : allEntries) {
                 if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
-                    timestampEntries.add(entry);
+                    // Pre-parse timestamp once
+                    LocalDateTime dateTime = null;
+                    try {
+                        dateTime = utils.DateHandler.parseTimestamp(entry.get(0));
+                    } catch (Exception e) {
+                        // Parsing failed, use null for stable sort at end
+                    }
+                    timestampEntriesWithDates.add(new TimestampEntry(entry, dateTime));
                 } else {
                     nonTimestampEntries.add(entry);
                 }
             }
 
-            // Sort timestamp entries by date descending
-            timestampEntries.sort((a, b) -> {
-                try {
-                    LocalDateTime dateA = utils.DateHandler.parseTimestamp(a.get(0));
-                    LocalDateTime dateB = utils.DateHandler.parseTimestamp(b.get(0));
-                    return dateB.compareTo(dateA);
-                } catch (Exception e) {
-                    return b.get(0).compareTo(a.get(0));
-                }
+            // Sort by pre-parsed timestamps - O(N log N) comparisons with O(1) per comparison
+            // Descending order (newest first)
+            timestampEntriesWithDates.sort((a, b) -> {
+                if (a.dateTime == null && b.dateTime == null) return 0;
+                if (a.dateTime == null) return 1;  // nulls last
+                if (b.dateTime == null) return -1;
+                return b.dateTime.compareTo(a.dateTime);  // Descending
             });
+            
+            // Extract sorted entries
+            var timestampEntries = new ArrayList<List<String>>(timestampEntriesWithDates.size());
+            for (TimestampEntry te : timestampEntriesWithDates) {
+                timestampEntries.add(te.entry);
+            }
 
             List<List<String>> sortedEntries = new ArrayList<>();
             sortedEntries.addAll(nonTimestampEntries); // preamble notes at top

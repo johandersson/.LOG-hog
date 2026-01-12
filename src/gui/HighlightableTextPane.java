@@ -20,8 +20,12 @@ package gui;
 import java.awt.Toolkit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.*;
-import javax.swing.text.*;
+
+import javax.swing.JOptionPane;
+import javax.swing.JTextPane;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Highlighter;
 
 public class HighlightableTextPane extends JTextPane {
     private final Highlighter.HighlightPainter highlightPainter = new DefaultHighlighter.DefaultHighlightPainter(java.awt.Color.YELLOW);
@@ -52,23 +56,53 @@ public class HighlightableTextPane extends JTextPane {
             return 0;
         }
 
-        // Build regex pattern
-        String regex = Pattern.quote(query);
-        if (wholeWord) {
-            regex = "\\b" + regex + "\\b";
-        }
-        int flags = caseSensitive ? 0 : Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
-        Pattern pattern = Pattern.compile(regex, flags);
-        Matcher matcher = pattern.matcher(text);
-
+        // Performance limit: For very large documents, cap highlights at reasonable number
+        final int MAX_HIGHLIGHTS = 10000;
+        
         int matchCount = 0;
-        try {
-            while (matcher.find()) {
-                highlighter.addHighlight(matcher.start(), matcher.end(), highlightPainter);
-                matchCount++;
+        
+        // Fast path: Plain string search without regex overhead for simple cases
+        if (!wholeWord) {
+            String searchText = caseSensitive ? text : text.toLowerCase();
+            String searchQuery = caseSensitive ? query : query.toLowerCase();
+            int queryLen = searchQuery.length();
+            
+            // Simple indexOf loop - faster than regex for plain text
+            int index = 0;
+            try {
+                while ((index = searchText.indexOf(searchQuery, index)) != -1) {
+                    highlighter.addHighlight(index, index + queryLen, highlightPainter);
+                    matchCount++;
+                    index += queryLen;
+                    
+                    // Early exit to prevent UI freeze on massive match counts
+                    if (matchCount >= MAX_HIGHLIGHTS) {
+                        break;
+                    }
+                }
+            } catch (BadLocationException ex) {
+                // ignore individual highlight failures
             }
-        } catch (BadLocationException ex) {
-            // ignore individual highlight failures
+        } else {
+            // Use regex for whole word matching
+            String regex = "\\b" + Pattern.quote(query) + "\\b";
+            int flags = caseSensitive ? 0 : Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
+            Pattern pattern = Pattern.compile(regex, flags);
+            Matcher matcher = pattern.matcher(text);
+
+            try {
+                while (matcher.find()) {
+                    highlighter.addHighlight(matcher.start(), matcher.end(), highlightPainter);
+                    matchCount++;
+                    
+                    // Early exit to prevent UI freeze
+                    if (matchCount >= MAX_HIGHLIGHTS) {
+                        break;
+                    }
+                }
+            } catch (BadLocationException ex) {
+                // ignore individual highlight failures
+            }
         }
 
         if (matchCount > 0) {
