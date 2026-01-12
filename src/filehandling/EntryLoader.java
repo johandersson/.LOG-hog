@@ -362,8 +362,8 @@ public class EntryLoader {
                 try {
                     dateTime = utils.DateHandler.parseTimestamp(timestamp);
                 } catch (Exception e) {
-                    // Log but don't propagate date parsing errors for individual entries
-                    System.err.println("Warning: Failed to parse entry date - skipping entry");
+                    // Security: Don't log parsing errors to console
+                    // Failed parses will have null dateTime and sort to end
                 }
                 parsed.add(new ParsedEntry(timestamp, dateTime));
             }

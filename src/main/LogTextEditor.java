@@ -221,7 +221,7 @@ public class LogTextEditor extends JFrame {
             SwingUtilities.invokeLater(() -> entryPanel.getTextArea().requestFocusInWindow());
 
         } catch (Exception e) {
-            System.err.println("Error in LogTextEditor constructor: " + e.getMessage());
+            // Security: Don't log exception details to console
             throw e;
         }
     }
@@ -325,7 +325,6 @@ public class LogTextEditor extends JFrame {
                     SystemTrayMenu.updateRecentLogsMenu();
                 } catch (Exception ex) {
                     // Security: Don't expose exception details (Guideline 2-1)
-                    System.err.println("Reload failed: " + ex.getMessage());
                     logFileHandler.showErrorDialog("<html><b>🔄 Reload Failed</b><br><br>Unable to reload log data.<br><br><i>Tip: Check the log file and try again.</i></html>");
                 }
             }
@@ -405,7 +404,7 @@ public class LogTextEditor extends JFrame {
                 editor.setVisible(true);
                 editor.startSingleInstanceListener();
             } catch (Exception e) {
-                System.err.println("Error during GUI initialization: " + e.getClass().getSimpleName());
+                // Security: Don't log exception details to console
                 System.exit(1);
             }
         });
@@ -491,13 +490,11 @@ public class LogTextEditor extends JFrame {
                         fullLogPanel.loadFullLog();
                     } catch (Exception e) {
                         // Security: Don't expose exception details (Guideline 2-1)
-                        System.err.println("Load failed: " + e.getMessage());
                         logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
                     }
                 }
             } catch (Exception e) {
                 // Security: Don't expose exception details (Guideline 2-1)
-                System.err.println("Settings load failed: " + e.getMessage());
                 logFileHandler.showErrorDialog("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
             }
         } else {
@@ -506,7 +503,6 @@ public class LogTextEditor extends JFrame {
                 fullLogPanel.loadFullLog();
             } catch (Exception e) {
                 // Security: Don't expose exception details (Guideline 2-1)
-                System.err.println("Load failed: " + e.getMessage());
                 logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
             }
         }
@@ -517,7 +513,6 @@ public class LogTextEditor extends JFrame {
             settings.store(fos, "LogHog settings");
         } catch (Exception e) {
             // Security: Don't expose exception details (Guideline 2-1)
-            System.err.println("Settings save failed: " + e.getMessage());
             logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to save application settings.<br><br><i>Tip: Settings may not persist between sessions.</i></html>");
         }
     }

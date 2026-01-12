@@ -100,8 +100,7 @@ public class SecureSettings {
             return ENCRYPTED_PREFIX + Base64.getEncoder().encodeToString(result);
         } catch (Exception e) {
             // Security: Never return plaintext on encryption failure
-            // Log error for debugging but don't expose details
-            System.err.println("WARNING: Failed to encrypt setting value - returning empty string");
+            // Silent failure - don't log sensitive details to console
             return ""; // Return empty string instead of plaintext
         }
     }
@@ -157,11 +156,11 @@ public class SecureSettings {
                     return new String(decrypted, StandardCharsets.UTF_8);
                 }
                 
-                // If we get here, decryption failed
-                System.err.println("Failed to decrypt setting value - unknown format");
+                // If we get here, decryption failed - return encrypted value as-is
+                // Silent failure for backward compatibility (setting may not be encrypted)
                 return storedValue;
             } catch (Exception e) {
-                System.err.println("Failed to decrypt setting value");
+                // Silent failure - setting may be in old format or plaintext
                 // Return the encrypted value as-is if decryption fails
                 return storedValue;
             }

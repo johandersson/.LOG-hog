@@ -48,8 +48,8 @@ public class LogParser {
                         filtered.add(entry);
                     }
                 } catch (Exception e) {
-                    // Log but don't propagate parsing errors
-                    System.err.println("Warning: Failed to parse log entry - skipping");
+                    // Security: Don't log parsing errors to console
+                    // Silently skip malformed entries
                 }
             }
         }

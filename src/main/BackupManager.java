@@ -204,7 +204,7 @@ public class BackupManager {
                 settings.store(out, "LogHog Settings");
             }
         } catch (Exception e) {
-            System.err.println("Failed to save backup settings: " + e.getMessage());
+            // Security: Don't log exception details to console
         }
     }
 
@@ -319,7 +319,7 @@ public class BackupManager {
             
             // Verify backup was created successfully
             if (!verifyBackup(logPath, backupPath)) {
-                System.err.println("Backup verification failed");
+                // Security: Don't log verification failures to console
                 return;
             }
             
@@ -332,7 +332,7 @@ public class BackupManager {
             new Thread(() -> rotateAutoBackups()).start();
 
         } catch (Exception e) {
-            System.err.println("Automatic backup failed: " + e.getMessage());
+            // Security: Don't log exception details to console
             // Don't show UI errors for automatic backups
         } finally {
             // Close progress dialog after a brief delay to show completion
@@ -389,7 +389,7 @@ public class BackupManager {
             
         } catch (Exception e) {
             // Don't fail the save operation if backup fails
-            System.err.println("Numbered backup failed: " + e.getMessage());
+            // Security: Don't log exception details to console
         }
     }
 

@@ -193,8 +193,8 @@ public class SecureClipboardManager implements ClipboardHandler {
         } catch (IOException ioe) {
             // I/O error accessing clipboard - silently ignore
         } catch (Exception e) {
-            // Any other unexpected error - log but don't show to user
-            System.err.println("Unexpected error clearing secure clipboard: " + e.getMessage());
+            // Security: Don't log exception details to console
+            // Any other unexpected error - silently ignore
         }
     }
 
@@ -222,8 +222,8 @@ public class SecureClipboardManager implements ClipboardHandler {
         } catch (IOException ioe) {
             // I/O error accessing clipboard
         } catch (Exception e) {
-            // Any other unexpected error
-            System.err.println("Unexpected error checking secure clipboard content: " + e.getMessage());
+            // Security: Don't log exception details to console
+            // Any other unexpected error - return false
         }
         return false;
     }
@@ -249,7 +249,7 @@ public class SecureClipboardManager implements ClipboardHandler {
                 });
             }, timeoutSeconds, TimeUnit.SECONDS);
         } catch (Exception e) {
-            System.err.println("Failed to schedule clipboard clearing: " + e.getMessage());
+            // Security: Don't log exception details to console
         }
     }
 
