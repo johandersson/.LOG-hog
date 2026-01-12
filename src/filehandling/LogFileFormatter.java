@@ -39,6 +39,19 @@ public class LogFileFormatter {
     
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
     
+    /**
+     * Helper class to store entry with pre-parsed timestamp for efficient sorting.
+     */
+    private static class TimestampEntry {
+        final List<String> entry;
+        final LocalDateTime dateTime;
+        
+        TimestampEntry(List<String> entry, LocalDateTime dateTime) {
+            this.entry = entry;
+            this.dateTime = dateTime;
+        }
+    }
+    
     // Security: Prevent memory exhaustion attacks
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
     private static final int MAX_COLLECTION_SIZE = 100000; // Max entries
@@ -82,28 +95,39 @@ public class LogFileFormatter {
         }
 
         // Separate timestamp entries from non-timestamp entries
-        List<List<String>> timestampEntries = new ArrayList<>();
+        // Pre-parse timestamps for O(N) instead of O(N log N) parsing during sort
+        List<TimestampEntry> timestampEntriesWithDates = new ArrayList<>();
         List<List<String>> nonTimestampEntries = new ArrayList<>();
+        
         for (List<String> entry : entries) {
             if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
-                timestampEntries.add(entry);
+                // Pre-parse timestamp once
+                LocalDateTime dateTime = null;
+                try {
+                    String dateStr = entry.get(0).trim().replaceAll(" \\(\\d+\\)", "");
+                    dateTime = LocalDateTime.parse(dateStr, FORMATTER);
+                } catch (Exception e) {
+                    // Parsing failed, use null for stable sort
+                }
+                timestampEntriesWithDates.add(new TimestampEntry(entry, dateTime));
             } else {
                 nonTimestampEntries.add(entry);
             }
         }
 
-        // Sort timestamp entries by date ascending (oldest first)
-        timestampEntries.sort((a, b) -> {
-            try {
-                String dateStrA = a.get(0).trim().replaceAll(" \\(\\d+\\)", "");
-                String dateStrB = b.get(0).trim().replaceAll(" \\(\\d+\\)", "");
-                LocalDateTime dateA = LocalDateTime.parse(dateStrA, FORMATTER);
-                LocalDateTime dateB = LocalDateTime.parse(dateStrB, FORMATTER);
-                return dateA.compareTo(dateB);
-            } catch (Exception e) {
-                return 0; // keep original order if parsing fails
-            }
+        // Sort by pre-parsed timestamps - O(N log N) comparisons with O(1) per comparison
+        timestampEntriesWithDates.sort((a, b) -> {
+            if (a.dateTime == null && b.dateTime == null) return 0;
+            if (a.dateTime == null) return 1;  // nulls last
+            if (b.dateTime == null) return -1;
+            return a.dateTime.compareTo(b.dateTime);
         });
+        
+        // Extract sorted entries
+        List<List<String>> timestampEntries = new ArrayList<>(timestampEntriesWithDates.size());
+        for (TimestampEntry te : timestampEntriesWithDates) {
+            timestampEntries.add(te.entry);
+        }
 
         // Combine: non-timestamp entries first, then sorted timestamp entries
         List<List<String>> sortedEntries = new ArrayList<>();
@@ -122,32 +146,32 @@ public class LogFileFormatter {
         for (int i = 0; i < sortedEntries.size(); i++) {
             List<String> entry = sortedEntries.get(i);
             
-            // Use centralized format rules
-            LogFileFormat.removeTrailingBlanks(entry);
-            
-            // CRITICAL: Remove excessive blank lines within entries but preserve
-            // semantically important blanks (e.g., between paragraphs, before quotes)
-            List<String> cleanedEntry = new ArrayList<>();
+            // Single-pass entry cleaning: remove excessive blanks and trailing blanks in one go
             int consecutiveBlanks = 0;
-            for (String line : entry) {
-                if (line.trim().isEmpty()) {
-                    consecutiveBlanks++;
-                    // Allow up to 1 blank line within entries (for paragraph breaks, etc.)
-                    if (consecutiveBlanks <= 1) {
-                        cleanedEntry.add(line);
-                    }
-                } else {
-                    cleanedEntry.add(line);
-                    consecutiveBlanks = 0;
+            int lastNonBlankIndex = -1;
+            
+            // First pass: identify last non-blank line
+            for (int j = entry.size() - 1; j >= 0; j--) {
+                if (!entry.get(j).trim().isEmpty()) {
+                    lastNonBlankIndex = j;
+                    break;
                 }
             }
             
-            // Remove any trailing blanks that were added
-            while (!cleanedEntry.isEmpty() && cleanedEntry.get(cleanedEntry.size() - 1).trim().isEmpty()) {
-                cleanedEntry.remove(cleanedEntry.size() - 1);
+            // Second pass: add lines up to last non-blank, limiting consecutive blanks
+            for (int j = 0; j <= lastNonBlankIndex && j < entry.size(); j++) {
+                String line = entry.get(j);
+                if (line.trim().isEmpty()) {
+                    consecutiveBlanks++;
+                    // Allow up to 1 blank line within entries (for paragraph breaks)
+                    if (consecutiveBlanks <= 1) {
+                        sortedLines.add(line);
+                    }
+                } else {
+                    sortedLines.add(line);
+                    consecutiveBlanks = 0;
+                }
             }
-            
-            sortedLines.addAll(cleanedEntry);
             
             // Use centralized format rules for entry separation
             for (int j = 0; j < LogFileFormat.FILE_ENTRY_SEPARATOR_BLANKS; j++) {
