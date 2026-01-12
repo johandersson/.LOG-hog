@@ -87,6 +87,9 @@ public class FullLogPanel extends LogPanel {
             }
         });
 
+        // Add right-click context menu for timestamps
+        addTimestampContextMenu();
+
         var scroll = new JScrollPane(fullLogPane);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         add(scroll, BorderLayout.CENTER);
@@ -336,5 +339,82 @@ public class FullLogPanel extends LogPanel {
     @Override
     public void copyToClipboard() {
         copyFullLogToClipboard();
+    }
+    
+    private void addTimestampContextMenu() {
+        fullLogPane.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showContextMenu(e);
+                }
+            }
+            
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showContextMenu(e);
+                }
+            }
+            
+            private void showContextMenu(java.awt.event.MouseEvent e) {
+                // Get the position and check if we're clicking on a timestamp
+                int pos = fullLogPane.viewToModel2D(e.getPoint());
+                if (pos < 0) return;
+                
+                try {
+                    javax.swing.text.StyledDocument doc = fullLogPane.getStyledDocument();
+                    javax.swing.text.Element elem = doc.getParagraphElement(pos);
+                    int start = elem.getStartOffset();
+                    int end = elem.getEndOffset();
+                    String line = doc.getText(start, end - start).trim();
+                    
+                    // Check if this line is a timestamp (format: HH:MM YYYY-MM-DD or HH:MM YYYY-MM-DD (N))
+                    if (line.matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
+                        String timestamp = line.replaceAll(" *\\(\\d+\\)$", "").trim(); // Remove (N) suffix if present
+                        
+                        JPopupMenu popup = new JPopupMenu();
+                        JMenuItem editItem = new JMenuItem("Edit this log entry");
+                        editItem.addActionListener(evt -> editEntryByTimestamp(timestamp));
+                        popup.add(editItem);
+                        popup.show(fullLogPane, e.getX(), e.getY());
+                    }
+                } catch (javax.swing.text.BadLocationException ex) {
+                    // Ignore - not a valid position
+                }
+            }
+        });
+    }
+    
+    private void editEntryByTimestamp(String timestamp) {
+        // Switch to Log List tab (index 1)
+        editor.getTabPane().setSelectedIndex(1);
+        
+        // Find and select the entry in the log list
+        LogListPanel logListPanel = editor.getLogListPanel();
+        DefaultListModel<String> listModel = logListPanel.getListModel();
+        JList<String> logList = logListPanel.getLogList();
+        
+        // Search for the entry with matching timestamp
+        for (int i = 0; i < listModel.getSize(); i++) {
+            String entry = listModel.getElementAt(i);
+            if (entry.startsWith(timestamp)) {
+                // Found it - select and scroll to it
+                logList.setSelectedIndex(i);
+                logList.ensureIndexIsVisible(i);
+                
+                // Focus the entry text area for editing
+                SwingUtilities.invokeLater(() -> {
+                    logListPanel.getEntryArea().requestFocusInWindow();
+                });
+                return;
+            }
+        }
+        
+        // If not found in current view, show a message
+        JOptionPane.showMessageDialog(this,
+            "Entry not found in current log list view.\nYou may need to adjust the year/month filter to see this entry.",
+            "Entry Not Found",
+            JOptionPane.INFORMATION_MESSAGE);
     }
 }
