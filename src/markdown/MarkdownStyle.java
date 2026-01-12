@@ -23,6 +23,11 @@ import java.awt.Color;
  * Centralized markdown rendering style constants.
  * All font sizes, colors, indentation, and styling values are defined here
  * to ensure consistency across all markdown rendering operations.
+ * 
+ * SINGLE POINT OF REFERENCE for all visual styling in markdown rendering.
+ * 
+ * DOCUMENT_LINE_SEPARATOR is used for line breaks WITHIN entries.
+ * Entry-to-entry spacing is controlled by LogFileFormat.DISPLAY_ENTRY_SEPARATOR_BLANKS.
  */
 public class MarkdownStyle {
     

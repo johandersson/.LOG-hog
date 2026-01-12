@@ -38,6 +38,20 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
+/**
+ * Markdown renderer with centralized styling and consistent spacing.
+ * 
+ * SINGLE POINT OF REFERENCE for all markdown rendering in LogHog.
+ * All markdown display goes through this class to ensure consistency.
+ * 
+ * SPACING RULES (strictly enforced):
+ * - Between entries: Always 2 blank lines (controlled by LogFileFormat.DISPLAY_ENTRY_SEPARATOR_BLANKS)
+ * - Within entries: Single newline between lines (MarkdownStyle.DOCUMENT_LINE_SEPARATOR)
+ * - After special blocks (quotes, code, headings): Same as above - consistency guaranteed
+ * 
+ * All rendering operations use the centralized constants from LogFileFormat and MarkdownStyle
+ * to ensure no variance in spacing regardless of content type.
+ */
 public class MarkdownRenderer {
 
     private static final Pattern INLINE_HEADING_PATTERN = Pattern.compile("(###|##|#) ");

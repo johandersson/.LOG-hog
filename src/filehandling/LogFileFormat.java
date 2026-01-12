@@ -8,11 +8,16 @@ import java.util.List;
  * This class defines the standard format rules for LogHog files to ensure consistency
  * across all operations (saving, parsing, rendering, formatting).
  * 
+ * SINGLE POINT OF REFERENCE for all file format rules.
+ * 
  * Format Rules:
  * - File format: Entries separated by ONE blank line (2 newlines after content)
- * - Display format: Markdown renderer adds 2 blank lines between entries for visual readability
+ * - Display format: Renderer ALWAYS adds 2 blank lines between ALL entries for visual readability
  * - Entry structure: timestamp line + content lines (no trailing blanks)
  * - Blank lines within entry content are preserved during parsing
+ * 
+ * CRITICAL: DISPLAY_ENTRY_SEPARATOR_BLANKS = 2 ensures ALL entries in the display
+ * have exactly 2 blank lines between them, regardless of content type (quotes, code, etc.)
  * 
  * Note: The display format is independent of file format - the renderer always shows
  * 2 blank lines between entries for comfortable reading, regardless of file content.
