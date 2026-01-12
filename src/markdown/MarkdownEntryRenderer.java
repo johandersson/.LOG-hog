@@ -58,10 +58,7 @@ public class MarkdownEntryRenderer {
             boolean hasInlineHeading = INLINE_HEADING_PATTERN.matcher(line).find();
 
             // If we have accumulated paragraph lines and this line starts a new block, render the paragraph first
-            if (!paragraphLines.isEmpty() && (isBlank || isList || isQuote || isHeading || hasInlineHeading || isCodeBlockMarker || inCodeBlock)) {
-                renderParagraph(paragraphLines, doc, defaultStyle, styles);
-                paragraphLines.clear();
-            }
+            flushParagraphIfNeeded(isBlank || isList || isQuote || isHeading || hasInlineHeading || isCodeBlockMarker || inCodeBlock, paragraphLines, doc, defaultStyle, styles);
 
             if (isCodeBlockMarker) {
                 inCodeBlock = handleCodeBlockMarker(inCodeBlock, doc, styles);
@@ -75,13 +72,9 @@ public class MarkdownEntryRenderer {
             } else if (isBlank) {
                 continue;
             } else if (isList) {
-                List<String> listLines = collectListLines(entry, i);
-                i += listLines.size() - 1;
-                renderListBlock(listLines, doc, styles.get("list"), styles);
+                i += handleList(i, entry, doc, styles);
             } else if (isQuote) {
-                List<String> quoteLines = collectQuoteLines(entry, i);
-                renderBlockquote(doc, quoteLines, styles);
-                i += quoteLines.size() - 1;
+                i += handleQuote(i, entry, doc, styles);
             } else if (isHeading) {
                 renderHeading(line, doc, styles);
             } else if (hasInlineHeading) {
@@ -97,12 +90,19 @@ public class MarkdownEntryRenderer {
         }
     }
 
-    private static boolean isTimestampLine(String line) {
-        return line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
+    private static void flushParagraphIfNeeded(boolean condition, List<String> paragraphLines, StyledDocument doc, Style defaultStyle, Map<String, Style> styles) throws BadLocationException {
+        if (condition && !paragraphLines.isEmpty()) {
+            renderParagraph(paragraphLines, doc, defaultStyle, styles);
+            paragraphLines.clear();
+        }
     }
 
     private static boolean isHeadingLine(String line) {
         return line.startsWith("# ") || line.startsWith("## ") || line.startsWith("### ");
+    }
+
+    private static boolean isTimestampLine(String line) {
+        return line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
     }
 
     private static boolean handleCodeBlockMarker(boolean inCodeBlock, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
@@ -193,6 +193,18 @@ public class MarkdownEntryRenderer {
             listLines.add(entry.get(j));
         }
         return listLines;
+    }
+
+    private static int handleList(int i, List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
+        List<String> listLines = collectListLines(entry, i);
+        renderListBlock(listLines, doc, styles.get("list"), styles);
+        return listLines.size() - 1;
+    }
+
+    private static int handleQuote(int i, List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
+        List<String> quoteLines = collectQuoteLines(entry, i);
+        renderBlockquote(doc, quoteLines, styles);
+        return quoteLines.size() - 1;
     }
 
     private static void renderParagraph(List<String> lines, StyledDocument doc, Style defaultStyle, Map<String, Style> styles) throws BadLocationException {
