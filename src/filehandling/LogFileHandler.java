@@ -20,19 +20,15 @@ package filehandling;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 import javax.swing.DefaultListModel;
-import javax.swing.JOptionPane;
 
 import encryption.EncryptionManager;
 import encryption.Encryptor;
@@ -64,16 +60,10 @@ public class LogFileHandler implements LogFileOperations {
     private boolean encrypted = false;
     private byte[] salt;
     private String backupDirectory = "";
-    List<String> cachedLines = new ArrayList<>();
-    private List<List<String>> cachedEntries = null;
-    private long cachedEntriesLastModified = 0;
-    private EntryLoader entryLoader;
     
-    // Write-back cache for performance
-    private boolean isDirty = false;
-    private List<String> pendingLines = null;
-    private long lastWriteTime = 0;
-    private static final long WRITE_DELAY_MS = 2000; // 2 second delay before auto-flush
+    private final FileCache cache = new FileCache();
+    private EntryLoader entryLoader;
+    private EntryEditor entryEditor;
 
     // Default constructor for backward compatibility
     public LogFileHandler() {
@@ -86,6 +76,7 @@ public class LogFileHandler implements LogFileOperations {
         this.encryptor = encryptor;
         this.encryptionManager = new FileEncryptionManager(filePath, encryptor);
         this.entryLoader = new EntryLoader(this, encryptor);
+        this.entryEditor = new EntryEditor(filePath, encryptionManager, cache);
     }
 
     public static String removeSecureMarker(String text) {
@@ -110,45 +101,16 @@ public class LogFileHandler implements LogFileOperations {
 
         String timeStamp = FORMATTER.format(LocalDateTime.now());
         int count = getDuplicateCount(timeStamp);
-        String uniqueTimeStamp = count > 0 ? timeStamp + " (" + count + ")" : timeStamp;
-
-        String ls = System.lineSeparator();
-        // Entry ends with exactly one blank line for correct grouping
-        String entry = uniqueTimeStamp + ls + text + ls;
+        String uniqueTimeStamp = entryEditor.createUniqueTimestamp(count);
 
         try {
-            if (encrypted) {
-                cachedLines.addAll(Arrays.asList(entry.split("\r?\n", -1)));
-                String fullText = String.join("\n", cachedLines);
-                
-                // Ensure .LOG header is present for encrypted files
-                if (!fullText.startsWith(".LOG")) {
-                    fullText = ".LOG\n\n" + fullText;
-                    cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1)));
-                }
-                
-                encryptionManager.encryptFile(fullText);
-                cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1)));
-            } else {
-                if (Files.exists(filePath)) {
-                    // Inspect last line to avoid creating multiple blank lines between entries.
-                    List<String> existing = Files.readAllLines(filePath);
-                    String toWrite = uniqueTimeStamp + ls + text + ls;
-                    if (backupManager != null) {
-                        backupManager.createNumberedBackup();
-                    }
-                    Files.writeString(filePath, toWrite, java.nio.file.StandardOpenOption.APPEND);
-                } else {
-                    // For new files, ensure .LOG header exists for Notepad compatibility
-                    String contentWithHeader = ".LOG" + ls + ls + entry;
-                    Files.writeString(filePath, contentWithHeader, java.nio.file.StandardOpenOption.CREATE);
-                }
-            }
+            entryEditor.setBackupManager(backupManager);
+            entryEditor.saveEntry(text, uniqueTimeStamp, encrypted);
 
             listModel.addElement(uniqueTimeStamp);
             sortListModel(listModel);
 
-            invalidateEntryCache();
+            cache.invalidateEntryCache();
         } catch (java.nio.file.AccessDeniedException e) {
             showErrorDialog("<html><b>💾 Save Failed - Access Denied</b><br><br>" +
                 "The log file is <b>read-only</b> or you don't have write permissions.<br><br>" +
@@ -201,19 +163,8 @@ public class LogFileHandler implements LogFileOperations {
             lines = Files.readAllLines(filePath);
         }
         
-        // Sort entries by timestamp
-        List<String> sortedLines = sortEntriesByTimestamp(lines);
-        
-        // Normalize spacing
-        List<String> normalized = getNormalized(sortedLines);
-
-        if (encryptionManager.isEncrypted()) {
-            cachedLines = new ArrayList<>(normalized);
-            String fullText = String.join("\n", cachedLines);
-            encryptionManager.encryptFile(fullText);
-        } else {
-            Files.write(filePath, normalized);
-        }
+        entryEditor.setBackupManager(backupManager);
+        entryEditor.writeLines(lines, encrypted);
     }
 
     public void updateEntry(String timeStamp, String newText) {
@@ -226,33 +177,11 @@ public class LogFileHandler implements LogFileOperations {
             } else {
                 lines = Files.readAllLines(filePath);
             }
-            List<String> updatedLines = new ArrayList<>();
-            boolean inTargetEntry = false;
-
-            for (String line : lines) {
-                if (line.trim().equals(timeStamp.trim())) {
-                    inTargetEntry = true;
-                    updatedLines.add(line); // keep the timestamp line
-                    updatedLines.add(newText); // add the new text
-                    continue;
-                }
-
-                if (inTargetEntry) {
-                    // stop skipping when we hit the next timestamp line
-                    if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                        inTargetEntry = false;
-                        updatedLines.add(line); // add the next timestamp line
-                    }
-                    // skip old body lines
-                } else {
-                    updatedLines.add(line);
-                }
-            }
+            
+            List<String> updatedLines = entryEditor.updateEntry(timeStamp, newText, lines);
 
             // Use write-back cache for performance
-            pendingLines = updatedLines;
-            isDirty = true;
-            lastWriteTime = System.currentTimeMillis();
+            cache.setPendingLines(updatedLines);
             
             // Invalidate caches immediately
             entryLoader.invalidateCaches();
@@ -268,12 +197,13 @@ public class LogFileHandler implements LogFileOperations {
      * Called when user switches views, locks file, or after timeout.
      */
     public void flushPendingWrites() {
-        if (!isDirty || pendingLines == null) return;
+        if (!cache.hasPendingWrites()) return;
         
         try {
+            List<String> pendingLines = cache.getPendingLines();
             if (encryptionManager.isEncrypted()) {
-                cachedLines = new ArrayList<>(pendingLines);
-                String fullText = String.join("\n", cachedLines);
+                cache.updateCachedLines(pendingLines);
+                String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cache.getCachedLines());
                 // Create numbered backup before encryption
                 if (backupManager != null) {
                     backupManager.createNumberedBackup();
@@ -287,8 +217,7 @@ public class LogFileHandler implements LogFileOperations {
                 Files.write(filePath, pendingLines);
             }
             
-            isDirty = false;
-            pendingLines = null;
+            cache.clearPendingWrites();
         } catch (Exception e) {
             // Security: Don't expose internal error details
             showErrorDialog("<html><b>💾 Write Failed</b><br><br>Unable to save changes to disk.<br>Please check file permissions and disk space.</html>");
@@ -299,7 +228,7 @@ public class LogFileHandler implements LogFileOperations {
      * Check if there are unsaved changes.
      */
     public boolean hasPendingWrites() {
-        return isDirty && pendingLines != null;
+        return cache.hasPendingWrites();
     }
 
     public void changeTimestamp(String oldTimestamp, String newTimestamp, DefaultListModel<String> listModel) {
@@ -320,8 +249,8 @@ public class LogFileHandler implements LogFileOperations {
             }
 
             if (encryptionManager.isEncrypted()) {
-                cachedLines = new ArrayList<>(lines);
-                String fullText = String.join("\n", cachedLines);
+                cache.updateCachedLines(lines);
+                String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cache.getCachedLines());
                 // Create numbered backup before encryption
                 if (backupManager != null) {
                     backupManager.createNumberedBackup();
@@ -370,61 +299,10 @@ public class LogFileHandler implements LogFileOperations {
                 lines = Files.readAllLines(filePath);
             }
             
-            // Convert to set for O(1) lookup
-            Set<String> timestampsToDelete = new HashSet<>();
-            for (String ts : timestamps) {
-                timestampsToDelete.add(ts.trim());
-            }
-            
-            // Remove all matching entries in one pass
-            List<String> updatedLines = new ArrayList<>();
-            boolean inDeletedEntry = false;
-            
-            for (String line : lines) {
-                String trimmed = line.trim();
-                
-                // Check if this is a timestamp we want to delete
-                if (timestampsToDelete.contains(trimmed)) {
-                    inDeletedEntry = true;
-                    continue; // Skip timestamp line
-                }
-                
-                // Check if we hit the next timestamp (end of deleted entry)
-                if (inDeletedEntry && trimmed.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                    inDeletedEntry = false;
-                    updatedLines.add(line);
-                    continue;
-                }
-                
-                // Skip lines that are part of a deleted entry
-                if (inDeletedEntry) {
-                    continue;
-                }
-                
-                updatedLines.add(line);
-            }
+            List<String> updatedLines = entryEditor.deleteEntries(timestamps, lines);
 
-            // Sort entries by timestamp before normalizing
-            List<String> sortedLines = sortEntriesByTimestamp(updatedLines);
-
-            // Normalize spacing: ensure at most one blank line between entries
-            List<String> normalized = getNormalized(sortedLines);
-
-            if (encryptionManager.isEncrypted()) {
-                cachedLines = new ArrayList<>(normalized);
-                String fullText = String.join("\n", cachedLines);
-                // Create numbered backup before encryption
-                if (backupManager != null) {
-                    backupManager.createNumberedBackup();
-                }
-                encryptionManager.encryptFile(fullText);
-            } else {
-                // Create numbered backup before writing
-                if (backupManager != null) {
-                    backupManager.createNumberedBackup();
-                }
-                Files.write(filePath, normalized);
-            }
+            entryEditor.setBackupManager(backupManager);
+            entryEditor.writeLines(updatedLines, encrypted);
             
             // Invalidate caches after deletion
             entryLoader.invalidateCaches();
@@ -438,139 +316,6 @@ public class LogFileHandler implements LogFileOperations {
         } catch (Exception e) {
             showErrorDialog("<html><b>🗑️ Delete Failed</b><br><br>Unable to delete the log entries.<br>Please try again.<br><br><i>Tip: Ensure the entries exist and the file is not locked.</i></html>");
         }
-    }
-
-    private static List<String> getNormalized(List<String> updatedLines) {
-        List<String> normalized = new ArrayList<>();
-        boolean prevBlank = false;
-        for (String l : updatedLines) {
-            boolean isBlank = l.trim().isEmpty();
-            if (isBlank) {
-                if (!prevBlank) {
-                    normalized.add(""); // keep single blank line
-                    prevBlank = true;
-                } // else skip additional blank lines
-            } else {
-                normalized.add(l);
-                prevBlank = false;
-            }
-        }
-        return normalized;
-    }
-
-    private static List<String> sortEntriesByTimestamp(List<String> lines) {
-        // Check if .LOG header exists in the input
-        boolean hasLogHeader = lines.stream().anyMatch(line -> line.trim().equalsIgnoreCase(".LOG"));
-        
-        List<List<String>> entries = new ArrayList<>();
-        List<String> currentEntry = new ArrayList<>();
-        java.util.regex.Pattern tsPattern = java.util.regex.Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", java.util.regex.Pattern.MULTILINE);
-
-        for (String line : lines) {
-            String trimmed = line.trim();
-            if (trimmed.equalsIgnoreCase(".LOG")) continue; // Skip .LOG during processing
-            if (tsPattern.matcher(trimmed).matches()) {
-                if (!currentEntry.isEmpty()) {
-                    entries.add(new ArrayList<>(currentEntry));
-                    currentEntry.clear();
-                }
-                currentEntry.add(line);
-            } else {
-                if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
-                    currentEntry.add(line);
-                }
-            }
-        }
-        if (!currentEntry.isEmpty()) {
-            entries.add(currentEntry);
-        }
-
-        // Separate timestamp entries from non-timestamp entries
-        List<List<String>> timestampEntries = new ArrayList<>();
-        List<List<String>> nonTimestampEntries = new ArrayList<>();
-        for (List<String> entry : entries) {
-            if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
-                timestampEntries.add(entry);
-            } else {
-                nonTimestampEntries.add(entry);
-            }
-        }
-
-        // Sort timestamp entries by date ascending (oldest first)
-        timestampEntries.sort((a, b) -> {
-            try {
-                LocalDateTime dateA = parseDateForSorting(a.get(0));
-                LocalDateTime dateB = parseDateForSorting(b.get(0));
-                return dateA.compareTo(dateB);
-            } catch (Exception e) {
-                return 0; // keep original order if parsing fails
-            }
-        });
-
-        // Combine: non-timestamp entries first, then sorted timestamp entries
-        List<List<String>> sortedEntries = new ArrayList<>();
-        sortedEntries.addAll(nonTimestampEntries);
-        sortedEntries.addAll(timestampEntries);
-
-        // Flatten back to lines with consistent spacing
-        List<String> sortedLines = new ArrayList<>();
-        
-        // Add .LOG header at the top if it existed in the input
-        if (hasLogHeader) {
-            sortedLines.add(".LOG");
-            sortedLines.add(""); // Blank line after header
-        }
-        
-        for (int i = 0; i < sortedEntries.size(); i++) {
-            List<String> entry = sortedEntries.get(i);
-            
-            // Remove trailing blank lines from entry
-            while (!entry.isEmpty() && entry.get(entry.size() - 1).trim().isEmpty()) {
-                entry.remove(entry.size() - 1);
-            }
-            
-            sortedLines.addAll(entry);
-            
-            // Add exactly one blank line after each entry except the last one
-            if (i < sortedEntries.size() - 1) {
-                sortedLines.add("");
-            }
-        }
-
-        return sortedLines;
-    }
-
-    private static LocalDateTime parseDateForSorting(String timestampLine) {
-        String dateStr = timestampLine.trim().replaceAll(" \\(\\d+\\)", "");
-        return LocalDateTime.parse(dateStr, FORMATTER);
-    }
-
-    private static List<String> getUpdatedLines(String timeStamp, List<String> lines) {
-        List<String> updatedLines = new ArrayList<>();
-        boolean skipping = false;
-
-        for (String line : lines) {
-            // timestamp lines are exact matches (whitespace trimmed)
-            if (!skipping && line.trim().equals(timeStamp.trim())) {
-                skipping = true; // start skipping this timestamp and its body
-                continue;
-            }
-
-            if (skipping) {
-                // stop skipping when we hit the next timestamp line
-                if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
-                    skipping = false;
-                    // This line is the next timestamp; it should be kept
-                    updatedLines.add(line);
-                } else {
-                    // while skipping, simply continue (this drops blank lines and body lines)
-                    continue;
-                }
-            } else {
-                updatedLines.add(line);
-            }
-        }
-        return updatedLines;
     }
 
     public int getDuplicateCount(String timeStamp) {
@@ -609,9 +354,11 @@ public class LogFileHandler implements LogFileOperations {
     
     public List<String> getLines() throws Exception {
         if (encryptionManager.isEncrypted()) {
-            if (cachedLines == null) {
+            List<String> cachedLines = cache.getCachedLines();
+            if (cachedLines.isEmpty()) {
                 String decrypted = encryptionManager.decryptFile();
                 cachedLines = new ArrayList<>(Arrays.asList(decrypted.split("\r?\n", -1)));
+                cache.updateCachedLines(cachedLines);
             }
             return cachedLines;
         } else {
@@ -631,7 +378,7 @@ public class LogFileHandler implements LogFileOperations {
         this.salt = encryptor.generateSalt();
         List<String> lines = Files.readAllLines(filePath);
         // Preserve .LOG header in encrypted files (don't remove it)
-        String fullText = String.join("\n", lines);
+        String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, lines);
         // Ensure .LOG header is present
         if (!fullText.startsWith(".LOG")) {
             fullText = ".LOG\n\n" + fullText;
@@ -642,17 +389,24 @@ public class LogFileHandler implements LogFileOperations {
         // Then encrypt and save
         encryptionManager.setEncryption(pwd, this.salt);
         encryptionManager.encryptFile(fullText);
-        cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1)));
+        cache.updateCachedLines(new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1))));
         encrypted = true;
     }
 
     private void invalidateEntryCache() {
-        cachedEntries = null;
-        cachedEntriesLastModified = 0;
+        cache.invalidateEntryCache();
         // Also invalidate EntryLoader's caches
         if (entryLoader != null) {
             entryLoader.invalidateCaches();
         }
+    }
+    
+    /**
+     * Invalidates all entry caches to force reload on next access.
+     * Public method for external cache invalidation.
+     */
+    public void invalidateCaches() {
+        invalidateEntryCache();
     }
 
     public List<List<String>> getParsedEntries() throws Exception {
@@ -661,37 +415,13 @@ public class LogFileHandler implements LogFileOperations {
         }
 
         long currentModified = Files.getLastModifiedTime(filePath).toMillis();
-        if (cachedEntries == null || currentModified > cachedEntriesLastModified) {
+        if (cache.getCachedEntries() == null || currentModified > cache.getCachedEntriesLastModified()) {
             List<String> lines = getLines();
-            cachedEntries = parseEntriesFromLines(lines);
-            cachedEntriesLastModified = currentModified;
+            List<List<String>> entries = LogParser.parseAllEntries(lines);
+            cache.setCachedEntries(entries, currentModified);
         }
 
-        return cachedEntries;
-    }
-
-    private List<List<String>> parseEntriesFromLines(List<String> lines) {
-        List<List<String>> entries = new ArrayList<>();
-        List<String> currentEntry = new ArrayList<>();
-        java.util.regex.Pattern tsPattern = java.util.regex.Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", java.util.regex.Pattern.MULTILINE);
-
-        for (String line : lines) {
-            String trimmed = line.trim();
-            if (trimmed.equalsIgnoreCase(".LOG")) continue;
-            if (tsPattern.matcher(trimmed).matches()) {
-                if (!currentEntry.isEmpty()) {
-                    entries.add(new ArrayList<>(currentEntry));
-                    currentEntry.clear();
-                }
-                currentEntry.add(line);
-            } else if (!currentEntry.isEmpty()) {
-                currentEntry.add(line);
-            }
-        }
-        if (!currentEntry.isEmpty()) {
-            entries.add(currentEntry);
-        }
-        return entries;
+        return cache.getCachedEntries();
     }
 
     public void enableEncryption() throws Exception {
@@ -715,15 +445,7 @@ public class LogFileHandler implements LogFileOperations {
         this.salt = encryptionManager.getSalt().clone();
 
         // Clear any cached data since encryption state changed
-        if (cachedLines != null) {
-            cachedLines.clear();
-            cachedLines = null;
-        }
-        if (cachedEntries != null) {
-            cachedEntries.clear();
-            cachedEntries = null;
-            cachedEntriesLastModified = 0;
-        }
+        cache.invalidateCaches();
     }
 
     @Override
@@ -800,8 +522,8 @@ public class LogFileHandler implements LogFileOperations {
         this.salt = slt;
         this.encrypted = true;
         // Clear cache to force re-read with new credentials
-        cachedLines = null;
-        invalidateEntryCache();
+        cache.clearCachedLines();
+        cache.invalidateEntryCache();
     }
 
     @Override
@@ -835,6 +557,42 @@ public class LogFileHandler implements LogFileOperations {
     
     public void setBackupManager(BackupManager backupManager) {
         this.backupManager = backupManager;
+    }
+    
+    public BackupManager getBackupManager() {
+        return backupManager;
+    }
+    
+    public FileEncryptionManager getEncryptionManager() {
+        return encryptionManager;
+    }
+    
+    /**
+     * Updates the cached lines (used for encrypted files).
+     * Provides memory-efficient write operation.
+     */
+    public void updateCachedLines(List<String> lines) {
+        if (lines == null) {
+            throw new IllegalArgumentException("Lines cannot be null");
+        }
+        cache.updateCachedLines(lines);
+    }
+    
+    /**
+     * Clears the cached lines to force a fresh read from disk.
+     * Useful after encrypting/modifying the file.
+     */
+    public void clearCachedLines() {
+        cache.clearCachedLines();
+    }
+    
+    /**
+     * Clears pending writes without flushing them.
+     * Used after external file modifications (like formatting) to prevent
+     * stale pending writes from overwriting the new content.
+     */
+    public void clearPendingWrites() {
+        cache.clearPendingWrites();
     }
     
     private Path getBackupPath(String filename) {
@@ -882,21 +640,8 @@ public class LogFileHandler implements LogFileOperations {
             salt = null;
         }
         encryptionManager.clearSensitiveData();
-        if (cachedLines != null) {
-            cachedLines.clear();
-            cachedLines = null;
-        }
-        if (cachedEntries != null) {
-            cachedEntries.clear();
-            cachedEntries = null;
-            cachedEntriesLastModified = 0;
-        }
-        // Clear write-back cache
-        if (pendingLines != null) {
-            pendingLines.clear();
-            pendingLines = null;
-        }
-        isDirty = false;
+        cache.invalidateCaches();
+        cache.clearPendingWrites();
         // Clear all EntryLoader caches (timestamps, parsed entries, content cache)
         if (entryLoader != null) {
             entryLoader.invalidateCaches();
@@ -904,132 +649,28 @@ public class LogFileHandler implements LogFileOperations {
     }
 
     public void showErrorDialog(String message) {
-        JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
+        DialogHandler.showErrorDialog(message);
     }
     
     /**
      * Shows error dialog with recovery options including backup restore.
      */
     public void showErrorDialogWithRecovery(String message, String title) {
-        Object[] options = {"OK", "Restore from Backup"};
-        int choice = JOptionPane.showOptionDialog(
-            null,
-            message,
-            title,
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.ERROR_MESSAGE,
-            null,
-            options,
-            options[0]
-        );
-        
-        if (choice == 1) {
-            // User chose to restore from backup
-            showBackupRestoreDialog();
-        }
+        DialogHandler.showErrorDialogWithRecovery(message, title, this::showBackupRestoreDialog);
     }
     
     /**
      * Shows dialog when log file is missing, offering to create new or restore from backup.
      */
     public boolean handleMissingLogFile() {
-        if (Files.exists(filePath)) {
-            return true; // File exists, no action needed
-        }
-        
-        String message = String.format(
-            "<html><b>⚠️ Log File Not Found</b><br><br>" +
-            "The log file <b>%s</b> does not exist.<br><br>" +
-            "Would you like to:<br>" +
-            "• <b>Create a new log file</b> (starts fresh)<br>" +
-            "• <b>Restore from backup</b> (if available)<br>" +
-            "• <b>Exit</b> and manually fix the issue</html>",
-            filePath.getFileName()
-        );
-        
-        Object[] options = {"Create New", "Restore from Backup", "Exit"};
-        int choice = JOptionPane.showOptionDialog(
-            null,
-            message,
-            "Log File Missing",
-            JOptionPane.YES_NO_CANCEL_OPTION,
-            JOptionPane.WARNING_MESSAGE,
-            null,
-            options,
-            options[0]
-        );
-        
-        if (choice == 0) {
-            // Create new file
-            try {
-                Files.createDirectories(filePath.getParent());
-                Files.writeString(filePath, ".LOG" + System.lineSeparator() + System.lineSeparator());
-                JOptionPane.showMessageDialog(
-                    null,
-                    "<html>New log file created successfully!<br><br>" +
-                    "Location: <b>" + filePath + "</b></html>",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-                );
-                return true;
-            } catch (Exception e) {
-                // Security: Don't expose internal error details
-                showErrorDialog("<html><b>Failed to create log file</b><br><br>" +
-                    "Unable to create the log file. Please check permissions and try again.</html>");
-                return false;
-            }
-        } else if (choice == 1) {
-            // Restore from backup
-            return showBackupRestoreDialog();
-        } else {
-            // Exit
-            return false;
-        }
+        return DialogHandler.handleMissingLogFile(filePath, this::invalidateEntryCache);
     }
     
     /**
      * Shows backup restore dialog and allows user to select a backup file.
      */
     public boolean showBackupRestoreDialog() {
-        javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
-        fileChooser.setDialogTitle("Select Backup File to Restore");
-        fileChooser.setCurrentDirectory(new java.io.File(System.getProperty("user.home")));
-        fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
-            @Override
-            public boolean accept(java.io.File f) {
-                return f.isDirectory() || f.getName().endsWith(".txt") || f.getName().endsWith(".bak");
-            }
-            
-            @Override
-            public String getDescription() {
-                return "Backup Files (*.txt, *.bak)";
-            }
-        });
-        
-        int result = fileChooser.showOpenDialog(null);
-        if (result == javax.swing.JFileChooser.APPROVE_OPTION) {
-            java.io.File backupFile = fileChooser.getSelectedFile();
-            try {
-                // Copy backup to log file location
-                Files.copy(backupFile.toPath(), filePath, StandardCopyOption.REPLACE_EXISTING);
-                invalidateEntryCache();
-                JOptionPane.showMessageDialog(
-                    null,
-                    "<html>Backup restored successfully!<br><br>" +
-                    "From: <b>" + backupFile.getName() + "</b><br>" +
-                    "To: <b>" + filePath.getFileName() + "</b></html>",
-                    "Restore Complete",
-                    JOptionPane.INFORMATION_MESSAGE
-                );
-                return true;
-            } catch (Exception e) {
-                // Security: Don't expose internal error details
-                showErrorDialog("<html><b>Restore Failed</b><br><br>" +
-                    "Unable to restore from backup. The backup file may be corrupted.</html>");
-                return false;
-            }
-        }
-        return false;
+        return DialogHandler.showBackupRestoreDialog(filePath, this::invalidateEntryCache);
     }
 
     private boolean isValidFilePath(Path path) {

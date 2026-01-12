@@ -149,7 +149,7 @@ public class TimestampClickHandler {
                     // Check if hovering over a timestamp line
                     if (lineText != null && isTimestampLine(lineText)) {
                         textPane.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
-                        textPane.setToolTipText("Double-click to edit this entry");
+                        textPane.setToolTipText(UIStrings.TOOLTIP_DOUBLE_CLICK_EDIT);
                     } else {
                         resetCursor();
                     }

@@ -24,7 +24,7 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import javax.swing.JOptionPane;
+import gui.DialogHelper;
 
 public class SingleInstanceManager {
     private static final int PORT = 9999;
@@ -65,7 +65,7 @@ public class SingleInstanceManager {
     }
 
     public static void showAlreadyRunningDialog() {
-        JOptionPane.showMessageDialog(null, "Another instance is already running. Switching to it.");
+        DialogHelper.showInfo(null, "Already Running", "Application Already Running", "Another instance is already running. Switching to it.");
     }
 
     public static ServerSocket getServerSocket() {

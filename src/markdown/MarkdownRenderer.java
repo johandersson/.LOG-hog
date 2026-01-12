@@ -17,7 +17,6 @@
 
 package markdown;
 
-import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.event.MouseEvent;
@@ -212,21 +211,21 @@ public class MarkdownRenderer {
         Map<String, Style> styles = new HashMap<>(12); // Pre-size with expected capacity
 
         Style defaultStyle = doc.addStyle("default", null);
-        StyleConstants.setFontFamily(defaultStyle, "Segoe UI");
-        StyleConstants.setFontSize(defaultStyle, 14);
-        StyleConstants.setForeground(defaultStyle, Color.DARK_GRAY);
+        StyleConstants.setFontFamily(defaultStyle, MarkdownStyle.FONT_FAMILY_DEFAULT);
+        StyleConstants.setFontSize(defaultStyle, MarkdownStyle.FONT_SIZE_DEFAULT);
+        StyleConstants.setForeground(defaultStyle, MarkdownStyle.COLOR_DEFAULT_TEXT);
         styles.put("default", defaultStyle);
 
         Style tsStyle = doc.addStyle("timestamp", null);
-        StyleConstants.setFontFamily(tsStyle, "Segoe UI");
-        StyleConstants.setFontSize(tsStyle, 16);
+        StyleConstants.setFontFamily(tsStyle, MarkdownStyle.FONT_FAMILY_DEFAULT);
+        StyleConstants.setFontSize(tsStyle, MarkdownStyle.FONT_SIZE_TIMESTAMP);
         StyleConstants.setBold(tsStyle, true);
-        StyleConstants.setForeground(tsStyle, Color.BLACK);
+        StyleConstants.setForeground(tsStyle, MarkdownStyle.COLOR_TIMESTAMP);
         styles.put("timestamp", tsStyle);
 
         Style sepStyle = doc.addStyle("sep", null);
-        StyleConstants.setFontFamily(sepStyle, "Segoe UI");
-        StyleConstants.setFontSize(sepStyle, 14);
+        StyleConstants.setFontFamily(sepStyle, MarkdownStyle.FONT_FAMILY_DEFAULT);
+        StyleConstants.setFontSize(sepStyle, MarkdownStyle.FONT_SIZE_DEFAULT);
         styles.put("sep", sepStyle);
 
         Style boldStyle = doc.addStyle("bold", defaultStyle);
@@ -238,40 +237,40 @@ public class MarkdownRenderer {
         styles.put("italic", italicStyle);
 
         Style h1Style = doc.addStyle("h1", defaultStyle);
-        StyleConstants.setFontSize(h1Style, 18);
+        StyleConstants.setFontSize(h1Style, MarkdownStyle.FONT_SIZE_H1);
         StyleConstants.setBold(h1Style, true);
         styles.put("h1", h1Style);
 
         Style h2Style = doc.addStyle("h2", defaultStyle);
-        StyleConstants.setFontSize(h2Style, 16);
+        StyleConstants.setFontSize(h2Style, MarkdownStyle.FONT_SIZE_H2);
         StyleConstants.setBold(h2Style, true);
         styles.put("h2", h2Style);
 
         Style h3Style = doc.addStyle("h3", defaultStyle);
-        StyleConstants.setFontSize(h3Style, 14);
+        StyleConstants.setFontSize(h3Style, MarkdownStyle.FONT_SIZE_H3);
         StyleConstants.setBold(h3Style, true);
         styles.put("h3", h3Style);
 
         Style listStyle = doc.addStyle("list", defaultStyle);
-        StyleConstants.setLeftIndent(listStyle, 20);
+        StyleConstants.setLeftIndent(listStyle, MarkdownStyle.INDENT_LIST);
         styles.put("list", listStyle);
 
         Style quoteStyle = doc.addStyle("quote", defaultStyle);
-        StyleConstants.setLeftIndent(quoteStyle, 10); // Less indentation since we have the bar
-        StyleConstants.setBackground(quoteStyle, new Color(47, 128, 237, 20)); // Very light button blue background
+        StyleConstants.setLeftIndent(quoteStyle, MarkdownStyle.INDENT_QUOTE);
+        StyleConstants.setBackground(quoteStyle, MarkdownStyle.COLOR_QUOTE_BG);
         styles.put("quote", quoteStyle);
 
         Style quoteBorderStyle = doc.addStyle("quoteBorder", defaultStyle);
-        StyleConstants.setForeground(quoteBorderStyle, new Color(47, 128, 237)); // Button blue color
-        StyleConstants.setFontFamily(quoteBorderStyle, "Monospaced");
-        StyleConstants.setFontSize(quoteBorderStyle, 14);
+        StyleConstants.setForeground(quoteBorderStyle, MarkdownStyle.COLOR_QUOTE_BORDER);
+        StyleConstants.setFontFamily(quoteBorderStyle, MarkdownStyle.FONT_FAMILY_MONOSPACED);
+        StyleConstants.setFontSize(quoteBorderStyle, MarkdownStyle.FONT_SIZE_QUOTE_BORDER);
         styles.put("quoteBorder", quoteBorderStyle);
 
         Style codeStyle = doc.addStyle("code", defaultStyle);
-        StyleConstants.setFontFamily(codeStyle, "Consolas");
-        StyleConstants.setBackground(codeStyle, new Color(180, 220, 250)); // Lighter and more blue background
-        StyleConstants.setLeftIndent(codeStyle, 5); // Add left padding
-        StyleConstants.setRightIndent(codeStyle, 5); // Add right padding
+        StyleConstants.setFontFamily(codeStyle, MarkdownStyle.FONT_FAMILY_CODE);
+        StyleConstants.setBackground(codeStyle, MarkdownStyle.COLOR_CODE_BLOCK_BG);
+        StyleConstants.setLeftIndent(codeStyle, MarkdownStyle.INDENT_CODE_LEFT);
+        StyleConstants.setRightIndent(codeStyle, MarkdownStyle.INDENT_CODE_RIGHT);
         styles.put("code", codeStyle);
 
         return styles;
@@ -282,7 +281,6 @@ public class MarkdownRenderer {
         Style tsStyle = styles.get("timestamp");
         Style sepStyle = styles.get("sep");
         boolean firstEntry = true;
-        boolean previousHadCode = false;
         
         // Trim trailing blank lines from entries - pre-size for efficiency
         List<List<String>> trimmedEntries = new ArrayList<>(entries.size());
@@ -295,12 +293,14 @@ public class MarkdownRenderer {
         }
         
         for (List<String> entry : trimmedEntries) {
-            if (!firstEntry && !previousHadCode) {
-                doc.insertString(doc.getLength(), "\n\n", sepStyle); // Two blank lines between entries
+            if (!firstEntry) {
+                // Use centralized format rules for display spacing
+                // ALWAYS add separator between entries for consistency
+                String separator = filehandling.LogFileFormat.INTERNAL_LINE_SEPARATOR.repeat(filehandling.LogFileFormat.DISPLAY_ENTRY_SEPARATOR_BLANKS);
+                doc.insertString(doc.getLength(), separator, sepStyle);
             }
             firstEntry = false;
             boolean inCodeBlock = false;
-            boolean currentHasCode = false;
             for (int i = 0; i < entry.size(); i++) {
                 String line = entry.get(i);
                 
@@ -313,30 +313,29 @@ public class MarkdownRenderer {
                     // Plain text line with no markdown - fast path
                     doc.insertString(doc.getLength(), line, defaultStyle);
                     if (i < entry.size() - 1) {
-                        doc.insertString(doc.getLength(), "\n", defaultStyle);
+                        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, defaultStyle);
                     }
                     continue;
                 }
                 
                 if (line.trim().equals("```")) {
                     inCodeBlock = !inCodeBlock;
-                    currentHasCode = true;
                     continue;
                 }
                 if (inCodeBlock) {
                     doc.insertString(doc.getLength(), line, styles.get("code"));
-                    doc.insertString(doc.getLength(), "\n", styles.get("code"));
+                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, styles.get("code"));
                 } else if (i == 0 && line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
                     // Render timestamp
-                    doc.insertString(doc.getLength(), line + "\n", tsStyle);
+                    doc.insertString(doc.getLength(), line + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, tsStyle);
                 } else if (line.trim().isEmpty()) {
                     // Only preserve blank lines within an entry, not between entries
-                    doc.insertString(doc.getLength(), "\n", sepStyle);
+                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, sepStyle);
                 } else if (line.startsWith("- ")) {
                     String text = "• " + line.substring(2);
                     Style listStyle = styles.get("list");
                     MarkdownFormatter.appendLineWithFormatting(doc, text, listStyle, styles);
-                    doc.insertString(doc.getLength(), "\n", listStyle);
+                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, listStyle);
                 } else if (line.startsWith("> ")) {
                     // Handle multi-line blockquotes
                     List<String> quoteLines = new ArrayList<>();
@@ -349,19 +348,18 @@ public class MarkdownRenderer {
                     // Render the blockquote block
                     renderBlockquote(doc, quoteLines, styles);
                     i = j - 1; // Skip the processed lines
-                    currentHasCode = true; // Prevent extra spacing
                 } else if (line.startsWith("# ")) {
                     String text = line.substring(2);
                     MarkdownFormatter.appendLineWithFormatting(doc, text, styles.get("h1"), styles);
-                    doc.insertString(doc.getLength(), "\n", styles.get("h1"));
+                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, styles.get("h1"));
                 } else if (line.startsWith("## ")) {
                     String text = line.substring(3);
                     MarkdownFormatter.appendLineWithFormatting(doc, text, styles.get("h2"), styles);
-                    doc.insertString(doc.getLength(), "\n", styles.get("h2"));
+                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, styles.get("h2"));
                 } else if (line.startsWith("### ")) {
                     String text = line.substring(4);
                     MarkdownFormatter.appendLineWithFormatting(doc, text, styles.get("h3"), styles);
-                    doc.insertString(doc.getLength(), "\n", styles.get("h3"));
+                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, styles.get("h3"));
                 } else {
                     // Parse for inline headings - optimized with single pattern
                     Matcher headingMatcher = INLINE_HEADING_PATTERN.matcher(line);
@@ -393,11 +391,10 @@ public class MarkdownRenderer {
                             text = part.substring(marker.length());
                         }
                         MarkdownFormatter.appendLineWithFormatting(doc, text, partStyle, styles);
-                        doc.insertString(doc.getLength(), "\n", partStyle);
+                        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, partStyle);
                     }
                 }
             }
-            previousHadCode = currentHasCode;
         }
     }
 
@@ -414,9 +411,9 @@ public class MarkdownRenderer {
             // Insert the text with formatting
             MarkdownFormatter.appendLineWithFormatting(doc, text, quoteStyle, styles);
             if (k < quoteLines.size() - 1) {
-                doc.insertString(doc.getLength(), "\n", quoteStyle);
+                doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, quoteStyle);
             }
         }
-        doc.insertString(doc.getLength(), "\n", quoteStyle);
+        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, quoteStyle);
     }
 }

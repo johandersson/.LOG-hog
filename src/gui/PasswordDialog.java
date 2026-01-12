@@ -83,7 +83,7 @@ public class PasswordDialog extends JDialog {
 
         toggleButton = new StandardButton("", new Color(0xE0E0E0), new Color(0xB0B0B0));
         toggleButton.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        toggleButton.setToolTipText("Show password");
+        toggleButton.setToolTipText(UIStrings.TOOLTIP_SHOW_PASSWORD);
         toggleButton.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mousePressed(java.awt.event.MouseEvent e) {
@@ -172,11 +172,11 @@ public class PasswordDialog extends JDialog {
         if (visible) {
             passwordField.setEchoChar((char) 0);
             toggleButton.setText("<html><font size=\"+2\">👁</font></html>");
-            toggleButton.setToolTipText("Hide password");
+            toggleButton.setToolTipText(UIStrings.TOOLTIP_HIDE_PASSWORD);
         } else {
             passwordField.setEchoChar('*');
             toggleButton.setText("<html><font size=\"+2\"><s>👁</s></font></html>");
-            toggleButton.setToolTipText("Show password");
+            toggleButton.setToolTipText(UIStrings.TOOLTIP_SHOW_PASSWORD);
         }
         passwordField.requestFocusInWindow();
     }

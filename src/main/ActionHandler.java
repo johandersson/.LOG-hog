@@ -33,6 +33,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
 import filehandling.LogFileHandler;
+import gui.DialogHelper;
 import gui.FullLogPanel;
 import gui.LogListPanel;
 import gui.SystemTrayMenu;
@@ -106,7 +107,7 @@ public class ActionHandler {
 
     public void saveEditedLogEntry() {
         if (editor.isLocked()) {
-            JOptionPane.showMessageDialog(editor, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
+            DialogHelper.showFileLocked(editor);
             return;
         }
         String selectedItem = logList.getSelectedValue();
@@ -139,7 +140,7 @@ public class ActionHandler {
 
     public void saveLogEntry() {
         if (editor.isLocked()) {
-            JOptionPane.showMessageDialog(editor, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
+            DialogHelper.showFileLocked(editor);
             return;
         }
         logFileHandler.saveText(editor.getEntryPanel().getTextArea().getText(), listModel);
@@ -152,7 +153,7 @@ public class ActionHandler {
 
     public void deleteSelectedEntry() {
         if (editor.isLocked()) {
-            JOptionPane.showMessageDialog(editor, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
+            DialogHelper.showFileLocked(editor);
             return;
         }
         List<String> selectedItems = logList.getSelectedValuesList();
@@ -215,7 +216,7 @@ public class ActionHandler {
 
     public void editDateTime() {
         if (editor.isLocked()) {
-            JOptionPane.showMessageDialog(editor, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
+            DialogHelper.showFileLocked(editor);
             return;
         }
         String selectedItem = logList.getSelectedValue();
@@ -224,7 +225,7 @@ public class ActionHandler {
         String newDateTime = JOptionPane.showInputDialog(editor, "Enter new date and time (format: HH:mm yyyy-MM-dd):", selectedItem);
         if (newDateTime == null) return;
         if (newDateTime.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(editor, "Date and time cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
+            DialogHelper.showError(editor, "Error", "Invalid Input", "Date and time cannot be empty.");
             return;
         }
 
@@ -233,7 +234,7 @@ public class ActionHandler {
             java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd");
             java.time.LocalDateTime.parse(newDateTime.trim(), formatter);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(editor, "Invalid format. Use HH:mm yyyy-MM-dd", "Error", JOptionPane.ERROR_MESSAGE);
+            DialogHelper.showError(editor, "Error", "Invalid Format", "Invalid format. Use HH:mm yyyy-MM-dd");
             return;
         }
 

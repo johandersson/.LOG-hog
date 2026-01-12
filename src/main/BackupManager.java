@@ -36,6 +36,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
+import gui.DialogHelper;
 import gui.LoadingProgressDialog;
 
 /**
@@ -99,13 +100,12 @@ public class BackupManager {
         );
         
         Object[] options = {"Configure Directory", "Use Home Directory"};
-        int choice = JOptionPane.showOptionDialog(
+        int choice = DialogHelper.showOptions(
             parentFrame,
-            message,
             "Backup Directory Setup",
-            JOptionPane.YES_NO_OPTION,
+            "Backup Directory Setup",
+            message,
             JOptionPane.QUESTION_MESSAGE,
-            null,
             options,
             options[0]
         );
@@ -119,12 +119,12 @@ public class BackupManager {
             settings.setProperty("backupDirectoryConfigured", "true");
             saveSettings();
             
-            JOptionPane.showMessageDialog(
+            DialogHelper.showInfo(
                 parentFrame,
-                "<html>Backups will be saved to:<br><b>" + homeDir + "</b><br><br>" +
-                "You can change this later in Settings.</html>",
                 "Backup Directory Set",
-                JOptionPane.INFORMATION_MESSAGE
+                "Backup Directory Set",
+                "Backups will be saved to:<br><b>" + homeDir + "</b><br><br>" +
+                "You can change this later in Settings."
             );
         } else {
             // User closed dialog - use home directory as default
@@ -151,13 +151,12 @@ public class BackupManager {
             
             // Verify directory is writable
             if (!selectedDir.canWrite()) {
-                JOptionPane.showMessageDialog(
+                DialogHelper.showError(
                     parentFrame,
-                    "<html><b>Permission Denied</b><br><br>" +
-                    "Cannot write to selected directory.<br>" +
-                    "Please choose a different location.</html>",
                     "Error",
-                    JOptionPane.ERROR_MESSAGE
+                    "Permission Denied",
+                    "Cannot write to selected directory.<br>" +
+                    "Please choose a different location."
                 );
                 // Try again
                 configureCustomBackupDirectory();
@@ -168,12 +167,12 @@ public class BackupManager {
             settings.setProperty("backupDirectoryConfigured", "true");
             saveSettings();
             
-            JOptionPane.showMessageDialog(
+            DialogHelper.showInfo(
                 parentFrame,
-                "<html>Backups will be saved to:<br><b>" + dirPath + "</b><br><br>" +
-                "You can change this later in Settings.</html>",
                 "Backup Directory Set",
-                JOptionPane.INFORMATION_MESSAGE
+                "Backup Directory Set",
+                "Backups will be saved to:<br><b>" + dirPath + "</b><br><br>" +
+                "You can change this later in Settings."
             );
         } else {
             // User cancelled - ask if they want to use home directory instead

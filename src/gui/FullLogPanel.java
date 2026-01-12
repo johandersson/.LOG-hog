@@ -17,20 +17,33 @@
 
 package gui;
 
-import encryption.EncryptionManager;
-import filehandling.LogFileHandler;
-import java.awt.*;
-import java.awt.datatransfer.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.Toolkit;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-import javax.swing.*;
+
+import javax.swing.AbstractAction;
+import javax.swing.BorderFactory;
+import javax.swing.DefaultListModel;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.ToolTipManager;
+
+import filehandling.FullLogFileLoader;
+import filehandling.LogFileFormatter;
+import filehandling.LogFileHandler;
 import main.LogTextEditor;
-import markdown.LinkHandler;
-import markdown.MarkdownRenderer;
 import notepad.NotepadOpener;
 
 public class FullLogPanel extends LogPanel {
@@ -42,13 +55,15 @@ public class FullLogPanel extends LogPanel {
     private final JButton copyFullLogButton;
     private final JButton openInNotepadButton;
     private final JButton searchButton;
+    private final JButton formatButton;
     private SearchDialog searchDialog;
-    private static final int MAX_ENTRIES_TO_RENDER = 5000; // Limit for performance
+    private FullLogFileLoader fileLoader;
 
     public FullLogPanel(LogTextEditor editor, LogFileHandler logFileHandler) {
         this.editor = editor;
         this.logFileHandler = logFileHandler;
         this.fullLogPane = new HighlightableTextPane();
+        this.fileLoader = new FullLogFileLoader(logFileHandler, fullLogPane);
         this.fullLogPathLabel = new JLabel("Log file: (not loaded)");
         this.lockFileButton = new AccentButton(editor.isLocked() ? "Unlock File" : "Lock File");
         this.copyFullLogButton = new AccentButton("Copy Full Log to Clipboard");
@@ -59,6 +74,7 @@ public class FullLogPanel extends LogPanel {
         this.openInNotepadButton = new AccentButton(buttonLabel);
         
         this.searchButton = new AccentButton("Search");
+        this.formatButton = new AccentButton("Fix Linebreak Formatting");
         initPanel();
         updateLockButton(); // Ensure buttons are in correct state based on lock status
     }
@@ -69,6 +85,8 @@ public class FullLogPanel extends LogPanel {
 
         fullLogPane.setEditable(false);
         fullLogPane.setBackground(Color.WHITE);
+        // Enable tooltips for the text pane
+        ToolTipManager.sharedInstance().registerComponent(fullLogPane);
         // Don't set content type to "text/plain" - we need StyledDocument for markdown links
         // fullLogPane.setContentType("text/plain");
         fullLogPane.setFont(new Font("Segoe UI", Font.PLAIN, 14));
@@ -126,6 +144,9 @@ public class FullLogPanel extends LogPanel {
 
         searchButton.addActionListener(e -> openSearchDialog());
         rightBottomPanel.add(searchButton);
+        
+        formatButton.addActionListener(e -> fixLinebreakFormatting());
+        rightBottomPanel.add(formatButton);
 
         return rightBottomPanel;
     }
@@ -140,6 +161,7 @@ public class FullLogPanel extends LogPanel {
     public void updateLockButton() {
         lockFileButton.setText(editor.isLocked() ? "Unlock File" : "Lock File");
         searchButton.setEnabled(!editor.isLocked());
+        formatButton.setEnabled(!editor.isLocked());
     }
 
     private void updateButtonStates(boolean locked) {
@@ -161,7 +183,7 @@ public class FullLogPanel extends LogPanel {
         var text = fullLogPane.getText();
         if (text == null || text.isEmpty()) {
             Toolkit.getDefaultToolkit().beep();
-            JOptionPane.showMessageDialog(this, "Log is empty or not loaded.", "Copy Failed", JOptionPane.WARNING_MESSAGE);
+            DialogHelper.showWarning(this, "Copy Failed", "Log is empty or not loaded.");
             return;
         }
 
@@ -205,36 +227,7 @@ public class FullLogPanel extends LogPanel {
 
     private void loadAndProcessLogFile(Path logPath) {
         try {
-            List<String> lines;
-            if (logFileHandler.isEncrypted()) {
-                var data = Files.readAllBytes(logPath);
-                var decrypted = EncryptionManager.getInstance().decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
-                lines = Arrays.asList(decrypted.split("\n", -1));
-            } else {
-                lines = Files.readAllLines(logPath);
-            }
-            // Remove secure clipboard markers from lines
-            lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
-            
-            // Lazy loading: Only render recent N entries for performance
-            List<List<String>> allEntries = filehandling.LogParser.parseEntriesForFullLog(lines);
-            List<List<String>> entriesToRender;
-            
-            if (allEntries.size() > MAX_ENTRIES_TO_RENDER) {
-                // Take the most recent N entries (already sorted newest first)
-                entriesToRender = allEntries.subList(0, MAX_ENTRIES_TO_RENDER);
-                // Add info message at top
-                List<String> infoEntry = new ArrayList<>();
-                infoEntry.add("Showing " + MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + allEntries.size() + " total)");
-                infoEntry.add("Use the Log List view with filters to browse older entries.");
-                entriesToRender = new ArrayList<>(entriesToRender);
-                entriesToRender.add(0, infoEntry);
-            } else {
-                entriesToRender = allEntries;
-            }
-            
-            MarkdownRenderer.renderMarkdownFromEntries(fullLogPane, entriesToRender);
-            LinkHandler.addLinkListeners(fullLogPane);
+            fileLoader.loadAndProcessLogFile(logPath);
         } catch (Exception ex) {
             handleLoadException(ex, logPath);
         }
@@ -246,7 +239,7 @@ public class FullLogPanel extends LogPanel {
             // If decryption fails when file should be unlocked, it means there's a state inconsistency
             // Set the file as locked and show appropriate message
             editor.setLocked(true);
-            JOptionPane.showMessageDialog(this, "Decryption failed. The file has been locked for security. Please use the Unlock button to try again.", "Security Error", JOptionPane.ERROR_MESSAGE);
+            DialogHelper.showDecryptionFailed(this);
             handleLockedState();
         } else {
             fallbackReadRaw(logPath);
@@ -260,36 +253,8 @@ public class FullLogPanel extends LogPanel {
     }
 
     private void fallbackReadRaw(Path chosen) {
-        try {
-            var bytes = Files.readAllBytes(chosen);
-            var content = new String(bytes);
-            fullLogPane.setText(content);
-            fullLogPane.clearHighlights();
-            fullLogPane.setCaretPosition(0);
-        } catch (Exception e) {
-            // Security: Don't expose file paths or internal error details
-            fullLogPane.setText("Error reading log file. Please check file permissions and format.");
-            fullLogPathLabel.setText("Log file: error reading file");
-            fullLogPane.clearHighlights();
-        }
-    }
-
-    private static List<String> getNormalized(List<String> updatedLines) {
-        var normalized = new ArrayList<String>();
-        var prevBlank = false;
-        for (var l : updatedLines) {
-            var isBlank = l.trim().isEmpty();
-            if (isBlank) {
-                if (!prevBlank) {
-                    normalized.add(""); // keep single blank line
-                    prevBlank = true;
-                } // else skip additional blank lines
-            } else {
-                normalized.add(l);
-                prevBlank = false;
-            }
-        }
-        return normalized;
+        fileLoader.fallbackReadRaw(chosen);
+        fullLogPathLabel.setText("Log file: error reading file");
     }
 
     private void showLogNotFound() {
@@ -305,20 +270,18 @@ public class FullLogPanel extends LogPanel {
     private void openInExternalEditor() {
         // Warn if file is encrypted
         if (logFileHandler.isEncrypted()) {
-            int choice = JOptionPane.showOptionDialog(
+            int choice = DialogHelper.showOptions(
                 this,
-                "<html><b>⚠️ File is Encrypted</b><br><br>" +
+                "Encrypted File Warning",
+                "⚠️ File is Encrypted",
                 "Your log file is encrypted with AES-256 encryption.<br>" +
                 "Opening it in a text editor will show encrypted data (unreadable gibberish),<br>" +
                 "not your actual log entries.<br><br>" +
                 "<b>To read the content:</b><br>" +
                 "• Use the Full Log view in .LOG-hog (decrypts automatically)<br>" +
                 "• Or disable encryption first in Settings<br><br>" +
-                "Do you still want to open the encrypted file?</html>",
-                "Encrypted File Warning",
-                JOptionPane.YES_NO_OPTION,
+                "Do you still want to open the encrypted file?",
                 JOptionPane.WARNING_MESSAGE,
-                null,
                 new Object[]{"Open Anyway", "Cancel"},
                 "Cancel"
             );
@@ -346,6 +309,30 @@ public class FullLogPanel extends LogPanel {
         return fullLogPane;
     }
 
+    /**
+     * Fixes linebreak formatting in the log file by normalizing spacing between entries.
+     * Creates a backup before modifying the file and shows progress during the operation.
+     */
+    private void fixLinebreakFormatting() {
+        if (editor.isLocked()) {
+            DialogHelper.showFileLocked(this);
+            return;
+        }
+        
+        // Confirm action
+        if (!DialogHelper.confirm(this,
+            "Confirm Formatting",
+            "Fix Linebreak Formatting",
+            "This will normalize spacing between log entries to ensure consistency.<br>" +
+            "A backup will be created automatically before making changes.<br><br>" +
+            "Do you want to continue?")) {
+            return;
+        }
+        
+        Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
+        LogFileFormatter.performFormatting(parentFrame, logFileHandler, this::loadFullLog);
+    }
+    
     /**
      * Opens the specified entry for editing in the Log List tab.
      * @param timestamp The timestamp of the entry to edit (format: HH:mm yyyy-MM-dd)
@@ -376,11 +363,6 @@ public class FullLogPanel extends LogPanel {
         }
         
         // If not found in current view, show a message
-        JOptionPane.showMessageDialog(this,
-            "<html><b>Entry Not Found</b><br><br>" +
-            "This entry is not visible in the current Log List view.<br>" +
-            "You may need to adjust the year/month filter to see it.</html>",
-            "Entry Not Found",
-            JOptionPane.INFORMATION_MESSAGE);
+        DialogHelper.showEntryNotFound(this);
     }
 }

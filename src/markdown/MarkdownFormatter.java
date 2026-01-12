@@ -170,7 +170,7 @@ public class MarkdownFormatter {
         
         switch (elem.type) {
             case "link":
-                StyleConstants.setForeground(attrs, Color.BLUE);
+                StyleConstants.setForeground(attrs, MarkdownStyle.COLOR_LINK);
                 StyleConstants.setUnderline(attrs, true);
                 attrs.addAttribute("href", elem.href);
                 break;
@@ -181,11 +181,11 @@ public class MarkdownFormatter {
                 StyleConstants.setItalic(attrs, true);
                 break;
             case "inlineCode":
-                StyleConstants.setFontFamily(attrs, "Consolas");
-                StyleConstants.setBackground(attrs, new Color(0xF0F0F0));
+                StyleConstants.setFontFamily(attrs, MarkdownStyle.FONT_FAMILY_CODE);
+                StyleConstants.setBackground(attrs, MarkdownStyle.COLOR_INLINE_CODE_BG);
                 break;
             case "red":
-                StyleConstants.setForeground(attrs, Color.RED);
+                StyleConstants.setForeground(attrs, MarkdownStyle.COLOR_RED_TEXT);
                 break;
         }
         

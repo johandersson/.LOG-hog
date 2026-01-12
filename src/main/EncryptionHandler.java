@@ -24,6 +24,7 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import filehandling.LogFileHandler;
+import gui.DialogHelper;
 import gui.LoadingProgressDialog;
 import gui.PasswordDialog;
 import gui.SecurityDelayDialog;
@@ -140,7 +141,7 @@ public class EncryptionHandler {
                 
                 attempts++;
                 if (attempts >= 4) {
-                    JOptionPane.showMessageDialog(parentFrame, "<html><b>🚫 Security Lock</b><br><br>Too many failed password attempts.<br>The application is now locked for security.<br><br>Please restart the application to try again.</html>", "Security Error", JOptionPane.ERROR_MESSAGE);
+                    DialogHelper.showError(parentFrame, "Security Error", "🚫 Security Lock", "Too many failed password attempts.<br>The application is now locked for security.<br><br>Please restart the application to try again.");
                     System.exit(0);
                 }
                 

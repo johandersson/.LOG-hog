@@ -41,6 +41,7 @@ import javax.swing.UIManager;
 
 import filehandling.LogFileHandler;
 import gui.AccentButton;
+import gui.DialogHelper;
 import gui.EntryPanel;
 import gui.FullLogPanel;
 import gui.LogListPanel;
@@ -315,7 +316,7 @@ public class LogTextEditor extends JFrame {
         actionMap.put("load", new AbstractAction() {
             public void actionPerformed(ActionEvent e) {
                 if (isLocked) {
-                    JOptionPane.showMessageDialog(LogTextEditor.this, "File is locked. Press Unlock file in Full log view to unlock it again.", "Locked", JOptionPane.WARNING_MESSAGE);
+                    DialogHelper.showFileLocked(LogTextEditor.this);
                     return;
                 }
                 try {

@@ -23,11 +23,13 @@ import java.nio.file.Path;
 
 import javax.swing.JOptionPane;
 
+import gui.DialogHelper;
+
 public class NotepadOpener {
     public static void openLogInNotepad() {
         Path logPath = findLogPath();
         if (logPath == null) {
-            JOptionPane.showMessageDialog(null, "log.txt not found in user home or current working directory.", "File Not Found", JOptionPane.ERROR_MESSAGE);
+            DialogHelper.showFileNotFound(null);
             return;
         }
 
