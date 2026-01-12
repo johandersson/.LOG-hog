@@ -339,6 +339,15 @@ public class MarkdownRenderer {
             firstEntry = false;
             
             MarkdownEntryRenderer.renderEntry(entry, doc, styles);
+            
+            // Trim trailing newlines from the rendered entry to prevent extra spacing between entries
+            try {
+                while (doc.getLength() > 0 && doc.getText(doc.getLength() - 1, 1).equals("\n")) {
+                    doc.remove(doc.getLength() - 1, 1);
+                }
+            } catch (BadLocationException e) {
+                // Ignore if can't trim
+            }
         }
     }
 }

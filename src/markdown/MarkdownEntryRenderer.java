@@ -123,7 +123,7 @@ public class MarkdownEntryRenderer {
     private static void renderListBlock(List<String> listLines, StyledDocument doc, Style listStyle, Map<String, Style> styles) throws BadLocationException {
         for (int j = 0; j < listLines.size(); j++) {
             String line = listLines.get(j);
-            String text = line;
+            String text = "• " + line.substring(2);
             MarkdownFormatter.appendLineWithFormatting(doc, text, listStyle, styles);
             if (j < listLines.size() - 1) {
                 doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, listStyle);
