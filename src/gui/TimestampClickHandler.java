@@ -26,7 +26,7 @@ import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 
 /**
- * Handles double-clicking on timestamps to edit entries.
+ * Handles clicking on timestamps to edit entries.
  * Provides visual feedback (cursor change and tooltip) when hovering over timestamps.
  */
 public class TimestampClickHandler {
@@ -134,7 +134,7 @@ public class TimestampClickHandler {
                         isHoveringTimestamp = shouldHover;
                         if (shouldHover) {
                             textPane.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
-                            textPane.setToolTipText(UIStrings.TOOLTIP_DOUBLE_CLICK_EDIT);
+                            textPane.setToolTipText(UIStrings.TOOLTIP_CLICK_EDIT);
                         } else {
                             resetCursor();
                         }

@@ -24,7 +24,7 @@ package gui;
 public class UIStrings {
     
     // Tooltips and hints
-    public static final String TOOLTIP_DOUBLE_CLICK_EDIT = "Double-click to edit this entry";
+    public static final String TOOLTIP_CLICK_EDIT = "Click to edit this entry";
     public static final String TOOLTIP_SHOW_PASSWORD = "Show password";
     public static final String TOOLTIP_HIDE_PASSWORD = "Hide password";
     
