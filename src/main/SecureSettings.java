@@ -43,6 +43,7 @@ public class SecureSettings {
     private static final int GCM_TAG_LENGTH = 16;
     private static final int PBKDF2_ITERATIONS = 10000; // Lower than file encryption for performance
     private final SecretKeySpec settingsKey;
+    private final SecretKeySpec legacyKey; // For decrypting old SHA-256 encrypted settings
     private final SecureRandom secureRandom;
 
     public SecureSettings() {
@@ -60,6 +61,14 @@ public class SecureSettings {
             SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             SecretKey tmp = factory.generateSecret(spec);
             this.settingsKey = new SecretKeySpec(tmp.getEncoded(), "AES");
+            
+            // Also initialize legacy SHA-256 key for backward compatibility
+            // This allows decrypting settings encrypted with the old method
+            String legacyKeySeed = username + "_LogHog_Settings_v1";
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] legacyKeyBytes = digest.digest(legacyKeySeed.getBytes(StandardCharsets.UTF_8));
+            this.legacyKey = new SecretKeySpec(legacyKeyBytes, 0, 16, "AES");
+            
             this.secureRandom = new SecureRandom();
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize secure settings", e);
@@ -113,13 +122,25 @@ public class SecureSettings {
                 
                 // Try ECB first for backward compatibility (most existing data)
                 // ECB data doesn't have IV prefix, so try this first
+                // Try new PBKDF2 key first, then legacy SHA-256 key
                 try {
                     Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
                     cipher.init(Cipher.DECRYPT_MODE, settingsKey);
                     byte[] decrypted = cipher.doFinal(encryptedBytes);
                     return new String(decrypted, StandardCharsets.UTF_8);
                 } catch (Exception ecbException) {
-                    // Not ECB format, try GCM
+                    // Try with legacy key (old SHA-256 derivation)
+                    try {
+                        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+                        cipher.init(Cipher.DECRYPT_MODE, legacyKey);
+                        byte[] decrypted = cipher.doFinal(encryptedBytes);
+                        // Successfully decrypted with legacy key - re-encrypt with new key
+                        String value = new String(decrypted, StandardCharsets.UTF_8);
+                        // Note: Auto-migration happens when setting is next saved
+                        return value;
+                    } catch (Exception legacyException) {
+                        // Not ECB format with either key, try GCM
+                    }
                 }
                 
                 // Try GCM (new format with IV prefix)
