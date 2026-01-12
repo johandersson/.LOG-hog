@@ -880,6 +880,16 @@ public class LogFileHandler implements LogFileOperations {
             cachedEntries = null;
             cachedEntriesLastModified = 0;
         }
+        // Clear write-back cache
+        if (pendingLines != null) {
+            pendingLines.clear();
+            pendingLines = null;
+        }
+        isDirty = false;
+        // Clear all EntryLoader caches (timestamps, parsed entries, content cache)
+        if (entryLoader != null) {
+            entryLoader.invalidateCaches();
+        }
     }
 
     public void showErrorDialog(String message) {

@@ -94,6 +94,9 @@ public class UIInitializer {
                     clipboard.SecureClipboardManager.clearSecureClipboard();
                     clipboard.SecureClipboardManager.shutdown();
                     editor.getLogFileHandler().clearSensitiveData();
+                    // Clear UI text areas
+                    editor.getLogListPanel().getEntryArea().setText("");
+                    editor.getFullLogPanel().getFullLogPane().setText("");
                     System.exit(0);
                 }
             }

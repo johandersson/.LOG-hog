@@ -341,6 +341,10 @@ public class FullLogPanel extends LogPanel {
         copyFullLogToClipboard();
     }
     
+    public HighlightableTextPane getFullLogPane() {
+        return fullLogPane;
+    }
+    
     private void addTimestampContextMenu() {
         fullLogPane.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
