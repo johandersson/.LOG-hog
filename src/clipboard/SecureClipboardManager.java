@@ -47,6 +47,7 @@ public class SecureClipboardManager implements ClipboardHandler {
     private static ScheduledFuture<?> clearTask;
     private static int timeoutSeconds = 30; // Default 30 seconds
     private static boolean autoClearEnabled = true;
+    private static String lastCopiedContent = null; // Track what we last copied
 
     private static final SecureClipboardManager INSTANCE = new SecureClipboardManager();
 
@@ -112,14 +113,13 @@ public class SecureClipboardManager implements ClipboardHandler {
             successMessage = "Text copied to clipboard securely.";
         }
 
-        // Mark content as secure and add timestamp
-        String secureContent = LOGHOG_CLIPBOARD_MARKER + System.currentTimeMillis() + "|" + text;
-
-        StringSelection selection = new StringSelection(secureContent);
+        // Mark content as secure (no prefix needed - just copy the text directly)
+        StringSelection selection = new StringSelection(text);
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 
         try {
             clipboard.setContents(selection, selection);
+            lastCopiedContent = text; // Track what we copied
 
             // Show success message
             Component toastParent = parent;
@@ -149,19 +149,27 @@ public class SecureClipboardManager implements ClipboardHandler {
     public static void clearSecureClipboard() {
         try {
             Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-            Transferable contents = clipboard.getContents(null);
+            
+            // Clear if we have tracked content
+            if (lastCopiedContent != null) {
+                Transferable contents = clipboard.getContents(null);
+                if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                    String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
+                    // Only clear if clipboard still contains what we copied
+                    if (data != null && data.equals(lastCopiedContent)) {
+                        // Clear clipboard by setting empty content
+                        StringSelection emptySelection = new StringSelection("");
+                        clipboard.setContents(emptySelection, emptySelection);
+                        lastCopiedContent = null;
 
-            if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
-                String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
-                if (data != null && data.startsWith(LOGHOG_CLIPBOARD_MARKER)) {
-                    // Clear clipboard by setting empty content
-                    StringSelection emptySelection = new StringSelection("");
-                    clipboard.setContents(emptySelection, emptySelection);
-
-                    // Cancel any pending clear task
-                    if (clearTask != null) {
-                        clearTask.cancel(false);
-                        clearTask = null;
+                        // Cancel any pending clear task
+                        if (clearTask != null) {
+                            clearTask.cancel(false);
+                            clearTask = null;
+                        }
+                    } else {
+                        // Clipboard was changed by user - don't clear
+                        lastCopiedContent = null;
                     }
                 }
             }
@@ -181,13 +189,18 @@ public class SecureClipboardManager implements ClipboardHandler {
      * Check if clipboard contains .LOG-hog secure content.
      */
     public static boolean hasSecureContent() {
+        if (lastCopiedContent == null) {
+            return false;
+        }
+        
         try {
             Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
             Transferable contents = clipboard.getContents(null);
 
             if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
                 String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
-                return data != null && data.startsWith(LOGHOG_CLIPBOARD_MARKER);
+                // Check if clipboard still contains what we copied
+                return data != null && data.equals(lastCopiedContent);
             }
         } catch (IllegalStateException ise) {
             // Clipboard not available

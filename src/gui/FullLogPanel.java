@@ -351,8 +351,6 @@ public class FullLogPanel extends LogPanel {
      * Double-clicking on a timestamp line switches to Log List tab and selects that entry.
      */
     private void addTimestampDoubleClickHandler() {
-        System.out.println("DEBUG: Adding double-click handler using AWTEventListener");
-        
         java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(new java.awt.event.AWTEventListener() {
             private long lastClickTime = 0;
             private java.awt.Point lastClickPoint = null;
@@ -375,8 +373,6 @@ public class FullLogPanel extends LogPanel {
                     return;
                 }
                 
-                System.out.println("DEBUG: AWTEventListener caught MOUSE_PRESSED on fullLogPane");
-                
                 long currentTime = System.currentTimeMillis();
                 java.awt.Point currentPoint = e.getPoint();
                 
@@ -390,10 +386,8 @@ public class FullLogPanel extends LogPanel {
                 // Manual double-click detection
                 if (lastClickTime > 0 && (currentTime - lastClickTime) < 500 && lastClickPoint != null) {
                     double distance = lastClickPoint.distance(currentPoint);
-                    System.out.println("DEBUG: Time delta: " + (currentTime - lastClickTime) + "ms, distance: " + distance + "px");
                     if (distance < 5) {
                         isDoubleClick = true;
-                        System.out.println("DEBUG: DOUBLE-CLICK DETECTED");
                     }
                 }
                 
@@ -401,17 +395,12 @@ public class FullLogPanel extends LogPanel {
                 lastClickPoint = currentPoint;
                 
                 if (!isDoubleClick) {
-                    System.out.println("DEBUG: Single click - resetting timer");
                     return;
                 }
                 
-                System.out.println("DEBUG: Processing double-click...");
-                
                 // Get position in document
                 int pos = fullLogPane.viewToModel2D(currentPoint);
-                System.out.println("DEBUG: Position in document: " + pos);
                 if (pos < 0) {
-                    System.out.println("DEBUG: Invalid position");
                     return;
                 }
                 
@@ -432,19 +421,13 @@ public class FullLogPanel extends LogPanel {
                     }
                     
                     String lineText = text.substring(lineStart, lineEnd).trim();
-                    System.out.println("DEBUG: Line text: '" + lineText + "'");
                     
                     // Check if it's a timestamp line (format: "HH:MM YYYY-MM-DD" or "HH:MM YYYY-MM-DD (N)")
                     if (lineText.matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
-                        System.out.println("DEBUG: Timestamp pattern matches: true");
-                        System.out.println("DEBUG: Opening entry for timestamp: '" + lineText + "'");
                         openEntryForEditing(lineText);
-                    } else {
-                        System.out.println("DEBUG: Timestamp pattern matches: false");
                     }
                 } catch (Exception ex) {
-                    System.out.println("DEBUG: Exception while processing click: " + ex.getMessage());
-                    ex.printStackTrace();
+                    // Silently ignore errors - not a valid timestamp position
                 }
             }
         }, java.awt.AWTEvent.MOUSE_EVENT_MASK);
