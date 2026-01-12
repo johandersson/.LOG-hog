@@ -124,10 +124,10 @@ public class LogFileHandler implements LogFileOperations {
             if (handleMissingLogFile()) {
                 // File created/restored, try save again
                 try {
-                    Files.writeString(filePath, entry, java.nio.file.StandardOpenOption.APPEND);
+                    entryEditor.saveEntry(text, uniqueTimeStamp, encrypted);
                     listModel.addElement(uniqueTimeStamp);
                     sortListModel(listModel);
-                    invalidateEntryCache();
+                    cache.invalidateEntryCache();
                 } catch (Exception ex) {
                     // Security: Don't expose internal error details
                     showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save log entry. Please check file permissions.</html>");
@@ -353,6 +353,14 @@ public class LogFileHandler implements LogFileOperations {
     }    
     
     public List<String> getLines() throws Exception {
+        // Security: Check file size before loading to prevent memory exhaustion DoS
+        if (Files.exists(filePath)) {
+            long fileSize = Files.size(filePath);
+            if (fileSize > MAX_FILE_SIZE) {
+                throw new IllegalStateException("File exceeds maximum size limit");
+            }
+        }
+        
         if (encryptionManager.isEncrypted()) {
             List<String> cachedLines = cache.getCachedLines();
             if (cachedLines.isEmpty()) {
