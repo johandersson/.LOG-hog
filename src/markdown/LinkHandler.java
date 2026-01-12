@@ -32,18 +32,10 @@ import javax.swing.text.StyledDocument;
 public class LinkHandler {
 
     public static void addLinkListeners(JTextPane pane) {
-        // Remove existing link listeners to avoid duplicates
-        for (java.awt.event.MouseListener ml : pane.getMouseListeners()) {
-            if (ml instanceof MouseAdapter) {
-                pane.removeMouseListener(ml);
-            }
-        }
-        for (java.awt.event.MouseMotionListener mml : pane.getMouseMotionListeners()) {
-            if (mml instanceof MouseMotionAdapter) {
-                pane.removeMouseMotionListener(mml);
-            }
-        }
-
+        // Don't remove existing listeners - TimestampClickHandler and other handlers should coexist
+        // Multiple calls to this method will add duplicate listeners, but that's preferable to
+        // breaking other functionality. Ideally, call this only once after rendering.
+        
         pane.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {

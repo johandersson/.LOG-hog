@@ -44,6 +44,12 @@ public class MarkdownRenderer {
 
     public static void renderMarkdown(JTextPane pane, List<String> lines) {
         StyledDocument doc = pane.getStyledDocument();
+        // Clear existing content
+        try {
+            doc.remove(0, doc.getLength());
+        } catch (BadLocationException e) {
+            // Document already empty
+        }
         Map<String, Style> styles = createStyles(doc);
         try {
             List<List<String>> entries = filehandling.LogParser.parseEntriesForFullLog(lines);
@@ -51,7 +57,8 @@ public class MarkdownRenderer {
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
-        // Removed: pane.setCaretPosition(pane.getDocument().getLength()); to prevent auto-scroll to bottom
+        // Set caret to top of document
+        pane.setCaretPosition(0);
     }
     
     /**
@@ -60,12 +67,20 @@ public class MarkdownRenderer {
      */
     public static void renderMarkdownFromEntries(JTextPane pane, List<List<String>> entries) {
         StyledDocument doc = pane.getStyledDocument();
+        // Clear existing content
+        try {
+            doc.remove(0, doc.getLength());
+        } catch (BadLocationException e) {
+            // Document already empty
+        }
         Map<String, Style> styles = createStyles(doc);
         try {
             renderEntries(entries, doc, styles);
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
+        // Set caret to top of document
+        pane.setCaretPosition(0);
     }
 
     private static void handleLinkClick(JTextPane pane, MouseEvent e) {

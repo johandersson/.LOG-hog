@@ -105,7 +105,7 @@ public class FullLogPanel extends LogPanel {
             }
         });
 
-        // Add double-click on timestamp to edit entry
+        // Add double-click on timestamp to edit entry (registered once)
         new TimestampClickHandler(fullLogPane, this::openEntryForEditing);
 
         var scroll = new JScrollPane(fullLogPane);
