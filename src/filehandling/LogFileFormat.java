@@ -9,10 +9,13 @@ import java.util.List;
  * across all operations (saving, parsing, rendering, formatting).
  * 
  * Format Rules:
- * - File format: Compact - entries are back-to-back with NO blank lines between them
- * - Display format: Markdown renderer adds 2 blank lines between entries for readability
+ * - File format: Entries separated by ONE blank line (2 newlines after content)
+ * - Display format: Markdown renderer adds 2 blank lines between entries for visual readability
  * - Entry structure: timestamp line + content lines (no trailing blanks)
- * - Blank lines within entry content are skipped during parsing
+ * - Blank lines within entry content are preserved during parsing
+ * 
+ * Note: The display format is independent of file format - the renderer always shows
+ * 2 blank lines between entries for comfortable reading, regardless of file content.
  */
 public class LogFileFormat {
     

@@ -248,11 +248,13 @@ public class LogFileFormatter {
                     // Clear any pending writes that might overwrite our formatted content
                     logFileHandler.clearPendingWrites();
                     
-                    // Invalidate entry caches to force reload of parsed entries
-                    // This is needed for both encrypted and non-encrypted files
-                    // so that the EntryLoader picks up the newly formatted content
+                    // For encrypted files, the cache is already updated above
+                    // For non-encrypted files, invalidate to force reload from disk
+                    // This ensures the view picks up the newly formatted content
                     progress.setStatus("Finalizing...");
-                    logFileHandler.invalidateCaches();
+                    if (!isEncrypted) {
+                        logFileHandler.invalidateCaches();
+                    }
                     
                     // Success - reload the view
                     SwingUtilities.invokeLater(() -> {
