@@ -694,11 +694,18 @@ deactivate FullLogPanel
   - `LogParser.java`: Entry parsing errors logged
 - **Impact**: Debugging capability maintained without exposing details to users
 
-**7. Resource Limits (DoS Protection)**
+**7. Resource Limits (DoS Protection)** ✅ **FULLY IMPLEMENTED**
 - **Issue**: No limits on collection sizes or file operations
 - **Solution**: Added `MAX_FILE_SIZE` and `MAX_COLLECTION_SIZE` constants
-- **Implementation**: `LogFileHandler.java` lines 47-50
-- **Impact**: Prevents resource exhaustion attacks
+- **Implementation**: 
+  - `LogFileHandler.java` lines 47-50 (constants defined)
+  - `LogFileHandler.java` getLines() method - File size checked BEFORE loading
+  - `LogParser.java` parseAllEntries() - Entry count checked during parsing
+  - `LogFileFormatter.java` line 214 - Collection size validated
+- **Status**: 
+  - ✅ MAX_FILE_SIZE (50MB) - **ENFORCED** in getLines()
+  - ✅ MAX_COLLECTION_SIZE (100,000) - **ENFORCED** in LogParser.parseAllEntries()
+- **Impact**: Prevents memory exhaustion and resource DoS attacks
 
 #### Existing Security Strengths
 

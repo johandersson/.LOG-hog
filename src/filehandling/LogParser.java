@@ -70,15 +70,21 @@ public class LogParser {
 
     /**
      * Parses all entries without filtering or sorting.
+     * Enforces MAX_COLLECTION_SIZE to prevent DoS attacks.
      */
     public static List<List<String>> parseAllEntries(List<String> lines) {
         var entries = new ArrayList<List<String>>();
         var currentEntry = new ArrayList<String>();
+        final int MAX_COLLECTION_SIZE = 100000; // DoS protection
+        
         for (String line : lines) {
             var trimmed = line.trim();
             if (trimmed.equalsIgnoreCase(".LOG")) continue;
             if (TS_PATTERN.matcher(trimmed).matches()) {
                 if (!currentEntry.isEmpty()) {
+                    if (entries.size() >= MAX_COLLECTION_SIZE) {
+                        throw new IllegalStateException("Too many entries (max " + MAX_COLLECTION_SIZE + ")");
+                    }
                     entries.add(new ArrayList<>(currentEntry));
                     currentEntry.clear();
                 }
@@ -90,6 +96,9 @@ public class LogParser {
             }
         }
         if (!currentEntry.isEmpty()) {
+            if (entries.size() >= MAX_COLLECTION_SIZE) {
+                throw new IllegalStateException("Too many entries (max " + MAX_COLLECTION_SIZE + ")");
+            }
             entries.add(currentEntry);
         }
         return entries;
