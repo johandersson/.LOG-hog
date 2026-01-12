@@ -720,6 +720,7 @@ public class LogTextEditor extends JFrame {
             } else if (choice == 1) { // Restore from Backup
                 logFileHandler.showBackupRestoreDialog();
             } else { // Exit
+                shutdown();
                 System.exit(0);
             }
             return;
@@ -759,6 +760,30 @@ public class LogTextEditor extends JFrame {
         }
     }
 
+    /**
+     * Shuts down background timers and resources before application exit.
+     * Call this before System.exit() to ensure clean shutdown.
+     */
+    public void shutdown() {
+        // Stop auto-lock timer
+        if (autoLockTimer != null) {
+            autoLockTimer.stop();
+            autoLockTimer = null;
+        }
 
+        // Stop periodic backup timer
+        if (periodicBackupTimer != null) {
+            periodicBackupTimer.stop();
+            periodicBackupTimer = null;
+        }
+
+        // Shutdown clipboard manager
+        clipboard.SecureClipboardManager.shutdown();
+
+        // Clear sensitive data
+        if (logFileHandler != null) {
+            logFileHandler.clearSensitiveData();
+        }
+    }
 
 }

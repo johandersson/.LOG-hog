@@ -113,6 +113,9 @@ public class SystemTrayMenu {
             });
 
             exitItem.addActionListener(e -> {
+                if (logTextEditor != null) {
+                    logTextEditor.shutdown();
+                }
                 System.exit(0);
             });
 

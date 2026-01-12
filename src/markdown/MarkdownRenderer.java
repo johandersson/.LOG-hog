@@ -329,102 +329,140 @@ public class MarkdownRenderer {
                 doc.insertString(doc.getLength(), separator, sepStyle);
             }
             firstEntry = false;
-            boolean inCodeBlock = false;
-            for (int i = 0; i < entry.size(); i++) {
-                String line = entry.get(i);
-                
-                // Early exit optimization: Skip regex processing for plain text lines
-                boolean isTimestamp = (i == 0);
-                boolean isCodeBlockMarker = line.trim().equals("```");
-                
-                if (!isTimestamp && !isCodeBlockMarker && !inCodeBlock && 
-                    !MarkdownFormatter.hasMarkdown(line)) {
-                    // Plain text line with no markdown - fast path
-                    doc.insertString(doc.getLength(), line, defaultStyle);
-                    if (i < entry.size() - 1) {
-                        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, defaultStyle);
-                    }
-                    continue;
+            
+            renderEntryContent(entry, doc, styles);
+        }
+    }
+    
+    private static void renderEntryContent(List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
+        Style defaultStyle = styles.get("default");
+        Style tsStyle = styles.get("timestamp");
+        Style sepStyle = styles.get("sep");
+        
+        boolean inCodeBlock = false;
+        List<String> paragraphLines = new ArrayList<>();
+        
+        for (int i = 0; i < entry.size(); i++) {
+            String line = entry.get(i);
+            
+            boolean isTimestamp = (i == 0);
+            boolean isCodeBlockMarker = line.trim().equals("```");
+            boolean isBlank = line.trim().isEmpty();
+            boolean isList = line.startsWith("- ");
+            boolean isQuote = line.startsWith("> ");
+            boolean isHeading = line.startsWith("# ") || line.startsWith("## ") || line.startsWith("### ");
+            boolean hasInlineHeading = INLINE_HEADING_PATTERN.matcher(line).find();
+            
+            // If we have accumulated paragraph lines and this line starts a new block, render the paragraph first
+            if (!paragraphLines.isEmpty() && (isBlank || isList || isQuote || isHeading || hasInlineHeading || isCodeBlockMarker || inCodeBlock)) {
+                renderParagraph(paragraphLines, doc, defaultStyle, styles);
+                paragraphLines.clear();
+            }
+            
+            if (isCodeBlockMarker) {
+                inCodeBlock = !inCodeBlock;
+                continue;
+            }
+            
+            if (inCodeBlock) {
+                doc.insertString(doc.getLength(), line, styles.get("code"));
+                doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, styles.get("code"));
+            } else if (isTimestamp && line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
+                // Render timestamp
+                doc.insertString(doc.getLength(), line + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, tsStyle);
+            } else if (isBlank) {
+                // Blank lines create paragraph breaks
+                doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, sepStyle);
+            } else if (isList) {
+                String text = "• " + line.substring(2);
+                Style listStyle = styles.get("list");
+                MarkdownFormatter.appendLineWithFormatting(doc, text, listStyle, styles);
+                doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, listStyle);
+            } else if (isQuote) {
+                // Handle multi-line blockquotes
+                List<String> quoteLines = new ArrayList<>();
+                quoteLines.add(line);
+                int j = i + 1;
+                while (j < entry.size() && entry.get(j).startsWith("> ")) {
+                    quoteLines.add(entry.get(j));
+                    j++;
+                }
+                // Render the blockquote block
+                renderBlockquote(doc, quoteLines, styles);
+                i = j - 1; // Skip the processed lines
+            } else if (isHeading) {
+                String text = line.startsWith("### ") ? line.substring(4) :
+                             line.startsWith("## ") ? line.substring(3) : line.substring(2);
+                Style headingStyle = line.startsWith("### ") ? styles.get("h3") :
+                                    line.startsWith("## ") ? styles.get("h2") : styles.get("h1");
+                MarkdownFormatter.appendLineWithFormatting(doc, text, headingStyle, styles);
+                doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, headingStyle);
+            } else if (hasInlineHeading) {
+                // Parse for inline headings
+                Matcher headingMatcher = INLINE_HEADING_PATTERN.matcher(line);
+                Set<Integer> headingSet = new TreeSet<>();
+                headingSet.add(0);
+                while (headingMatcher.find()) {
+                    headingSet.add(headingMatcher.start());
                 }
                 
-                if (line.trim().equals("```")) {
-                    inCodeBlock = !inCodeBlock;
-                    continue;
+                List<Integer> headingStarts = new ArrayList<>(headingSet);
+                headingStarts.add(line.length());
+                for (int j = 0; j < headingStarts.size() - 1; j++) {
+                    int start = headingStarts.get(j);
+                    int end = headingStarts.get(j + 1);
+                    String part = line.substring(start, end);
+                    Style partStyle = defaultStyle;
+                    String text = part;
+                    String marker = null;
+                    if (part.startsWith("### ")) marker = "### ";
+                    else if (part.startsWith("## ")) marker = "## ";
+                    else if (part.startsWith("# ")) marker = "# ";
+                    if (marker != null) {
+                        partStyle = switch (marker) {
+                            case "### " -> styles.get("h3");
+                            case "## " -> styles.get("h2");
+                            case "# " -> styles.get("h1");
+                            default -> defaultStyle;
+                        };
+                        text = part.substring(marker.length());
+                    }
+                    MarkdownFormatter.appendLineWithFormatting(doc, text, partStyle, styles);
+                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, partStyle);
                 }
-                if (inCodeBlock) {
-                    doc.insertString(doc.getLength(), line, styles.get("code"));
-                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, styles.get("code"));
-                } else if (i == 0 && line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
-                    // Render timestamp
-                    doc.insertString(doc.getLength(), line + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, tsStyle);
-                } else if (line.trim().isEmpty()) {
-                    // Only preserve blank lines within an entry, not between entries
-                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, sepStyle);
-                } else if (line.startsWith("- ")) {
-                    String text = "• " + line.substring(2);
-                    Style listStyle = styles.get("list");
-                    MarkdownFormatter.appendLineWithFormatting(doc, text, listStyle, styles);
-                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, listStyle);
-                } else if (line.startsWith("> ")) {
-                    // Handle multi-line blockquotes
-                    List<String> quoteLines = new ArrayList<>();
-                    quoteLines.add(line);
-                    int j = i + 1;
-                    while (j < entry.size() && entry.get(j).startsWith("> ")) {
-                        quoteLines.add(entry.get(j));
-                        j++;
-                    }
-                    // Render the blockquote block
-                    renderBlockquote(doc, quoteLines, styles);
-                    i = j - 1; // Skip the processed lines
-                } else if (line.startsWith("# ")) {
-                    String text = line.substring(2);
-                    MarkdownFormatter.appendLineWithFormatting(doc, text, styles.get("h1"), styles);
-                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, styles.get("h1"));
-                } else if (line.startsWith("## ")) {
-                    String text = line.substring(3);
-                    MarkdownFormatter.appendLineWithFormatting(doc, text, styles.get("h2"), styles);
-                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, styles.get("h2"));
-                } else if (line.startsWith("### ")) {
-                    String text = line.substring(4);
-                    MarkdownFormatter.appendLineWithFormatting(doc, text, styles.get("h3"), styles);
-                    doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, styles.get("h3"));
-                } else {
-                    // Parse for inline headings - optimized with single pattern
-                    Matcher headingMatcher = INLINE_HEADING_PATTERN.matcher(line);
-                    Set<Integer> headingSet = new TreeSet<>();
-                    headingSet.add(0);
-                    while (headingMatcher.find()) {
-                        headingSet.add(headingMatcher.start());
-                    }
-                    
-                    List<Integer> headingStarts = new ArrayList<>(headingSet);
-                    headingStarts.add(line.length());
-                    for (int j = 0; j < headingStarts.size() - 1; j++) {
-                        int start = headingStarts.get(j);
-                        int end = headingStarts.get(j + 1);
-                        String part = line.substring(start, end);
-                        Style partStyle = defaultStyle;
-                        String text = part;
-                        String marker = null;
-                        if (part.startsWith("### ")) marker = "### ";
-                        else if (part.startsWith("## ")) marker = "## ";
-                        else if (part.startsWith("# ")) marker = "# ";
-                        if (marker != null) {
-                            partStyle = switch (marker) {
-                                case "### " -> styles.get("h3");
-                                case "## " -> styles.get("h2");
-                                case "# " -> styles.get("h1");
-                                default -> defaultStyle;
-                            };
-                            text = part.substring(marker.length());
-                        }
-                        MarkdownFormatter.appendLineWithFormatting(doc, text, partStyle, styles);
-                        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, partStyle);
-                    }
-                }
+            } else {
+                // Regular text line - accumulate for paragraph rendering
+                paragraphLines.add(line);
             }
         }
+        
+        // Render any remaining paragraph lines
+        if (!paragraphLines.isEmpty()) {
+            renderParagraph(paragraphLines, doc, defaultStyle, styles);
+        }
+    }
+    
+    private static void renderParagraph(List<String> lines, StyledDocument doc, Style defaultStyle, Map<String, Style> styles) throws BadLocationException {
+        if (lines.isEmpty()) return;
+        
+        // Join lines with spaces to form a paragraph
+        StringBuilder paragraph = new StringBuilder();
+        for (int i = 0; i < lines.size(); i++) {
+            if (i > 0) paragraph.append(" ");
+            paragraph.append(lines.get(i));
+        }
+        
+        String paragraphText = paragraph.toString();
+        
+        // Check if the paragraph has markdown formatting
+        if (MarkdownFormatter.hasMarkdown(paragraphText)) {
+            MarkdownFormatter.appendLineWithFormatting(doc, paragraphText, defaultStyle, styles);
+        } else {
+            doc.insertString(doc.getLength(), paragraphText, defaultStyle);
+        }
+        
+        // Add newline after paragraph
+        doc.insertString(doc.getLength(), MarkdownStyle.DOCUMENT_LINE_SEPARATOR, defaultStyle);
     }
 
     private static void renderBlockquote(StyledDocument doc, List<String> quoteLines, Map<String, Style> styles) throws BadLocationException {

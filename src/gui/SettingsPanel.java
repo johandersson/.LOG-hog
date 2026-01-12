@@ -28,7 +28,9 @@ import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.Base64;
+import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -544,6 +546,9 @@ public class SettingsPanel extends JPanel {
             // Perform automatic backup after successful encryption
             performAutomaticBackup();
 
+            // Check for and offer to clean up old unencrypted backups
+            cleanupOldUnencryptedBackups();
+
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(editor, "Encryption failed. Please check your password and try again.");
             statusLabel.setText("Encryption failed. Please check your password and try again.");
@@ -551,6 +556,78 @@ public class SettingsPanel extends JPanel {
         } finally {
             java.util.Arrays.fill(pwd, '\0');
             java.util.Arrays.fill(confirm, '\0');
+        }
+    }
+
+    private void cleanupOldUnencryptedBackups() {
+        try {
+            Path logFilePath = logFileHandler.getFilePath();
+            String backupDirStr = backupManager.getAutoBackupDirectory();
+            Path backupDir = java.nio.file.Paths.get(backupDirStr);
+
+            if (!Files.exists(backupDir)) {
+                return; // No backup directory
+            }
+
+            // Find .bak files that are unencrypted
+            List<Path> unencryptedBackups = Files.list(backupDir)
+                .filter(path -> path.getFileName().toString().endsWith(".bak"))
+                .filter(path -> !encryption.EncryptionDetector.isFileEncrypted(path))
+                .collect(Collectors.toList());
+
+            if (unencryptedBackups.isEmpty()) {
+                return; // No unencrypted backups to clean up
+            }
+
+            // Show dialog asking user what to do
+            StringBuilder message = new StringBuilder();
+            message.append("<html><b>Security Notice: Old Unencrypted Backups Found</b><br><br>");
+            message.append("After encrypting your log file, we found ").append(unencryptedBackups.size());
+            message.append(" backup file(s) that contain unencrypted data:<br><br>");
+
+            for (Path backup : unencryptedBackups) {
+                message.append("• ").append(backup.getFileName().toString()).append("<br>");
+            }
+
+            message.append("<br><b>Security Risk:</b> These backups contain your log data in plain text.<br>");
+            message.append("Anyone with access to your backup location can read them.<br><br>");
+            message.append("<b>Recommendation:</b> Delete these old backups to prevent data exposure.<br>");
+            message.append("You can keep them if you need them for recovery purposes.<br><br>");
+            message.append("What would you like to do?</html>");
+
+            int choice = JOptionPane.showOptionDialog(
+                editor,
+                message.toString(),
+                "Clean Up Old Backups",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                new String[]{"Delete old unencrypted backups", "Keep them"},
+                "Delete old unencrypted backups"
+            );
+
+            if (choice == JOptionPane.YES_OPTION) {
+                // Delete the unencrypted backups securely
+                for (Path backup : unencryptedBackups) {
+                    try {
+                        encryption.EncryptionDetector.secureDelete(backup);
+                    } catch (Exception e) {
+                        // Log error but continue with others
+                        System.err.println("Failed to securely delete backup: " + backup + " - " + e.getMessage());
+                    }
+                }
+
+                JOptionPane.showMessageDialog(
+                    editor,
+                    "Old unencrypted backup files have been securely deleted.",
+                    "Cleanup Complete",
+                    JOptionPane.INFORMATION_MESSAGE
+                );
+            }
+
+        } catch (Exception e) {
+            // Silently ignore cleanup errors to not disrupt the encryption success
+            System.err.println("Error during backup cleanup: " + e.getMessage());
         }
     }
 

@@ -90,9 +90,10 @@ public class UIInitializer {
                 } else if (option == JOptionPane.NO_OPTION) {
                     // Exit program
                     showSecurityProgressDialog(editor);
+                    // Clean shutdown of all background processes
+                    editor.shutdown();
                     // Clean up before exit
                     clipboard.SecureClipboardManager.clearSecureClipboard();
-                    clipboard.SecureClipboardManager.shutdown();
                     editor.getLogFileHandler().clearSensitiveData();
                     // Clear UI text areas
                     editor.getLogListPanel().getEntryArea().setText("");
