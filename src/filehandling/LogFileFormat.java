@@ -16,11 +16,11 @@ import java.util.List;
  * - Entry structure: timestamp line + content lines (no trailing blanks)
  * - Blank lines within entry content are preserved during parsing
  * 
- * CRITICAL: DISPLAY_ENTRY_SEPARATOR_BLANKS = 2 ensures ALL entries in the display
- * have exactly 2 blank lines between them, regardless of content type (quotes, code, etc.)
+ * CRITICAL: DISPLAY_ENTRY_SEPARATOR_BLANKS = 3 ensures ALL entries in the display
+ * have exactly 3 blank lines between them, regardless of content type (quotes, code, etc.)
  * 
  * Note: The display format is independent of file format - the renderer always shows
- * 2 blank lines between entries for comfortable reading, regardless of file content.
+ * 3 blank lines between entries for comfortable reading, regardless of file content.
  */
 public class LogFileFormat {
     
@@ -46,7 +46,7 @@ public class LogFileFormat {
      * Number of blank lines the RENDERER adds between entries for visual spacing.
      * This creates comfortable reading space in the display.
      */
-    public static final int DISPLAY_ENTRY_SEPARATOR_BLANKS = 2;
+    public static final int DISPLAY_ENTRY_SEPARATOR_BLANKS = 3;
     
     /**
      * Maximum consecutive blank lines allowed before normalization reduces them.

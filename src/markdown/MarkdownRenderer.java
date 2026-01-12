@@ -45,7 +45,7 @@ import javax.swing.text.StyledDocument;
  * All markdown display goes through this class to ensure consistency.
  * 
  * SPACING RULES (strictly enforced):
- * - Between entries: Always 2 blank lines (controlled by LogFileFormat.DISPLAY_ENTRY_SEPARATOR_BLANKS)
+ * - Between entries: Always 3 blank lines (controlled by LogFileFormat.DISPLAY_ENTRY_SEPARATOR_BLANKS)
  * - Within entries: Single newline between lines (MarkdownStyle.DOCUMENT_LINE_SEPARATOR)
  * - After special blocks (quotes, code, headings): Same as above - consistency guaranteed
  * 
@@ -57,6 +57,10 @@ public class MarkdownRenderer {
     private static final Pattern INLINE_HEADING_PATTERN = Pattern.compile("(###|##|#) ");
 
     public static void renderMarkdown(JTextPane pane, List<String> lines) {
+        renderMarkdown(pane, lines, false);
+    }
+    
+    public static void renderMarkdown(JTextPane pane, List<String> lines, boolean scrollToBottom) {
         StyledDocument doc = pane.getStyledDocument();
         // Clear existing content
         try {
@@ -71,8 +75,8 @@ public class MarkdownRenderer {
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
-        // Set caret to top of document
-        pane.setCaretPosition(0);
+        // Set caret position based on scroll preference
+        pane.setCaretPosition(scrollToBottom ? doc.getLength() : 0);
     }
     
     /**
@@ -80,6 +84,16 @@ public class MarkdownRenderer {
      * Used by lazy loading to render only a subset of entries.
      */
     public static void renderMarkdownFromEntries(JTextPane pane, List<List<String>> entries) {
+        renderMarkdownFromEntries(pane, entries, false);
+    }
+    
+    /**
+     * Render markdown from pre-parsed entries with scroll control.
+     * @param pane The text pane to render into
+     * @param entries Pre-parsed entries to render
+     * @param scrollToBottom If true, scroll to bottom (latest entries); if false, scroll to top
+     */
+    public static void renderMarkdownFromEntries(JTextPane pane, List<List<String>> entries, boolean scrollToBottom) {
         StyledDocument doc = pane.getStyledDocument();
         // Clear existing content
         try {
@@ -93,8 +107,8 @@ public class MarkdownRenderer {
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
-        // Set caret to top of document
-        pane.setCaretPosition(0);
+        // Set caret position based on scroll preference
+        pane.setCaretPosition(scrollToBottom ? doc.getLength() : 0);
     }
 
     private static void handleLinkClick(JTextPane pane, MouseEvent e) {

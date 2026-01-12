@@ -17,14 +17,13 @@
 
 package filehandling;
 
-import encryption.EncryptionManager;
-import gui.HighlightableTextPane;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import gui.HighlightableTextPane;
 import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 
@@ -76,7 +75,7 @@ public class FullLogFileLoader {
             entriesToRender = allEntries;
         }
         
-        MarkdownRenderer.renderMarkdownFromEntries(textPane, entriesToRender);
+        MarkdownRenderer.renderMarkdownFromEntries(textPane, entriesToRender, true); // Scroll to bottom for latest entries
         LinkHandler.addLinkListeners(textPane);
     }
     
