@@ -358,32 +358,17 @@ public class FullLogPanel extends LogPanel {
             }
             
             private void showContextMenu(java.awt.event.MouseEvent e) {
-                // Get the position and check if we're clicking on a timestamp
-                int pos = fullLogPane.viewToModel2D(e.getPoint());
-                if (pos < 0) return;
-                
                 try {
+                    // Get the position and check for timestamp attribute
+                    int pos = fullLogPane.viewToModel2D(e.getPoint());
+                    if (pos < 0) return;
+                    
                     javax.swing.text.StyledDocument doc = fullLogPane.getStyledDocument();
+                    javax.swing.text.AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
+                    Object timestampObj = attrs.getAttribute("timestamp");
                     
-                    // Get the line at the click position
-                    int lineStart = pos;
-                    int lineEnd = pos;
-                    
-                    // Find start of line
-                    while (lineStart > 0 && doc.getText(lineStart - 1, 1).charAt(0) != '\n') {
-                        lineStart--;
-                    }
-                    
-                    // Find end of line
-                    while (lineEnd < doc.getLength() && doc.getText(lineEnd, 1).charAt(0) != '\n') {
-                        lineEnd++;
-                    }
-                    
-                    String line = doc.getText(lineStart, lineEnd - lineStart).trim();
-                    
-                    // Check if this line is a timestamp (format: HH:MM YYYY-MM-DD or HH:MM YYYY-MM-DD (N))
-                    if (line.matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
-                        String timestamp = line.replaceAll(" *\\(\\d+\\)$", "").trim(); // Remove (N) suffix if present
+                    if (timestampObj instanceof String) {
+                        String timestamp = (String) timestampObj;
                         
                         JPopupMenu popup = new JPopupMenu();
                         JMenuItem editItem = new JMenuItem("Edit this log entry");
@@ -391,7 +376,7 @@ public class FullLogPanel extends LogPanel {
                         popup.add(editItem);
                         popup.show(fullLogPane, e.getX(), e.getY());
                     }
-                } catch (javax.swing.text.BadLocationException ex) {
+                } catch (Exception ex) {
                     // Ignore - not a valid position
                 }
             }

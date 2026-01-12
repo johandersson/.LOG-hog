@@ -336,7 +336,11 @@ public class MarkdownRenderer {
                     doc.insertString(doc.getLength(), line, styles.get("code"));
                     doc.insertString(doc.getLength(), "\n", styles.get("code"));
                 } else if (i == 0 && line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
-                    doc.insertString(doc.getLength(), line + "\n", tsStyle);
+                    // Add timestamp attribute for right-click editing
+                    SimpleAttributeSet timestampAttr = new SimpleAttributeSet(tsStyle);
+                    String cleanTimestamp = line.trim().replaceAll(" *\\(\\d+\\)$", "");
+                    timestampAttr.addAttribute("timestamp", cleanTimestamp);
+                    doc.insertString(doc.getLength(), line + "\n", timestampAttr);
                 } else if (line.trim().isEmpty()) {
                     // Only preserve blank lines within an entry, not between entries
                     doc.insertString(doc.getLength(), "\n", sepStyle);
