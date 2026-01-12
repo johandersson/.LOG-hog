@@ -367,8 +367,10 @@ public class BackupManager {
             for (int i = MAX_NUMBERED_BACKUPS - 1; i > 0; i--) {
                 Path oldBackup = Paths.get(bakPath.toString() + "." + i);
                 if (i == MAX_NUMBERED_BACKUPS - 1) {
-                    // Delete oldest
-                    Files.deleteIfExists(oldBackup);
+                    // Securely delete oldest backup to prevent recovery
+                    if (Files.exists(oldBackup)) {
+                        secureDelete(oldBackup);
+                    }
                 } else {
                     Path newBackup = Paths.get(bakPath.toString() + "." + (i + 1));
                     if (Files.exists(oldBackup)) {
@@ -432,10 +434,15 @@ public class BackupManager {
                 }))
                 .collect(Collectors.toList());
             
-            // Delete oldest backups if we exceed the limit
+            // Securely delete oldest backups if we exceed the limit
             while (backups.size() > MAX_AUTO_BACKUPS) {
                 Path oldest = backups.remove(0);
-                Files.deleteIfExists(oldest);
+                try {
+                    secureDelete(oldest);
+                } catch (Exception e) {
+                    // Fallback to regular delete if secure delete fails
+                    Files.deleteIfExists(oldest);
+                }
             }
             
         } catch (Exception e) {

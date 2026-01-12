@@ -51,6 +51,19 @@ public class SecureClipboardManager implements ClipboardHandler {
 
     private static final SecureClipboardManager INSTANCE = new SecureClipboardManager();
 
+    static {
+        // Add shutdown hook to guarantee clipboard clearing even if app crashes
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                // Clear clipboard on any app termination (normal or crash)
+                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                clipboard.setContents(new StringSelection(""), null);
+            } catch (Exception e) {
+                // Ignore - app is shutting down anyway
+            }
+        }, "ClipboardClearShutdownHook"));
+    }
+
     public static SecureClipboardManager getInstance() {
         return INSTANCE;
     }

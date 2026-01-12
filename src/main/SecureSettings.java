@@ -18,18 +18,22 @@
 package main;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.security.spec.KeySpec;
 import java.util.Base64;
 import java.util.Properties;
 
 import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Secure settings storage for sensitive configuration data.
- * Uses deterministic key derivation to avoid salt bootstrapping issues.
+ * Uses PBKDF2 for key derivation instead of single SHA-256 hash.
+ * Uses deterministic salt to avoid salt bootstrapping issues.
  * Updated to use AES/GCM instead of insecure AES/ECB mode.
  */
 public class SecureSettings {
@@ -37,20 +41,25 @@ public class SecureSettings {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
+    private static final int PBKDF2_ITERATIONS = 10000; // Lower than file encryption for performance
     private final SecretKeySpec settingsKey;
     private final SecureRandom secureRandom;
 
     public SecureSettings() {
-        // Generate deterministic key for settings encryption
+        // Generate deterministic key for settings encryption using PBKDF2
         // Based on username + app identifier to ensure consistency across sessions
         String username = System.getProperty("user.name", "default");
-        String appId = "LogHog_Settings_v1";
+        String appId = "LogHog_Settings_v2"; // v2 to differentiate from old SHA-256 version
         String keySeed = username + "_" + appId;
 
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] keyBytes = digest.digest(keySeed.getBytes(StandardCharsets.UTF_8));
-            this.settingsKey = new SecretKeySpec(keyBytes, 0, 16, "AES"); // Use first 128 bits
+            // Use PBKDF2 instead of single SHA-256 hash for better security
+            // Deterministic salt derived from app identifier
+            byte[] salt = "LogHog_Settings_Salt_v2".getBytes(StandardCharsets.UTF_8);
+            KeySpec spec = new PBEKeySpec(keySeed.toCharArray(), salt, PBKDF2_ITERATIONS, 128);
+            SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+            SecretKey tmp = factory.generateSecret(spec);
+            this.settingsKey = new SecretKeySpec(tmp.getEncoded(), "AES");
             this.secureRandom = new SecureRandom();
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize secure settings", e);
