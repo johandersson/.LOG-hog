@@ -39,6 +39,7 @@ public class TimestampClickHandler {
     
     private long lastClickTime = 0;
     private java.awt.Point lastClickPoint = null;
+    private boolean isHoveringTimestamp = false;
     
     /**
      * Callback interface for timestamp clicks.
@@ -140,21 +141,31 @@ public class TimestampClickHandler {
                 try {
                     int pos = textPane.viewToModel2D(e.getPoint());
                     if (pos < 0) {
-                        resetCursor();
+                        if (isHoveringTimestamp) {
+                            isHoveringTimestamp = false;
+                            resetCursor();
+                        }
                         return;
                     }
                     
                     String lineText = getLineAtPosition(pos);
                     
                     // Check if hovering over a timestamp line
-                    if (lineText != null && isTimestampLine(lineText)) {
-                        textPane.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
-                        textPane.setToolTipText(UIStrings.TOOLTIP_DOUBLE_CLICK_EDIT);
-                    } else {
-                        resetCursor();
+                    boolean shouldHover = lineText != null && isTimestampLine(lineText);
+                    if (shouldHover != isHoveringTimestamp) {
+                        isHoveringTimestamp = shouldHover;
+                        if (shouldHover) {
+                            textPane.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+                            textPane.setToolTipText(UIStrings.TOOLTIP_DOUBLE_CLICK_EDIT);
+                        } else {
+                            resetCursor();
+                        }
                     }
                 } catch (Exception ex) {
-                    resetCursor();
+                    if (isHoveringTimestamp) {
+                        isHoveringTimestamp = false;
+                        resetCursor();
+                    }
                 }
             }
         };

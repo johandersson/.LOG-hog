@@ -162,14 +162,34 @@ public class LinkHandler {
         try {
             int pos = pane.viewToModel2D(e.getPoint());
             if (pos < 0) {
-                pane.setCursor(Cursor.getDefaultCursor());
+                if (Boolean.TRUE.equals(pane.getClientProperty("linkHover"))) {
+                    pane.putClientProperty("linkHover", false);
+                    if (pane.getCursor().getType() != Cursor.HAND_CURSOR) {
+                        pane.setCursor(Cursor.getDefaultCursor());
+                    }
+                }
                 return;
             }
             AttributeSet attrs = pane.getStyledDocument().getCharacterElement(pos).getAttributes();
             Object hrefObj = attrs.getAttribute("href");
-            pane.setCursor(hrefObj instanceof String ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
+            boolean hasLink = hrefObj instanceof String;
+            boolean wasHovering = Boolean.TRUE.equals(pane.getClientProperty("linkHover"));
+            
+            if (hasLink != wasHovering) {
+                pane.putClientProperty("linkHover", hasLink);
+                if (hasLink) {
+                    pane.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                } else if (pane.getCursor().getType() != Cursor.HAND_CURSOR) {
+                    pane.setCursor(Cursor.getDefaultCursor());
+                }
+            }
         } catch (Exception ex) {
-            pane.setCursor(Cursor.getDefaultCursor());
+            if (Boolean.TRUE.equals(pane.getClientProperty("linkHover"))) {
+                pane.putClientProperty("linkHover", false);
+                if (pane.getCursor().getType() != Cursor.HAND_CURSOR) {
+                    pane.setCursor(Cursor.getDefaultCursor());
+                }
+            }
         }
     }
 

@@ -46,79 +46,106 @@ public class HighlightableTextPane extends JTextPane {
             return 0;
         }
 
-        var doc = getDocument();
-        var len = doc.getLength();
-        String text;
-        try {
-            text = doc.getText(0, len);
-        } catch (BadLocationException e) {
-            JOptionPane.showMessageDialog(this, "Error accessing document", "Error", JOptionPane.ERROR_MESSAGE);
+        String text = getDocumentText();
+        if (text == null) {
             return 0;
         }
 
-        // Performance limit: For very large documents, cap highlights at reasonable number
-        final int MAX_HIGHLIGHTS = 10000;
-        
-        int matchCount = 0;
-        
-        // Fast path: Plain string search without regex overhead for simple cases
-        if (!wholeWord) {
-            String searchText = caseSensitive ? text : text.toLowerCase();
-            String searchQuery = caseSensitive ? query : query.toLowerCase();
-            int queryLen = searchQuery.length();
-            
-            // Simple indexOf loop - faster than regex for plain text
-            int index = 0;
-            try {
-                while ((index = searchText.indexOf(searchQuery, index)) != -1) {
-                    highlighter.addHighlight(index, index + queryLen, highlightPainter);
-                    matchCount++;
-                    index += queryLen;
-                    
-                    // Early exit to prevent UI freeze on massive match counts
-                    if (matchCount >= MAX_HIGHLIGHTS) {
-                        break;
-                    }
-                }
-            } catch (BadLocationException ex) {
-                // ignore individual highlight failures
-            }
-        } else {
-            // Use regex for whole word matching
-            String regex = "\\b" + Pattern.quote(query) + "\\b";
-            int flags = caseSensitive ? 0 : Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
-            Pattern pattern = Pattern.compile(regex, flags);
-            Matcher matcher = pattern.matcher(text);
-
-            try {
-                while (matcher.find()) {
-                    highlighter.addHighlight(matcher.start(), matcher.end(), highlightPainter);
-                    matchCount++;
-                    
-                    // Early exit to prevent UI freeze
-                    if (matchCount >= MAX_HIGHLIGHTS) {
-                        break;
-                    }
-                }
-            } catch (BadLocationException ex) {
-                // ignore individual highlight failures
-            }
-        }
+        int matchCount = performSearch(text, query, wholeWord, caseSensitive, highlighter);
 
         if (matchCount > 0) {
-            try {
-                var firstIndex = highlighter.getHighlights()[0].getStartOffset();
+            scrollToFirstHighlight(highlighter);
+        }
+
+        return matchCount;
+    }
+
+    private String getDocumentText() {
+        var doc = getDocument();
+        var len = doc.getLength();
+        try {
+            return doc.getText(0, len);
+        } catch (BadLocationException e) {
+            JOptionPane.showMessageDialog(this, "Error accessing document", "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+    }
+
+    private int performSearch(String text, String query, boolean wholeWord, boolean caseSensitive, Highlighter highlighter) {
+        final int MAX_HIGHLIGHTS = 10000;
+        int matchCount = 0;
+
+        if (!wholeWord) {
+            matchCount = performSimpleSearch(text, query, caseSensitive, highlighter, MAX_HIGHLIGHTS);
+        } else {
+            matchCount = performRegexSearch(text, query, caseSensitive, highlighter, MAX_HIGHLIGHTS);
+        }
+
+        return matchCount;
+    }
+
+    private int performSimpleSearch(String text, String query, boolean caseSensitive, Highlighter highlighter, int maxHighlights) {
+        String searchText = caseSensitive ? text : text.toLowerCase();
+        String searchQuery = caseSensitive ? query : query.toLowerCase();
+        int queryLen = searchQuery.length();
+        int matchCount = 0;
+        int index = 0;
+
+        try {
+            while ((index = searchText.indexOf(searchQuery, index)) != -1) {
+                highlighter.addHighlight(index, index + queryLen, highlightPainter);
+                matchCount++;
+                index += queryLen;
+
+                if (matchCount >= maxHighlights) {
+                    break;
+                }
+            }
+        } catch (BadLocationException ex) {
+            // ignore individual highlight failures
+        }
+
+        return matchCount;
+    }
+
+    private int performRegexSearch(String text, String query, boolean caseSensitive, Highlighter highlighter, int maxHighlights) {
+        String regex = "\\b" + Pattern.quote(query) + "\\b";
+        int flags = caseSensitive ? 0 : Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
+        Pattern pattern = Pattern.compile(regex, flags);
+        Matcher matcher = pattern.matcher(text);
+        int matchCount = 0;
+
+        try {
+            while (matcher.find()) {
+                highlighter.addHighlight(matcher.start(), matcher.end(), highlightPainter);
+                matchCount++;
+
+                if (matchCount >= maxHighlights) {
+                    break;
+                }
+            }
+        } catch (BadLocationException ex) {
+            // ignore individual highlight failures
+        }
+
+        return matchCount;
+    }
+
+    private void scrollToFirstHighlight(Highlighter highlighter) {
+        try {
+            var highlights = highlighter.getHighlights();
+            if (highlights.length > 0) {
+                var firstIndex = highlights[0].getStartOffset();
                 var rect = modelToView2D(firstIndex).getBounds();
                 if (rect != null) {
                     rect.height = Math.max(rect.height, 20);
                     scrollRectToVisible(rect);
                     setCaretPosition(firstIndex);
                 }
-            } catch (BadLocationException ex) {
-                // ignore scrolling failure
             }
+        } catch (BadLocationException ex) {
+            // ignore scrolling failure
         }
-        return matchCount;
     }
 
     public void navigateHighlights(boolean next) {

@@ -17,9 +17,22 @@
 
 package gui;
 
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Frame;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+
+import javax.swing.AbstractAction;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.KeyStroke;
+
 import utils.TooltipHelper;
 
 public class SearchDialog extends JDialog {
@@ -33,6 +46,12 @@ public class SearchDialog extends JDialog {
     private final JButton findPrevBtn;
     private final JButton closeBtn;
 
+    // Track last search to enable Enter navigation
+    private String lastQuery = "";
+    private boolean lastWholeWord = false;
+    private boolean lastCaseSensitive = false;
+    private int lastMatchCount = 0;
+
     public SearchDialog(Frame parent, HighlightableTextPane textPane) {
         super(parent, "Find in Log", true); // Modal dialog
         this.textPane = textPane;
@@ -45,7 +64,7 @@ public class SearchDialog extends JDialog {
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         searchPanel.add(new JLabel("Find:"));
         searchField = new JTextField(20);
-        searchField.addActionListener(e -> performSearch());
+        searchField.addActionListener(e -> handleSearchFieldAction());
         searchPanel.add(searchField);
 
         // Options panel
@@ -102,6 +121,19 @@ public class SearchDialog extends JDialog {
         searchField.requestFocusInWindow();
     }
 
+    private void handleSearchFieldAction() {
+        String query = searchField.getText();
+        boolean wholeWord = wholeWordCheck.isSelected();
+        boolean caseSensitive = caseSensitiveCheck.isSelected();
+        
+        // If same search and multiple matches, navigate to next instead of re-searching
+        if (query.equals(lastQuery) && wholeWord == lastWholeWord && caseSensitive == lastCaseSensitive && lastMatchCount > 1) {
+            findNext();
+        } else {
+            performSearch();
+        }
+    }
+
     private void performSearch() {
         String query = searchField.getText();
         boolean wholeWord = wholeWordCheck.isSelected();
@@ -110,6 +142,12 @@ public class SearchDialog extends JDialog {
         int matchCount = textPane.highlightText(query, wholeWord, caseSensitive);
         updateMatchCount(matchCount);
         updateButtons(matchCount > 0);
+        
+        // Update last search state
+        lastQuery = query;
+        lastWholeWord = wholeWord;
+        lastCaseSensitive = caseSensitive;
+        lastMatchCount = matchCount;
     }
 
     private void findNext() {
