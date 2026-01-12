@@ -97,7 +97,8 @@ public class MarkdownRenderer {
                 }
             }
         } catch (Exception ex) {
-            showLinkError(pane, "Failed to open link: " + ex.getMessage());
+            // Security: Don't expose internal error details
+            showLinkError(pane, "Unable to open link.");
         }
     }
 
@@ -146,9 +147,10 @@ public class MarkdownRenderer {
         try {
             Desktop.getDesktop().open(file);
         } catch (java.io.IOException ioEx) {
-            showLinkError(pane, "Failed to open file: " + ioEx.getMessage());
+            // Security: Don't expose internal error details
+            showLinkError(pane, "Unable to open file. Check if you have the appropriate application installed.");
         } catch (Exception ex) {
-            showLinkError(pane, "Unexpected error opening file: " + ex.getMessage());
+            showLinkError(pane, "Unable to open file.");
         }
     }
 
@@ -165,7 +167,8 @@ public class MarkdownRenderer {
             }
             Desktop.getDesktop().browse(java.net.URI.create(finalHref));
         } catch (java.io.IOException ioEx) {
-            showLinkError(pane, "Failed to open URL: " + ioEx.getMessage());
+            // Security: Don't expose internal error details
+            showLinkError(pane, "Unable to open URL. Check your internet connection and browser settings.");
         } catch (Exception ex) {
             showLinkError(pane, "Invalid URL format: " + href);
         }
@@ -336,11 +339,8 @@ public class MarkdownRenderer {
                     doc.insertString(doc.getLength(), line, styles.get("code"));
                     doc.insertString(doc.getLength(), "\n", styles.get("code"));
                 } else if (i == 0 && line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
-                    // Add timestamp attribute for right-click editing
-                    SimpleAttributeSet timestampAttr = new SimpleAttributeSet(tsStyle);
-                    String cleanTimestamp = line.trim().replaceAll(" *\\(\\d+\\)$", "");
-                    timestampAttr.addAttribute("timestamp", cleanTimestamp);
-                    doc.insertString(doc.getLength(), line + "\n", timestampAttr);
+                    // Render timestamp
+                    doc.insertString(doc.getLength(), line + "\n", tsStyle);
                 } else if (line.trim().isEmpty()) {
                     // Only preserve blank lines within an entry, not between entries
                     doc.insertString(doc.getLength(), "\n", sepStyle);

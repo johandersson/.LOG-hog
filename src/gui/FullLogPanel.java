@@ -87,8 +87,8 @@ public class FullLogPanel extends LogPanel {
             }
         });
 
-        // Add right-click context menu for timestamps
-        addTimestampContextMenu();
+        // Add double-click on timestamp to edit entry
+        addTimestampDoubleClickHandler();
 
         var scroll = new JScrollPane(fullLogPane);
         scroll.setBorder(BorderFactory.createEmptyBorder());
@@ -267,7 +267,8 @@ public class FullLogPanel extends LogPanel {
             fullLogPane.clearHighlights();
             fullLogPane.setCaretPosition(0);
         } catch (Exception e) {
-            fullLogPane.setText("Error reading " + chosen.toAbsolutePath().toString() + " : " + e.getMessage());
+            // Security: Don't expose file paths or internal error details
+            fullLogPane.setText("Error reading log file. Please check file permissions and format.");
             fullLogPathLabel.setText("Log file: error reading file");
             fullLogPane.clearHighlights();
         }
@@ -344,50 +345,116 @@ public class FullLogPanel extends LogPanel {
     public HighlightableTextPane getFullLogPane() {
         return fullLogPane;
     }
-    
-    private void addTimestampContextMenu() {
-        fullLogPane.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mousePressed(java.awt.event.MouseEvent e) {
-                if (e.isPopupTrigger()) {
-                    showContextMenu(e);
-                }
-            }
+
+    /**
+     * Adds double-click handler to timestamps for quick entry editing.
+     * Double-clicking on a timestamp line switches to Log List tab and selects that entry.
+     */
+    private void addTimestampDoubleClickHandler() {
+        System.out.println("DEBUG: Adding double-click handler using AWTEventListener");
+        
+        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(new java.awt.event.AWTEventListener() {
+            private long lastClickTime = 0;
+            private java.awt.Point lastClickPoint = null;
             
             @Override
-            public void mouseReleased(java.awt.event.MouseEvent e) {
-                if (e.isPopupTrigger()) {
-                    showContextMenu(e);
+            public void eventDispatched(java.awt.AWTEvent event) {
+                if (!(event instanceof java.awt.event.MouseEvent)) {
+                    return;
                 }
-            }
-            
-            private void showContextMenu(java.awt.event.MouseEvent e) {
+                
+                java.awt.event.MouseEvent e = (java.awt.event.MouseEvent) event;
+                
+                // Only process events on our fullLogPane
+                if (e.getComponent() != fullLogPane && e.getComponent().getParent() != fullLogPane) {
+                    return;
+                }
+                
+                // Only handle mouse pressed events
+                if (e.getID() != java.awt.event.MouseEvent.MOUSE_PRESSED) {
+                    return;
+                }
+                
+                System.out.println("DEBUG: AWTEventListener caught MOUSE_PRESSED on fullLogPane");
+                
+                long currentTime = System.currentTimeMillis();
+                java.awt.Point currentPoint = e.getPoint();
+                
+                // Convert point to fullLogPane coordinates if needed
+                if (e.getComponent() != fullLogPane) {
+                    currentPoint = SwingUtilities.convertPoint(e.getComponent(), currentPoint, fullLogPane);
+                }
+                
+                boolean isDoubleClick = false;
+                
+                // Manual double-click detection
+                if (lastClickTime > 0 && (currentTime - lastClickTime) < 500 && lastClickPoint != null) {
+                    double distance = lastClickPoint.distance(currentPoint);
+                    System.out.println("DEBUG: Time delta: " + (currentTime - lastClickTime) + "ms, distance: " + distance + "px");
+                    if (distance < 5) {
+                        isDoubleClick = true;
+                        System.out.println("DEBUG: DOUBLE-CLICK DETECTED");
+                    }
+                }
+                
+                lastClickTime = currentTime;
+                lastClickPoint = currentPoint;
+                
+                if (!isDoubleClick) {
+                    System.out.println("DEBUG: Single click - resetting timer");
+                    return;
+                }
+                
+                System.out.println("DEBUG: Processing double-click...");
+                
+                // Get position in document
+                int pos = fullLogPane.viewToModel2D(currentPoint);
+                System.out.println("DEBUG: Position in document: " + pos);
+                if (pos < 0) {
+                    System.out.println("DEBUG: Invalid position");
+                    return;
+                }
+                
                 try {
-                    // Get the position and check for timestamp attribute
-                    int pos = fullLogPane.viewToModel2D(e.getPoint());
-                    if (pos < 0) return;
-                    
+                    // Find the start and end of the current line
                     javax.swing.text.StyledDocument doc = fullLogPane.getStyledDocument();
-                    javax.swing.text.AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
-                    Object timestampObj = attrs.getAttribute("timestamp");
+                    String text = doc.getText(0, doc.getLength());
                     
-                    if (timestampObj instanceof String) {
-                        String timestamp = (String) timestampObj;
-                        
-                        JPopupMenu popup = new JPopupMenu();
-                        JMenuItem editItem = new JMenuItem("Edit this log entry");
-                        editItem.addActionListener(evt -> editEntryByTimestamp(timestamp));
-                        popup.add(editItem);
-                        popup.show(fullLogPane, e.getX(), e.getY());
+                    // Find line boundaries
+                    int lineStart = pos;
+                    while (lineStart > 0 && text.charAt(lineStart - 1) != '\n') {
+                        lineStart--;
+                    }
+                    
+                    int lineEnd = pos;
+                    while (lineEnd < text.length() && text.charAt(lineEnd) != '\n') {
+                        lineEnd++;
+                    }
+                    
+                    String lineText = text.substring(lineStart, lineEnd).trim();
+                    System.out.println("DEBUG: Line text: '" + lineText + "'");
+                    
+                    // Check if it's a timestamp line (format: "HH:MM YYYY-MM-DD" or "HH:MM YYYY-MM-DD (N)")
+                    if (lineText.matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
+                        System.out.println("DEBUG: Timestamp pattern matches: true");
+                        System.out.println("DEBUG: Opening entry for timestamp: '" + lineText + "'");
+                        openEntryForEditing(lineText);
+                    } else {
+                        System.out.println("DEBUG: Timestamp pattern matches: false");
                     }
                 } catch (Exception ex) {
-                    // Ignore - not a valid position
+                    System.out.println("DEBUG: Exception while processing click: " + ex.getMessage());
+                    ex.printStackTrace();
                 }
             }
-        });
+        }, java.awt.AWTEvent.MOUSE_EVENT_MASK);
     }
-    
-    private void editEntryByTimestamp(String timestamp) {
+
+    /**
+     * Opens the specified entry for editing in the Log List tab.
+     * @param timestamp The timestamp of the entry to edit (format: HH:mm yyyy-MM-dd)
+     */
+    private void openEntryForEditing(String timestamp) {
         // Switch to Log List tab (index 1)
         editor.getTabPane().setSelectedIndex(1);
         
@@ -414,7 +481,9 @@ public class FullLogPanel extends LogPanel {
         
         // If not found in current view, show a message
         JOptionPane.showMessageDialog(this,
-            "Entry not found in current log list view.\nYou may need to adjust the year/month filter to see this entry.",
+            "<html><b>Entry Not Found</b><br><br>" +
+            "This entry is not visible in the current Log List view.<br>" +
+            "You may need to adjust the year/month filter to see it.</html>",
             "Entry Not Found",
             JOptionPane.INFORMATION_MESSAGE);
     }

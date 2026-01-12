@@ -81,8 +81,10 @@ public class SecureSettings {
             
             return ENCRYPTED_PREFIX + Base64.getEncoder().encodeToString(result);
         } catch (Exception e) {
-            System.err.println("Failed to encrypt setting value");
-            return value; // Return plain text as fallback
+            // Security: Never return plaintext on encryption failure
+            // Log error for debugging but don't expose details
+            System.err.println("WARNING: Failed to encrypt setting value - returning empty string");
+            return ""; // Return empty string instead of plaintext
         }
     }
 

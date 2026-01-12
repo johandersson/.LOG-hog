@@ -142,7 +142,8 @@ public class LogListPanel extends JPanel {
                 }
             }
         } catch (Exception ex) {
-            logFileHandler.showErrorDialog("<html><b>📅 Filter Failed</b><br><br>Unable to apply date filter.<br>" + ex.getMessage() + "<br><br><i>Tip: Check the selected year and month.</i></html>");
+            // Security: Don't expose internal error details
+            logFileHandler.showErrorDialog("<html><b>📅 Filter Failed</b><br><br>Unable to apply date filter.<br><br><i>Tip: Check the selected year and month.</i></html>");
         }
     }
 

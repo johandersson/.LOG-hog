@@ -206,20 +206,18 @@ public class EntryLoader {
             timestampListCache = timestamps;
             updateCacheTimestamp();
         } catch (Exception e) {
-            if (!e.getMessage().contains("Tag mismatch")) {
-                String errorMsg = e.getMessage();
-                if (errorMsg.contains("Unrecognized date format")) {
-                    // Style the date parsing error
-                    errorMsg = "<html><b>⚠️ Timestamp Parsing Error</b><br><br>" +
+            // Security: Don't check/expose exception messages - use generic errors
+            String errorMsg;
+            if (e instanceof java.time.format.DateTimeParseException) {
+                // Style the date parsing error
+                errorMsg = "<html><b>⚠️ Timestamp Parsing Error</b><br><br>" +
                                "LogHog couldn't understand the timestamp format in your file.<br><br>" +
-                               "<b>Details:</b> " + errorMsg + "<br><br>" +
                                "<b>Solution:</b> Ensure timestamps follow the format <code>HH:mm yyyy-MM-dd</code> (e.g., 14:30 2025-12-16).<br>" +
                                "You can reformat the file or use LogHog's export feature for compatibility.</html>";
-                } else {
-                    errorMsg = "<html><b>❌ Loading Error</b><br><br>" + errorMsg + "</html>";
-                }
-                logFileHandler.showErrorDialog(errorMsg);
+            } else {
+                errorMsg = "<html><b>❌ Loading Error</b><br><br>Unable to load log timestamps. Please check the file format.</html>";
             }
+            logFileHandler.showErrorDialog(errorMsg);
             // Do not throw, continue with empty list
         }
     }
@@ -250,7 +248,8 @@ public class EntryLoader {
                 listModel.addElement(timestamp);
             }
         } catch (Exception e) {
-            logFileHandler.showErrorDialog("<html><b>🔍 Filter Failed</b><br><br>Unable to load filtered log entries.<br>" + e.getMessage() + "<br><br><i>Tip: Check the log file format and try reloading.</i></html>");
+            // Security: Don't expose internal error details
+            logFileHandler.showErrorDialog("<html><b>🔍 Filter Failed</b><br><br>Unable to load filtered log entries.<br><br><i>Tip: Check the log file format and try reloading.</i></html>");
         }
     }
 
@@ -282,7 +281,8 @@ public class EntryLoader {
                 listModel.addElement(timestamp);
             }
         } catch (Exception e) {
-            logFileHandler.showErrorDialog("<html><b>🔍 Filter Failed</b><br><br>Unable to load filtered log entries.<br>" + e.getMessage() + "<br><br><i>Tip: Check the log file format and try reloading.</i></html>");
+            // Security: Don't expose internal error details
+            logFileHandler.showErrorDialog("<html><b>🔍 Filter Failed</b><br><br>Unable to load filtered log entries.<br><br><i>Tip: Check the log file format and try reloading.</i></html>");
         }
     }
 
@@ -337,7 +337,10 @@ public class EntryLoader {
                 LocalDateTime dateTime = null;
                 try {
                     dateTime = utils.DateHandler.parseTimestamp(timestamp);
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    // Log but don't propagate date parsing errors for individual entries
+                    System.err.println("Warning: Failed to parse entry date - skipping entry");
+                }
                 parsed.add(new ParsedEntry(timestamp, dateTime));
             }
         }
@@ -445,7 +448,8 @@ public class EntryLoader {
 
             return "";
         } catch (Exception e) {
-            logFileHandler.showErrorDialog("<html><b>👁️ Display Failed</b><br><br>Unable to display the log entry.<br>" + e.getMessage() + "<br><br><i>Tip: The entry may be corrupted or the file may be locked.</i></html>");
+            // Security: Don't expose internal error details
+            logFileHandler.showErrorDialog("<html><b>👁️ Display Failed</b><br><br>Unable to display the log entry.<br><br><i>Tip: The entry may be corrupted or the file may be locked.</i></html>");
         }
         return "";
     }
@@ -488,7 +492,8 @@ public class EntryLoader {
                 recentEntries.add(timestamps.get(j));
             }
         } catch (Exception e) {
-            logFileHandler.showErrorDialog("<html><b>🕒 Recent Entries Failed</b><br><br>Unable to load recent log entries.<br>" + e.getMessage() + "<br><br><i>Tip: Check the log file and ensure it contains valid timestamps.</i></html>");
+            // Security: Don't expose internal error details
+            logFileHandler.showErrorDialog("<html><b>🕒 Recent Entries Failed</b><br><br>Unable to load recent log entries.<br><br><i>Tip: Check the log file and ensure it contains valid timestamps.</i></html>");
         }
         return recentEntries;
     }

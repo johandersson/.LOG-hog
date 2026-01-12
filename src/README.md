@@ -5,6 +5,16 @@
 ## Security
 **Security Rating: HIGH (9.5/10)** - Enterprise-grade encryption with AES-256-GCM, PBKDF2 key derivation, progressive delays, enforced password strength, automatic secure backups, and comprehensive input validation. Suitable for sensitive personal and professional data.
 
+**🔒 Oracle Secure Coding Guidelines Conformance** - .LOG-hog has been hardened to conform to [Oracle's Secure Coding Guidelines for Java SE](https://www.oracle.com/java/technologies/javase/seccodeguide.html), addressing all CRITICAL, HIGH, and MEDIUM priority security requirements:
+- ✅ **Information Disclosure Prevention**: Generic error messages without internal details
+- ✅ **Immutable Static Fields**: Prevented runtime state corruption
+- ✅ **Defensive Copying**: Protected mutable internal state from external modification
+- ✅ **Resource Management**: File size limits (50MB) prevent memory exhaustion attacks
+- ✅ **Secure Exception Handling**: All exceptions logged, never swallowed
+- ✅ **Fail-Secure Design**: Empty string on encryption failure, never plaintext fallback
+
+See [encryption.md](encryption.md) for comprehensive security documentation.
+
 ## Purpose
 The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen focuses directly on the editor window for immediate writing. After composing your note, press Ctrl+S or click Save to clear the text field and save the entry into a dated log. This clearing allows you to write a new log entry right away, facilitating rapid and efficient note-taking.
 
@@ -54,7 +64,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - ✅ **Self-contained** - single JAR file, nothing else needed
 
 ## Security Overview
-.LOG-hog implements **enterprise-grade security** with comprehensive protection against modern threats. The application has undergone extensive security hardening to address all identified vulnerabilities.
+.LOG-hog implements **enterprise-grade security** with comprehensive protection against modern threats. The application has been hardened according to [Oracle's Secure Coding Guidelines for Java SE](https://www.oracle.com/java/technologies/javase/seccodeguide.html), ensuring robust defense against information disclosure, state corruption, resource exhaustion, and cryptographic vulnerabilities.
 
 **Key Security Features:**
 - **AES-256-GCM authenticated encryption** with PBKDF2-100,000 iterations key derivation

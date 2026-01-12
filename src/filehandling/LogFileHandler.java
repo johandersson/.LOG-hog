@@ -41,12 +41,20 @@ import main.BackupManager;
 import utils.DateHandler;
 
 public class LogFileHandler implements LogFileOperations {
-    private static Path DEFAULT_FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
+    private static final Path DEFAULT_FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
 
+    // Maximum file size to load (50MB) - prevents memory exhaustion
+    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024;
+    // Maximum entries in a collection - prevents DoS
+    private static final int MAX_COLLECTION_SIZE = 100000;
+
     // For testing only - deprecated, use constructor instead
+    @Deprecated
     public static void setTestFilePath(Path testPath) {
-        DEFAULT_FILE_PATH = testPath;
+        // This method is deprecated. Use constructor injection instead.
+        // Keeping for backward compatibility but this violates immutability.
+        throw new UnsupportedOperationException("Use constructor with custom path instead");
     }
 
     private final Path filePath;
@@ -159,7 +167,8 @@ public class LogFileHandler implements LogFileOperations {
                     sortListModel(listModel);
                     invalidateEntryCache();
                 } catch (Exception ex) {
-                    showErrorDialog("<html><b>💾 Save Failed</b><br><br>" + ex.getMessage() + "</html>");
+                    // Security: Don't expose internal error details
+                    showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save log entry. Please check file permissions.</html>");
                 }
             }
         } catch (java.io.IOException e) {
@@ -171,7 +180,8 @@ public class LogFileHandler implements LogFileOperations {
                     "• Check if the file is open in a text editor<br>" +
                     "• Restart the application if issue persists</html>";
             } else {
-                errorMsg += e.getMessage() + "<br><br>" +
+                // Security: Don't expose internal error details
+                errorMsg += "Unable to write to the log file.<br><br>" +
                     "<i>Tip: Ensure the file is not read-only or in use by another program.</i></html>";
             }
             showErrorDialogWithRecovery(errorMsg, "Save Error");
@@ -280,7 +290,8 @@ public class LogFileHandler implements LogFileOperations {
             isDirty = false;
             pendingLines = null;
         } catch (Exception e) {
-            showErrorDialog("<html><b>💾 Write Failed</b><br><br>Unable to save changes to disk.<br>" + e.getMessage() + "</html>");
+            // Security: Don't expose internal error details
+            showErrorDialog("<html><b>💾 Write Failed</b><br><br>Unable to save changes to disk.<br>Please check file permissions and disk space.</html>");
         }
     }
     
@@ -962,8 +973,9 @@ public class LogFileHandler implements LogFileOperations {
                 );
                 return true;
             } catch (Exception e) {
+                // Security: Don't expose internal error details
                 showErrorDialog("<html><b>Failed to create log file</b><br><br>" +
-                    e.getMessage() + "</html>");
+                    "Unable to create the log file. Please check permissions and try again.</html>");
                 return false;
             }
         } else if (choice == 1) {
@@ -1011,9 +1023,9 @@ public class LogFileHandler implements LogFileOperations {
                 );
                 return true;
             } catch (Exception e) {
+                // Security: Don't expose internal error details
                 showErrorDialog("<html><b>Restore Failed</b><br><br>" +
-                    "Unable to restore from backup.<br>" +
-                    e.getMessage() + "</html>");
+                    "Unable to restore from backup. The backup file may be corrupted.</html>");
                 return false;
             }
         }

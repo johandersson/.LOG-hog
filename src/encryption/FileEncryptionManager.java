@@ -49,7 +49,8 @@ public class FileEncryptionManager {
     }
 
     public byte[] getSalt() {
-        return salt;
+        // Security: Return defensive copy to prevent external modification
+        return salt != null ? salt.clone() : null;
     }
 
     public void encryptFile(String content) throws Exception {

@@ -47,7 +47,10 @@ public class LogParser {
                     if (dt.getYear() == year && dt.getMonthValue() == month) {
                         filtered.add(entry);
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    // Log but don't propagate parsing errors
+                    System.err.println("Warning: Failed to parse log entry - skipping");
+                }
             }
         }
 

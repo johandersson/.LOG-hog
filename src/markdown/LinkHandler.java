@@ -116,20 +116,22 @@ public class LinkHandler {
                 }
                 file = new java.io.File(filePath);
             } catch (Exception pathEx) {
-                showLinkError(pane, "Invalid file path format: " + href);
+                // Security: Don't expose internal path details
+                showLinkError(pane, "Invalid file link format.");
                 return;
             }
         }
 
         // Check if file exists
         if (!file.exists()) {
-            showLinkError(pane, "File does not exist: " + file.getAbsolutePath());
+            // Security: Don't expose absolute paths
+            showLinkError(pane, "File not found. The linked file may have been moved or deleted.");
             return;
         }
 
         // Check if it's actually a file (not a directory)
         if (!file.isFile()) {
-            showLinkError(pane, "Path is not a file: " + file.getAbsolutePath());
+            showLinkError(pane, "Cannot open: path is not a file.");
             return;
         }
 
@@ -137,9 +139,10 @@ public class LinkHandler {
         try {
             Desktop.getDesktop().open(file);
         } catch (java.io.IOException ioEx) {
-            showLinkError(pane, "Failed to open file: " + ioEx.getMessage());
+            // Security: Don't expose internal error details
+            showLinkError(pane, "Unable to open file. Check if you have the appropriate application installed.");
         } catch (Exception ex) {
-            showLinkError(pane, "Unexpected error opening file: " + ex.getMessage());
+            showLinkError(pane, "Unable to open file.");
         }
     }
 
@@ -156,7 +159,8 @@ public class LinkHandler {
             }
             Desktop.getDesktop().browse(java.net.URI.create(finalHref));
         } catch (java.io.IOException ioEx) {
-            showLinkError(pane, "Failed to open URL: " + ioEx.getMessage());
+            // Security: Don't expose internal error details
+            showLinkError(pane, "Unable to open URL. Check your internet connection and browser settings.");
         } catch (Exception ex) {
             showLinkError(pane, "Invalid URL format: " + href);
         }

@@ -96,7 +96,8 @@ public class ActionHandler {
                         fullLogPanel.loadFullLog();
                         SystemTrayMenu.updateRecentLogsMenu();
                     } catch (Exception ex) {
-                        logFileHandler.showErrorDialog("<html><b>🔄 Refresh Failed</b><br><br>Unable to refresh log data after save.<br>" + ex.getMessage() + "<br><br><i>Tip: Try reloading the application.</i></html>");
+                        // Security: Don't expose internal error details
+                        logFileHandler.showErrorDialog("<html><b>🔄 Refresh Failed</b><br><br>Unable to refresh log data after save.<br><br><i>Tip: Try reloading the application.</i></html>");
                     }
                 }
             }
@@ -128,7 +129,8 @@ public class ActionHandler {
                 }
             }
         } catch (Exception e) {
-            logFileHandler.showErrorDialog("<html><b>🔄 Reload Failed</b><br><br>Unable to reload log entries after update.<br>" + e.getMessage() + "<br><br><i>Tip: The update may have succeeded, but the list couldn't refresh.</i></html>");
+            // Security: Don't expose internal error details
+            logFileHandler.showErrorDialog("<html><b>🔄 Reload Failed</b><br><br>Unable to reload log entries after update.<br><br><i>Tip: The update may have succeeded, but the list couldn't refresh.</i></html>");
         }
         fullLogPanel.loadFullLog();
         SystemTrayMenu.updateRecentLogsMenu();
