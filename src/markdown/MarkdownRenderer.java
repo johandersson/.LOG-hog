@@ -22,7 +22,6 @@ import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,24 +35,13 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTextPane;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
-import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
 public class MarkdownRenderer {
 
-    private static final Pattern LINK_PATTERN = Pattern.compile("\\[([^\\]]+)\\]\\(([^\\)]+)\\)");
-    private static final Pattern BOLD_PATTERN = Pattern.compile("\\*\\*(.*?)\\*\\*");
-    private static final Pattern ITALIC_PATTERN = Pattern.compile("\\*(.*?)\\*");
-    private static final Pattern INLINE_CODE_PATTERN = Pattern.compile("`([^`]*)`");
-    private static final Pattern RED_PATTERN = Pattern.compile("<span style=\"color:red\">(.*?)</span>", Pattern.DOTALL);
     private static final Pattern INLINE_HEADING_PATTERN = Pattern.compile("(###|##|#) ");
-    
-    // Quick check patterns for early exit optimization
-    private static final Pattern HAS_MARKDOWN_PATTERN = Pattern.compile("[\\[*`<#>-]");
-
-    private record TextElement(int start, int end, String type, String text, String href) {}
 
     public static void renderMarkdown(JTextPane pane, List<String> lines) {
         StyledDocument doc = pane.getStyledDocument();
@@ -321,7 +309,7 @@ public class MarkdownRenderer {
                 boolean isCodeBlockMarker = line.trim().equals("```");
                 
                 if (!isTimestamp && !isCodeBlockMarker && !inCodeBlock && 
-                    !HAS_MARKDOWN_PATTERN.matcher(line).find()) {
+                    !MarkdownFormatter.hasMarkdown(line)) {
                     // Plain text line with no markdown - fast path
                     doc.insertString(doc.getLength(), line, defaultStyle);
                     if (i < entry.size() - 1) {
@@ -347,7 +335,7 @@ public class MarkdownRenderer {
                 } else if (line.startsWith("- ")) {
                     String text = "• " + line.substring(2);
                     Style listStyle = styles.get("list");
-                    appendLineWithFormatting(doc, text, listStyle, styles);
+                    MarkdownFormatter.appendLineWithFormatting(doc, text, listStyle, styles);
                     doc.insertString(doc.getLength(), "\n", listStyle);
                 } else if (line.startsWith("> ")) {
                     // Handle multi-line blockquotes
@@ -364,15 +352,15 @@ public class MarkdownRenderer {
                     currentHasCode = true; // Prevent extra spacing
                 } else if (line.startsWith("# ")) {
                     String text = line.substring(2);
-                    appendLineWithFormatting(doc, text, styles.get("h1"), styles);
+                    MarkdownFormatter.appendLineWithFormatting(doc, text, styles.get("h1"), styles);
                     doc.insertString(doc.getLength(), "\n", styles.get("h1"));
                 } else if (line.startsWith("## ")) {
                     String text = line.substring(3);
-                    appendLineWithFormatting(doc, text, styles.get("h2"), styles);
+                    MarkdownFormatter.appendLineWithFormatting(doc, text, styles.get("h2"), styles);
                     doc.insertString(doc.getLength(), "\n", styles.get("h2"));
                 } else if (line.startsWith("### ")) {
                     String text = line.substring(4);
-                    appendLineWithFormatting(doc, text, styles.get("h3"), styles);
+                    MarkdownFormatter.appendLineWithFormatting(doc, text, styles.get("h3"), styles);
                     doc.insertString(doc.getLength(), "\n", styles.get("h3"));
                 } else {
                     // Parse for inline headings - optimized with single pattern
@@ -404,7 +392,7 @@ public class MarkdownRenderer {
                             };
                             text = part.substring(marker.length());
                         }
-                        appendLineWithFormatting(doc, text, partStyle, styles);
+                        MarkdownFormatter.appendLineWithFormatting(doc, text, partStyle, styles);
                         doc.insertString(doc.getLength(), "\n", partStyle);
                     }
                 }
@@ -424,134 +412,11 @@ public class MarkdownRenderer {
             // Insert vertical bar as border
             doc.insertString(doc.getLength(), "│ ", quoteBorderStyle);
             // Insert the text with formatting
-            appendLineWithFormatting(doc, text, quoteStyle, styles);
+            MarkdownFormatter.appendLineWithFormatting(doc, text, quoteStyle, styles);
             if (k < quoteLines.size() - 1) {
                 doc.insertString(doc.getLength(), "\n", quoteStyle);
             }
         }
         doc.insertString(doc.getLength(), "\n", quoteStyle);
-    }
-
-    private static void appendLineWithFormatting(StyledDocument doc, String line, Style baseStyle, Map<String, Style> styles) throws BadLocationException {
-        // Early exit optimization: if line has no markdown syntax, insert as plain text
-        if (!HAS_MARKDOWN_PATTERN.matcher(line).find()) {
-            doc.insertString(doc.getLength(), line, baseStyle);
-            return;
-        }
-        
-        // Pre-size with reasonable capacity (most lines have < 10 formatting elements)
-        List<TextElement> elements = new ArrayList<>(10);
-
-        // Find bold
-        Matcher boldMatcher = BOLD_PATTERN.matcher(line);
-        while (boldMatcher.find()) {
-            elements.add(new TextElement(boldMatcher.start(), boldMatcher.end(), "bold", boldMatcher.group(1), null));
-        }
-
-        // Find italic
-        Matcher italicMatcher = ITALIC_PATTERN.matcher(line);
-        while (italicMatcher.find()) {
-            elements.add(new TextElement(italicMatcher.start(), italicMatcher.end(), "italic", italicMatcher.group(1), null));
-        }
-
-        // Find links
-        Matcher linkMatcher = LINK_PATTERN.matcher(line);
-        while (linkMatcher.find()) {
-            String display = linkMatcher.group(1);
-            String target = linkMatcher.group(2);
-            elements.add(new TextElement(linkMatcher.start(), linkMatcher.end(), "link", display, target));
-        }
-
-        // Find inline code
-        Matcher codeMatcher = INLINE_CODE_PATTERN.matcher(line);
-        while (codeMatcher.find()) {
-            elements.add(new TextElement(codeMatcher.start(), codeMatcher.end(), "inlineCode", codeMatcher.group(1), null));
-        }
-
-        // Find red text spans
-        Matcher redMatcher = RED_PATTERN.matcher(line);
-        while (redMatcher.find()) {
-            elements.add(new TextElement(redMatcher.start(), redMatcher.end(), "red", redMatcher.group(1), null));
-        }
-
-        // Sort by start position (only if we have elements to sort)
-        if (elements.isEmpty()) {
-            doc.insertString(doc.getLength(), line, baseStyle);
-            return;
-        }
-        elements.sort(Comparator.comparingInt(TextElement::start));
-
-        // Insert
-        int last = 0;
-        int lastEnd = 0;
-        for (TextElement elem : elements) {
-            if (elem.type.equals("link")) {
-                if (elem.start >= lastEnd && elem.start > last) {
-                    String before = line.substring(last, elem.start);
-                    doc.insertString(doc.getLength(), before, baseStyle);
-                }
-                if (elem.start >= lastEnd) {
-                    SimpleAttributeSet linkAttr = new SimpleAttributeSet(baseStyle);
-                    StyleConstants.setForeground(linkAttr, Color.BLUE);
-                    StyleConstants.setUnderline(linkAttr, true);
-                    linkAttr.addAttribute("href", elem.href);
-                    doc.insertString(doc.getLength(), elem.text, linkAttr);
-                    last = elem.end;
-                    lastEnd = elem.end;
-                }
-            } else if (elem.type.equals("inlineCode")) {
-                if (elem.start >= lastEnd && elem.start > last) {
-                    String before = line.substring(last, elem.start);
-                    doc.insertString(doc.getLength(), before, baseStyle);
-                }
-                if (elem.start >= lastEnd) {
-                    AttributeSet codeAttr = styles.get("code");
-                    doc.insertString(doc.getLength(), elem.text, codeAttr);
-                    last = elem.end;
-                    lastEnd = elem.end;
-                }
-            } else if (elem.type.equals("red")) {
-                if (elem.start >= lastEnd && elem.start > last) {
-                    String before = line.substring(last, elem.start);
-                    doc.insertString(doc.getLength(), before, baseStyle);
-                }
-                if (elem.start >= lastEnd) {
-                    SimpleAttributeSet redAttr = new SimpleAttributeSet(baseStyle);
-                    StyleConstants.setForeground(redAttr, Color.RED);
-                    doc.insertString(doc.getLength(), elem.text, redAttr);
-                    last = elem.end;
-                    lastEnd = elem.end;
-                }
-            } else {
-                if (elem.start >= lastEnd && elem.start > last) {
-                    String before = line.substring(last, elem.start);
-                    doc.insertString(doc.getLength(), before, baseStyle);
-                }
-                if (elem.start >= lastEnd) {
-                    AttributeSet style = switch (elem.type) {
-                        case "bold" -> {
-                            SimpleAttributeSet boldAttr = new SimpleAttributeSet(baseStyle);
-                            StyleConstants.setBold(boldAttr, true);
-                            yield boldAttr;
-                        }
-                        case "italic" -> {
-                            SimpleAttributeSet italicAttr = new SimpleAttributeSet(baseStyle);
-                            StyleConstants.setItalic(italicAttr, true);
-                            yield italicAttr;
-                        }
-                        default -> baseStyle;
-                    };
-
-                    doc.insertString(doc.getLength(), elem.text, style);
-                    last = elem.end;
-                    lastEnd = elem.end;
-                }
-            }
-        }
-
-        if (last < line.length()) {
-            String after = line.substring(last);
-            doc.insertString(doc.getLength(), after, baseStyle);
-        }
     }
 }

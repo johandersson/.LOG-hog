@@ -88,7 +88,7 @@ public class FullLogPanel extends LogPanel {
         });
 
         // Add double-click on timestamp to edit entry
-        addTimestampDoubleClickHandler();
+        new TimestampClickHandler(fullLogPane, this::openEntryForEditing);
 
         var scroll = new JScrollPane(fullLogPane);
         scroll.setBorder(BorderFactory.createEmptyBorder());
@@ -344,136 +344,6 @@ public class FullLogPanel extends LogPanel {
     
     public HighlightableTextPane getFullLogPane() {
         return fullLogPane;
-    }
-
-    /**
-     * Adds double-click handler to timestamps for quick entry editing.
-     * Double-clicking on a timestamp line switches to Log List tab and selects that entry.
-     */
-    private void addTimestampDoubleClickHandler() {
-        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(new java.awt.event.AWTEventListener() {
-            private long lastClickTime = 0;
-            private java.awt.Point lastClickPoint = null;
-            
-            @Override
-            public void eventDispatched(java.awt.AWTEvent event) {
-                if (!(event instanceof java.awt.event.MouseEvent)) {
-                    return;
-                }
-                
-                java.awt.event.MouseEvent e = (java.awt.event.MouseEvent) event;
-                
-                // Only process events on our fullLogPane
-                if (e.getComponent() != fullLogPane && e.getComponent().getParent() != fullLogPane) {
-                    return;
-                }
-                
-                // Only handle mouse pressed events
-                if (e.getID() != java.awt.event.MouseEvent.MOUSE_PRESSED) {
-                    return;
-                }
-                
-                long currentTime = System.currentTimeMillis();
-                java.awt.Point currentPoint = e.getPoint();
-                
-                // Convert point to fullLogPane coordinates if needed
-                if (e.getComponent() != fullLogPane) {
-                    currentPoint = SwingUtilities.convertPoint(e.getComponent(), currentPoint, fullLogPane);
-                }
-                
-                boolean isDoubleClick = false;
-                
-                // Manual double-click detection
-                if (lastClickTime > 0 && (currentTime - lastClickTime) < 500 && lastClickPoint != null) {
-                    double distance = lastClickPoint.distance(currentPoint);
-                    if (distance < 5) {
-                        isDoubleClick = true;
-                    }
-                }
-                
-                lastClickTime = currentTime;
-                lastClickPoint = currentPoint;
-                
-                if (!isDoubleClick) {
-                    return;
-                }
-                
-                // Get position in document
-                int pos = fullLogPane.viewToModel2D(currentPoint);
-                if (pos < 0) {
-                    return;
-                }
-                
-                try {
-                    // Find the start and end of the current line
-                    javax.swing.text.StyledDocument doc = fullLogPane.getStyledDocument();
-                    String text = doc.getText(0, doc.getLength());
-                    
-                    // Find line boundaries
-                    int lineStart = pos;
-                    while (lineStart > 0 && text.charAt(lineStart - 1) != '\n') {
-                        lineStart--;
-                    }
-                    
-                    int lineEnd = pos;
-                    while (lineEnd < text.length() && text.charAt(lineEnd) != '\n') {
-                        lineEnd++;
-                    }
-                    
-                    String lineText = text.substring(lineStart, lineEnd).trim();
-                    
-                    // Check if it's a timestamp line (format: "HH:MM YYYY-MM-DD" or "HH:MM YYYY-MM-DD (N)")
-                    if (lineText.matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
-                        openEntryForEditing(lineText);
-                    }
-                } catch (Exception ex) {
-                    // Silently ignore errors - not a valid timestamp position
-                }
-            }
-        }, java.awt.AWTEvent.MOUSE_EVENT_MASK);
-        
-        // Add visual feedback: change cursor and show tooltip when hovering over timestamps
-        fullLogPane.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
-            @Override
-            public void mouseMoved(java.awt.event.MouseEvent e) {
-                try {
-                    int pos = fullLogPane.viewToModel2D(e.getPoint());
-                    if (pos < 0) {
-                        fullLogPane.setCursor(java.awt.Cursor.getDefaultCursor());
-                        fullLogPane.setToolTipText(null);
-                        return;
-                    }
-                    
-                    javax.swing.text.StyledDocument doc = fullLogPane.getStyledDocument();
-                    String text = doc.getText(0, doc.getLength());
-                    
-                    // Find line boundaries
-                    int lineStart = pos;
-                    while (lineStart > 0 && text.charAt(lineStart - 1) != '\n') {
-                        lineStart--;
-                    }
-                    
-                    int lineEnd = pos;
-                    while (lineEnd < text.length() && text.charAt(lineEnd) != '\n') {
-                        lineEnd++;
-                    }
-                    
-                    String lineText = text.substring(lineStart, lineEnd).trim();
-                    
-                    // Check if hovering over a timestamp line
-                    if (lineText.matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$")) {
-                        fullLogPane.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
-                        fullLogPane.setToolTipText("Double-click to edit this entry");
-                    } else {
-                        fullLogPane.setCursor(java.awt.Cursor.getDefaultCursor());
-                        fullLogPane.setToolTipText(null);
-                    }
-                } catch (Exception ex) {
-                    fullLogPane.setCursor(java.awt.Cursor.getDefaultCursor());
-                    fullLogPane.setToolTipText(null);
-                }
-            }
-        });
     }
 
     /**
