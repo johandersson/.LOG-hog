@@ -31,21 +31,17 @@ import javax.swing.SwingUtilities;
  */
 public class TimestampClickHandler {
     private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
-    private static final int DOUBLE_CLICK_THRESHOLD_MS = 500;
-    private static final int DOUBLE_CLICK_DISTANCE_PX = 5;
     
     private final JTextPane textPane;
     private final TimestampClickListener clickListener;
     
-    private long lastClickTime = 0;
-    private java.awt.Point lastClickPoint = null;
     private boolean isHoveringTimestamp = false;
     
     /**
      * Callback interface for timestamp clicks.
      */
     public interface TimestampClickListener {
-        void onTimestampDoubleClick(String timestamp);
+        void onTimestampClick(String timestamp);
     }
     
     /**
@@ -64,8 +60,8 @@ public class TimestampClickHandler {
      * Attaches mouse event handlers to the text pane.
      */
     private void attachHandlers() {
-        // Global event listener for double-click detection
-        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(createDoubleClickListener(), 
+        // Global event listener for click detection
+        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(createClickListener(), 
             AWTEvent.MOUSE_EVENT_MASK);
         
         // Motion listener for visual feedback
@@ -73,9 +69,9 @@ public class TimestampClickHandler {
     }
     
     /**
-     * Creates the AWTEventListener for detecting double-clicks.
+     * Creates the AWTEventListener for detecting clicks.
      */
-    private AWTEventListener createDoubleClickListener() {
+    private AWTEventListener createClickListener() {
         return event -> {
             if (!(event instanceof MouseEvent)) {
                 return;
@@ -93,29 +89,11 @@ public class TimestampClickHandler {
                 return;
             }
             
-            long currentTime = System.currentTimeMillis();
             java.awt.Point currentPoint = e.getPoint();
             
             // Convert point to textPane coordinates if needed
             if (e.getComponent() != textPane) {
                 currentPoint = SwingUtilities.convertPoint(e.getComponent(), currentPoint, textPane);
-            }
-            
-            boolean isDoubleClick = false;
-            
-            // Manual double-click detection
-            if (lastClickTime > 0 && (currentTime - lastClickTime) < DOUBLE_CLICK_THRESHOLD_MS && lastClickPoint != null) {
-                double distance = lastClickPoint.distance(currentPoint);
-                if (distance < DOUBLE_CLICK_DISTANCE_PX) {
-                    isDoubleClick = true;
-                }
-            }
-            
-            lastClickTime = currentTime;
-            lastClickPoint = currentPoint;
-            
-            if (!isDoubleClick) {
-                return;
             }
             
             // Get position in document
@@ -125,8 +103,8 @@ public class TimestampClickHandler {
             }
             
             String lineText = getLineAtPosition(pos);
-            if (lineText != null && isTimestampLine(lineText)) {
-                clickListener.onTimestampDoubleClick(lineText);
+            if (lineText != null && isHoveringOverTimestamp(pos, lineText)) {
+                clickListener.onTimestampClick(lineText);
             }
         };
     }
@@ -150,8 +128,8 @@ public class TimestampClickHandler {
                     
                     String lineText = getLineAtPosition(pos);
                     
-                    // Check if hovering over a timestamp line
-                    boolean shouldHover = lineText != null && isTimestampLine(lineText);
+                    // Check if hovering over a timestamp in a timestamp line
+                    boolean shouldHover = lineText != null && isHoveringOverTimestamp(pos, lineText);
                     if (shouldHover != isHoveringTimestamp) {
                         isHoveringTimestamp = shouldHover;
                         if (shouldHover) {
@@ -201,6 +179,39 @@ public class TimestampClickHandler {
      */
     private boolean isTimestampLine(String line) {
         return TIMESTAMP_PATTERN.matcher(line).matches();
+    }
+    
+    /**
+     * Checks if hovering over the timestamp part of a timestamp line.
+     */
+    private boolean isHoveringOverTimestamp(int pos, String lineText) {
+        if (!isTimestampLine(lineText)) {
+            return false;
+        }
+        
+        // Find the position within the line
+        try {
+            javax.swing.text.StyledDocument doc = textPane.getStyledDocument();
+            String text = doc.getText(0, doc.getLength());
+            
+            int lineStart = pos;
+            while (lineStart > 0 && text.charAt(lineStart - 1) != '\n') {
+                lineStart--;
+            }
+            
+            int posInLine = pos - lineStart;
+            
+            // Find the length of the timestamp
+            java.util.regex.Matcher matcher = TIMESTAMP_PATTERN.matcher(lineText);
+            if (matcher.find()) {
+                int timestampEnd = matcher.end();
+                return posInLine < timestampEnd;
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        
+        return false;
     }
     
     /**
