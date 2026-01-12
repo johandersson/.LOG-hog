@@ -71,7 +71,7 @@ public class EntryEditor {
             // Ensure .LOG header is present for encrypted files
             String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cachedLines);
             if (!fullText.startsWith(".LOG")) {
-                fullText = ".LOG\n\n" + fullText;
+                fullText = ".LOG" + LogFileFormat.INTERNAL_LINE_SEPARATOR + LogFileFormat.INTERNAL_LINE_SEPARATOR + fullText;
                 cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1)));
             }
             
