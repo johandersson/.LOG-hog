@@ -54,22 +54,40 @@ public class FileEncryptionManager {
     }
 
     public void encryptFile(String content) throws Exception {
-        if (!encrypted) return;
+        if (!encrypted || password == null) {
+            throw new IllegalStateException("Encryption not set up");
+        }
 
         // Ensure .LOG header
         if (!content.startsWith(".LOG")) {
             content = ".LOG\n\n" + content;
         }
 
-        var encryptedData = encryptor.encrypt(content, password, salt);
-        Files.write(filePath, encryptedData);
+        // Use password then immediately clear it from memory
+        char[] pwd = password.clone();
+        try {
+            var encryptedData = encryptor.encrypt(content, pwd, salt);
+            Files.write(filePath, encryptedData);
+        } finally {
+            // Always clear password copy from memory
+            Arrays.fill(pwd, '\0');
+        }
     }
 
     public String decryptFile() throws Exception {
-        if (!encrypted) return new String(Files.readAllBytes(filePath));
+        if (!encrypted || password == null) {
+            throw new IllegalStateException("Encryption not set up");
+        }
 
-        byte[] data = Files.readAllBytes(filePath);
-        return encryptor.decryptWithFallback(data, password, salt);
+        // Use password then immediately clear it from memory
+        char[] pwd = password.clone();
+        try {
+            byte[] data = Files.readAllBytes(filePath);
+            return encryptor.decryptWithFallback(data, pwd, salt);
+        } finally {
+            // Always clear password copy from memory
+            Arrays.fill(pwd, '\0');
+        }
     }
 
     public void clearSensitiveData() {

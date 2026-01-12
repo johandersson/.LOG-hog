@@ -29,10 +29,10 @@ public class LogFileFormat {
     public static final String INTERNAL_LINE_SEPARATOR = "\n";
     
     /**
-     * Number of blank lines between entries in the FILE (compact format).
-     * The file stores entries back-to-back for efficiency.
+     * Number of blank lines between entries in the FILE.
+     * One blank line between entries provides consistent formatting.
      */
-    public static final int FILE_ENTRY_SEPARATOR_BLANKS = 0;
+    public static final int FILE_ENTRY_SEPARATOR_BLANKS = 1;
     
     /**
      * Number of blank lines the RENDERER adds between entries for visual spacing.
@@ -53,9 +53,9 @@ public class LogFileFormat {
      * @return Formatted entry string with correct line breaks
      */
     public static String createEntry(String timestamp, String content) {
-        // Entry format: timestamp + newline + content + newline
-        // NO extra blanks added here - file format is compact
-        return timestamp + LINE_SEPARATOR + content + LINE_SEPARATOR;
+        // Entry format: timestamp + newline + content + newline + blank line
+        // The blank line ensures proper separation between entries in the file
+        return timestamp + LINE_SEPARATOR + content + LINE_SEPARATOR + LINE_SEPARATOR;
     }
     
     /**
