@@ -51,7 +51,7 @@ public class MarkdownRenderer {
     private static final Pattern INLINE_HEADING_PATTERN = Pattern.compile("(###|##|#) ");
     
     // Quick check patterns for early exit optimization
-    private static final Pattern HAS_MARKDOWN_PATTERN = Pattern.compile("[\\[*`<#]");
+    private static final Pattern HAS_MARKDOWN_PATTERN = Pattern.compile("[\\[*`<#>-]");
 
     private record TextElement(int start, int end, String type, String text, String href) {}
 
