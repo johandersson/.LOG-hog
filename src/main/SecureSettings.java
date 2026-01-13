@@ -32,47 +32,77 @@ import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Secure settings storage for sensitive configuration data.
- * Uses PBKDF2 for key derivation instead of single SHA-256 hash.
- * Uses deterministic salt to avoid salt bootstrapping issues.
+ * Uses PBKDF2 for key derivation with per-user random salt.
  * Updated to use AES/GCM instead of insecure AES/ECB mode.
+ * Maintains backwards compatibility with static salt (v2) and SHA-256 (v1) encrypted values.
  */
 public class SecureSettings {
     private static final String ENCRYPTED_PREFIX = "encrypted:";
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
-    private static final int PBKDF2_ITERATIONS = 10000; // Lower than file encryption for performance
+    private static final int PBKDF2_ITERATIONS = 100000; // Increased to match file encryption
+    private static final String SETTINGS_SALT_KEY = "settingsSalt";
     private final SecretKeySpec settingsKey;
-    private final SecretKeySpec legacyKey; // For decrypting old SHA-256 encrypted settings
+    private final SecretKeySpec legacyV2Key; // For decrypting old static salt encrypted settings
+    private final SecretKeySpec legacyV1Key; // For decrypting old SHA-256 encrypted settings
     private final SecureRandom secureRandom;
+    private final Properties settings;
 
-    public SecureSettings() {
-        // Generate deterministic key for settings encryption using PBKDF2
-        // Based on username + app identifier to ensure consistency across sessions
+    public SecureSettings(Properties settings) {
+        this.settings = settings;
         String username = System.getProperty("user.name", "default");
-        String appId = "LogHog_Settings_v2"; // v2 to differentiate from old SHA-256 version
-        String keySeed = username + "_" + appId;
+        String keySeed = username + "_LogHog_Settings";
 
         try {
-            // Use PBKDF2 instead of single SHA-256 hash for better security
-            // Deterministic salt derived from app identifier
-            byte[] salt = "LogHog_Settings_Salt_v2".getBytes(StandardCharsets.UTF_8);
+            // Generate or retrieve random salt for this user
+            byte[] salt = getOrCreateSettingsSalt();
+            
+            // Use PBKDF2 with random per-user salt for new encryption
             KeySpec spec = new PBEKeySpec(keySeed.toCharArray(), salt, PBKDF2_ITERATIONS, 128);
             SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             SecretKey tmp = factory.generateSecret(spec);
             this.settingsKey = new SecretKeySpec(tmp.getEncoded(), "AES");
             
-            // Also initialize legacy SHA-256 key for backward compatibility
-            // This allows decrypting settings encrypted with the old method
-            String legacyKeySeed = username + "_LogHog_Settings_v1";
+            // Initialize legacy v2 key (static salt) for backward compatibility
+            byte[] legacyV2Salt = "LogHog_Settings_Salt_v2".getBytes(StandardCharsets.UTF_8);
+            KeySpec legacyV2Spec = new PBEKeySpec((username + "_LogHog_Settings_v2").toCharArray(), legacyV2Salt, 10000, 128);
+            SecretKey legacyV2Tmp = factory.generateSecret(legacyV2Spec);
+            this.legacyV2Key = new SecretKeySpec(legacyV2Tmp.getEncoded(), "AES");
+            
+            // Initialize legacy v1 key (SHA-256) for backward compatibility
+            String legacyV1KeySeed = username + "_LogHog_Settings_v1";
             java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] legacyKeyBytes = digest.digest(legacyKeySeed.getBytes(StandardCharsets.UTF_8));
-            this.legacyKey = new SecretKeySpec(legacyKeyBytes, 0, 16, "AES");
+            byte[] legacyV1KeyBytes = digest.digest(legacyV1KeySeed.getBytes(StandardCharsets.UTF_8));
+            this.legacyV1Key = new SecretKeySpec(legacyV1KeyBytes, 0, 16, "AES");
             
             this.secureRandom = new SecureRandom();
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize secure settings", e);
         }
+    }
+    
+    /**
+     * Gets the settings salt, creating and storing a random one if it doesn't exist.
+     */
+    private byte[] getOrCreateSettingsSalt() {
+        String saltStr = settings.getProperty(SETTINGS_SALT_KEY);
+        if (saltStr != null && !saltStr.isEmpty()) {
+            try {
+                return Base64.getDecoder().decode(saltStr);
+            } catch (IllegalArgumentException e) {
+                // Invalid base64, generate new salt
+            }
+        }
+        
+        // Generate new random salt
+        byte[] salt = new byte[16];
+        new SecureRandom().nextBytes(salt);
+        
+        // Store it in settings (plaintext is correct for salts!)
+        settings.setProperty(SETTINGS_SALT_KEY, Base64.getEncoder().encodeToString(salt));
+        
+        return salt;
     }
 
     /**
@@ -106,7 +136,8 @@ public class SecureSettings {
     }
 
     /**
-     * Decrypt a value from settings, handling both GCM and legacy ECB encrypted values.
+     * Decrypt a value from settings, handling GCM and legacy ECB/SHA-256 encrypted values.
+     * Tries decryption in order: new random salt → v2 static salt → v1 SHA-256
      */
     public String decryptValue(String storedValue) {
         if (storedValue == null) {
@@ -119,41 +150,52 @@ public class SecureSettings {
                 String encryptedData = storedValue.substring(ENCRYPTED_PREFIX.length());
                 byte[] encryptedBytes = Base64.getDecoder().decode(encryptedData);
                 
-                // Try ECB first for backward compatibility (most existing data)
-                // ECB data doesn't have IV prefix, so try this first
-                // Try new PBKDF2 key first, then legacy SHA-256 key
+                // Try GCM first (new format with IV prefix and random salt)
+                if (encryptedBytes.length >= GCM_IV_LENGTH + GCM_TAG_LENGTH) {
+                    try {
+                        byte[] iv = new byte[GCM_IV_LENGTH];
+                        System.arraycopy(encryptedBytes, 0, iv, 0, GCM_IV_LENGTH);
+                        byte[] encrypted = new byte[encryptedBytes.length - GCM_IV_LENGTH];
+                        System.arraycopy(encryptedBytes, GCM_IV_LENGTH, encrypted, 0, encrypted.length);
+                        
+                        Cipher cipher = Cipher.getInstance(ALGORITHM);
+                        GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+                        cipher.init(Cipher.DECRYPT_MODE, settingsKey, spec);
+                        byte[] decrypted = cipher.doFinal(encrypted);
+                        return new String(decrypted, StandardCharsets.UTF_8);
+                    } catch (Exception gcmException) {
+                        // Not GCM format or wrong key, try ECB fallbacks
+                    }
+                }
+                
+                // Try ECB with new key (for data encrypted during transition)
                 try {
                     Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
                     cipher.init(Cipher.DECRYPT_MODE, settingsKey);
                     byte[] decrypted = cipher.doFinal(encryptedBytes);
                     return new String(decrypted, StandardCharsets.UTF_8);
-                } catch (Exception ecbException) {
-                    // Try with legacy key (old SHA-256 derivation)
+                } catch (Exception newEcbException) {
+                    // Try legacy v2 key (static salt PBKDF2)
                     try {
                         Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-                        cipher.init(Cipher.DECRYPT_MODE, legacyKey);
+                        cipher.init(Cipher.DECRYPT_MODE, legacyV2Key);
                         byte[] decrypted = cipher.doFinal(encryptedBytes);
-                        // Successfully decrypted with legacy key - re-encrypt with new key
                         String value = new String(decrypted, StandardCharsets.UTF_8);
-                        // Note: Auto-migration happens when setting is next saved
+                        // Note: Auto-migration to new key happens when setting is next saved
                         return value;
-                    } catch (Exception legacyException) {
-                        // Not ECB format with either key, try GCM
+                    } catch (Exception legacyV2Exception) {
+                        // Try legacy v1 key (SHA-256)
+                        try {
+                            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+                            cipher.init(Cipher.DECRYPT_MODE, legacyV1Key);
+                            byte[] decrypted = cipher.doFinal(encryptedBytes);
+                            String value = new String(decrypted, StandardCharsets.UTF_8);
+                            // Note: Auto-migration to new key happens when setting is next saved
+                            return value;
+                        } catch (Exception legacyV1Exception) {
+                            // All decryption attempts failed
+                        }
                     }
-                }
-                
-                // Try GCM (new format with IV prefix)
-                if (encryptedBytes.length >= GCM_IV_LENGTH + GCM_TAG_LENGTH) {
-                    byte[] iv = new byte[GCM_IV_LENGTH];
-                    System.arraycopy(encryptedBytes, 0, iv, 0, GCM_IV_LENGTH);
-                    byte[] encrypted = new byte[encryptedBytes.length - GCM_IV_LENGTH];
-                    System.arraycopy(encryptedBytes, GCM_IV_LENGTH, encrypted, 0, encrypted.length);
-                    
-                    Cipher cipher = Cipher.getInstance(ALGORITHM);
-                    GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
-                    cipher.init(Cipher.DECRYPT_MODE, settingsKey, spec);
-                    byte[] decrypted = cipher.doFinal(encrypted);
-                    return new String(decrypted, StandardCharsets.UTF_8);
                 }
                 
                 // If we get here, decryption failed - return encrypted value as-is

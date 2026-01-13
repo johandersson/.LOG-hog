@@ -152,7 +152,7 @@ public class LogTextEditor extends JFrame {
         logFileHandler = (LogFileHandler) application.getLogFileOperations();
 
         // Initialize secure settings
-        secureSettings = new SecureSettings();
+        secureSettings = new SecureSettings(settings);
         
         // Initialize backup manager
         backupManager = new BackupManager(settings);
@@ -276,14 +276,6 @@ public class LogTextEditor extends JFrame {
             logListPanel.getEntryArea().setText("");
         }
     }
-
-
-
-
-
-
-
-
 
     public void deleteSelectedEntry() {
         actionHandler.deleteSelectedEntry();

@@ -76,7 +76,7 @@ public class SettingsPanel extends JPanel {
         this.settings = settings;
         this.settingsPath = settingsPath;
         this.logFileHandler = logFileHandler;
-        this.secureSettings = new SecureSettings();
+        this.secureSettings = new SecureSettings(settings);
         this.backupManager = new BackupManager(settings);
         this.backupManager.setParentFrame(editor); // Set parent for progress dialogs
 
