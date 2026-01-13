@@ -182,10 +182,16 @@ public class LogFileHandler implements LogFileOperations {
             List<String> updatedLines = entryEditor.updateEntry(timeStamp, newText, lines);
 
             // Use write-back cache for performance
+            // Update cache immediately so UI reflects formatted content
+            cache.updateCachedLines(updatedLines);
+            cache.invalidateEntryCache();
+            // Also set pending lines so write-back will flush to disk
             cache.setPendingLines(updatedLines);
             
-            // Invalidate caches immediately
-            entryLoader.invalidateCaches();
+            // Invalidate EntryLoader caches (timestamps, parsed entries, content cache)
+            if (entryLoader != null) {
+                entryLoader.invalidateCaches();
+            }
             
             // Note: Actual write happens in flushPendingWrites() called by UI or on explicit flush
         } catch (Exception e) {
