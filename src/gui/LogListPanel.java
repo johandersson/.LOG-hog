@@ -324,6 +324,9 @@ public class LogListPanel extends JPanel {
         } else {
             entryArea.setText("");
         }
+        if (isPreviewMode) {
+            renderPreview();
+        }
     }
 
     private void setupListeners(JSplitPane split) {
@@ -362,6 +365,28 @@ public class LogListPanel extends JPanel {
             if (!e.getValueIsAdjusting()) {
                 var selectedItem = logList.getSelectedValue();
                 loadAndDisplayEntry(selectedItem);
+            }
+        });
+
+        // Update preview when text changes
+        entryArea.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                if (isPreviewMode) {
+                    renderPreview();
+                }
+            }
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                if (isPreviewMode) {
+                    renderPreview();
+                }
+            }
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                if (isPreviewMode) {
+                    renderPreview();
+                }
             }
         });
 

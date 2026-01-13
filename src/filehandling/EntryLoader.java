@@ -20,7 +20,6 @@ package filehandling;
 import javax.swing.*;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,7 +30,6 @@ import java.util.regex.Pattern;
 import encryption.Encryptor;
 
 public class EntryLoader {
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
     private final LogFileHandler logFileHandler;
     private final Encryptor encryptor;
     

@@ -17,18 +17,12 @@
 
 package markdown;
 
-import java.awt.Cursor;
-import java.awt.Desktop;
-import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
 import javax.swing.JTextPane;
-import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
@@ -103,145 +97,6 @@ public class MarkdownRenderer {
         }
         // Set caret position based on scroll preference
         pane.setCaretPosition(scrollToBottom ? doc.getLength() : 0);
-    }
-
-    private static void handleLinkClick(JTextPane pane, MouseEvent e) {
-        try {
-            int pos = pane.viewToModel2D(e.getPoint());
-            if (pos < 0) return;
-            StyledDocument doc = pane.getStyledDocument();
-            AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
-            Object hrefObj = attrs.getAttribute("href");
-            if (hrefObj instanceof String) {
-                String href = (String) hrefObj;
-                if (href.startsWith("file:")) {
-                    handleFileLink(pane, href);
-                } else {
-                    handleWebLink(pane, href);
-                }
-            }
-        } catch (Exception ex) {
-            // Security: Don't expose internal error details
-            showLinkError(pane, "Unable to open link.");
-        }
-    }
-
-    private static void handleFileLink(JTextPane pane, String href) {
-        if (!Desktop.isDesktopSupported()) {
-            showLinkError(pane, "Desktop is not supported on this system.");
-            return;
-        }
-
-        java.io.File file = null;
-        try {
-            // First try to parse as URI
-            java.net.URI uri = java.net.URI.create(href);
-            file = new java.io.File(uri);
-        } catch (Exception uriEx) {
-            // Fallback: try to extract path manually
-            try {
-                String filePath;
-                if (href.startsWith("file:///")) {
-                    filePath = href.substring(8); // Remove "file:///"
-                } else if (href.startsWith("file://")) {
-                    filePath = href.substring(7); // Remove "file://"
-                } else {
-                    filePath = href.substring(5); // Remove "file:"
-                }
-                file = new java.io.File(filePath);
-            } catch (Exception pathEx) {
-                showLinkError(pane, "Invalid file path format: " + href);
-                return;
-            }
-        }
-
-        // Check if file exists
-        if (!file.exists()) {
-            showLinkError(pane, "File does not exist: " + file.getAbsolutePath());
-            return;
-        }
-
-        // Check if it's actually a file (not a directory)
-        if (!file.isFile()) {
-            showLinkError(pane, "Path is not a file: " + file.getAbsolutePath());
-            return;
-        }
-
-        // Try to open the file
-        try {
-            Desktop.getDesktop().open(file);
-        } catch (java.io.IOException ioEx) {
-            // Security: Don't expose internal error details
-            showLinkError(pane, "Unable to open file. Check if you have the appropriate application installed.");
-        } catch (Exception ex) {
-            showLinkError(pane, "Unable to open file.");
-        }
-    }
-
-    private static void handleWebLink(JTextPane pane, String href) {
-        if (!Desktop.isDesktopSupported()) {
-            showLinkError(pane, "Desktop is not supported on this system.");
-            return;
-        }
-
-        try {
-            String finalHref = href;
-            if (!href.matches("^[a-zA-Z][a-zA-Z0-9+.-]*:.*")) {
-                finalHref = "http://" + href;
-            }
-            Desktop.getDesktop().browse(java.net.URI.create(finalHref));
-        } catch (java.io.IOException ioEx) {
-            // Security: Don't expose internal error details
-            showLinkError(pane, "Unable to open URL. Check your internet connection and browser settings.");
-        } catch (Exception ex) {
-            showLinkError(pane, "Invalid URL format: " + href);
-        }
-    }
-
-    private static void showLinkError(JTextPane pane, String message) {
-        // Find the parent window to show the error dialog
-        java.awt.Window parent = javax.swing.SwingUtilities.getWindowAncestor(pane);
-        javax.swing.JOptionPane.showMessageDialog(
-            parent,
-            message,
-            "Link Error",
-            javax.swing.JOptionPane.ERROR_MESSAGE
-        );
-    }
-
-    private static void handleLinkHover(JTextPane pane, MouseEvent e) {
-        try {
-            int pos = pane.viewToModel2D(e.getPoint());
-            if (pos < 0) {
-                pane.setCursor(Cursor.getDefaultCursor());
-                return;
-            }
-            AttributeSet attrs = pane.getStyledDocument().getCharacterElement(pos).getAttributes();
-            Object hrefObj = attrs.getAttribute("href");
-            pane.setCursor(hrefObj instanceof String ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
-        } catch (Exception ex) {
-            pane.setCursor(Cursor.getDefaultCursor());
-        }
-    }
-
-    private static void showLinkPopup(JTextPane pane, MouseEvent e) {
-        try {
-            int pos = pane.viewToModel2D(e.getPoint());
-            if (pos < 0) return;
-            StyledDocument doc = pane.getStyledDocument();
-            AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
-            Object hrefObj = attrs.getAttribute("href");
-            if (hrefObj instanceof String) {
-                String href = (String) hrefObj;
-                JPopupMenu popup = new JPopupMenu();
-                JMenuItem copyItem = new JMenuItem("Copy Link");
-                copyItem.addActionListener(ae -> clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(href, pane, "Link copied to clipboard securely!"));
-                popup.add(copyItem);
-                popup.show(pane, e.getX(), e.getY());
-            }
-        } catch (Exception ex) {
-            // swallow
-        }
     }
 
     private static Map<String, Style> createStyles(StyledDocument doc) {

@@ -19,10 +19,6 @@ package markdown;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
@@ -32,8 +28,6 @@ import javax.swing.text.Style;
  * Reduces method parameters by holding the entry and rendering context as fields.
  */
 public class MarkdownEntryProcessor {
-
-    private static final Pattern INLINE_HEADING_PATTERN = Pattern.compile("(###|##|#) ");
 
     private final List<String> entry;
     private final MarkdownRenderingContext context;
@@ -60,10 +54,9 @@ public class MarkdownEntryProcessor {
             boolean isList = line.startsWith("- ");
             boolean isQuote = line.startsWith(">");
             boolean isHeading = isHeadingLine(line);
-            boolean hasInlineHeading = INLINE_HEADING_PATTERN.matcher(line).find();
 
             // If we have accumulated paragraph lines and this line starts a new block, render the paragraph first
-            flushParagraphIfNeeded(isBlank || isList || isQuote || isHeading || hasInlineHeading || isCodeBlockMarker || inCodeBlock, paragraphLines);
+            flushParagraphIfNeeded(isBlank || isList || isQuote || isHeading || isCodeBlockMarker || inCodeBlock, paragraphLines);
 
             if (isCodeBlockMarker) {
                 inCodeBlock = handleCodeBlockMarker(inCodeBlock);
@@ -82,8 +75,6 @@ public class MarkdownEntryProcessor {
                 i += handleQuote(i);
             } else if (isHeading) {
                 renderHeading(line);
-            } else if (hasInlineHeading) {
-                renderInlineHeading(line);
             } else {
                 paragraphLines.add(line);
             }
@@ -143,40 +134,6 @@ public class MarkdownEntryProcessor {
                             line.startsWith("## ") ? context.getH2Style() : context.getH1Style();
         MarkdownFormatter.appendLineWithFormatting(context.getDocument(), text, headingStyle, context.getStyles());
         context.insertDoubleLineSeparator();
-    }
-
-    private void renderInlineHeading(String line) throws BadLocationException {
-        Matcher headingMatcher = INLINE_HEADING_PATTERN.matcher(line);
-        Set<Integer> headingSet = new TreeSet<>();
-        headingSet.add(0);
-        while (headingMatcher.find()) {
-            headingSet.add(headingMatcher.start());
-        }
-
-        List<Integer> headingStarts = new ArrayList<>(headingSet);
-        headingStarts.add(line.length());
-        for (int j = 0; j < headingStarts.size() - 1; j++) {
-            int start = headingStarts.get(j);
-            int end = headingStarts.get(j + 1);
-            String part = line.substring(start, end);
-            Style partStyle = context.getDefaultStyle();
-            String text = part;
-            String marker = null;
-            if (part.startsWith("### ")) marker = "### ";
-            else if (part.startsWith("## ")) marker = "## ";
-            else if (part.startsWith("# ")) marker = "# ";
-            if (marker != null) {
-                partStyle = switch (marker) {
-                    case "### " -> context.getH3Style();
-                    case "## " -> context.getH2Style();
-                    case "# " -> context.getH1Style();
-                    default -> context.getDefaultStyle();
-                };
-                text = part.substring(marker.length());
-            }
-            MarkdownFormatter.appendLineWithFormatting(context.getDocument(), text, partStyle, context.getStyles());
-            context.insertDoubleLineSeparator();
-        }
     }
 
     private void renderCodeLine(String line) throws BadLocationException {
