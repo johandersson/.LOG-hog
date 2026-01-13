@@ -424,6 +424,8 @@ public class LogTextEditor extends JFrame {
     }
 
     private void startSingleInstanceListener() {
+        // Server thread is already started in SingleInstanceManager.isAnotherInstanceRunning()
+        // This method now just handles the UI response to incoming requests
         listenerThread = new Thread(() -> {
             try {
                 while (true) {
@@ -436,11 +438,8 @@ public class LogTextEditor extends JFrame {
                             this.toFront();
                             this.requestFocus();
                         });
-                    } else if ("LOGHOG_PING".equals(message)) {
-                        var out = new java.io.PrintWriter(clientSocket.getOutputStream(), true);
-                        out.println("LOGHOG_PONG");
-                        out.close();
                     }
+                    // PING/PONG is now handled directly in SingleInstanceManager
                     in.close();
                     clientSocket.close();
                 }

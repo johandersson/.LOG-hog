@@ -218,13 +218,13 @@ public class SecureSettings {
                     }
                 }
                 
-                // If we get here, decryption failed - return encrypted value as-is
-                // Silent failure for backward compatibility (setting may not be encrypted)
-                return storedValue;
+                // If we get here, decryption failed - return empty string
+                // This indicates no valid password reminder is set
+                return "";
             } catch (Exception e) {
                 // Silent failure - setting may be in old format or plaintext
-                // Return the encrypted value as-is if decryption fails
-                return storedValue;
+                // Return empty string instead of encrypted value
+                return "";
             }
         } else {
             // Plain text value (backwards compatibility)
@@ -254,6 +254,7 @@ public class SecureSettings {
         if (storedValue == null) {
             return defaultValue;
         }
-        return decryptValue(storedValue);
+        String decryptedValue = decryptValue(storedValue);
+        return decryptedValue != null ? decryptedValue : defaultValue;
     }
 }

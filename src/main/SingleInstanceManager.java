@@ -47,19 +47,62 @@ public class SingleInstanceManager {
             try {
                 serverSocket = new ServerSocket(PORT);
                 serverSocket.setReuseAddress(true);
-                // Add shutdown hook to close the socket gracefully on exit
-                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                    if (serverSocket != null && !serverSocket.isClosed()) {
-                        try {
-                            serverSocket.close();
-                        } catch (IOException ex) {
-                            // Ignore
-                        }
-                    }
-                }));
+                // Start the listening thread immediately to handle incoming connections
+                startServerThread();
                 return false; // Bound successfully, no instance running
             } catch (IOException e2) {
-                return false; // Can't bind, but since can't connect, assume no instance
+                // Port is already bound by another process, but we couldn't connect to LogHog
+                // This could be another application using the port, so we assume no LogHog instance
+                return false;
+            }
+        }
+    }
+
+    private static void startServerThread() {
+        Thread serverThread = new Thread(() -> {
+            try {
+                while (!serverSocket.isClosed()) {
+                    Socket clientSocket = serverSocket.accept();
+                    handleClientRequest(clientSocket);
+                }
+            } catch (IOException e) {
+                // Socket closed, which is expected when the application exits
+            }
+        });
+        serverThread.setDaemon(true);
+        serverThread.start();
+
+        // Add shutdown hook to close the socket gracefully on exit
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                try {
+                    serverSocket.close();
+                } catch (IOException ex) {
+                    // Ignore
+                }
+            }
+        }));
+    }
+
+    private static void handleClientRequest(Socket clientSocket) {
+        try {
+            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            String message = in.readLine();
+            if ("BRING_TO_FRONT".equals(message)) {
+                // This will be handled by the main application
+            } else if ("LOGHOG_PING".equals(message)) {
+                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                out.println("LOGHOG_PONG");
+                out.close();
+            }
+            in.close();
+        } catch (IOException e) {
+            // Ignore communication errors
+        } finally {
+            try {
+                clientSocket.close();
+            } catch (IOException e) {
+                // Ignore
             }
         }
     }
