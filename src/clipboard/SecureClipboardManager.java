@@ -57,7 +57,11 @@ import utils.Toast;
  */
 public class SecureClipboardManager implements ClipboardHandler {
     private static final String LOGHOG_CLIPBOARD_MARKER = "";
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, r -> {
+        Thread t = new Thread(r);
+        t.setDaemon(true);
+        return t;
+    });
 
     // Thread-safe mutable static fields with synchronization
     private static final Object LOCK = new Object();
