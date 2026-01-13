@@ -1,53 +1,22 @@
 @echo off
 setlocal enabledelayedexpansion
 
-echo Checking for running LogHog processes...
-
-set "found=0"
-for /f "tokens=2 delims==" %%i in ('wmic process where "(name=''java.exe'' or name=''javaw.exe'') and commandline like ''%%LogHog%%''" get processid /value 2^>nul ^| find "="') do (
-    set "pid=%%i"
-    echo Found LogHog process with PID !pid!
-    set "found=1"
-)
-
-if !found!==1 (
-    echo Killing LogHog processes...
-    for /f "tokens=2 delims==" %%i in ('wmic process where "(name=''java.exe'' or name=''javaw.exe'') and commandline like ''%%LogHog%%''" get processid /value 2^>nul ^| find "="') do (
-        taskkill /PID %%i /F ^>nul 2^>^&1
-    )
-    echo LogHog processes terminated.
-)
-
-echo.
+REM Sync help.md to resources folder before building
 echo Syncing help.md to resources...
-copy /Y help.md resources\help.md ^>nul 2^>^&1
+copy /Y %~dp0help.md %~dp0resources\help.md >nul
+if %errorlevel% neq 0 (
+    echo WARNING: Failed to sync help files
+)
 
+REM Clean all .class files to ensure fresh compilation
 echo Cleaning old .class files...
-del /s /q *.class 2^>nul
+powershell -Command "Get-ChildItem -Path '%~dp0' -Recurse -Filter *.class | Remove-Item -Force"
 
-if exist loghog.jar (
-    echo Deleting existing JAR file...
-    del /f /q loghog.jar 2^>nul
-)
-
-echo Compiling Java files...
-for /f "delims=" %%i in ('dir /s /b *.java ^| findstr /v test') do javac -d . "%%i"
-
-if %errorlevel% neq 0 (
-    echo Compilation failed.
-    pause
-    exit /b 1
-)
-
-echo Creating JAR file...
-jar cvfm loghog.jar manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class main/*.class services/*.class utils/*.class -C . resources/ ^>nul 2^>^&1
-
-if %errorlevel% neq 0 (
-    echo JAR creation failed.
-    pause
-    exit /b 1
-)
-
-echo.
-echo Build completed successfully: loghog.jar
+powershell -Command "Get-Process javaw -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*loghog*' } | Stop-Process -Force"
+set "files="
+for /f "delims=" %%i in ('dir /s /b *.java ^| findstr /v test') do set "files=!files! "%%i""
+javac -d . %files%
+if %errorlevel% neq 0 exit /b %errorlevel%
+jar cvfm loghog.jar %~dp0manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class main/*.class services/*.class utils/*.class -C %~dp0 resources/
+echo Production build completed: loghog.jar
 pause
