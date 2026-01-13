@@ -82,12 +82,12 @@ public class UIInitializer {
                     JOptionPane.QUESTION_MESSAGE,
                     null,
                     new String[]{"Lock file instead", "Exit program"},
-                    "Lock file instead"
+                    "Exit program"
                 );
-                if (option == JOptionPane.YES_OPTION) {
+                if (option == 0) {
                     // Lock file instead
                     editor.manualLock();
-                } else if (option == JOptionPane.NO_OPTION) {
+                } else if (option == 1) {
                     // Exit program
                     showSecurityProgressDialog(editor);
                     // Clean shutdown of all background processes
