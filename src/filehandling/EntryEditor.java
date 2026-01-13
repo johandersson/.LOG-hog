@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import javax.swing.DefaultListModel;
-
 import encryption.FileEncryptionManager;
 import main.BackupManager;
 
@@ -107,9 +105,13 @@ public class EntryEditor {
 
         for (String line : lines) {
             if (line.trim().equals(timeStamp.trim())) {
-                inTargetEntry = true;
-                updatedLines.add(line); // keep the timestamp line
-                updatedLines.add(newText); // add the new text
+                    inTargetEntry = true;
+                    updatedLines.add(line); // keep the timestamp line
+                    // Split the new text into individual lines so the file stores each paragraph line separately
+                    String[] newLines = newText.split("\r?\n", -1);
+                    for (String nl : newLines) {
+                        updatedLines.add(nl);
+                    }
                 continue;
             }
 

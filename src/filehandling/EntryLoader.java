@@ -126,18 +126,8 @@ public class EntryLoader {
             }
         }
 
-        List<String> lines;
-        if (logFileHandler.isEncrypted()) {
-            try {
-                var data = Files.readAllBytes(logFileHandler.getFilePath());
-                var decrypted = encryptor.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
-                lines = Arrays.asList(decrypted.split("\r?\n", -1));
-            } catch (EncryptionException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            lines = Files.readAllLines(logFileHandler.getFilePath());
-        }
+        // Use centralized getLines() which enforces file-size limits and handles decryption
+        List<String> lines = logFileHandler.getLines();
 
         // Single pass: remove markers and clean timestamps in one operation
         lines = lines.stream()
@@ -313,14 +303,7 @@ public class EntryLoader {
      * This enables O(M) filtering instead of O(N) file parsing on every filter change.
      */
     private void parseParsedEntriesCache() throws Exception {
-        List<String> lines;
-        if (logFileHandler.isEncrypted()) {
-            byte[] data = Files.readAllBytes(logFileHandler.getFilePath());
-            String decrypted = encryptor.decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
-            lines = Arrays.asList(decrypted.split("\r?\n", -1));
-        } else {
-            lines = Files.readAllLines(logFileHandler.getFilePath());
-        }
+        List<String> lines = logFileHandler.getLines();
         
         // Clean malformed timestamps
         lines = lines.stream()
@@ -418,14 +401,7 @@ public class EntryLoader {
             }
             
             // Cache miss - fall back to full parse (rare, only on first load or cache invalidation)
-            List<String> lines;
-            if (logFileHandler.isEncrypted()) {
-                byte[] data = Files.readAllBytes(logFileHandler.getFilePath());
-                String decrypted = EncryptionManager.getInstance().decryptWithFallback(data, logFileHandler.getPassword(), logFileHandler.getSalt());
-                lines = Arrays.asList(decrypted.split("\r?\n", -1));
-            } else {
-                lines = Files.readAllLines(logFileHandler.getFilePath());
-            }
+            List<String> lines = logFileHandler.getLines();
 
             // Single pass cleanup
             lines = lines.stream()

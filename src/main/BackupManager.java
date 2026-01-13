@@ -329,7 +329,9 @@ public class BackupManager {
             }
             
             // Rotate old backups asynchronously to avoid blocking
-            new Thread(() -> rotateAutoBackups()).start();
+            Thread t = new Thread(() -> rotateAutoBackups());
+            t.setDaemon(true);
+            t.start();
 
         } catch (Exception e) {
             // Security: Don't log exception details to console
@@ -338,14 +340,16 @@ public class BackupManager {
             // Close progress dialog after a brief delay to show completion
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
-                new Thread(() -> {
+                Thread t2 = new Thread(() -> {
                     try {
                         Thread.sleep(500); // Show completion briefly
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
                     finalDialog.close();
-                }).start();
+                });
+                t2.setDaemon(true);
+                t2.start();
             }
         }
     }

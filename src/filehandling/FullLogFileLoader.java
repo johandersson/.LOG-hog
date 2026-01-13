@@ -34,7 +34,7 @@ import markdown.MarkdownRenderer;
  */
 public class FullLogFileLoader {
     
-    private static final int MAX_ENTRIES_TO_RENDER = 5000; // Limit for performance
+    // Use centralized UI render cap
     
     private final LogFileHandler logFileHandler;
     private final HighlightableTextPane textPane;
@@ -46,6 +46,15 @@ public class FullLogFileLoader {
     
     public void fallbackReadRaw(Path chosen) {
         try {
+            if (Files.exists(chosen) && Files.size(chosen) > ResourceLimits.MAX_FILE_SIZE) {
+                String shortTitle = "File Too Large to Display";
+                String longMessage = "The selected file is larger than the allowed display limit (" + (ResourceLimits.MAX_FILE_SIZE / (1024 * 1024)) + " MB).";
+                filehandling.DialogHandler.showLimitExceeded(shortTitle, longMessage);
+                textPane.setText("File too large to display raw. Please use filters or open a subset.");
+                textPane.clearHighlights();
+                return;
+            }
+
             byte[] bytes = Files.readAllBytes(chosen);
             String content = new String(bytes);
             textPane.setText(content);
@@ -77,12 +86,12 @@ public class FullLogFileLoader {
         List<List<String>> allEntries = LogParser.parseEntriesForFullLog(lines);
         List<List<String>> entriesToRender;
         
-        if (allEntries.size() > MAX_ENTRIES_TO_RENDER) {
+        if (allEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
             // Take the most recent N entries (already sorted newest first)
-            entriesToRender = allEntries.subList(0, MAX_ENTRIES_TO_RENDER);
+            entriesToRender = allEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER);
             // Add info message at top
             List<String> infoEntry = new ArrayList<>();
-            infoEntry.add("Showing " + MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + allEntries.size() + " total)");
+            infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + allEntries.size() + " total)");
             infoEntry.add("Use the Log List view with filters to browse older entries.");
             entriesToRender = new ArrayList<>(entriesToRender);
             entriesToRender.add(0, infoEntry);
@@ -126,11 +135,11 @@ public class FullLogFileLoader {
         
         // Apply lazy loading if too many entries
         List<List<String>> entriesToRender;
-        if (filteredEntries.size() > MAX_ENTRIES_TO_RENDER) {
-            entriesToRender = filteredEntries.subList(0, MAX_ENTRIES_TO_RENDER);
+        if (filteredEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
+            entriesToRender = filteredEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER);
             // Add info message at top
             List<String> infoEntry = new ArrayList<>();
-            infoEntry.add("Showing " + MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + filteredEntries.size() + " total for " + year + "-" + String.format("%02d", month) + ")");
+            infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + filteredEntries.size() + " total for " + year + "-" + String.format("%02d", month) + ")");
             infoEntry.add("Use the Log List view with filters to browse older entries.");
             entriesToRender = new ArrayList<>(entriesToRender);
             entriesToRender.add(0, infoEntry);

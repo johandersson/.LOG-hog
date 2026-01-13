@@ -82,6 +82,19 @@ public class FileEncryptionManager {
         // Use password then immediately clear it from memory
         char[] pwd = password.clone();
         try {
+            // Protect against DoS / memory exhaustion by checking file size first
+            try {
+                if (Files.exists(filePath) && Files.size(filePath) > filehandling.ResourceLimits.MAX_FILE_SIZE) {
+                    String shortTitle = "Encrypted File Too Large";
+                    String longMessage = "The encrypted log file is larger than the allowed limit (" + (filehandling.ResourceLimits.MAX_FILE_SIZE / (1024 * 1024)) + " MB).\n\n" +
+                        "Decrypting large files may use a lot of memory and could expose sensitive data in memory.";
+                    filehandling.DialogHandler.showLimitExceeded(shortTitle, longMessage);
+                    throw new IllegalStateException("Encrypted file too large to decrypt safely");
+                }
+            } catch (java.io.IOException ioe) {
+                // If size check fails, let the underlying read throw a clearer exception
+            }
+
             byte[] data = Files.readAllBytes(filePath);
             return encryptor.decryptWithFallback(data, pwd, salt);
         } finally {

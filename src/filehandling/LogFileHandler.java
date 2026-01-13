@@ -40,10 +40,8 @@ public class LogFileHandler implements LogFileOperations {
     private static final Path DEFAULT_FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
 
-    // Maximum file size to load (50MB) - prevents memory exhaustion
-    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024;
-    // Maximum entries in a collection - prevents DoS
-    private static final int MAX_COLLECTION_SIZE = 100000;
+    // Use centralized resource limits to prevent memory exhaustion and DoS
+    private static final long MAX_FILE_SIZE = ResourceLimits.MAX_FILE_SIZE;
 
     // For testing only - deprecated, use constructor instead
     @Deprecated
@@ -110,7 +108,9 @@ public class LogFileHandler implements LogFileOperations {
             listModel.addElement(uniqueTimeStamp);
             sortListModel(listModel);
 
-            cache.invalidateEntryCache();
+            // Invalidate both file cache and entry loader caches so the UI
+            // picks up the newly saved entry and renders markdown immediately.
+            invalidateEntryCache();
         } catch (java.nio.file.AccessDeniedException e) {
             showErrorDialog("<html><b>💾 Save Failed - Access Denied</b><br><br>" +
                 "The log file is <b>read-only</b> or you don't have write permissions.<br><br>" +
@@ -127,7 +127,8 @@ public class LogFileHandler implements LogFileOperations {
                     entryEditor.saveEntry(text, uniqueTimeStamp, encrypted);
                     listModel.addElement(uniqueTimeStamp);
                     sortListModel(listModel);
-                    cache.invalidateEntryCache();
+                    // Ensure both caches are invalidated after creating the file
+                    invalidateEntryCache();
                 } catch (Exception ex) {
                     // Security: Don't expose internal error details
                     showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save log entry. Please check file permissions.</html>");
@@ -357,6 +358,10 @@ public class LogFileHandler implements LogFileOperations {
         if (Files.exists(filePath)) {
             long fileSize = Files.size(filePath);
             if (fileSize > MAX_FILE_SIZE) {
+                String shortTitle = "File Too Large";
+                String longMessage = "The log file is larger than the allowed limit (" + (MAX_FILE_SIZE / (1024 * 1024)) + " MB).\n\n" +
+                    "Loading very large files can cause the application to run out of memory.";
+                DialogHandler.showLimitExceeded(shortTitle, longMessage);
                 throw new IllegalStateException("File exceeds maximum size limit");
             }
         }

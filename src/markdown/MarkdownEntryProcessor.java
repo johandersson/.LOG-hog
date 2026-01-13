@@ -68,6 +68,9 @@ public class MarkdownEntryProcessor {
             } else if (isTimestamp) {
                 renderTimestamp(line);
             } else if (isBlank) {
+                // Preserve blank lines within an entry as paragraph breaks
+                flushParagraphIfNeeded(true, paragraphLines);
+                context.insertLineSeparator();
                 continue;
             } else if (isList) {
                 i += handleList(i);
@@ -172,14 +175,8 @@ public class MarkdownEntryProcessor {
     private void renderParagraph(List<String> lines) throws BadLocationException {
         if (lines.isEmpty()) return;
 
-        // Join lines with spaces to form a paragraph
-        StringBuilder paragraph = new StringBuilder();
-        for (int i = 0; i < lines.size(); i++) {
-            if (i > 0) paragraph.append(" ");
-            paragraph.append(lines.get(i));
-        }
-
-        String paragraphText = paragraph.toString();
+        // Join lines using the document line separator to preserve paragraph breaks
+        String paragraphText = String.join(MarkdownStyle.DOCUMENT_LINE_SEPARATOR, lines);
 
         // Check if the paragraph has markdown formatting
         if (MarkdownFormatter.hasMarkdown(paragraphText)) {

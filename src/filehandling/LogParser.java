@@ -75,7 +75,7 @@ public class LogParser {
     public static List<List<String>> parseAllEntries(List<String> lines) {
         var entries = new ArrayList<List<String>>();
         var currentEntry = new ArrayList<String>();
-        final int MAX_COLLECTION_SIZE = 100000; // DoS protection
+        final int MAX_COLLECTION_SIZE = ResourceLimits.MAX_COLLECTION_SIZE; // DoS protection
         
         for (String line : lines) {
             var trimmed = line.trim();
@@ -83,6 +83,10 @@ public class LogParser {
             if (TS_PATTERN.matcher(trimmed).matches()) {
                 if (!currentEntry.isEmpty()) {
                     if (entries.size() >= MAX_COLLECTION_SIZE) {
+                        filehandling.DialogHandler.showLimitExceeded(
+                            "Too Many Entries",
+                            "The log file contains too many entries to process safely (max " + MAX_COLLECTION_SIZE + ")."
+                        );
                         throw new IllegalStateException("Too many entries (max " + MAX_COLLECTION_SIZE + ")");
                     }
                     entries.add(new ArrayList<>(currentEntry));
@@ -97,6 +101,10 @@ public class LogParser {
         }
         if (!currentEntry.isEmpty()) {
             if (entries.size() >= MAX_COLLECTION_SIZE) {
+                filehandling.DialogHandler.showLimitExceeded(
+                    "Too Many Entries",
+                    "The log file contains too many entries to process safely (max " + MAX_COLLECTION_SIZE + ")"
+                );
                 throw new IllegalStateException("Too many entries (max " + MAX_COLLECTION_SIZE + ")");
             }
             entries.add(currentEntry);

@@ -52,9 +52,9 @@ public class LogFileFormatter {
         }
     }
     
-    // Security: Prevent memory exhaustion attacks
-    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-    private static final int MAX_COLLECTION_SIZE = 100000; // Max entries
+    // Security: use centralized resource limits
+    private static final long MAX_FILE_SIZE = ResourceLimits.MAX_FILE_SIZE;
+    private static final int MAX_COLLECTION_SIZE = ResourceLimits.MAX_COLLECTION_SIZE;
     
     /**
      * Sorts entries by timestamp and ensures consistent spacing.
@@ -204,11 +204,12 @@ public class LogFileFormatter {
         SwingUtilities.invokeLater(() -> {
             LoadingProgressDialog progress = new LoadingProgressDialog(parentFrame, "Formatting Log File");
             
-            new Thread(() -> {
+            // Create a single daemon thread that runs the formatting task.
+            Runnable formattingTask = () -> {
                 try {
                     progress.setStatus("Reading log file...");
                     progress.show();
-                    
+
                     Path logPath = Path.of(System.getProperty("user.home"), "log.txt");
                     if (!Files.exists(logPath)) {
                         SwingUtilities.invokeLater(() -> {
@@ -217,44 +218,53 @@ public class LogFileFormatter {
                         });
                         return;
                     }
-                    
+
                     // Read file from memory (already decrypted if encrypted)
                     List<String> lines;
                     boolean isEncrypted = logFileHandler.isEncrypted();
-                    
+
                     // Security: Check file size before processing
                     if (!isEncrypted && Files.size(logPath) > MAX_FILE_SIZE) {
-                        throw new IllegalStateException("File too large to format (max 50MB)");
+                        String shortTitle = "File Too Large";
+                        String longMessage = "The selected log file is too large to format in memory. "
+                            + "To protect the application from running out of memory, formatting is limited to files up to "
+                            + (MAX_FILE_SIZE / (1024 * 1024)) + " MB.";
+                        DialogHandler.showLimitExceeded(shortTitle, longMessage);
+                        throw new IllegalStateException("File too large to format (max " + (MAX_FILE_SIZE / (1024 * 1024)) + " MB)");
                     }
-                    
+
                     if (isEncrypted) {
                         progress.setStatus("Decrypting log file...");
                         lines = new ArrayList<>(logFileHandler.getLines());
                     } else {
                         lines = Files.readAllLines(logPath);
                     }
-                    
+
                     // Security: Validate collection size
                     if (lines.size() > MAX_COLLECTION_SIZE) {
+                        String shortTitle = "Too Many Entries";
+                        String longMessage = "The log file contains too many entries to safely format (more than "
+                            + MAX_COLLECTION_SIZE + ").\n\nTry opening the file in smaller parts or use the command-line tool for large files.";
+                        DialogHandler.showLimitExceeded(shortTitle, longMessage);
                         throw new IllegalStateException("Too many lines to format (max " + MAX_COLLECTION_SIZE + ")");
                     }
-                    
+
                     // Remove secure clipboard markers
                     progress.setStatus("Processing entries...");
                     lines = lines.stream()
                         .map(LogFileHandler::removeSecureMarker)
                         .collect(Collectors.toList());
-                    
+
                     // Sort entries - this creates compact format with no blanks between entries
                     progress.setStatus("Sorting and formatting entries...");
                     List<String> formatted = sortEntriesByTimestamp(lines);
-                    
+
                     // Create backup before writing
                     progress.setStatus("Creating backup...");
                     if (logFileHandler.getBackupManager() != null) {
                         logFileHandler.getBackupManager().createNumberedBackup();
                     }
-                    
+
                     // Write to disk securely and memory-efficiently
                     progress.setStatus("Writing formatted file...");
                     if (isEncrypted) {
@@ -268,10 +278,10 @@ public class LogFileFormatter {
                         // Write directly to file
                         Files.write(logPath, formatted);
                     }
-                    
+
                     // Clear any pending writes that might overwrite our formatted content
                     logFileHandler.clearPendingWrites();
-                    
+
                     // For encrypted files, the cache is already updated above
                     // For non-encrypted files, invalidate to force reload from disk
                     // This ensures the view picks up the newly formatted content
@@ -279,17 +289,17 @@ public class LogFileFormatter {
                     if (!isEncrypted) {
                         logFileHandler.invalidateCaches();
                     }
-                    
+
                     // Success - reload the view
                     SwingUtilities.invokeLater(() -> {
                         progress.close();
-                        
+
                         // Reload the view BEFORE showing success message
                         // This ensures user sees the formatted content immediately
                         if (onSuccess != null) {
                             onSuccess.run();
                         }
-                        
+
                         // Small delay to let the view refresh, then show success
                         SwingUtilities.invokeLater(() -> {
                             DialogHelper.showSuccess(parentFrame,
@@ -299,7 +309,7 @@ public class LogFileFormatter {
                                 "All entries now have consistent spacing.");
                         });
                     });
-                    
+
                 } catch (Exception ex) {
                     SwingUtilities.invokeLater(() -> {
                         progress.close();
@@ -311,7 +321,11 @@ public class LogFileFormatter {
                             "Please check file permissions and try again.");
                     });
                 }
-            }, "Format-Thread").start();
+            };
+
+            Thread formatThread = new Thread(formattingTask, "Format-Thread");
+            formatThread.setDaemon(true);
+            formatThread.start();
         });
     }
 }

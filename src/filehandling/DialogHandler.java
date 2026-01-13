@@ -176,4 +176,18 @@ public class DialogHandler {
         }
         return false;
     }
+
+    /**
+     * Shows a friendly dialog when a resource limit is exceeded (file too large or too many entries).
+     * This provides an explanation and suggested actions for the user.
+     */
+    public static void showLimitExceeded(String shortTitle, String longMessage) {
+        String message = String.format(
+            "<html><b>⚠️ %s</b><br><br>%s<br><br>Suggested actions:<br>• Use the Log List view with filters to find older entries<br>• Archive or rollover large log files (monthly/yearly)<br>• Increase limits in advanced settings if you know what you're doing</html>",
+            shortTitle,
+            longMessage
+        );
+
+        DialogHelper.showError(null, "Limit Exceeded", shortTitle, message);
+    }
 }
