@@ -39,11 +39,28 @@ import utils.Toast;
 /**
  * Secure clipboard manager that automatically clears clipboard contents after a timeout
  * to prevent sensitive data from remaining accessible to other applications.
+ *
+ * <h2>Security Properties</h2>
+ * <ul>
+ *   <li><b>Automatic Clearing:</b> Clipboard contents are automatically cleared after a configurable timeout (5-30 seconds)</li>
+ *   <li><b>Thread Safety:</b> All static mutable fields are properly synchronized to prevent race conditions</li>
+ *   <li><b>Content Tracking:</b> Only clears clipboard content that was copied by this application</li>
+ *   <li><b>Shutdown Hook:</b> Ensures clipboard is cleared even on abnormal application termination</li>
+ * </ul>
+ *
+ * <h2>Security Assumptions</h2>
+ * <ul>
+ *   <li>Clipboard content is only accessible by the local user and system processes</li>
+ *   <li>Other applications cannot prevent clipboard clearing operations</li>
+ *   <li>System clipboard implementation is trustworthy</li>
+ * </ul>
  */
 public class SecureClipboardManager implements ClipboardHandler {
     private static final String LOGHOG_CLIPBOARD_MARKER = "";
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
+    // Thread-safe mutable static fields with synchronization
+    private static final Object LOCK = new Object();
     private static ScheduledFuture<?> clearTask;
     private static int timeoutSeconds = 30; // Default 30 seconds
     private static boolean autoClearEnabled = true;
@@ -71,30 +88,43 @@ public class SecureClipboardManager implements ClipboardHandler {
     /**
      * Set the automatic clipboard clearing timeout in seconds.
      * Valid range: 5-30 seconds
+     *
+     * @param seconds the timeout in seconds
+     * @throws IllegalArgumentException if seconds is outside the valid range
      */
     public static void setTimeoutSeconds(int seconds) {
         if (seconds < 5 || seconds > 30) {
             throw new IllegalArgumentException("Timeout must be between 5 and 30 seconds");
         }
-        timeoutSeconds = seconds;
+        synchronized (LOCK) {
+            timeoutSeconds = seconds;
+        }
     }
 
     /**
      * Enable or disable automatic clipboard clearing.
+     *
+     * @param enabled true to enable automatic clearing, false to disable
      */
     public static void setAutoClearEnabled(boolean enabled) {
-        autoClearEnabled = enabled;
-        if (!enabled && clearTask != null) {
-            clearTask.cancel(false);
-            clearTask = null;
+        synchronized (LOCK) {
+            autoClearEnabled = enabled;
+            if (!enabled && clearTask != null) {
+                clearTask.cancel(false);
+                clearTask = null;
+            }
         }
     }
 
     /**
      * Check if automatic clearing is enabled.
+     *
+     * @return true if automatic clearing is enabled, false otherwise
      */
     public static boolean isAutoClearEnabled() {
-        return autoClearEnabled;
+        synchronized (LOCK) {
+            return autoClearEnabled;
+        }
     }
 
     /**
@@ -132,7 +162,9 @@ public class SecureClipboardManager implements ClipboardHandler {
 
         try {
             clipboard.setContents(selection, selection);
-            lastCopiedContent = text; // Track what we copied
+            synchronized (LOCK) {
+                lastCopiedContent = text; // Track what we copied
+            }
 
             // Show success message
             Component toastParent = parent;
@@ -140,11 +172,15 @@ public class SecureClipboardManager implements ClipboardHandler {
             if (window != null) {
                 toastParent = window;
             }
-            Toast.showToast(toastParent, successMessage + " (Auto-clear in " + timeoutSeconds + "s)");
+            synchronized (LOCK) {
+                Toast.showToast(toastParent, successMessage + " (Auto-clear in " + timeoutSeconds + "s)");
+            }
 
             // Schedule automatic clearing if enabled
-            if (autoClearEnabled) {
-                scheduleClipboardClearing();
+            synchronized (LOCK) {
+                if (autoClearEnabled) {
+                    scheduleClipboardClearing();
+                }
             }
 
         } catch (IllegalStateException ise) {
@@ -157,32 +193,34 @@ public class SecureClipboardManager implements ClipboardHandler {
     }
 
     /**
-     * Manually clear the clipboard if it contains .LOG-hog content.
+     * Manually clear the clipboard if it contains .LOG-hog secure content.
      */
     public static void clearSecureClipboard() {
         try {
             Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
             
-            // Clear if we have tracked content
-            if (lastCopiedContent != null) {
-                Transferable contents = clipboard.getContents(null);
-                if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
-                    String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
-                    // Only clear if clipboard still contains what we copied
-                    if (data != null && data.equals(lastCopiedContent)) {
-                        // Clear clipboard by setting empty content
-                        StringSelection emptySelection = new StringSelection("");
-                        clipboard.setContents(emptySelection, emptySelection);
-                        lastCopiedContent = null;
+            synchronized (LOCK) {
+                // Clear if we have tracked content
+                if (lastCopiedContent != null) {
+                    Transferable contents = clipboard.getContents(null);
+                    if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                        String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
+                        // Only clear if clipboard still contains what we copied
+                        if (data != null && data.equals(lastCopiedContent)) {
+                            // Clear clipboard by setting empty content
+                            StringSelection emptySelection = new StringSelection("");
+                            clipboard.setContents(emptySelection, emptySelection);
+                            lastCopiedContent = null;
 
-                        // Cancel any pending clear task
-                        if (clearTask != null) {
-                            clearTask.cancel(false);
-                            clearTask = null;
+                            // Cancel any pending clear task
+                            if (clearTask != null) {
+                                clearTask.cancel(false);
+                                clearTask = null;
+                            }
+                        } else {
+                            // Clipboard was changed by user - don't clear
+                            lastCopiedContent = null;
                         }
-                    } else {
-                        // Clipboard was changed by user - don't clear
-                        lastCopiedContent = null;
                     }
                 }
             }
@@ -200,10 +238,14 @@ public class SecureClipboardManager implements ClipboardHandler {
 
     /**
      * Check if clipboard contains .LOG-hog secure content.
+     *
+     * @return true if the clipboard contains content that was copied by this application, false otherwise
      */
     public static boolean hasSecureContent() {
-        if (lastCopiedContent == null) {
-            return false;
+        synchronized (LOCK) {
+            if (lastCopiedContent == null) {
+                return false;
+            }
         }
         
         try {
@@ -213,7 +255,9 @@ public class SecureClipboardManager implements ClipboardHandler {
             if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
                 String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
                 // Check if clipboard still contains what we copied
-                return data != null && data.equals(lastCopiedContent);
+                synchronized (LOCK) {
+                    return data != null && data.equals(lastCopiedContent);
+                }
             }
         } catch (IllegalStateException ise) {
             // Clipboard not available
@@ -232,32 +276,38 @@ public class SecureClipboardManager implements ClipboardHandler {
      * Schedule automatic clearing of secure clipboard content.
      */
     private static void scheduleClipboardClearing() {
-        // Cancel any existing task
-        if (clearTask != null) {
-            clearTask.cancel(false);
-        }
+        synchronized (LOCK) {
+            // Cancel any existing task
+            if (clearTask != null) {
+                clearTask.cancel(false);
+            }
 
-        try {
-            // Schedule new clearing task
-            clearTask = scheduler.schedule(() -> {
-                SwingUtilities.invokeLater(() -> {
-                    if (hasSecureContent()) {
-                        clearSecureClipboard();
-                        // Show notification that clipboard was cleared
-                        Toast.showToast(null, "Clipboard automatically cleared for security.");
-                    }
-                });
-            }, timeoutSeconds, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            // Security: Don't log exception details to console
+            try {
+                // Schedule new clearing task
+                clearTask = scheduler.schedule(() -> {
+                    SwingUtilities.invokeLater(() -> {
+                        if (hasSecureContent()) {
+                            clearSecureClipboard();
+                            // Show notification that clipboard was cleared
+                            Toast.showToast(null, "Clipboard automatically cleared for security.");
+                        }
+                    });
+                }, timeoutSeconds, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                // Security: Don't log exception details to console
+            }
         }
     }
 
     /**
      * Get the current timeout setting.
+     *
+     * @return the current timeout in seconds
      */
     public static int getTimeoutSeconds() {
-        return timeoutSeconds;
+        synchronized (LOCK) {
+            return timeoutSeconds;
+        }
     }
 
     /**

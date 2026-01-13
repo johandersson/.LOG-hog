@@ -35,6 +35,26 @@ import javax.crypto.spec.SecretKeySpec;
  * Uses PBKDF2 for key derivation with per-user random salt.
  * Updated to use AES/GCM instead of insecure AES/ECB mode.
  * Maintains backwards compatibility with static salt (v2) and SHA-256 (v1) encrypted values.
+ *
+ * <h2>Security Properties</h2>
+ * <ul>
+ *   <li><b>Encryption Algorithm:</b> AES/GCM with 128-bit key and 128-bit authentication tag</li>
+ *   <li><b>Key Derivation:</b> PBKDF2 with 100,000 iterations and random salt per user</li>
+ *   <li><b>IV Generation:</b> Cryptographically secure random IV for each encryption operation</li>
+ *   <li><b>Backwards Compatibility:</b> Supports decryption of legacy encrypted values</li>
+ *   <li><b>Integer Overflow Protection:</b> Uses Math.addExact() for array size calculations</li>
+ * </ul>
+ *
+ * <h2>Security Assumptions</h2>
+ * <ul>
+ *   <li>PBKDF2 parameters provide adequate protection against brute force attacks</li>
+ *   <li>System SecureRandom provides sufficient entropy for cryptographic operations</li>
+ *   <li>Settings file is stored in a location accessible only to the user</li>
+ *   <li>Memory containing decrypted values is properly managed by the JVM</li>
+ * </ul>
+ *
+ * <h2>Thread Safety</h2>
+ * <p>This class is not thread-safe. Instances should not be shared between threads.</p>
  */
 public class SecureSettings {
     private static final String ENCRYPTED_PREFIX = "encrypted:";
@@ -122,8 +142,8 @@ public class SecureSettings {
             cipher.init(Cipher.ENCRYPT_MODE, settingsKey, spec);
             byte[] encrypted = cipher.doFinal(value.getBytes(StandardCharsets.UTF_8));
             
-            // Prepend IV to encrypted data
-            byte[] result = new byte[iv.length + encrypted.length];
+            // Prepend IV to encrypted data - use Math.addExact to prevent integer overflow
+            byte[] result = new byte[Math.addExact(iv.length, encrypted.length)];
             System.arraycopy(iv, 0, result, 0, iv.length);
             System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
             

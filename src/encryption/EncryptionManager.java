@@ -1,3 +1,16 @@
+
+package encryption;
+
+import java.security.SecureRandom;
+import java.util.Arrays;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
+
 /*
  * Copyright (C) 2025 Johan Andersson
  *
@@ -15,7 +28,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package encryption;
+/**
+ * AES/GCM encryption manager for secure file encryption.
+ * Provides authenticated encryption with PBKDF2 key derivation.
+ *
+ * <h2>Security Properties</h2>
+ * <ul>
+ *   <li><b>Encryption Algorithm:</b> AES/GCM with 256-bit key and 128-bit authentication tag</li>
+ *   <li><b>Key Derivation:</b> PBKDF2 with 100,000 iterations (65,536 for legacy compatibility)</li>
+ *   <li><b>IV Generation:</b> Cryptographically secure random 96-bit IV for each encryption operation</li>
+ *   <li><b>Authenticated Encryption:</b> GCM provides both confidentiality and integrity</li>
+ *   <li><b>Integer Overflow Protection:</b> Uses Math.addExact() for array size calculations</li>
+ * </ul>
+ *
+ * <h2>Security Assumptions</h2>
+ * <ul>
+ *   <li>PBKDF2 parameters provide adequate protection against brute force attacks</li>
+ *   <li>System SecureRandom provides sufficient entropy for cryptographic operations</li>
+ *   <li>Encrypted files are stored in locations accessible only to authorized users</li>
+ *   <li>Memory containing keys and plaintext is properly managed by the JVM</li>
+ *   <li>Users choose strong passwords that resist dictionary attacks</li>
+ * </ul>
 
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -27,6 +60,31 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
+/**
+ * AES/GCM encryption manager for secure file encryption.
+ * Provides authenticated encryption with PBKDF2 key derivation.
+ *
+ * <h2>Security Properties</h2>
+ * <ul>
+ *   <li><b>Encryption Algorithm:</b> AES/GCM with 256-bit key and 128-bit authentication tag</li>
+ *   <li><b>Key Derivation:</b> PBKDF2 with 100,000 iterations (65,536 for legacy compatibility)</li>
+ *   <li><b>IV Generation:</b> Cryptographically secure random 96-bit IV for each encryption operation</li>
+ *   <li><b>Authenticated Encryption:</b> GCM provides both confidentiality and integrity</li>
+ *   <li><b>Integer Overflow Protection:</b> Uses Math.addExact() for array size calculations</li>
+ * </ul>
+ *
+ * <h2>Security Assumptions</h2>
+ * <ul>
+ *   <li>PBKDF2 parameters provide adequate protection against brute force attacks</li>
+ *   <li>System SecureRandom provides sufficient entropy for cryptographic operations</li>
+ *   <li>Encrypted files are stored in locations accessible only to authorized users</li>
+ *   <li>Memory containing keys and plaintext is properly managed by the JVM</li>
+ *   <li>Users choose strong passwords that resist dictionary attacks</li>
+ * </ul>
+ *
+ * <h2>Thread Safety</h2>
+ * <p>This class is thread-safe. The singleton instance can be safely used from multiple threads.</p>
+ */
 public class EncryptionManager implements Encryptor {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
@@ -131,8 +189,8 @@ public class EncryptionManager implements Encryptor {
         try {
             SecretKey key = deriveKey(password, salt);
             byte[] encrypted = performEncryption(data, key);
-            // Return salt + encrypted
-            byte[] result = new byte[salt.length + encrypted.length];
+            // Return salt + encrypted - use Math.addExact to prevent integer overflow
+            byte[] result = new byte[Math.addExact(salt.length, encrypted.length)];
             System.arraycopy(salt, 0, result, 0, salt.length);
             System.arraycopy(encrypted, 0, result, salt.length, encrypted.length);
             return result;
@@ -148,7 +206,7 @@ public class EncryptionManager implements Encryptor {
         var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
         cipher.init(Cipher.ENCRYPT_MODE, key, spec);
         var encrypted = cipher.doFinal(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        var result = new byte[iv.length + encrypted.length];
+        var result = new byte[Math.addExact(iv.length, encrypted.length)];
         System.arraycopy(iv, 0, result, 0, iv.length);
         System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
         return result;

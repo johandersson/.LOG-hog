@@ -550,6 +550,10 @@ public class LogTextEditor extends JFrame {
         autoLockEnabled = "true".equals(settings.getProperty("autoLockEnabled", "false"));
         try {
             autoLockTimeoutSeconds = Integer.parseInt(settings.getProperty("autoLockTimeout", "900"));
+            // Validate timeout is within reasonable bounds (10 seconds to 24 hours)
+            if (autoLockTimeoutSeconds < 10 || autoLockTimeoutSeconds > 86400) {
+                autoLockTimeoutSeconds = 900; // Default to 15 minutes
+            }
         } catch (NumberFormatException e) {
             autoLockTimeoutSeconds = 900; // Default to 15 minutes
         }
@@ -567,6 +571,10 @@ public class LogTextEditor extends JFrame {
         autoLockEnabled = enabled;
         try {
             autoLockTimeoutSeconds = Integer.parseInt(timeoutStr);
+            // Validate timeout is within reasonable bounds (10 seconds to 24 hours)
+            if (autoLockTimeoutSeconds < 10 || autoLockTimeoutSeconds > 86400) {
+                autoLockTimeoutSeconds = 900; // Default to 15 minutes
+            }
         } catch (NumberFormatException e) {
             autoLockTimeoutSeconds = 900;
         }
@@ -660,6 +668,10 @@ public class LogTextEditor extends JFrame {
         // Initialize secure clipboard settings from saved preferences
         boolean autoClear = "true".equals(settings.getProperty("clipboardAutoClear", "true"));
         int timeout = Integer.parseInt(settings.getProperty("clipboardTimeout", "30"));
+        // Validate timeout is within SecureClipboardManager bounds (5-30 seconds)
+        if (timeout < 5 || timeout > 30) {
+            timeout = 30; // Default to 30 seconds
+        }
 
         clipboard.SecureClipboardManager.setAutoClearEnabled(autoClear);
         try {

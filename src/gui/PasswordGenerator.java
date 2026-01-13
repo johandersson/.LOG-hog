@@ -49,7 +49,17 @@ public class PasswordGenerator {
         }
     }
 
+    /**
+     * Generates a random password with the specified length.
+     *
+     * @param length the desired password length (must be between 1 and 1000)
+     * @return a randomly generated password
+     * @throws IllegalArgumentException if length is outside valid bounds
+     */
     public static String generatePassword(int length) {
+        if (length < 1 || length > 1000) {
+            throw new IllegalArgumentException("Password length must be between 1 and 1000 characters");
+        }
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
         StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
@@ -58,7 +68,17 @@ public class PasswordGenerator {
         return sb.toString();
     }
 
+    /**
+     * Generates a random passphrase with the specified number of words.
+     *
+     * @param wordCount the number of words in the passphrase (must be between 1 and 20)
+     * @return a randomly generated passphrase
+     * @throws IllegalArgumentException if wordCount is outside valid bounds
+     */
     public static String generatePassphrase(int wordCount) {
+        if (wordCount < 1 || wordCount > 20) {
+            throw new IllegalArgumentException("Word count must be between 1 and 20");
+        }
         loadWordList();
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < wordCount; i++) {
