@@ -251,7 +251,9 @@ public class UIInitializer {
         tabPane.addTab("About", new InformationPanel(tabPane, "license.md", "About", true, true));
         tabPane.addChangeListener(e -> {
             if (tabPane.getSelectedIndex() == 2) {
-                editor.getFullLogPanel().loadFullLog();
+                if (!editor.getFullLogPanel().isSuppressAutoLoad()) {
+                    editor.getFullLogPanel().loadFullLog();
+                }
             } else if (tabPane.getSelectedIndex() == 3) {
                 editor.getSettingsPanel().loadCurrentSettings();
             } else if (tabPane.getSelectedIndex() == 5) {

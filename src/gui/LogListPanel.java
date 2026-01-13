@@ -213,6 +213,16 @@ public class LogListPanel extends JPanel {
         // Save button
         var entryBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
         entryBottom.setOpaque(false);
+        var previewBtn = new AccentButton("Preview in Log View");
+        previewBtn.addActionListener(e -> {
+            String selectedTimestamp = logList.getSelectedValue();
+            if (selectedTimestamp != null) {
+                editor.getFullLogPanel().setSuppressAutoLoad(true);
+                editor.getTabPane().setSelectedIndex(2); // Switch to full log tab
+                editor.getFullLogPanel().loadFullLogNoScroll(() -> editor.getFullLogPanel().scrollToEntry(selectedTimestamp));
+            }
+        });
+        entryBottom.add(previewBtn);
         var saveEntryBtn = new AccentButton("Save Entry");
         saveEntryBtn.addActionListener(e -> editor.saveEditedLogEntry());
         entryBottom.add(saveEntryBtn);

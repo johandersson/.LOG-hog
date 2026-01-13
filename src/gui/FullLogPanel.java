@@ -39,6 +39,7 @@ import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
+import javax.swing.text.StyledDocument;
 
 import filehandling.FullLogFileLoader;
 import filehandling.LogFileFormatter;
@@ -57,6 +58,15 @@ public class FullLogPanel extends LogPanel {
     private final JButton searchButton;
     private final JButton formatButton;
     private SearchDialog searchDialog;
+    private boolean suppressAutoLoad = false;
+
+    public void setSuppressAutoLoad(boolean suppress) {
+        this.suppressAutoLoad = suppress;
+    }
+
+    public boolean isSuppressAutoLoad() {
+        return suppressAutoLoad;
+    }
     private FullLogFileLoader fileLoader;
 
     public FullLogPanel(LogTextEditor editor, LogFileHandler logFileHandler) {
@@ -210,8 +220,35 @@ public class FullLogPanel extends LogPanel {
                 return;
             }
             clearEditorForNewLoad(logPath);
-            loadAndProcessLogFile(logPath);
+            loadAndProcessLogFile(logPath, true);
             updateLockButton();
+        });
+    }
+
+    public void loadFullLogNoScroll() {
+        loadFullLogNoScroll(null);
+    }
+
+    public void loadFullLogNoScroll(Runnable callback) {
+        suppressAutoLoad = true;
+        SwingUtilities.invokeLater(() -> {
+            if (editor.isLocked()) {
+                handleLockedState();
+                return;
+            }
+            updateButtonStates(false);
+            var logPath = Path.of(System.getProperty("user.home"), "log.txt");
+            if (!Files.exists(logPath)) {
+                showLogNotFound();
+                return;
+            }
+            clearEditorForNewLoad(logPath);
+            loadAndProcessLogFile(logPath, false);
+            updateLockButton();
+            if (callback != null) {
+                callback.run();
+            }
+            suppressAutoLoad = false;
         });
     }
 
@@ -226,8 +263,12 @@ public class FullLogPanel extends LogPanel {
     }
 
     private void loadAndProcessLogFile(Path logPath) {
+        loadAndProcessLogFile(logPath, true);
+    }
+
+    private void loadAndProcessLogFile(Path logPath, boolean scrollToBottom) {
         try {
-            fileLoader.loadAndProcessLogFile(logPath);
+            fileLoader.loadAndProcessLogFile(logPath, scrollToBottom);
         } catch (Exception ex) {
             handleLoadException(ex, logPath);
         }
@@ -364,5 +405,19 @@ public class FullLogPanel extends LogPanel {
         
         // If not found in current view, show a message
         DialogHelper.showEntryNotFound(this);
+    }
+
+    public void scrollToEntry(String timestamp) {
+        try {
+            StyledDocument doc = fullLogPane.getStyledDocument();
+            String text = doc.getText(0, doc.getLength());
+            int index = text.indexOf(timestamp);
+            if (index != -1) {
+                fullLogPane.setCaretPosition(index);
+                fullLogPane.requestFocusInWindow();
+            }
+        } catch (javax.swing.text.BadLocationException e) {
+            // Ignore errors
+        }
     }
 }
