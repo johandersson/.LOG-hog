@@ -179,6 +179,10 @@ public class MarkdownEntryProcessor {
 
         // Join lines using the document line separator to preserve paragraph breaks
         String paragraphText = String.join(MarkdownStyle.DOCUMENT_LINE_SEPARATOR, lines);
+        // Trim a single leading DOCUMENT_LINE_SEPARATOR if present (can happen after headings)
+        if (paragraphText.startsWith(MarkdownStyle.DOCUMENT_LINE_SEPARATOR)) {
+            paragraphText = paragraphText.substring(MarkdownStyle.DOCUMENT_LINE_SEPARATOR.length());
+        }
 
         // Check if the paragraph has markdown formatting
         if (MarkdownFormatter.hasMarkdown(paragraphText)) {
