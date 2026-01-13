@@ -371,6 +371,13 @@ public class LogFileHandler implements LogFileOperations {
                 throw new IllegalStateException("File exceeds maximum size limit");
             }
         }
+        // If there are pending writes (write-back cache), return them immediately
+        if (cache.hasPendingWrites()) {
+            List<String> pending = cache.getPendingLines();
+            if (pending != null) {
+                return new ArrayList<>(pending);
+            }
+        }
         
         if (encryptionManager.isEncrypted()) {
             List<String> cachedLines = cache.getCachedLines();
