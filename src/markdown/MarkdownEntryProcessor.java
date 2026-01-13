@@ -136,7 +136,9 @@ public class MarkdownEntryProcessor {
         Style headingStyle = line.startsWith("### ") ? context.getH3Style() :
                             line.startsWith("## ") ? context.getH2Style() : context.getH1Style();
         MarkdownFormatter.appendLineWithFormatting(context.getDocument(), text, headingStyle, context.getStyles());
-        context.insertDoubleLineSeparator();
+        // Use a single line separator after headings so the following paragraph
+        // remains part of the same section without an extra blank line.
+        context.insertLineSeparator();
     }
 
     private void renderCodeLine(String line) throws BadLocationException {
