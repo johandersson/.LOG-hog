@@ -17,27 +17,52 @@
 
 package gui;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import javax.swing.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.AbstractAction;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
+import javax.swing.SwingConstants;
+
 import main.LogTextEditor;
+import markdown.LinkHandler;
+import markdown.MarkdownRenderer;
 import utils.UndoRedoTextArea;
 
 public class EntryPanel extends JPanel {
     private final JTextArea textArea;
     private final LogTextEditor editor;
     private final JButton saveBtn;
+    private final JButton previewBtn;
     private final JLabel lockLabel;
     private final JScrollPane scrollPane;
+    private final JScrollPane previewScrollPane;
     private final JPanel textContainer;
+    private final HighlightableTextPane previewPane;
+    private boolean isPreviewMode = false;
 
     public EntryPanel(LogTextEditor editor) {
         this.editor = editor;
         this.textArea = new UndoRedoTextArea();
         this.saveBtn = new AccentButton("Save");
+        this.previewBtn = new AccentButton("Preview");
         this.lockLabel = new JLabel("File locked. Press Unlock file in Full log view to unlock it again.", SwingConstants.CENTER);
         this.scrollPane = new JScrollPane(textArea);
+        this.previewPane = new HighlightableTextPane();
+        this.previewScrollPane = new JScrollPane(previewPane);
         this.textContainer = new JPanel(new BorderLayout());
         initPanel();
     }
@@ -51,6 +76,10 @@ public class EntryPanel extends JPanel {
         textArea.setWrapStyleWord(true);
         textArea.setEditable(true);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
+
+        // Setup preview pane
+        previewPane.setEditable(false);
+        previewScrollPane.setBorder(BorderFactory.createEmptyBorder());
 
         // Create container for text area and formatting
         textContainer.setOpaque(false);
@@ -76,9 +105,54 @@ public class EntryPanel extends JPanel {
 
         var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
         bottom.setBackground(Color.WHITE);
+        previewBtn.addActionListener(e -> togglePreview());
         saveBtn.addActionListener(e -> editor.saveLogEntry());
+        bottom.add(previewBtn);
         bottom.add(saveBtn);
         add(bottom, BorderLayout.SOUTH);
+    }
+
+    private void togglePreview() {
+        if (isPreviewMode) {
+            // Switch to edit mode
+            textContainer.remove(previewScrollPane);
+            textContainer.add(scrollPane, BorderLayout.CENTER);
+            previewBtn.setText("Preview");
+            isPreviewMode = false;
+        } else {
+            // Switch to preview mode
+            renderPreview();
+            textContainer.remove(scrollPane);
+            textContainer.add(previewScrollPane, BorderLayout.CENTER);
+            previewBtn.setText("Edit");
+            isPreviewMode = true;
+        }
+        textContainer.revalidate();
+        textContainer.repaint();
+    }
+
+    private void renderPreview() {
+        String content = textArea.getText().trim();
+        if (content.isEmpty()) {
+            previewPane.setText("No content to preview");
+            previewPane.setContentType("text/plain");
+            return;
+        }
+
+        // Parse content into lines (single entry)
+        String[] lines = content.split("\n");
+        List<String> entryLines = new ArrayList<>();
+        for (String line : lines) {
+            entryLines.add(line);
+        }
+
+        // Wrap in a list of entries (single entry)
+        List<List<String>> entries = new ArrayList<>();
+        entries.add(entryLines);
+
+        // Render using MarkdownRenderer
+        MarkdownRenderer.renderMarkdownFromEntries(previewPane, entries, false);
+        LinkHandler.addLinkListeners(previewPane);
     }
 
     public JTextArea getTextArea() {
@@ -88,8 +162,13 @@ public class EntryPanel extends JPanel {
     public void setLocked(boolean locked) {
         textArea.setEditable(!locked);
         saveBtn.setEnabled(!locked);
+        previewBtn.setEnabled(!locked);
         if (locked) {
             textArea.setText("");
+            // Switch back to edit mode if in preview mode
+            if (isPreviewMode) {
+                togglePreview();
+            }
             remove(textContainer);
             add(lockLabel, BorderLayout.CENTER);
         } else {

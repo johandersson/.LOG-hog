@@ -346,14 +346,6 @@ public class LogTextEditor extends JFrame {
         }
         fullLogPanel.openSearchDialog();
     }
-
-
-
-
-
-
-
-
     public static void main(String[] args) {
         
         // Check if running in headless environment

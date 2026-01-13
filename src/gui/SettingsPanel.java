@@ -25,7 +25,6 @@ import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.List;
@@ -519,7 +518,19 @@ public class SettingsPanel extends JPanel {
 
             // Backup settings file before modifying
             if (java.nio.file.Files.exists(settingsPath)) {
-                var backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+                // Save backup in configured backup directory
+                String backupDir = settings.getProperty("backupDirectory", "");
+                java.nio.file.Path backupSettingsPath;
+                
+                if (backupDir != null && !backupDir.isEmpty()) {
+                    java.nio.file.Path backupDirPath = java.nio.file.Paths.get(backupDir);
+                    java.nio.file.Files.createDirectories(backupDirPath);
+                    backupSettingsPath = backupDirPath.resolve(settingsPath.getFileName().toString() + ".bak");
+                } else {
+                    // Fallback to sibling if no backup directory configured
+                    backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+                }
+                
                 java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
 
@@ -610,7 +621,7 @@ public class SettingsPanel extends JPanel {
                 // Delete the unencrypted backups securely
                 for (Path backup : unencryptedBackups) {
                     try {
-                        encryption.EncryptionDetector.secureDelete(backup);
+                        main.BackupManager.secureDelete(backup);
                     } catch (Exception e) {
                         // Log error but continue with others
                         System.err.println("Failed to securely delete backup: " + backup + " - " + e.getMessage());
@@ -679,7 +690,7 @@ public class SettingsPanel extends JPanel {
             try {
                 // Securely delete existing backup file if it exists
                 if (Files.exists(backupPath)) {
-                    secureDelete(backupPath);
+                    main.BackupManager.secureDelete(backupPath);
                 }
                 Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 statusLabel.setText("Backup saved to: " + backupPath.toString());
@@ -863,30 +874,4 @@ public class SettingsPanel extends JPanel {
         }
     }
 
-    private void secureDelete(java.nio.file.Path filePath) throws java.io.IOException {
-        if (!Files.exists(filePath)) {
-            return;
-        }
-
-        long fileSize = Files.size(filePath);
-        SecureRandom random = new SecureRandom();
-
-        // Overwrite file multiple times with random data
-        for (int pass = 0; pass < 3; pass++) {
-            try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(filePath.toFile(), "rw")) {
-                byte[] buffer = new byte[8192];
-                long remaining = fileSize;
-                while (remaining > 0) {
-                    int toWrite = (int) Math.min(buffer.length, remaining);
-                    random.nextBytes(buffer);
-                    raf.write(buffer, 0, toWrite);
-                    remaining -= toWrite;
-                }
-                raf.getFD().sync(); // Force write to disk
-            }
-        }
-
-        // Finally delete the file
-        Files.delete(filePath);
-    }
 }

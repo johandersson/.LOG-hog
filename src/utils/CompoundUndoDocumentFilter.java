@@ -19,7 +19,10 @@ package utils;
 
 import java.util.Timer;
 import java.util.TimerTask;
-import javax.swing.text.*;
+
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import javax.swing.undo.CompoundEdit;
 import javax.swing.undo.UndoManager;
 
@@ -30,7 +33,7 @@ public class CompoundUndoDocumentFilter extends DocumentFilter {
 
     public CompoundUndoDocumentFilter(UndoManager undoManager) {
         this.undoManager = undoManager;
-        this.timer = new Timer();
+        this.timer = new Timer(true); // true = daemon thread
     }
 
     private void startCompoundEdit() {
@@ -43,7 +46,7 @@ public class CompoundUndoDocumentFilter extends DocumentFilter {
 
     private void restartTimer() {
         timer.cancel();
-        timer = new Timer();
+        timer = new Timer(true); // true = daemon thread
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -75,5 +78,17 @@ public class CompoundUndoDocumentFilter extends DocumentFilter {
     public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
         startCompoundEdit();
         super.replace(fb, offset, length, text, attrs);
+    }
+
+    /**
+     * Cleanup method to cancel timer and end any pending compound edits.
+     * Should be called before application shutdown.
+     */
+    public void cleanup() {
+        if (timer != null) {
+            timer.cancel();
+            timer = null;
+        }
+        endCompoundEdit();
     }
 }

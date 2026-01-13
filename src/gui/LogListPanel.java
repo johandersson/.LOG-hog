@@ -26,6 +26,8 @@ import java.awt.Frame;
 import java.awt.GridLayout;
 import java.time.LocalDate;
 import java.time.Year;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.IntStream;
 
 import javax.swing.AbstractAction;
@@ -51,6 +53,8 @@ import javax.swing.SwingUtilities;
 
 import filehandling.LogFileHandler;
 import main.LogTextEditor;
+import markdown.LinkHandler;
+import markdown.MarkdownRenderer;
 import utils.UndoRedoTextArea;
 
 public class LogListPanel extends JPanel {
@@ -62,6 +66,9 @@ public class LogListPanel extends JPanel {
     private final JScrollPane entryScroll;
     private final JLabel lockLabel;
     private final JPanel entryContainer;
+    private final HighlightableTextPane previewPane;
+    private final JScrollPane previewScrollPane;
+    private boolean isPreviewMode = false;
     private JComboBox<Integer> yearCombo;
     private JComboBox<String> monthCombo;
 
@@ -74,6 +81,8 @@ public class LogListPanel extends JPanel {
         this.entryScroll = new JScrollPane(entryArea);
         this.lockLabel = new JLabel("File locked. Press Unlock file in Full log view to unlock it again.", SwingConstants.CENTER);
         this.entryContainer = new JPanel(new BorderLayout());
+        this.previewPane = new HighlightableTextPane();
+        this.previewScrollPane = new JScrollPane(previewPane);
         initPanel();
     }
 
@@ -173,6 +182,11 @@ public class LogListPanel extends JPanel {
         entryScroll.setBorder(BorderFactory.createEmptyBorder());
         entryContainer.add(entryScroll, BorderLayout.CENTER);
 
+        // Setup preview pane
+        previewPane.setEditable(false);
+        previewScrollPane.setPreferredSize(new Dimension(600, 220));
+        previewScrollPane.setBorder(BorderFactory.createEmptyBorder());
+
         // Add formatting buttons panel
         var formattingPanel = new FormattingPanel(entryArea);
         entryContainer.add(formattingPanel, BorderLayout.NORTH);
@@ -213,16 +227,9 @@ public class LogListPanel extends JPanel {
         // Save button
         var entryBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
         entryBottom.setOpaque(false);
-        var previewBtn = new AccentButton("Preview in Log View");
-        previewBtn.addActionListener(e -> {
-            String selectedTimestamp = logList.getSelectedValue();
-            if (selectedTimestamp != null) {
-                editor.getFullLogPanel().setSuppressAutoLoad(true);
-                editor.getTabPane().setSelectedIndex(2); // Switch to full log tab
-                editor.getFullLogPanel().loadFullLogNoScroll(() -> editor.getFullLogPanel().scrollToEntry(selectedTimestamp));
-            }
-        });
-        entryBottom.add(previewBtn);
+        var previewToggleBtn = new AccentButton("Preview");
+        previewToggleBtn.addActionListener(e -> togglePreview(previewToggleBtn));
+        entryBottom.add(previewToggleBtn);
         var saveEntryBtn = new AccentButton("Save Entry");
         saveEntryBtn.addActionListener(e -> editor.saveEditedLogEntry());
         entryBottom.add(saveEntryBtn);
@@ -326,6 +333,16 @@ public class LogListPanel extends JPanel {
         copyItem.addActionListener(editor.copyLogEntryTextToClipBoard());
         contextMenu.add(copyItem);
         logList.setComponentPopupMenu(contextMenu);
+        var previewInFullLogItem = new JMenuItem("Preview in Full Log View");
+        previewInFullLogItem.addActionListener(e -> {
+            String selectedTimestamp = logList.getSelectedValue();
+            if (selectedTimestamp != null) {
+                editor.getFullLogPanel().setSuppressAutoLoad(true);
+                editor.getTabPane().setSelectedIndex(2); // Switch to full log tab
+                editor.getFullLogPanel().loadFullLogNoScroll(() -> editor.getFullLogPanel().scrollToEntry(selectedTimestamp));
+            }
+        });
+        contextMenu.add(previewInFullLogItem);
         var deleteItem = new JMenuItem("Delete Selected Entries");
         deleteItem.addActionListener(e -> editor.deleteSelectedEntry());
         contextMenu.add(deleteItem);
@@ -375,6 +392,49 @@ public class LogListPanel extends JPanel {
         return entryArea;
     }
 
+    private void togglePreview(javax.swing.JButton toggleBtn) {
+        if (isPreviewMode) {
+            // Switch to edit mode
+            entryContainer.remove(previewScrollPane);
+            entryContainer.add(entryScroll, BorderLayout.CENTER);
+            toggleBtn.setText("Preview");
+            isPreviewMode = false;
+        } else {
+            // Switch to preview mode
+            renderPreview();
+            entryContainer.remove(entryScroll);
+            entryContainer.add(previewScrollPane, BorderLayout.CENTER);
+            toggleBtn.setText("Edit");
+            isPreviewMode = true;
+        }
+        entryContainer.revalidate();
+        entryContainer.repaint();
+    }
+
+    private void renderPreview() {
+        String content = entryArea.getText().trim();
+        if (content.isEmpty()) {
+            previewPane.setText("No content to preview");
+            previewPane.setContentType("text/plain");
+            return;
+        }
+
+        // Parse content into lines (single entry)
+        String[] lines = content.split("\n");
+        List<String> entryLines = new ArrayList<>();
+        for (String line : lines) {
+            entryLines.add(line);
+        }
+
+        // Wrap in a list of entries (single entry)
+        List<List<String>> entries = new ArrayList<>();
+        entries.add(entryLines);
+
+        // Render using MarkdownRenderer
+        MarkdownRenderer.renderMarkdownFromEntries(previewPane, entries, false);
+        LinkHandler.addLinkListeners(previewPane);
+    }
+
     public void setLocked(boolean locked) {
         entryArea.setEditable(!locked);
         
@@ -388,7 +448,13 @@ public class LogListPanel extends JPanel {
         
         if (locked) {
             entryArea.setText("");
-            entryContainer.remove(entryScroll);
+            // Switch back to edit mode if in preview mode
+            if (isPreviewMode) {
+                entryContainer.remove(previewScrollPane);
+                isPreviewMode = false;
+            } else {
+                entryContainer.remove(entryScroll);
+            }
             entryContainer.add(lockLabel, BorderLayout.CENTER);
         } else {
             entryContainer.remove(lockLabel);

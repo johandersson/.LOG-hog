@@ -58,7 +58,7 @@ public class MarkdownEntryProcessor {
             boolean isCodeBlockMarker = line.trim().equals("```");
             boolean isBlank = line.trim().isEmpty();
             boolean isList = line.startsWith("- ");
-            boolean isQuote = line.startsWith("> ");
+            boolean isQuote = line.startsWith(">");
             boolean isHeading = isHeadingLine(line);
             boolean hasInlineHeading = INLINE_HEADING_PATTERN.matcher(line).find();
 
@@ -186,7 +186,7 @@ public class MarkdownEntryProcessor {
 
     private List<String> collectQuoteLines(int startIndex) {
         List<String> quoteLines = new ArrayList<>();
-        for (int j = startIndex; j < entry.size() && entry.get(j).startsWith("> "); j++) {
+        for (int j = startIndex; j < entry.size() && entry.get(j).startsWith(">"); j++) {
             quoteLines.add(entry.get(j));
         }
         return quoteLines;
@@ -238,10 +238,16 @@ public class MarkdownEntryProcessor {
     private void renderBlockquote(List<String> quoteLines) throws BadLocationException {
         for (int k = 0; k < quoteLines.size(); k++) {
             String line = quoteLines.get(k);
-            String text = line.substring(2);
-
-            // Insert vertical bar as border
-            context.insertString("│ ", context.getQuoteBorderStyle());
+            String trimmed = line.trim();
+            int level = 0;
+            while (level < trimmed.length() && trimmed.charAt(level) == '>') {
+                level++;
+            }
+            String text = trimmed.substring(level).trim();
+            // Insert borders for each level
+            for (int l = 0; l < level; l++) {
+                context.insertString("│ ", context.getQuoteBorderStyle());
+            }
             // Insert the text with formatting
             MarkdownFormatter.appendLineWithFormatting(context.getDocument(), text, context.getQuoteStyle(), context.getStyles());
             if (k < quoteLines.size() - 1) {

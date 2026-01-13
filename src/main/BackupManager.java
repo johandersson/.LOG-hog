@@ -353,6 +353,7 @@ public class BackupManager {
     /**
      * Creates a numbered backup (.bak, .bak.1, .bak.2, etc.) before file modifications.
      * This is fast and keeps recent history without accumulating files.
+     * Backups are stored in the configured backup directory.
      */
     public void createNumberedBackup() {
         try {
@@ -361,7 +362,14 @@ public class BackupManager {
                 return;
             }
             
-            Path bakPath = Paths.get(logPath.toString() + ".bak");
+            // Get backup directory
+            String backupDir = getAutoBackupDirectory();
+            Path backupDirPath = Paths.get(backupDir);
+            Files.createDirectories(backupDirPath);
+            
+            // Create backup file path in the backup directory
+            String bakFilename = logPath.getFileName().toString() + ".bak";
+            Path bakPath = backupDirPath.resolve(bakFilename);
             
             // Rotate existing numbered backups (bak.4 -> delete, bak.3 -> bak.4, etc.)
             for (int i = MAX_NUMBERED_BACKUPS - 1; i > 0; i--) {
@@ -440,8 +448,8 @@ public class BackupManager {
                 try {
                     secureDelete(oldest);
                 } catch (Exception e) {
-                    // Fallback to regular delete if secure delete fails
-                    Files.deleteIfExists(oldest);
+                    // If secure delete fails, log the error but don't crash
+                    // Security: Don't expose details to console
                 }
             }
             
@@ -505,13 +513,16 @@ public class BackupManager {
 
     /**
      * Securely deletes a file by overwriting it multiple times.
+     * This method is public static so it can be used throughout the application
+     * for consistent secure deletion of sensitive backup files.
      */
-    private void secureDelete(Path filePath) throws IOException {
+    public static void secureDelete(Path filePath) throws IOException {
         if (!Files.exists(filePath)) {
             return;
         }
 
         long fileSize = Files.size(filePath);
+        SecureRandom random = new SecureRandom();
 
         // Overwrite file multiple times with random data
         for (int pass = 0; pass < 3; pass++) {

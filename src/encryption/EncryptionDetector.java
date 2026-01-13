@@ -127,29 +127,12 @@ public class EncryptionDetector {
     /**
      * Securely deletes a file by overwriting it before deletion.
      * This helps prevent recovery of sensitive data.
+     * Delegates to BackupManager for consistent secure deletion.
      *
      * @param filePath Path to the file to delete
      * @throws IOException if deletion fails
      */
     public static void secureDelete(Path filePath) throws IOException {
-        if (!Files.exists(filePath)) {
-            return;
-        }
-
-        // Overwrite the file with random data
-        long fileSize = Files.size(filePath);
-        byte[] randomData = new byte[8192];
-        java.security.SecureRandom random = new java.security.SecureRandom();
-
-        try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(filePath.toFile(), "rw")) {
-            for (long pos = 0; pos < fileSize; pos += randomData.length) {
-                random.nextBytes(randomData);
-                int len = (int) Math.min(randomData.length, fileSize - pos);
-                raf.write(randomData, 0, len);
-            }
-        }
-
-        // Delete the file
-        Files.delete(filePath);
+        main.BackupManager.secureDelete(filePath);
     }
 }
