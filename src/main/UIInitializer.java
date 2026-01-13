@@ -31,7 +31,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JTabbedPane;
@@ -74,34 +73,18 @@ public class UIInitializer {
         editor.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
-                int option = JOptionPane.showOptionDialog(
-                    editor,
-                    "Do you want to exit the program or just lock the file?",
-                    "Exit or Lock",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    new String[]{"Lock file instead", "Exit program"},
-                    "Exit program"
-                );
-                if (option == 0) {
-                    // Lock file instead
-                    editor.manualLock();
-                } else if (option == 1) {
-                    // Exit program
-                    showSecurityProgressDialog(editor);
-                    // Clean shutdown of all background processes
-                    editor.shutdown();
-                    // Dispose the window
-                    editor.dispose();
-                    // Clean up before exit
-                    clipboard.SecureClipboardManager.clearSecureClipboard();
-                    editor.getLogFileHandler().clearSensitiveData();
-                    // Clear UI text areas
-                    editor.getLogListPanel().getEntryArea().setText("");
-                    editor.getFullLogPanel().getFullLogPane().setText("");
-                    System.exit(0);
-                }
+                showSecurityProgressDialog(editor);
+                // Clean shutdown of all background processes
+                editor.shutdown();
+                // Dispose the window
+                editor.dispose();
+                // Clean up before exit
+                clipboard.SecureClipboardManager.clearSecureClipboard();
+                editor.getLogFileHandler().clearSensitiveData();
+                // Clear UI text areas
+                editor.getLogListPanel().getEntryArea().setText("");
+                editor.getFullLogPanel().getFullLogPane().setText("");
+                System.exit(0);
             }
         });
         editor.setLocationRelativeTo(null);
