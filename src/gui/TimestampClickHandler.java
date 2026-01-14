@@ -35,6 +35,7 @@ public class TimestampClickHandler {
     
     private boolean isHoveringTimestamp = false;
     private JWindow editWindow;
+    private AccentButton editButton;
     private String currentTimestamp;
     private javax.swing.Timer hideTimer;
     
@@ -68,8 +69,9 @@ public class TimestampClickHandler {
     
     private void createEditWindow() {
         editWindow = new JWindow();
-        AccentButton editButton = new AccentButton("Edit");
-        editButton.setPreferredSize(new java.awt.Dimension(80, 30)); // Make button larger for easier clicking
+        this.editButton = new AccentButton("Edit");
+        editButton.setPreferredSize(new java.awt.Dimension(160, 30)); // Wider for timestamp text
+        editButton.setFont(editButton.getFont().deriveFont(11f)); // Smaller font
         editButton.addActionListener(e -> {
             if (currentTimestamp != null) {
                 clickListener.onTimestampClick(currentTimestamp);
@@ -115,6 +117,7 @@ public class TimestampClickHandler {
                         isHoveringTimestamp = shouldHover;
                         if (shouldHover) {
                             currentTimestamp = lineText;
+                            editButton.setText("Edit " + lineText);
                             // Position the edit window to the right of the timestamp
                             try {
                                 javax.swing.text.StyledDocument doc = textPane.getStyledDocument();
