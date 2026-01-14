@@ -123,6 +123,8 @@ public class FullLogPanel extends LogPanel {
         scroll.setBorder(BorderFactory.createEmptyBorder());
         add(scroll, BorderLayout.CENTER);
 
+        timestampClickHandler.addScrollListeners();
+
         var pathPanel = new JPanel(new BorderLayout());
         pathPanel.setOpaque(false);
         fullLogPathLabel.setForeground(new Color(0x3A4A52));

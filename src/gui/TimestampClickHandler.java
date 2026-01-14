@@ -130,14 +130,14 @@ public class TimestampClickHandler {
                                 }
                                 java.awt.geom.Rectangle2D rect = textPane.modelToView2D(timestampEndPos);
                                 java.awt.Point screenPoint = textPane.getLocationOnScreen();
-                                screenPoint.translate((int)(rect.getX() + 5), (int)rect.getY());
+                                screenPoint.translate((int)(rect.getX() + 5), (int)(rect.getY() - 10));
                                 editWindow.setLocation(screenPoint);
                                 editWindow.setVisible(true);
                                 hideTimer.restart();
                             } catch (Exception ex) {
                                 // Fallback to mouse position
                                 java.awt.Point screenPoint = textPane.getLocationOnScreen();
-                                screenPoint.translate(e.getX() + 10, e.getY() + 10);
+                                screenPoint.translate(e.getX() + 10, e.getY() - 10);
                                 editWindow.setLocation(screenPoint);
                                 editWindow.setVisible(true);
                                 hideTimer.restart();
@@ -232,6 +232,15 @@ public class TimestampClickHandler {
         if (hideTimer != null) {
             hideTimer.stop();
             hideTimer = null;
+        }
+    }
+    
+    /**
+     * Adds scroll listeners if the text pane is in a scroll pane.
+     */
+    public void addScrollListeners() {
+        if (textPane.getParent() instanceof javax.swing.JScrollPane scrollPane) {
+            scrollPane.getViewport().addChangeListener(e -> hideEditWindow());
         }
     }
 }
