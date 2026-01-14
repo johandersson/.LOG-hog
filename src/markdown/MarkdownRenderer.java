@@ -99,6 +99,37 @@ public class MarkdownRenderer {
         pane.setCaretPosition(scrollToBottom ? doc.getLength() : 0);
     }
 
+    /**
+     * Render markdown directly without parsing into entries (for help/about text).
+     * Treats the entire content as a single entry to avoid extra spacing between sections.
+     */
+    public static void renderMarkdownDirect(JTextPane pane, List<String> lines) {
+        StyledDocument doc = pane.getStyledDocument();
+        // Clear existing content
+        try {
+            doc.remove(0, doc.getLength());
+        } catch (BadLocationException e) {
+            // Document already empty
+        }
+        Map<String, Style> styles = createStyles(doc);
+        try {
+            // Filter out extra blank lines to reduce line breaks in help text
+            List<String> filteredLines = new ArrayList<>();
+            boolean lastWasBlank = false;
+            for (String line : lines) {
+                boolean isBlank = line.trim().isEmpty();
+                if (!isBlank || !lastWasBlank) {
+                    filteredLines.add(line);
+                }
+                lastWasBlank = isBlank;
+            }
+            MarkdownEntryRenderer.renderEntry(filteredLines, new MarkdownRenderingContext(doc, styles));
+        } catch (BadLocationException e) {
+            throw new RuntimeException("Error rendering markdown", e);
+        }
+        pane.setCaretPosition(0);
+    }
+
     private static Map<String, Style> createStyles(StyledDocument doc) {
         Map<String, Style> styles = new HashMap<>(12); // Pre-size with expected capacity
 

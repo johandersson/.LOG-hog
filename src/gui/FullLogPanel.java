@@ -59,6 +59,7 @@ public class FullLogPanel extends LogPanel {
     private final JButton formatButton;
     private SearchDialog searchDialog;
     private boolean suppressAutoLoad = false;
+    private TimestampClickHandler timestampClickHandler;
 
     public void setSuppressAutoLoad(boolean suppress) {
         this.suppressAutoLoad = suppress;
@@ -116,7 +117,7 @@ public class FullLogPanel extends LogPanel {
         });
 
         // Add click on timestamp to edit entry (registered once)
-        new TimestampClickHandler(fullLogPane, this::openEntryForEditing);
+        timestampClickHandler = new TimestampClickHandler(fullLogPane, this::openEntryForEditing);
 
         var scroll = new JScrollPane(fullLogPane);
         scroll.setBorder(BorderFactory.createEmptyBorder());
@@ -418,6 +419,13 @@ public class FullLogPanel extends LogPanel {
             }
         } catch (javax.swing.text.BadLocationException e) {
             // Ignore errors
+        }
+    }
+
+    public void dispose() {
+        if (timestampClickHandler != null) {
+            timestampClickHandler.dispose();
+            timestampClickHandler = null;
         }
     }
 }

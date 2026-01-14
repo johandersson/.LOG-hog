@@ -796,6 +796,11 @@ public class LogTextEditor extends JFrame {
             listenerThread.interrupt();
         }
 
+        // Dispose UI components
+        if (fullLogPanel != null) {
+            fullLogPanel.dispose();
+        }
+
         // Clear sensitive data
         if (logFileHandler != null) {
             logFileHandler.clearSensitiveData();

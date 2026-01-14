@@ -17,13 +17,11 @@
 
 package gui;
 
-import java.awt.AWTEvent;
-import java.awt.event.AWTEventListener;
 import java.awt.event.MouseEvent;
 import java.util.regex.Pattern;
 
 import javax.swing.JTextPane;
-import javax.swing.SwingUtilities;
+import javax.swing.JWindow;
 
 /**
  * Handles clicking on timestamps to edit entries.
@@ -36,6 +34,9 @@ public class TimestampClickHandler {
     private final TimestampClickListener clickListener;
     
     private boolean isHoveringTimestamp = false;
+    private JWindow editWindow;
+    private String currentTimestamp;
+    private javax.swing.Timer hideTimer;
     
     /**
      * Callback interface for timestamp clicks.
@@ -54,59 +55,39 @@ public class TimestampClickHandler {
         this.textPane = textPane;
         this.clickListener = clickListener;
         attachHandlers();
+        createEditWindow();
     }
     
     /**
      * Attaches mouse event handlers to the text pane.
      */
     private void attachHandlers() {
-        // Global event listener for click detection
-        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(createClickListener(), 
-            AWTEvent.MOUSE_EVENT_MASK);
-        
         // Motion listener for visual feedback
         textPane.addMouseMotionListener(createHoverListener());
     }
     
-    /**
-     * Creates the AWTEventListener for detecting clicks.
-     */
-    private AWTEventListener createClickListener() {
-        return event -> {
-            if (!(event instanceof MouseEvent)) {
-                return;
+    private void createEditWindow() {
+        editWindow = new JWindow();
+        AccentButton editButton = new AccentButton("Edit");
+        editButton.setPreferredSize(new java.awt.Dimension(80, 30)); // Make button larger for easier clicking
+        editButton.addActionListener(e -> {
+            if (currentTimestamp != null) {
+                clickListener.onTimestampClick(currentTimestamp);
+                hideEditWindow();
             }
-            
-            MouseEvent e = (MouseEvent) event;
-            
-            // Only process events on our text pane
-            if (e.getComponent() != textPane && e.getComponent().getParent() != textPane) {
-                return;
-            }
-            
-            // Only handle mouse pressed events
-            if (e.getID() != MouseEvent.MOUSE_PRESSED) {
-                return;
-            }
-            
-            java.awt.Point currentPoint = e.getPoint();
-            
-            // Convert point to textPane coordinates if needed
-            if (e.getComponent() != textPane) {
-                currentPoint = SwingUtilities.convertPoint(e.getComponent(), currentPoint, textPane);
-            }
-            
-            // Get position in document
-            int pos = textPane.viewToModel2D(currentPoint);
-            if (pos < 0) {
-                return;
-            }
-            
-            String lineText = getLineAtPosition(pos);
-            if (lineText != null && isHoveringOverTimestamp(pos, lineText)) {
-                clickListener.onTimestampClick(lineText);
-            }
-        };
+        });
+        editWindow.add(editButton);
+        editWindow.pack();
+        editWindow.setAlwaysOnTop(true);
+        
+        // Timer to hide the window after 3 seconds of no hover
+        hideTimer = new javax.swing.Timer(3000, e -> hideEditWindow());
+        hideTimer.setRepeats(false);
+    }
+    
+    private void hideEditWindow() {
+        editWindow.setVisible(false);
+        hideTimer.stop();
     }
     
     /**
@@ -121,7 +102,7 @@ public class TimestampClickHandler {
                     if (pos < 0) {
                         if (isHoveringTimestamp) {
                             isHoveringTimestamp = false;
-                            resetCursor();
+                            hideTimer.restart();
                         }
                         return;
                     }
@@ -133,16 +114,42 @@ public class TimestampClickHandler {
                     if (shouldHover != isHoveringTimestamp) {
                         isHoveringTimestamp = shouldHover;
                         if (shouldHover) {
-                            textPane.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
-                            textPane.setToolTipText(UIStrings.TOOLTIP_CLICK_EDIT);
+                            currentTimestamp = lineText;
+                            // Position the edit window to the right of the timestamp
+                            try {
+                                javax.swing.text.StyledDocument doc = textPane.getStyledDocument();
+                                String text = doc.getText(0, doc.getLength());
+                                int lineStart = pos;
+                                while (lineStart > 0 && text.charAt(lineStart - 1) != '\n') {
+                                    lineStart--;
+                                }
+                                java.util.regex.Matcher matcher = TIMESTAMP_PATTERN.matcher(lineText);
+                                int timestampEndPos = lineStart;
+                                if (matcher.find()) {
+                                    timestampEndPos = lineStart + matcher.end();
+                                }
+                                java.awt.geom.Rectangle2D rect = textPane.modelToView2D(timestampEndPos);
+                                java.awt.Point screenPoint = textPane.getLocationOnScreen();
+                                screenPoint.translate((int)(rect.getX() + 5), (int)rect.getY());
+                                editWindow.setLocation(screenPoint);
+                                editWindow.setVisible(true);
+                                hideTimer.restart();
+                            } catch (Exception ex) {
+                                // Fallback to mouse position
+                                java.awt.Point screenPoint = textPane.getLocationOnScreen();
+                                screenPoint.translate(e.getX() + 10, e.getY() + 10);
+                                editWindow.setLocation(screenPoint);
+                                editWindow.setVisible(true);
+                                hideTimer.restart();
+                            }
                         } else {
-                            resetCursor();
+                            hideTimer.restart();
                         }
                     }
                 } catch (Exception ex) {
                     if (isHoveringTimestamp) {
                         isHoveringTimestamp = false;
-                        resetCursor();
+                        hideTimer.restart();
                     }
                 }
             }
@@ -215,10 +222,16 @@ public class TimestampClickHandler {
     }
     
     /**
-     * Resets the cursor and tooltip to defaults.
+     * Disposes the edit window if it exists.
      */
-    private void resetCursor() {
-        textPane.setCursor(java.awt.Cursor.getDefaultCursor());
-        textPane.setToolTipText(null);
+    public void dispose() {
+        if (editWindow != null) {
+            editWindow.dispose();
+            editWindow = null;
+        }
+        if (hideTimer != null) {
+            hideTimer.stop();
+            hideTimer = null;
+        }
     }
 }

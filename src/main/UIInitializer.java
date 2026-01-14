@@ -280,6 +280,7 @@ public class UIInitializer {
                 // Ignore
             }
             dialog.setVisible(false);
+            dialog.dispose();
         });
     }
 }

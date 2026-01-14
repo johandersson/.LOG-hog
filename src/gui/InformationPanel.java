@@ -87,7 +87,7 @@ public class InformationPanel extends JPanel {
     public void loadText() {
         if (fileName != null) {
             var informationTextToDisplay = loadPanelText(fileName);
-            MarkdownRenderer.renderMarkdown(textPane, informationTextToDisplay.lines().toList());
+            MarkdownRenderer.renderMarkdownDirect(textPane, informationTextToDisplay.lines().toList());
             LinkHandler.addLinkListeners(textPane);
             textPane.setCaretPosition(0);
         }
@@ -115,7 +115,7 @@ public class InformationPanel extends JPanel {
         }
 
         // 2) Try resource from JAR
-        try (var is = getClass().getResourceAsStream("/resources/" + fileName)) {
+        try (var is = getClass().getResourceAsStream("/" + fileName)) {
             if (is != null) {
                 return new String(is.readAllBytes(), StandardCharsets.UTF_8);
             } else {
