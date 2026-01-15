@@ -49,35 +49,33 @@ public class PenIcon implements Icon {
         Graphics2D g2d = (Graphics2D) g.create();
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Draw pen body (angled blue rectangle)
+        // Draw pen body (main cylinder - blue)
         g2d.setColor(new Color(0x4A90E2)); // Blue
-        int[] xBody = {x + 2, x + 14, x + 12, x + 0};
-        int[] yBody = {y + 6, y + 3, y + 13, y + 16};
-        g2d.fillPolygon(xBody, yBody, 4);
+        g2d.fillRoundRect(x + 3, y + 2, 10, 12, 2, 2);
 
         // Draw pen body highlight
         g2d.setColor(new Color(0x6BB3FF)); // Lighter blue
-        int[] xHighlight = {x + 3, x + 13, x + 11, x + 1};
-        int[] yHighlight = {y + 7, y + 4, y + 12, y + 15};
-        g2d.fillPolygon(xHighlight, yHighlight, 4);
+        g2d.fillRoundRect(x + 4, y + 3, 8, 10, 1, 1);
 
-        // Draw pen tip (pointed end)
+        // Draw pen tip (black nib)
         g2d.setColor(Color.BLACK);
-        int[] xTip = {x + 12, x + 16, x + 14};
-        int[] yTip = {y + 13, y + 10, y + 16};
-        g2d.fillPolygon(xTip, yTip, 3);
+        int[] xNib = {x + 6, x + 10, x + 8};
+        int[] yNib = {y + 14, y + 14, y + 16};
+        g2d.fillPolygon(xNib, yNib, 3);
 
         // Draw pen cap (red)
         g2d.setColor(Color.RED);
-        int[] xCap = {x + 0, x + 10, x + 8, x + 0};
-        int[] yCap = {y + 4, y + 1, y + 5, y + 8};
-        g2d.fillPolygon(xCap, yCap, 4);
+        g2d.fillRoundRect(x + 5, y + 0, 6, 4, 1, 1);
 
-        // Draw pen clip
-        g2d.setColor(Color.BLACK);
+        // Draw pen clip (metallic silver)
+        g2d.setColor(new Color(0xC0C0C0));
         g2d.setStroke(new BasicStroke(1));
-        g2d.drawLine(x + 6, y + 1, x + 8, y + 0);
-        g2d.drawLine(x + 8, y + 0, x + 10, y + 2);
+        g2d.drawLine(x + 9, y + 0, x + 12, y + 3);
+        g2d.drawLine(x + 10, y + 0, x + 13, y + 3);
+
+        // Draw click mechanism (small silver dot)
+        g2d.setColor(new Color(0xC0C0C0));
+        g2d.fillOval(x + 7, y + 5, 2, 2);
 
         g2d.dispose();
     }
