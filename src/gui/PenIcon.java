@@ -48,7 +48,7 @@ public class PenIcon implements Icon {
     }
 
     public PenIcon(Color color) {
-        this(16, 16, color);
+        this(20, 20, color);
     }
 
     private void loadSvgImage() {

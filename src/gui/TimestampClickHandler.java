@@ -315,7 +315,7 @@ public class TimestampClickHandler {
             });
         }
         
-        // Also hide on mouse wheel events
-        textPane.addMouseWheelListener(e -> hideOverlayButton());
+        // Removed MouseWheelListener as it may interfere with scrolling
+        // textPane.addMouseWheelListener(e -> hideOverlayButton());
     }
 }
