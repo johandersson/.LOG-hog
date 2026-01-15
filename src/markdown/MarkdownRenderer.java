@@ -145,6 +145,7 @@ public class MarkdownRenderer {
     private static void renderCompactEntry(List<String> entry, MarkdownRenderingContext context) throws BadLocationException {
         boolean inCodeBlock = false;
         List<String> paragraphLines = new ArrayList<>();
+        boolean previousWasBlank = false;
 
         for (int i = 0; i < entry.size(); i++) {
             String line = entry.get(i);
@@ -161,24 +162,36 @@ public class MarkdownRenderer {
 
             if (isCodeBlockMarker) {
                 inCodeBlock = !inCodeBlock;
+                previousWasBlank = false;
                 continue;
             }
 
             if (inCodeBlock) {
                 renderCodeLine(line, context);
+                previousWasBlank = false;
             } else if (isTimestamp) {
                 renderTimestamp(line, context);
+                previousWasBlank = false;
             } else if (isBlank) {
-                // For compact rendering, skip blank lines entirely to reduce spacing
+                // For compact rendering, allow single blank lines but skip consecutive ones
+                if (!previousWasBlank) {
+                    // Add a single line separator for paragraph breaks
+                    context.insertLineSeparator();
+                }
+                previousWasBlank = true;
                 continue;
             } else if (isList) {
                 i += handleList(i, entry, context);
+                previousWasBlank = false;
             } else if (isQuote) {
                 i += handleQuote(i, entry, context);
+                previousWasBlank = false;
             } else if (isHeading) {
                 renderHeading(line, context);
+                previousWasBlank = false;
             } else {
                 paragraphLines.add(line);
+                previousWasBlank = false;
             }
         }
 
