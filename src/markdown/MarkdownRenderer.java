@@ -114,20 +114,188 @@ public class MarkdownRenderer {
         Map<String, Style> styles = createStyles(doc);
         try {
             // Filter out extra blank lines to reduce line breaks in help text
+            // Be more aggressive - limit to maximum 1 consecutive blank line
             List<String> filteredLines = new ArrayList<>();
-            boolean lastWasBlank = false;
+            int consecutiveBlanks = 0;
             for (String line : lines) {
                 boolean isBlank = line.trim().isEmpty();
-                if (!isBlank || !lastWasBlank) {
+                if (isBlank) {
+                    consecutiveBlanks++;
+                    // Allow only 1 consecutive blank line
+                    if (consecutiveBlanks <= 1) {
+                        filteredLines.add(line);
+                    }
+                } else {
+                    consecutiveBlanks = 0;
                     filteredLines.add(line);
                 }
-                lastWasBlank = isBlank;
             }
-            MarkdownEntryRenderer.renderEntry(filteredLines, new MarkdownRenderingContext(doc, styles));
+            // Render with compact spacing for help/about text
+            renderCompactEntry(filteredLines, new MarkdownRenderingContext(doc, styles));
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
         pane.setCaretPosition(0);
+    }
+
+    /**
+     * Render markdown entry with compact spacing (single line breaks instead of double).
+     * Used for help/about text to reduce excessive line breaks.
+     */
+    private static void renderCompactEntry(List<String> entry, MarkdownRenderingContext context) throws BadLocationException {
+        boolean inCodeBlock = false;
+        List<String> paragraphLines = new ArrayList<>();
+
+        for (int i = 0; i < entry.size(); i++) {
+            String line = entry.get(i);
+
+            boolean isTimestamp = (i == 0) && isTimestampLine(line);
+            boolean isCodeBlockMarker = line.trim().equals("```");
+            boolean isBlank = line.trim().isEmpty();
+            boolean isList = line.startsWith("- ");
+            boolean isQuote = line.startsWith(">");
+            boolean isHeading = isHeadingLine(line);
+
+            // If we have accumulated paragraph lines and this line starts a new block, render the paragraph first
+            flushParagraphCompactIfNeeded(isBlank || isList || isQuote || isHeading || isCodeBlockMarker || inCodeBlock, paragraphLines, context);
+
+            if (isCodeBlockMarker) {
+                inCodeBlock = !inCodeBlock;
+                continue;
+            }
+
+            if (inCodeBlock) {
+                renderCodeLine(line, context);
+            } else if (isTimestamp) {
+                renderTimestamp(line, context);
+            } else if (isBlank) {
+                // For compact rendering, skip blank lines entirely to reduce spacing
+                continue;
+            } else if (isList) {
+                i += handleList(i, entry, context);
+            } else if (isQuote) {
+                i += handleQuote(i, entry, context);
+            } else if (isHeading) {
+                renderHeading(line, context);
+            } else {
+                paragraphLines.add(line);
+            }
+        }
+
+        // Render any remaining paragraph lines
+        if (!paragraphLines.isEmpty()) {
+            renderParagraphCompact(paragraphLines, context);
+        }
+    }
+
+    private static void flushParagraphCompactIfNeeded(boolean condition, List<String> paragraphLines, MarkdownRenderingContext context) throws BadLocationException {
+        if (condition && !paragraphLines.isEmpty()) {
+            renderParagraphCompact(paragraphLines, context);
+            paragraphLines.clear();
+        }
+    }
+
+    private static void renderParagraphCompact(List<String> lines, MarkdownRenderingContext context) throws BadLocationException {
+        if (lines.isEmpty()) return;
+
+        // Join lines using the document line separator to preserve paragraph breaks
+        String paragraphText = String.join(MarkdownStyle.DOCUMENT_LINE_SEPARATOR, lines);
+        // Trim a single leading DOCUMENT_LINE_SEPARATOR if present (can happen after headings)
+        if (paragraphText.startsWith(MarkdownStyle.DOCUMENT_LINE_SEPARATOR)) {
+            paragraphText = paragraphText.substring(MarkdownStyle.DOCUMENT_LINE_SEPARATOR.length());
+        }
+
+        // Check if the paragraph has markdown formatting
+        if (MarkdownFormatter.hasMarkdown(paragraphText)) {
+            MarkdownFormatter.appendLineWithFormatting(context.getDocument(), paragraphText, context.getDefaultStyle(), context.getStyles());
+        } else {
+            context.insertString(paragraphText, context.getDefaultStyle());
+        }
+
+        // For compact rendering, use single line separator instead of double
+        context.insertLineSeparator();
+    }
+
+    private static void renderTimestamp(String line, MarkdownRenderingContext context) throws BadLocationException {
+        context.insertString(line + MarkdownStyle.DOCUMENT_LINE_SEPARATOR, context.getStyle("timestamp"));
+    }
+
+    private static void renderHeading(String line, MarkdownRenderingContext context) throws BadLocationException {
+        String text = line.startsWith("### ") ? line.substring(4) :
+                     line.startsWith("## ") ? line.substring(3) : line.substring(2);
+        String styleName = line.startsWith("### ") ? "h3" :
+                          line.startsWith("## ") ? "h2" : "h1";
+        MarkdownFormatter.appendLineWithFormatting(context.getDocument(), text, context.getStyle(styleName), context.getStyles());
+        context.insertLineSeparator();
+    }
+
+    private static void renderCodeLine(String line, MarkdownRenderingContext context) throws BadLocationException {
+        context.insertString(line, context.getStyle("code"));
+        context.insertLineSeparator();
+    }
+
+    private static int handleList(int i, List<String> entry, MarkdownRenderingContext context) throws BadLocationException {
+        List<String> listLines = collectListLines(i, entry);
+        renderListBlockCompact(listLines, context);
+        return listLines.size() - 1;
+    }
+
+    private static int handleQuote(int i, List<String> entry, MarkdownRenderingContext context) throws BadLocationException {
+        List<String> quoteLines = collectQuoteLines(i, entry);
+        renderBlockquoteCompact(quoteLines, context);
+        return quoteLines.size() - 1;
+    }
+
+    private static List<String> collectListLines(int startIndex, List<String> entry) {
+        List<String> listLines = new ArrayList<>();
+        for (int j = startIndex; j < entry.size(); j++) {
+            String line = entry.get(j);
+            if (line.startsWith("- ")) {
+                listLines.add(line);
+            } else if (!line.trim().isEmpty()) {
+                break;
+            }
+        }
+        return listLines;
+    }
+
+    private static List<String> collectQuoteLines(int startIndex, List<String> entry) {
+        List<String> quoteLines = new ArrayList<>();
+        for (int j = startIndex; j < entry.size(); j++) {
+            String line = entry.get(j);
+            if (line.startsWith(">")) {
+                quoteLines.add(line);
+            } else if (!line.trim().isEmpty()) {
+                break;
+            }
+        }
+        return quoteLines;
+    }
+
+    private static void renderListBlockCompact(List<String> listLines, MarkdownRenderingContext context) throws BadLocationException {
+        for (int j = 0; j < listLines.size(); j++) {
+            String line = listLines.get(j);
+            String text = "• " + line.substring(2);
+            MarkdownFormatter.appendLineWithFormatting(context.getDocument(), text, context.getStyle("list"), context.getStyles());
+            if (j < listLines.size() - 1) {
+                context.insertLineSeparator();
+            } else {
+                context.insertLineSeparator(); // Single separator for compact rendering
+            }
+        }
+    }
+
+    private static void renderBlockquoteCompact(List<String> quoteLines, MarkdownRenderingContext context) throws BadLocationException {
+        for (int k = 0; k < quoteLines.size(); k++) {
+            String line = quoteLines.get(k);
+            String quoteText = line.startsWith("> ") ? line.substring(2) : line.substring(1);
+            MarkdownFormatter.appendLineWithFormatting(context.getDocument(), quoteText, context.getStyle("quote"), context.getStyles());
+            if (k < quoteLines.size() - 1) {
+                context.insertLineSeparator();
+            } else {
+                context.insertLineSeparator(); // Single separator for compact rendering
+            }
+        }
     }
 
     private static Map<String, Style> createStyles(StyledDocument doc) {
@@ -235,5 +403,13 @@ public class MarkdownRenderer {
                 // Ignore if can't trim
             }
         }
+    }
+
+    private static boolean isHeadingLine(String line) {
+        return line.startsWith("# ") || line.startsWith("## ") || line.startsWith("### ");
+    }
+
+    private static boolean isTimestampLine(String line) {
+        return line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
     }
 }
