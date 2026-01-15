@@ -18,6 +18,7 @@
 package gui;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.event.MouseEvent;
 import java.util.regex.Pattern;
 
@@ -83,7 +84,7 @@ public class TimestampClickHandler {
         overlayButton.setBorderPainted(false);
         overlayButton.setFocusPainted(false);
         overlayButton.setForeground(Color.BLACK);
-        overlayButton.setFont(textPane.getFont());
+        overlayButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
         overlayButton.setHorizontalAlignment(SwingConstants.LEFT);
         overlayButton.setMargin(new java.awt.Insets(0, 0, 0, 0));
         
@@ -181,7 +182,7 @@ public class TimestampClickHandler {
                                     screenPoint.translate((int)x, (int)y);
                                     
                                     overlayWindow.setLocation(screenPoint);
-                                    overlayButton.setText(lineText.trim());
+                                    overlayButton.setText("Edit " + lineText.trim());
                                     
                                     // Use button's preferred size to ensure text and icon fit properly
                                     java.awt.Dimension prefSize = overlayButton.getPreferredSize();
@@ -196,7 +197,7 @@ public class TimestampClickHandler {
                                 java.awt.Point screenPoint = textPane.getLocationOnScreen();
                                 screenPoint.translate(e.getX(), e.getY());
                                 overlayWindow.setLocation(screenPoint);
-                                overlayButton.setText(lineText.trim());
+                                overlayButton.setText("Edit " + lineText.trim());
                                 
                                 // Use button's preferred size for proper text/icon fit
                                 java.awt.Dimension prefSize = overlayButton.getPreferredSize();

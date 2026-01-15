@@ -49,31 +49,35 @@ public class PenIcon implements Icon {
         Graphics2D g2d = (Graphics2D) g.create();
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Draw pen cap (red)
-        g2d.setColor(Color.RED);
-        g2d.fillRect(x + 2, y + 1, 12, 3);
-
-        // Draw pen body (blue gradient effect)
-        g2d.setColor(new Color(0x4A90E2)); // Nice blue
-        g2d.fillRect(x + 3, y + 4, 10, 8);
+        // Draw pen body (angled blue rectangle)
+        g2d.setColor(new Color(0x4A90E2)); // Blue
+        int[] xBody = {x + 2, x + 14, x + 12, x + 0};
+        int[] yBody = {y + 6, y + 3, y + 13, y + 16};
+        g2d.fillPolygon(xBody, yBody, 4);
 
         // Draw pen body highlight
         g2d.setColor(new Color(0x6BB3FF)); // Lighter blue
-        g2d.fillRect(x + 4, y + 5, 8, 2);
+        int[] xHighlight = {x + 3, x + 13, x + 11, x + 1};
+        int[] yHighlight = {y + 7, y + 4, y + 12, y + 15};
+        g2d.fillPolygon(xHighlight, yHighlight, 4);
 
-        // Draw pen tip (silver/metal)
-        g2d.setColor(new Color(0xC0C0C0)); // Silver
-        g2d.fillRect(x + 5, y + 12, 6, 3);
-
-        // Draw pen nib (black)
+        // Draw pen tip (pointed end)
         g2d.setColor(Color.BLACK);
-        g2d.fillRect(x + 6, y + 14, 4, 1);
+        int[] xTip = {x + 12, x + 16, x + 14};
+        int[] yTip = {y + 13, y + 10, y + 16};
+        g2d.fillPolygon(xTip, yTip, 3);
+
+        // Draw pen cap (red)
+        g2d.setColor(Color.RED);
+        int[] xCap = {x + 0, x + 10, x + 8, x + 0};
+        int[] yCap = {y + 4, y + 1, y + 5, y + 8};
+        g2d.fillPolygon(xCap, yCap, 4);
 
         // Draw pen clip
         g2d.setColor(Color.BLACK);
         g2d.setStroke(new BasicStroke(1));
-        g2d.drawLine(x + 10, y + 1, x + 12, y + 4);
-        g2d.drawLine(x + 11, y + 1, x + 13, y + 4);
+        g2d.drawLine(x + 6, y + 1, x + 8, y + 0);
+        g2d.drawLine(x + 8, y + 0, x + 10, y + 2);
 
         g2d.dispose();
     }
