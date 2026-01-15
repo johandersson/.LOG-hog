@@ -51,6 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MalformedInputException** in decryption process
 - **Password retry mechanism** now properly displays security delays
 - **Timestamp handling** to strip suffixes and Unix timestamp prefixes for full compatibility
+- **Excessive line breaks in help/about markdown views** - Implemented compact rendering path with single line breaks instead of double line breaks for continuous documents, eliminating excessive spacing while maintaining proper paragraph separation
+- **Info panel styling** - Fixed white background display and proper statistics formatting (entries/days/size) in bottom panel
+- **Pen icon loading** - Fixed PNG icon loading instead of SVG for better compatibility and performance
+- **Mouse wheel scrolling issues** - Restored proper mouse wheel scrolling functionality in text areas
 
 ### Performance (January 2026)
 - **Markdown rendering optimized** with 30-70% performance improvement through early exit for plain text lines, pre-sized collections, and pattern compilation caching

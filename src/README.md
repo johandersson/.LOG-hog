@@ -30,6 +30,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - Manual lock/unlock for immediate security
 - System tray integration with quick entry and clipboard security access
 - Markdown rendering in full log view with advanced search (whole word, case sensitivity, match navigation)
+- **Info panel** displaying real-time statistics (total entries, days logged, file size) in the bottom panel
 - **Automatic Backup**: Secure automatic backups after encryption/decryption operations with configurable settings
 - Backup and restore with encryption preservation
 - Performance optimizations (efficient memory management)

@@ -48,6 +48,7 @@ Access clipboard security settings through the system tray icon (right-click the
 
 ## Key Features
 - **Tabbed Interface**: Effortlessly switch between writing new entries and browsing past logs.
+- **Info Panel**: View real-time statistics about your log file including total number of entries, days logged, and file size in the bottom panel.
 - **Quick Entry**: Add notes instantly with automatic timestamps.
 - **Single-Instance Enforcement**: Only one instance of the application can run at a time to prevent conflicts.
 - **Right-Click Menu in Log Entries**: Right-click on any log entry to access options like copying to clipboard, deleting, or editing the date and time.
