@@ -17,9 +17,10 @@
 
 package gui;
 
-import java.awt.*;
+import java.awt.Color;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+
 import utils.TooltipHelper;
 
 public class AccentButton extends StandardButton {

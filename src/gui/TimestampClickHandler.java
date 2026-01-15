@@ -17,11 +17,14 @@
 
 package gui;
 
+import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.util.regex.Pattern;
 
 import javax.swing.JTextPane;
 import javax.swing.JWindow;
+import javax.swing.SwingConstants;
+// PenIcon import will be added here
 
 /**
  * Handles clicking on timestamps to edit entries.
@@ -34,8 +37,10 @@ public class TimestampClickHandler {
     private final TimestampClickListener clickListener;
     
     private boolean isHoveringTimestamp = false;
-    private JWindow editWindow;
-    private AccentButton editButton;
+    private boolean buttonVisible = false;
+    private JWindow overlayWindow;
+    private StandardButton overlayButton;
+    private PenIcon penIcon;
     private String currentTimestamp;
     private javax.swing.Timer hideTimer;
     
@@ -56,7 +61,7 @@ public class TimestampClickHandler {
         this.textPane = textPane;
         this.clickListener = clickListener;
         attachHandlers();
-        createEditWindow();
+        createOverlayButton();
     }
     
     /**
@@ -67,29 +72,60 @@ public class TimestampClickHandler {
         textPane.addMouseMotionListener(createHoverListener());
     }
     
-    private void createEditWindow() {
-        editWindow = new JWindow();
-        this.editButton = new AccentButton("Edit");
-        editButton.setPreferredSize(new java.awt.Dimension(160, 30)); // Wider for timestamp text
-        editButton.setFont(editButton.getFont().deriveFont(11f)); // Smaller font
-        editButton.addActionListener(e -> {
+    private void createOverlayButton() {
+        overlayWindow = new JWindow();
+        overlayWindow.setAlwaysOnTop(true);
+        overlayWindow.setFocusableWindowState(false);
+        
+        overlayButton = new StandardButton("", new Color(0xE0E0E0), new Color(0xB0B0B0));
+        overlayButton.setOpaque(false);
+        overlayButton.setContentAreaFilled(false);
+        overlayButton.setBorderPainted(false);
+        overlayButton.setFocusPainted(false);
+        overlayButton.setForeground(Color.BLACK);
+        overlayButton.setFont(textPane.getFont());
+        overlayButton.setHorizontalAlignment(SwingConstants.LEFT);
+        overlayButton.setMargin(new java.awt.Insets(0, 0, 0, 0));
+        
+        // Set up pen icon
+        penIcon = new PenIcon(Color.BLACK);
+        overlayButton.setIcon(penIcon);
+        overlayButton.setIconTextGap(2); // Small gap between icon and text
+        
+        overlayButton.addActionListener(e -> {
             if (currentTimestamp != null) {
                 clickListener.onTimestampClick(currentTimestamp);
-                hideEditWindow();
+                hideOverlayButton();
             }
         });
-        editWindow.add(editButton);
-        editWindow.pack();
-        editWindow.setAlwaysOnTop(true);
         
-        // Timer to hide the window after 3 seconds of no hover
-        hideTimer = new javax.swing.Timer(3000, e -> hideEditWindow());
+        // Hide when mouse exits the button area
+        overlayButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                // Check if mouse is still within button bounds
+                java.awt.Point mousePos = overlayButton.getMousePosition();
+                if (mousePos == null || !overlayButton.contains(mousePos)) {
+                    hideOverlayButton();
+                }
+            }
+        });
+        
+        overlayWindow.add(overlayButton);
+        
+        // Timer to hide the overlay after 3 seconds
+        hideTimer = new javax.swing.Timer(3000, e -> hideOverlayButton());
         hideTimer.setRepeats(false);
     }
     
-    private void hideEditWindow() {
-        editWindow.setVisible(false);
-        hideTimer.stop();
+    private void hideOverlayButton() {
+        if (overlayWindow != null) {
+            overlayWindow.setVisible(false);
+        }
+        buttonVisible = false;
+        if (hideTimer != null) {
+            hideTimer.stop();
+        }
     }
     
     /**
@@ -117,8 +153,7 @@ public class TimestampClickHandler {
                         isHoveringTimestamp = shouldHover;
                         if (shouldHover) {
                             currentTimestamp = lineText;
-                            editButton.setText("Edit " + lineText);
-                            // Position the edit window to the right of the timestamp
+                            // Position the overlay button directly over the timestamp text
                             try {
                                 javax.swing.text.StyledDocument doc = textPane.getStyledDocument();
                                 String text = doc.getText(0, doc.getLength());
@@ -127,27 +162,57 @@ public class TimestampClickHandler {
                                     lineStart--;
                                 }
                                 java.util.regex.Matcher matcher = TIMESTAMP_PATTERN.matcher(lineText);
-                                int timestampEndPos = lineStart;
                                 if (matcher.find()) {
-                                    timestampEndPos = lineStart + matcher.end();
+                                    int timestampStart = lineStart + matcher.start();
+                                    int timestampEnd = lineStart + matcher.end();
+                                    
+                                    // Get the bounds of the timestamp text
+                                    java.awt.geom.Rectangle2D startRect = textPane.modelToView2D(timestampStart);
+                                    java.awt.geom.Rectangle2D endRect = textPane.modelToView2D(timestampEnd);
+                                    
+                                    // Calculate the full bounds of the timestamp
+                                    double x = startRect.getX();
+                                    double y = startRect.getY();
+                                    double width = endRect.getX() + endRect.getWidth() - startRect.getX();
+                                    double height = Math.max(startRect.getHeight(), endRect.getHeight());
+                                    
+                                    // Position overlay window over the timestamp
+                                    java.awt.Point screenPoint = textPane.getLocationOnScreen();
+                                    screenPoint.translate((int)x, (int)y);
+                                    
+                                    overlayWindow.setLocation(screenPoint);
+                                    overlayButton.setText(lineText.trim());
+                                    
+                                    // Use button's preferred size to ensure text and icon fit properly
+                                    java.awt.Dimension prefSize = overlayButton.getPreferredSize();
+                                    overlayButton.setBounds(0, 0, prefSize.width, (int)height);
+                                    overlayWindow.setSize(prefSize.width, (int)height);
+                                    overlayWindow.setVisible(true);
+                                    buttonVisible = true;
+                                    hideTimer.restart();
                                 }
-                                java.awt.geom.Rectangle2D rect = textPane.modelToView2D(timestampEndPos);
-                                java.awt.Point screenPoint = textPane.getLocationOnScreen();
-                                screenPoint.translate((int)(rect.getX() + 5), (int)(rect.getY() - 10));
-                                editWindow.setLocation(screenPoint);
-                                editWindow.setVisible(true);
-                                hideTimer.restart();
                             } catch (Exception ex) {
-                                // Fallback to mouse position
+                                // Fallback positioning
                                 java.awt.Point screenPoint = textPane.getLocationOnScreen();
-                                screenPoint.translate(e.getX() + 10, e.getY() - 10);
-                                editWindow.setLocation(screenPoint);
-                                editWindow.setVisible(true);
+                                screenPoint.translate(e.getX(), e.getY());
+                                overlayWindow.setLocation(screenPoint);
+                                overlayButton.setText(lineText.trim());
+                                
+                                // Use button's preferred size for proper text/icon fit
+                                java.awt.Dimension prefSize = overlayButton.getPreferredSize();
+                                overlayWindow.setSize(prefSize.width, prefSize.height);
+                                overlayWindow.setVisible(true);
+                                buttonVisible = true;
                                 hideTimer.restart();
                             }
-                        } else {
-                            hideTimer.restart();
+                        } else if (!buttonVisible) {
+                            // Only hide immediately if button was never shown
+                            hideOverlayButton();
                         }
+                        // If buttonVisible is true, let the timer handle hiding
+                    } else if (!shouldHover && isHoveringTimestamp) {
+                        // Double-check: if we're marked as hovering but shouldn't be, hide immediately
+                        hideOverlayButton();
                     }
                 } catch (Exception ex) {
                     if (isHoveringTimestamp) {
@@ -225,12 +290,12 @@ public class TimestampClickHandler {
     }
     
     /**
-     * Disposes the edit window if it exists.
+     * Disposes the overlay window if it exists.
      */
     public void dispose() {
-        if (editWindow != null) {
-            editWindow.dispose();
-            editWindow = null;
+        if (overlayWindow != null) {
+            overlayWindow.dispose();
+            overlayWindow = null;
         }
         if (hideTimer != null) {
             hideTimer.stop();
@@ -243,7 +308,13 @@ public class TimestampClickHandler {
      */
     public void addScrollListeners() {
         if (textPane.getParent() instanceof javax.swing.JScrollPane scrollPane) {
-            scrollPane.getViewport().addChangeListener(e -> hideEditWindow());
+            scrollPane.getViewport().addChangeListener(e -> {
+                // Hide immediately on scroll to prevent lingering
+                hideOverlayButton();
+            });
         }
+        
+        // Also hide on mouse wheel events
+        textPane.addMouseWheelListener(e -> hideOverlayButton());
     }
 }

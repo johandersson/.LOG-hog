@@ -158,13 +158,20 @@ public class PasswordStrengthIndicator extends JPanel {
 
         // PENALTY: Check for repeated patterns (e.g., "abcabcabc")
         if (length >= 6) {
-            String pwdStr = new String(password);
             for (int patternLen = 3; patternLen <= length / 2; patternLen++) {
-                String pattern = pwdStr.substring(0, patternLen);
                 int repetitions = 0;
                 int pos = 0;
                 while (pos + patternLen <= length) {
-                    if (pwdStr.substring(pos, pos + patternLen).equals(pattern)) {
+                    // Check if current pattern matches the initial pattern
+                    boolean matches = true;
+                    for (int i = 0; i < patternLen; i++) {
+                        if (password[pos + i] != password[i]) {
+                            matches = false;
+                            break;
+                        }
+                    }
+                    
+                    if (matches) {
                         repetitions++;
                         pos += patternLen;
                     } else {
