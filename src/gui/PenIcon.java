@@ -45,13 +45,19 @@ public class PenIcon implements Icon {
 
     private void loadImage() {
         try {
-            java.net.URL resourceUrl = getClass().getResource("/resources/pencil-line.png");
+            // Try JAR root first (when running from JAR)
+            java.net.URL resourceUrl = getClass().getResource("/pencil-line.png");
+            if (resourceUrl == null) {
+                // Fall back to resources folder (when running from classpath)
+                resourceUrl = getClass().getResource("/resources/pencil-line.png");
+            }
+            
             if (resourceUrl != null) {
                 ImageIcon icon = new ImageIcon(resourceUrl);
                 image = icon.getImage();
                 System.out.println("PenIcon: Loaded image from " + resourceUrl + ", size: " + image.getWidth(null) + "x" + image.getHeight(null));
             } else {
-                System.out.println("PenIcon: Could not find resource /resources/pencil-line.png");
+                System.out.println("PenIcon: Could not find resource /pencil-line.png or /resources/pencil-line.png");
                 image = null;
             }
         } catch (Exception e) {
