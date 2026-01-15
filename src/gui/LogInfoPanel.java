@@ -28,11 +28,8 @@ public class LogInfoPanel extends JPanel {
 
         // Style the panel
         setOpaque(true);
-        setBackground(new Color(0xE8F4FD)); // Light blue background for better visibility
-        setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(1, 1, 1, 1, new Color(0xB0D4F0)),
-            BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
+        setBackground(Color.WHITE); // White background
+        setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
 
         // Style the labels
         Font infoFont = new Font("Segoe UI", Font.PLAIN, 12);
