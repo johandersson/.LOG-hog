@@ -73,19 +73,43 @@ public class FullLogFileLoader {
      * @throws Exception if loading fails
      */
     public void loadAndProcessLogFile(Path logPath, boolean scrollToBottom) throws Exception {
+        ParsedLogData data = loadAndProcessLogFileInternal(logPath, scrollToBottom);
+        MarkdownRenderer.renderMarkdownFromEntries(textPane, data.entriesToRender, scrollToBottom);
+        LinkHandler.addLinkListeners(textPane);
+    }
+
+    /**
+     * Loads and processes the log file, returning the parsed data for reuse.
+     * This optimized version allows callers to reuse the parsed entries for statistics.
+     * @param logPath Path to the log file
+     * @param scrollToBottom whether to scroll to bottom after loading
+     * @return ParsedLogData containing all entries and entries to render
+     * @throws Exception if loading fails
+     */
+    public ParsedLogData loadAndProcessLogFileWithData(Path logPath, boolean scrollToBottom) throws Exception {
+        ParsedLogData data = loadAndProcessLogFileInternal(logPath, scrollToBottom);
+        MarkdownRenderer.renderMarkdownFromEntries(textPane, data.entriesToRender, scrollToBottom);
+        LinkHandler.addLinkListeners(textPane);
+        return data;
+    }
+
+    /**
+     * Internal method that handles the parsing logic without rendering.
+     */
+    private ParsedLogData loadAndProcessLogFileInternal(Path logPath, boolean scrollToBottom) throws Exception {
         // Use getLines() which returns cached lines for encrypted files
         // This ensures we get the most recent data including any formatting changes
         List<String> lines = logFileHandler.getLines();
-        
+
         // Remove secure clipboard markers from lines
         lines = lines.stream()
             .map(LogFileHandler::removeSecureMarker)
             .collect(Collectors.toList());
-        
-        // Lazy loading: Only render recent N entries for performance
+
+        // Parse all entries (needed for statistics)
         List<List<String>> allEntries = LogParser.parseEntriesForFullLog(lines);
         List<List<String>> entriesToRender;
-        
+
         if (allEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
             // Take the most recent N entries (already sorted newest first)
             entriesToRender = allEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER);
@@ -98,9 +122,8 @@ public class FullLogFileLoader {
         } else {
             entriesToRender = allEntries;
         }
-        
-        MarkdownRenderer.renderMarkdownFromEntries(textPane, entriesToRender, scrollToBottom); // Don't scroll to bottom
-        LinkHandler.addLinkListeners(textPane);
+
+        return new ParsedLogData(allEntries, entriesToRender);
     }
     
     /**

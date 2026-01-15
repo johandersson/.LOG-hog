@@ -44,6 +44,7 @@ import javax.swing.text.StyledDocument;
 import filehandling.FullLogFileLoader;
 import filehandling.LogFileFormatter;
 import filehandling.LogFileHandler;
+import filehandling.ParsedLogData;
 import main.LogTextEditor;
 import notepad.NotepadOpener;
 
@@ -57,6 +58,7 @@ public class FullLogPanel extends LogPanel {
     private final JButton openInNotepadButton;
     private final JButton searchButton;
     private final JButton formatButton;
+    private final LogInfoPanel infoPanel;
     private SearchDialog searchDialog;
     private boolean suppressAutoLoad = false;
     private TimestampClickHandler timestampClickHandler;
@@ -86,6 +88,10 @@ public class FullLogPanel extends LogPanel {
         
         this.searchButton = new AccentButton("Search");
         this.formatButton = new AccentButton("Fix Linebreak Formatting");
+        
+        // Initialize info panel component
+        this.infoPanel = new LogInfoPanel();
+        
         initPanel();
         updateLockButton(); // Ensure buttons are in correct state based on lock status
     }
@@ -131,12 +137,22 @@ public class FullLogPanel extends LogPanel {
         pathPanel.add(fullLogPathLabel, BorderLayout.WEST);
         add(pathPanel, BorderLayout.NORTH);
 
-        var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        var bottom = new JPanel(new BorderLayout(10, 0));
         bottom.setOpaque(false);
+        
+        // Left side: info panel in a wrapper to control sizing
+        var infoWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        infoWrapper.setOpaque(false);
+        infoWrapper.add(infoPanel);
+        bottom.add(infoWrapper, BorderLayout.WEST);
+        
+        // Right side: buttons
+        var buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        buttonPanel.setOpaque(false);
         copyFullLogButton.addActionListener(e -> copyFullLogToClipboard());
-        bottom.add(copyFullLogButton);
+        buttonPanel.add(copyFullLogButton);
         openInNotepadButton.addActionListener(e -> openInExternalEditor());
-        bottom.add(openInNotepadButton);
+        buttonPanel.add(openInNotepadButton);
         lockFileButton.addActionListener(e -> {
             if (editor.isLocked()) {
                 editor.manualUnlock();
@@ -144,10 +160,12 @@ public class FullLogPanel extends LogPanel {
                 editor.manualLock();
             }
         });
-        bottom.add(lockFileButton);
+        buttonPanel.add(lockFileButton);
 
         var rightBottomPanel = getRightBottomPanel();
-        bottom.add(rightBottomPanel, 0);
+        buttonPanel.add(rightBottomPanel, 0);
+        bottom.add(buttonPanel, BorderLayout.EAST);
+        
         add(bottom, BorderLayout.SOUTH);
     }
 
@@ -162,6 +180,10 @@ public class FullLogPanel extends LogPanel {
         rightBottomPanel.add(formatButton);
 
         return rightBottomPanel;
+    }
+
+    private void resetLogStatistics() {
+        infoPanel.resetStatistics();
     }
 
     public void openSearchDialog() {
@@ -263,6 +285,7 @@ public class FullLogPanel extends LogPanel {
         fullLogPane.setForeground(Color.GRAY);
         fullLogPathLabel.setText("Log file: (locked)");
         updateButtonStates(true);
+        resetLogStatistics();
     }
 
     private void loadAndProcessLogFile(Path logPath) {
@@ -271,7 +294,12 @@ public class FullLogPanel extends LogPanel {
 
     private void loadAndProcessLogFile(Path logPath, boolean scrollToBottom) {
         try {
-            fileLoader.loadAndProcessLogFile(logPath, scrollToBottom);
+            // Use optimized loading that returns parsed data for statistics
+            ParsedLogData parsedData = fileLoader.loadAndProcessLogFileWithData(logPath, scrollToBottom);
+            
+            // Calculate statistics from already parsed data (O(1) additional work)
+            LogStatistics stats = new LogStatistics(parsedData.allEntries, logPath);
+            infoPanel.updateStatistics(stats);
         } catch (Exception ex) {
             handleLoadException(ex, logPath);
         }
@@ -309,6 +337,7 @@ public class FullLogPanel extends LogPanel {
                 + Path.of(System.getProperty("user.dir"), "log.txt"));
         fullLogPathLabel.setText("Log file: not found");
         fullLogPane.clearHighlights();
+        resetLogStatistics();
     }
     
     private void openInExternalEditor() {
