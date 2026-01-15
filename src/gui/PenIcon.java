@@ -17,66 +17,48 @@
 
 package gui;
 
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
+import java.awt.Image;
 
 import javax.swing.Icon;
+import javax.swing.ImageIcon;
 
 /**
- * A pen icon that renders a programmatic pen/edit icon.
+ * A pen icon that loads a PNG image.
  */
 public class PenIcon implements Icon {
     private final int width;
     private final int height;
+    private Image image;
 
     public PenIcon(int width, int height, Color color) {
         this.width = width;
         this.height = height;
+        loadImage();
     }
 
     public PenIcon(Color color) {
         this(20, 20, color);
     }
 
-    @Override
-    public void paintIcon(Component c, Graphics g, int x, int y) {
-        renderFallbackIcon((Graphics2D) g, x, y);
+    private void loadImage() {
+        try {
+            ImageIcon icon = new ImageIcon(getClass().getResource("/resources/pencil-line.png"));
+            image = icon.getImage();
+        } catch (Exception e) {
+            // If image can't be loaded, leave image as null - button will show text only
+            image = null;
+        }
     }
 
-    private void renderFallbackIcon(Graphics2D g2d, int x, int y) {
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        // Draw pen body (main cylinder - blue)
-        g2d.setColor(new Color(0x4A90E2)); // Blue
-        g2d.fillRoundRect(x + 3, y + 2, 10, 12, 2, 2);
-
-        // Draw pen body highlight
-        g2d.setColor(new Color(0x6BB3FF)); // Lighter blue
-        g2d.fillRoundRect(x + 4, y + 3, 8, 10, 1, 1);
-
-        // Draw pen tip (black nib)
-        g2d.setColor(Color.BLACK);
-        int[] xNib = {x + 6, x + 10, x + 8};
-        int[] yNib = {y + 14, y + 14, y + 16};
-        g2d.fillPolygon(xNib, yNib, 3);
-
-        // Draw pen cap (red)
-        g2d.setColor(Color.RED);
-        g2d.fillRoundRect(x + 5, y + 0, 6, 4, 1, 1);
-
-        // Draw pen clip (metallic silver)
-        g2d.setColor(new Color(0xC0C0C0));
-        g2d.setStroke(new BasicStroke(1));
-        g2d.drawLine(x + 9, y + 0, x + 12, y + 3);
-        g2d.drawLine(x + 10, y + 0, x + 13, y + 3);
-
-        // Draw click mechanism (small silver dot)
-        g2d.setColor(new Color(0xC0C0C0));
-        g2d.fillOval(x + 7, y + 5, 2, 2);
+    @Override
+    public void paintIcon(Component c, Graphics g, int x, int y) {
+        if (image != null) {
+            g.drawImage(image, x, y, width, height, null);
+        }
+        // If no image, just display button text (no icon)
     }
 
     @Override
