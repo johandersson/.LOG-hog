@@ -1090,7 +1090,7 @@ src/
 │   └── [Other utilities]
 └── resources/                     # Static resources
     ├── help.md
-    ├── license.md
+    ├── LICENSE.md
     └── dict.txt                   # EFF Diceware wordlist
 ```
 
@@ -1350,7 +1350,7 @@ endif
 
 **Contents:**
 - `loghog.jar` (~145 KB)
-- `help.md` / `license.md` (embedded in JAR)
+- `help.md` / `LICENSE.md` (embedded in JAR)
 - `resources/dict.txt` (EFF Diceware wordlist, embedded)
 
 **Runtime Requirements:**

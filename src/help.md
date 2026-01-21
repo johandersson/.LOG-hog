@@ -116,10 +116,10 @@ The Full Log tab renders your log entries with Markdown formatting for better re
 Formatting is applied in the Full Log window for a polished view of your entries.
 
 ## License
-.LOG-hog is licensed under the GNU General Public License version 3 (GPL3). See the license.md file for full license text.
+.LOG-hog is licensed under the GNU General Public License version 3 (GPL3). See the ../LICENSE.md file for full license text.
 
 ## Changelog
-See CHANGELOG.md for a detailed history of changes and new features.
+See ../CHANGELOG.md for a detailed history of changes and new features.
 
 ## Github repo:
 [GitHub Repository](http://github.com/johandersson/.LOG-hog)
