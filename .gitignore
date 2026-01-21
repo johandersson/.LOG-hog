@@ -81,3 +81,4 @@ changes.txt
 changes_summary.md
 src/development_history.md
 lib/
+jacoco.exec
