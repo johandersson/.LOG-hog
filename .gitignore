@@ -75,6 +75,11 @@ junit-reports/
 # Temporary test files
 *.tmp
 test-*.log
+*.log
+test_*.txt
+
+# Test batch files
+run_tests*.bat
 
 # Local change tracking and docs
 changes.txt
