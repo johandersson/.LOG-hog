@@ -237,6 +237,19 @@ public class EntryLoader {
             
             // Cache timestamp list for getRecentLogEntries
             timestampListCache = timestamps;
+
+            // Also populate parsedEntriesCache so future tab switches can use the cache
+            List<ParsedEntry> parsed = new ArrayList<>(timestamps.size());
+            for (String ts : timestamps) {
+                LocalDateTime dt = null;
+                try {
+                    dt = utils.DateHandler.parseTimestamp(ts);
+                } catch (Exception ignored) {
+                }
+                parsed.add(new ParsedEntry(ts, dt));
+            }
+            parsedEntriesCache = parsed;
+
             updateCacheTimestamp();
         } catch (Exception e) {
             // Security: Don't check/expose exception messages - use generic errors
