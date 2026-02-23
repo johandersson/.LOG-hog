@@ -64,9 +64,6 @@ public class LogFileFormatter {
         if (lines == null) {
             throw new IllegalArgumentException("Lines cannot be null");
         }
-        if (lines.size() > 100000) {
-            throw new IllegalArgumentException("Too many lines to process (max 100000)");
-        }
         
         // Check if .LOG header exists in the input
         boolean hasLogHeader = lines.stream().anyMatch(line -> line.trim().equalsIgnoreCase(".LOG"));
@@ -232,14 +229,7 @@ public class LogFileFormatter {
                         lines = Files.readAllLines(logPath);
                     }
 
-                    // Security: Validate collection size
-                    if (lines.size() > MAX_COLLECTION_SIZE) {
-                        String shortTitle = "Too Many Entries";
-                        String longMessage = "The log file contains too many entries to safely format (more than "
-                            + MAX_COLLECTION_SIZE + ").\n\nTry opening the file in smaller parts or use the command-line tool for large files.";
-                        DialogHandler.showLimitExceeded(shortTitle, longMessage);
-                        throw new IllegalStateException("Too many lines to format (max " + MAX_COLLECTION_SIZE + ")");
-                    }
+                    // Allow formatting regardless of entry count; large files may require more memory.
 
                     // Remove secure clipboard markers
                     progress.setStatus("Processing entries...");
