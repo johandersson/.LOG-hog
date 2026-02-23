@@ -19,5 +19,6 @@ public final class ResourceLimits {
     public static final int MAX_COLLECTION_SIZE = (int) Math.floor(MAX_FILE_SIZE / (double) AVG_ENTRY_BYTES * COLLECTION_SAFETY_FACTOR);
 
     // UI render cap for FullLog view (limit how many entries are passed to renderer)
-    public static final int MAX_ENTRIES_TO_RENDER = 5000;
+    // Increased from 5000 to 10000 to allow larger views while keeping protections.
+    public static final int MAX_ENTRIES_TO_RENDER = 10000;
 }
