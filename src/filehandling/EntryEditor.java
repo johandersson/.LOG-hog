@@ -80,15 +80,25 @@ public class EntryEditor {
             fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cache.getCachedLines());
             encryptionManager.encryptFile(fullText);
         } else {
+            // Normalize content lines: remove trailing blank lines from user-supplied text
+            String[] parts = text.split("\r?\n", -1);
+            List<String> contentLines = new ArrayList<>();
+            for (String p : parts) contentLines.add(p);
+            // Remove trailing blank lines
+            while (!contentLines.isEmpty() && contentLines.get(contentLines.size() - 1).trim().isEmpty()) {
+                contentLines.remove(contentLines.size() - 1);
+            }
+            String normalizedContent = String.join(LogFileFormat.LINE_SEPARATOR, contentLines);
+            String entryToAppend = LogFileFormat.createEntry(uniqueTimeStamp, normalizedContent);
+
             if (Files.exists(filePath)) {
-                String toWrite = uniqueTimeStamp + ls + text + ls;
                 if (backupManager != null) {
                     backupManager.createNumberedBackup();
                 }
-                Files.writeString(filePath, toWrite, java.nio.file.StandardOpenOption.APPEND);
+                Files.writeString(filePath, entryToAppend, java.nio.file.StandardOpenOption.APPEND);
             } else {
                 // For new files, ensure .LOG header exists for Notepad compatibility
-                String contentWithHeader = ".LOG" + ls + ls + entry;
+                String contentWithHeader = ".LOG" + ls + ls + entryToAppend;
                 Files.writeString(filePath, contentWithHeader, java.nio.file.StandardOpenOption.CREATE);
             }
         }
