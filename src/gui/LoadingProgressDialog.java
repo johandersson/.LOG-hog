@@ -39,7 +39,11 @@ public class LoadingProgressDialog extends ProgressDialogBase {
      */
     public LoadingProgressDialog(Frame parent, String title) {
         super(parent, title, false); // Non-modal so UI stays responsive
-        messageLabel.setText("Loading encrypted file...");
+        messageLabel.setText("Loading file...");
+        // Center on screen (parent may not be visible yet) and stay on top
+        dialog.setLocationRelativeTo(null);
+        dialog.setAlwaysOnTop(true);
+        progressBar.setIndeterminate(true);
     }
     
     /**
@@ -67,6 +71,10 @@ public class LoadingProgressDialog extends ProgressDialogBase {
     public void setTotalBytes(long bytes) {
         this.totalBytes = bytes;
         this.processedBytes = 0;
+        SwingUtilities.invokeLater(() -> {
+            progressBar.setIndeterminate(false);
+            progressBar.setValue(0);
+        });
     }
     
     /**

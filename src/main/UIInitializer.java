@@ -233,20 +233,38 @@ public class UIInitializer {
         tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help", false, true));
         tabPane.addTab("About", new InformationPanel(tabPane, "license.md", "About", true, true));
         tabPane.addChangeListener(e -> {
-            if (tabPane.getSelectedIndex() == 2) {
+            int idx = tabPane.getSelectedIndex();
+            if (idx == 2) {
                 if (!editor.getFullLogPanel().isSuppressAutoLoad()) {
-                    editor.getFullLogPanel().loadFullLog();
+                    LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
+                    progress.show();
+                    editor.getFullLogPanel().loadFullLog(() -> progress.close());
                 }
-            } else if (tabPane.getSelectedIndex() == 3) {
+            } else if (idx == 1) {
+                // Log Entries tab
+                LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
+                progress.show();
+                // Load entries in background then update view on EDT
+                new Thread(() -> {
+                    try {
+                        editor.loadLogEntries();
+                        SwingUtilities.invokeLater(() -> editor.updateLogListView());
+                    } catch (Exception ex) {
+                        SwingUtilities.invokeLater(() -> editor.getLogFileHandler().showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
+                    } finally {
+                        SwingUtilities.invokeLater(() -> progress.close());
+                    }
+                }, "LogEntriesLoader").start();
+            } else if (idx == 3) {
                 editor.getSettingsPanel().loadCurrentSettings();
-            } else if (tabPane.getSelectedIndex() == 5) {
+            } else if (idx == 5) {
                 ((InformationPanel) tabPane.getComponentAt(5)).unloadText();
                 SplashScreen splash = new SplashScreen();
                 splash.setVisible(true);
                 if (splash.wasOkPressed()) {
                     ((InformationPanel) tabPane.getComponentAt(5)).loadText();
                 }
-            } else if (tabPane.getSelectedIndex() == 0) {
+            } else if (idx == 0) {
                 // Focus the entry text area when switching to the Entry tab
                 SwingUtilities.invokeLater(() -> {
                     var textArea = editor.getEntryPanel().getTextArea();

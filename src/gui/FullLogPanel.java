@@ -45,6 +45,8 @@ import filehandling.FullLogFileLoader;
 import filehandling.LogFileFormatter;
 import filehandling.LogFileHandler;
 import filehandling.ParsedLogData;
+import markdown.LinkHandler;
+import markdown.MarkdownRenderer;
 import main.LogTextEditor;
 import notepad.NotepadOpener;
 
@@ -233,8 +235,16 @@ public class FullLogPanel extends LogPanel {
     }
 
     public void loadFullLog() {
+        loadFullLog(null);
+    }
+
+    /**
+     * Load full log and call onComplete on the EDT when finished (may be null).
+     */
+    public void loadFullLog(Runnable onComplete) {
         if (editor.isLocked()) {
             SwingUtilities.invokeLater(this::handleLockedState);
+            if (onComplete != null) SwingUtilities.invokeLater(onComplete);
             return;
         }
 
@@ -242,6 +252,7 @@ public class FullLogPanel extends LogPanel {
         var logPath = Path.of(System.getProperty("user.home"), "log.txt");
         if (!Files.exists(logPath)) {
             SwingUtilities.invokeLater(this::showLogNotFound);
+            if (onComplete != null) SwingUtilities.invokeLater(onComplete);
             return;
         }
 
@@ -260,12 +271,17 @@ public class FullLogPanel extends LogPanel {
                         LogStatistics stats = new LogStatistics(parsed.allEntries, logPath);
                         infoPanel.updateStatistics(stats);
                         updateLockButton();
+                        if (onComplete != null) onComplete.run();
                     } catch (Exception ex) {
                         handleLoadException(ex, logPath);
+                        if (onComplete != null) onComplete.run();
                     }
                 });
             } catch (Exception ex) {
-                SwingUtilities.invokeLater(() -> handleLoadException(ex, logPath));
+                SwingUtilities.invokeLater(() -> {
+                    handleLoadException(ex, logPath);
+                    if (onComplete != null) onComplete.run();
+                });
             }
         }, "FullLogLoader");
         loader.setDaemon(true);
@@ -278,9 +294,18 @@ public class FullLogPanel extends LogPanel {
 
     public void loadFullLogNoScroll(Runnable callback) {
         suppressAutoLoad = true;
+        loadFullLogNoScroll(callback, false);
+    }
+
+    /**
+     * Variant that accepts a callback invoked when loading completes.
+     */
+    public void loadFullLogNoScroll(Runnable callback, boolean internalCall) {
+        suppressAutoLoad = true;
         if (editor.isLocked()) {
             SwingUtilities.invokeLater(this::handleLockedState);
             suppressAutoLoad = false;
+            if (callback != null) SwingUtilities.invokeLater(callback);
             return;
         }
 
@@ -289,6 +314,7 @@ public class FullLogPanel extends LogPanel {
         if (!Files.exists(logPath)) {
             SwingUtilities.invokeLater(this::showLogNotFound);
             suppressAutoLoad = false;
+            if (callback != null) SwingUtilities.invokeLater(callback);
             return;
         }
         clearEditorForNewLoad(logPath);
@@ -314,6 +340,7 @@ public class FullLogPanel extends LogPanel {
                 SwingUtilities.invokeLater(() -> {
                     handleLoadException(ex, logPath);
                     suppressAutoLoad = false;
+                    if (callback != null) callback.run();
                 });
             }
         }, "FullLogLoaderNoScroll");
