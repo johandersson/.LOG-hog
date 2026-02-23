@@ -35,6 +35,7 @@ import javax.swing.JTextArea;
 
 import filehandling.LogFileHandler;
 import gui.DialogHelper;
+import gui.LoadingProgressDialog;
 import gui.FullLogPanel;
 import gui.LogListPanel;
 import gui.SystemTrayMenu;
@@ -152,10 +153,40 @@ public class ActionHandler {
         }
         logFileHandler.saveText(editor.getEntryPanel().getTextArea().getText(), listModel);
         editor.getEntryPanel().getTextArea().setText("");
-        editor.updateLogListView();
-        fullLogPanel.loadFullLog(); // update full log view after save
-        SystemTrayMenu.updateRecentLogsMenu();
-        Toast.showToast(editor, "Entry saved successfully!");
+        // Perform expensive reloads off the EDT to avoid freezing the UI.
+        LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
+        final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+        showTimer.setRepeats(false);
+        showTimer.start();
+
+        Thread reloadThread = new Thread(() -> {
+            try {
+                // Reload list model from disk (may be heavy) off-EDT
+                editor.loadLogEntries();
+
+                // Ensure list model is applied on EDT
+                SwingUtilities.invokeLater(() -> editor.updateLogListView());
+
+                // Refresh full log view (it runs parsing in background internally)
+                fullLogPanel.loadFullLog(() -> {
+                    // Close progress dialog on EDT when full log load completes
+                    SwingUtilities.invokeLater(() -> {
+                        if (showTimer.isRunning()) showTimer.stop();
+                        progress.close();
+                        SystemTrayMenu.updateRecentLogsMenu();
+                        Toast.showToast(editor, "Entry saved successfully!");
+                    });
+                });
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> {
+                    if (showTimer.isRunning()) showTimer.stop();
+                    progress.close();
+                    logFileHandler.showErrorDialog("<html><b>🔄 Reload Failed</b><br><br>Unable to refresh log data after save.</html>");
+                });
+            }
+        }, "SaveReloadThread");
+        reloadThread.setDaemon(true);
+        reloadThread.start();
     }
 
     public void deleteSelectedEntry() {

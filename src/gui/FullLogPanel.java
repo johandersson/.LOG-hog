@@ -508,29 +508,93 @@ public class FullLogPanel extends LogPanel {
         // Switch to Log List tab (index 1)
         editor.getTabPane().setSelectedIndex(1);
         
-        // Find and select the entry in the log list
+        // Find and select the entry in the log list. If the list hasn't been loaded yet,
+        // trigger a load and wait for it to complete (showing a delayed progress dialog).
         LogListPanel logListPanel = editor.getLogListPanel();
         DefaultListModel<String> listModel = logListPanel.getListModel();
         JList<String> logList = logListPanel.getLogList();
-        
-        // Search for the entry with matching timestamp
-        for (int i = 0; i < listModel.getSize(); i++) {
-            String entry = listModel.getElementAt(i);
-            if (entry.startsWith(timestamp)) {
-                // Found it - select and scroll to it
-                logList.setSelectedIndex(i);
-                logList.ensureIndexIsVisible(i);
-                
-                // Focus the entry text area for editing
-                SwingUtilities.invokeLater(() -> {
-                    logListPanel.getEntryArea().requestFocusInWindow();
-                });
-                return;
+
+        final boolean[] attemptedFullReload = {false};
+        Runnable selectIfPresent = () -> {
+            for (int i = 0; i < listModel.getSize(); i++) {
+                String entry = listModel.getElementAt(i);
+                if (entry != null && entry.startsWith(timestamp)) {
+                    logList.setSelectedIndex(i);
+                    logList.ensureIndexIsVisible(i);
+                    SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+                    return;
+                }
             }
+
+            // If not found and we haven't yet tried a full reload (unfiltered), do that now.
+            if (!attemptedFullReload[0]) {
+                attemptedFullReload[0] = true;
+
+                LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
+                final javax.swing.Timer showTimer2 = new javax.swing.Timer(150, ev -> progress.show());
+                showTimer2.setRepeats(false);
+                showTimer2.start();
+
+                Thread fullReload = new Thread(() -> {
+                    try {
+                        // Load the complete list (unfiltered)
+                        editor.loadLogEntries();
+                        SwingUtilities.invokeLater(() -> {
+                            // Update the view and try selection again
+                            editor.updateLogListView();
+                            for (int j = 0; j < listModel.getSize(); j++) {
+                                String e = listModel.getElementAt(j);
+                                if (e != null && e.startsWith(timestamp)) {
+                                    logList.setSelectedIndex(j);
+                                    logList.ensureIndexIsVisible(j);
+                                    SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+                                    return;
+                                }
+                            }
+                            // Still not found after full reload
+                            DialogHelper.showEntryNotFound(this);
+                        });
+                    } catch (Exception ex) {
+                        SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
+                    } finally {
+                        if (showTimer2.isRunning()) showTimer2.stop();
+                        SwingUtilities.invokeLater(() -> progress.close());
+                    }
+                }, "FullListReloadForTimestamp");
+                fullReload.setDaemon(true);
+                fullReload.start();
+            } else {
+                DialogHelper.showEntryNotFound(this);
+            }
+        };
+
+        // If the model seems populated, try selecting immediately
+        if (listModel.getSize() > 0) {
+            selectIfPresent.run();
+            return;
         }
-        
-        // If not found in current view, show a message
-        DialogHelper.showEntryNotFound(this);
+
+        // Otherwise, load entries synchronously in a background thread and wait for completion
+        LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
+        final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+        showTimer.setRepeats(false);
+        showTimer.start();
+
+        Thread loader = new Thread(() -> {
+            try {
+                // Load all entries into the shared list model
+                editor.loadLogEntries();
+                // Ensure the UI updates and then attempt selection on EDT
+                SwingUtilities.invokeLater(() -> selectIfPresent.run());
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
+            } finally {
+                if (showTimer.isRunning()) showTimer.stop();
+                SwingUtilities.invokeLater(() -> progress.close());
+            }
+        }, "OpenEntryLoader");
+        loader.setDaemon(true);
+        loader.start();
     }
 
     public void scrollToEntry(String timestamp) {
