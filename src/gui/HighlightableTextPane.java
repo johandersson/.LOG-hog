@@ -22,6 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.JOptionPane;
+import gui.DialogHelper;
 import javax.swing.JTextPane;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultHighlighter;
@@ -66,7 +67,7 @@ public class HighlightableTextPane extends JTextPane {
         try {
             return doc.getText(0, len);
         } catch (BadLocationException e) {
-            JOptionPane.showMessageDialog(this, "Error accessing document", "Error", JOptionPane.ERROR_MESSAGE);
+            DialogHelper.showError(this, "Error", "Error accessing document");
             return null;
         }
     }

@@ -31,8 +31,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import gui.DialogHelper;
 
 import utils.Toast;
 
@@ -148,12 +148,12 @@ public class SecureClipboardManager implements ClipboardHandler {
         // Input validation
         if (text == null) {
             Toolkit.getDefaultToolkit().beep();
-            JOptionPane.showMessageDialog(parent, "Cannot copy null text.", "Copy Failed", JOptionPane.ERROR_MESSAGE);
+            DialogHelper.showError(parent, "Copy Failed", "Cannot copy null text.");
             return;
         }
         if (text.isEmpty()) {
             Toolkit.getDefaultToolkit().beep();
-            JOptionPane.showMessageDialog(parent, "Text is empty.", "Copy Failed", JOptionPane.WARNING_MESSAGE);
+            DialogHelper.showWarning(parent, "Copy Failed", "Text is empty.");
             return;
         }
         if (successMessage == null) {
@@ -188,11 +188,11 @@ public class SecureClipboardManager implements ClipboardHandler {
             }
 
         } catch (IllegalStateException ise) {
-            JOptionPane.showMessageDialog(parent, "Unable to access clipboard right now. Try again.", "Clipboard Error", JOptionPane.ERROR_MESSAGE);
+            DialogHelper.showError(parent, "Clipboard Error", "Unable to access clipboard right now. Try again.");
         } catch (SecurityException se) {
-            JOptionPane.showMessageDialog(parent, "Clipboard access denied by security manager.", "Security Error", JOptionPane.ERROR_MESSAGE);
+            DialogHelper.showError(parent, "Security Error", "Clipboard access denied by security manager.");
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(parent, "Unexpected error accessing clipboard. Please try again.", "Clipboard Error", JOptionPane.ERROR_MESSAGE);
+            DialogHelper.showError(parent, "Clipboard Error", "Unexpected error accessing clipboard. Please try again.");
         }
     }
 

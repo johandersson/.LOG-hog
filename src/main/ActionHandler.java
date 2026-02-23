@@ -28,6 +28,7 @@ import javax.swing.DefaultListModel;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -85,11 +86,17 @@ public class ActionHandler {
         return new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String newEntry = JOptionPane.showInputDialog(
-                        editor,
-                        "Enter new log entry:",
-                        "New Log Entry",
-                        JOptionPane.PLAIN_MESSAGE);
+                final String[] newEntryHolder = new String[1];
+                try {
+                    SwingUtilities.invokeAndWait(() -> newEntryHolder[0] = (String) JOptionPane.showInputDialog(
+                            editor,
+                            "Enter new log entry:",
+                            "New Log Entry",
+                            JOptionPane.PLAIN_MESSAGE));
+                } catch (Exception ex) {
+                    newEntryHolder[0] = null;
+                }
+                String newEntry = newEntryHolder[0];
                 if (newEntry != null && !newEntry.isBlank()) {
                     logFileHandler.saveText(newEntry, listModel);
                     try {
@@ -195,13 +202,9 @@ public class ActionHandler {
         scrollPane.setPreferredSize(new Dimension(600, Math.min(400, 200 + numEntries * 50))); // Adjust height based on number of entries
         panel.add(scrollPane, BorderLayout.CENTER);
 
-        int confirm = JOptionPane.showConfirmDialog(editor,
-                panel,
-                title,
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE);
+        boolean confirm = gui.DialogHelper.confirm(editor, title, questionText);
 
-        if (confirm == JOptionPane.YES_OPTION) {
+        if (confirm) {
             // Use batch delete for efficiency (single file I/O instead of N operations)
             logFileHandler.deleteLogEntries(selectedItems, listModel);
             editor.updateLogListView();
@@ -222,7 +225,13 @@ public class ActionHandler {
         String selectedItem = logList.getSelectedValue();
         if (selectedItem == null) return;
 
-        String newDateTime = JOptionPane.showInputDialog(editor, "Enter new date and time (format: HH:mm yyyy-MM-dd):", selectedItem);
+        final String[] newDateTimeHolder = new String[1];
+        try {
+            SwingUtilities.invokeAndWait(() -> newDateTimeHolder[0] = (String) JOptionPane.showInputDialog(editor, "Enter new date and time (format: HH:mm yyyy-MM-dd):", selectedItem));
+        } catch (Exception ex) {
+            newDateTimeHolder[0] = null;
+        }
+        String newDateTime = newDateTimeHolder[0];
         if (newDateTime == null) return;
         if (newDateTime.trim().isEmpty()) {
             DialogHelper.showError(editor, "Error", "Invalid Input", "Date and time cannot be empty.");

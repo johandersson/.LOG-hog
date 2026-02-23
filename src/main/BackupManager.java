@@ -177,15 +177,11 @@ public class BackupManager {
         } else {
             // User cancelled - ask if they want to use home directory instead
             String homeDir = System.getProperty("user.home");
-            int fallback = JOptionPane.showConfirmDialog(
-                parentFrame,
-                "<html>No directory selected.<br><br>" +
-                "Use home directory (<b>" + homeDir + "</b>) instead?</html>",
-                "Use Default?",
-                JOptionPane.YES_NO_OPTION
-            );
-            
-            if (fallback == JOptionPane.YES_OPTION) {
+            boolean fallback = gui.DialogHelper.confirm(parentFrame, "Use Default?",
+                "No directory selected.",
+                "Use home directory (<b>" + homeDir + "</b>) instead?");
+
+            if (fallback) {
                 settings.setProperty("backupDirectory", homeDir);
                 settings.setProperty("backupDirectoryConfigured", "true");
                 saveSettings();

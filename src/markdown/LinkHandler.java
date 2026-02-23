@@ -215,11 +215,6 @@ public class LinkHandler {
     private static void showLinkError(JTextPane pane, String message) {
         // Find the parent window to show the error dialog
         java.awt.Window parent = javax.swing.SwingUtilities.getWindowAncestor(pane);
-        javax.swing.JOptionPane.showMessageDialog(
-            parent,
-            message,
-            "Link Error",
-            javax.swing.JOptionPane.ERROR_MESSAGE
-        );
+        gui.DialogHelper.showError(parent, "Link Error", message);
     }
 }

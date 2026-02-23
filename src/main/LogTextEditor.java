@@ -34,6 +34,7 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
+import gui.DialogHelper;
 import javax.swing.JRootPane;
 import javax.swing.JTabbedPane;
 import javax.swing.KeyStroke;
@@ -579,12 +580,9 @@ public class LogTextEditor extends JFrame {
             }
         } else {
             // Show feedback that file is still locked
-            JOptionPane.showMessageDialog(this, 
-                "<html><b>🔒 File Still Locked</b><br><br>" +
+            DialogHelper.showWarning(this, "File Locked", "File Still Locked",
                 "The file remains locked because the unlock operation was cancelled or failed.<br><br>" +
-                "<i>You can try again by clicking the Unlock button.</i></html>", 
-                "File Locked", 
-                JOptionPane.WARNING_MESSAGE);
+                "You can try again by clicking the Unlock button.");
         }
     }    
 
@@ -651,12 +649,9 @@ public class LogTextEditor extends JFrame {
             if (!isLocked && autoLockEnabled) {
                 SwingUtilities.invokeLater(() -> {
                     manualLock();
-                    JOptionPane.showMessageDialog(this,
-                        "<html><b>🔒 File Auto-Locked</b><br><br>" +
+                    DialogHelper.showInfo(this, "Auto-Lock", "File Auto-Locked",
                         "The file has been locked due to inactivity.<br><br>" +
-                        "<i>Press Unlock in Full log view to unlock it again.</i></html>",
-                        "Auto-Lock",
-                        JOptionPane.INFORMATION_MESSAGE);
+                        "Press Unlock in Full log view to unlock it again.");
                 });
             }
         });
@@ -744,20 +739,15 @@ public class LogTextEditor extends JFrame {
         
         // Check if file exists
         if (!logFile.exists()) {
-            int choice = JOptionPane.showOptionDialog(
-                this,
-                "<html><b>⚠️ Log File Not Found</b><br><br>" +
-                "The log file does not exist:<br>" +
-                "<code>" + logFile.getAbsolutePath() + "</code><br><br>" +
-                "Would you like to create a new file or restore from backup?</html>",
+            int choice = DialogHelper.showOptions(this,
                 "File Missing",
-                JOptionPane.YES_NO_CANCEL_OPTION,
+                "⚠️ Log File Not Found",
+                "The log file does not exist:<br>" +
+                "<code>" + logFile.getAbsolutePath() + "</code><br><br>Would you like to create a new file or restore from backup?",
                 JOptionPane.WARNING_MESSAGE,
-                null,
                 new Object[]{"Create New", "Restore from Backup", "Exit"},
-                "Create New"
-            );
-            
+                "Create New");
+
             if (choice == 0) { // Create New
                 // File will be created on first save
                 return;
@@ -772,35 +762,17 @@ public class LogTextEditor extends JFrame {
         
         // Check if file is readable
         if (!logFile.canRead()) {
-            JOptionPane.showMessageDialog(
-                this,
-                "<html><b>⚠️ Cannot Read Log File</b><br><br>" +
+            DialogHelper.showError(this, "Permission Error", "Cannot Read Log File",
                 "The log file exists but cannot be read:<br>" +
                 "<code>" + logFile.getAbsolutePath() + "</code><br><br>" +
-                "<b>Possible solutions:</b><br>" +
-                "• Check file permissions<br>" +
-                "• Close other programs that may have locked the file<br>" +
-                "• Run application as administrator</html>",
-                "Permission Error",
-                JOptionPane.ERROR_MESSAGE
-            );
+                "Possible solutions:<br>• Check file permissions<br>• Close other programs that may have locked the file<br>• Run application as administrator");
         }
         
         // Check if file is writable
         if (!logFile.canWrite()) {
-            JOptionPane.showMessageDialog(
-                this,
-                "<html><b>⚠️ Log File is Read-Only</b><br><br>" +
+            DialogHelper.showWarning(this, "Read-Only File", "Log File is Read-Only",
                 "The log file exists but cannot be modified:<br>" +
-                "<code>" + logFile.getAbsolutePath() + "</code><br><br>" +
-                "<b>To fix this:</b><br>" +
-                "1. Right-click the file in your file manager<br>" +
-                "2. Select Properties (or Get Info on macOS)<br>" +
-                "3. Uncheck 'Read-only' attribute<br>" +
-                "4. Click OK and restart the application</html>",
-                "Read-Only File",
-                JOptionPane.WARNING_MESSAGE
-            );
+                "<code>" + logFile.getAbsolutePath() + "</code><br><br>To fix this:<br>1. Right-click the file in your file manager<br>2. Select Properties (or Get Info on macOS)<br>3. Uncheck 'Read-only' attribute<br>4. Click OK and restart the application");
         }
     }
 

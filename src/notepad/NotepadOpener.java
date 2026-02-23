@@ -35,7 +35,7 @@ public class NotepadOpener {
 
         // Validate path for security
         if (!isValidLogPath(logPath)) {
-            JOptionPane.showMessageDialog(null, "Invalid log file path detected.", "Security Error", JOptionPane.ERROR_MESSAGE);
+            gui.DialogHelper.showError(null, "Security Error", "Invalid log file path detected.");
             return;
         }
 
@@ -69,12 +69,8 @@ public class NotepadOpener {
                 }
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, 
-                "<html><b>Unable to Open Editor</b><br><br>" +
-                "Could not open the log file in a text editor.<br>" +
-                "Please open it manually:<br>" +
-                "<code>" + logPath.toAbsolutePath() + "</code></html>", 
-                "Error", JOptionPane.ERROR_MESSAGE);
+            gui.DialogHelper.showError(null, "Error", "Unable to Open Editor", 
+                "Could not open the log file in a text editor.<br>Please open it manually:<br><code>" + logPath.toAbsolutePath() + "</code>");
         }
     }
 

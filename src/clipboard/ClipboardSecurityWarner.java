@@ -18,6 +18,7 @@
 package clipboard;
 
 import javax.swing.*;
+import javax.swing.SwingUtilities;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -91,8 +92,8 @@ public class ClipboardSecurityWarner {
         htmlPane.setBorder(null);
         htmlPane.setPreferredSize(new Dimension(450, 350));
 
-        JOptionPane.showMessageDialog(parent, htmlPane,
-            "Clipboard Security Education", JOptionPane.INFORMATION_MESSAGE);
+        SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, htmlPane,
+            "Clipboard Security Education", JOptionPane.INFORMATION_MESSAGE));
     }
 
     /**
@@ -118,15 +119,20 @@ public class ClipboardSecurityWarner {
 
         Object[] options = {"Clear Now", "Keep Content"};
 
-        int result = JOptionPane.showOptionDialog(parent, htmlPane,
-            "Secure Clipboard Status", JOptionPane.YES_NO_OPTION,
-            JOptionPane.INFORMATION_MESSAGE, null, options, options[1]);
+        final int[] result = new int[1];
+        try {
+            SwingUtilities.invokeAndWait(() -> result[0] = JOptionPane.showOptionDialog(parent, htmlPane,
+                "Secure Clipboard Status", JOptionPane.YES_NO_OPTION,
+                JOptionPane.INFORMATION_MESSAGE, null, options, options[1]));
+        } catch (Exception e) {
+            result[0] = JOptionPane.CLOSED_OPTION;
+        }
 
-        switch (result) {
+        switch (result[0]) {
             case JOptionPane.YES_OPTION: // Clear Now
                 SecureClipboardManager.clearSecureClipboard();
-                JOptionPane.showMessageDialog(parent, "Clipboard cleared for security.",
-                    "Clipboard Cleared", JOptionPane.INFORMATION_MESSAGE);
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, "Clipboard cleared for security.",
+                    "Clipboard Cleared", JOptionPane.INFORMATION_MESSAGE));
                 break;
             case JOptionPane.NO_OPTION: // Keep Content - do nothing
             default:
@@ -157,8 +163,8 @@ public class ClipboardSecurityWarner {
         htmlPane.setBorder(null);
         htmlPane.setPreferredSize(new Dimension(350, 140));
 
-        JOptionPane.showMessageDialog(parent, htmlPane,
-            "Security Tip", JOptionPane.INFORMATION_MESSAGE);
+        SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, htmlPane,
+            "Security Tip", JOptionPane.INFORMATION_MESSAGE));
     }
 
     /**
@@ -189,11 +195,16 @@ public class ClipboardSecurityWarner {
 
         Object[] options = {confirmText, cancelText};
 
-        int result = JOptionPane.showOptionDialog(parent, htmlPane, title,
-            JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
-            null, options, options[1]);
+        final int[] result = new int[1];
+        try {
+            SwingUtilities.invokeAndWait(() -> result[0] = JOptionPane.showOptionDialog(parent, htmlPane, title,
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
+                null, options, options[1]));
+        } catch (Exception e) {
+            return false;
+        }
 
-        switch (result) {
+        switch (result[0]) {
             case JOptionPane.YES_OPTION: // Confirm action
                 return true;
             case JOptionPane.NO_OPTION: // Cancel

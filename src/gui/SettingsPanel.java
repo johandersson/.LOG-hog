@@ -338,13 +338,10 @@ public class SettingsPanel extends JPanel {
         // Check if timeout is outside valid range and alert user
         if (timeoutMinutes < 15 || timeoutMinutes > 1440) {
             int clampedMinutes = Math.max(15, Math.min(1440, timeoutMinutes));
-            JOptionPane.showMessageDialog(editor, 
-                "<html><b>Auto-Lock Timeout Adjusted</b><br><br>" +
+            gui.DialogHelper.showWarning(editor, "Settings Validation", "Auto-Lock Timeout Adjusted",
                 "The saved auto-lock timeout (" + timeoutMinutes + " minutes) is outside the valid range.<br>" +
                 "Valid range: 15-1440 minutes (15 minutes to 24 hours).<br><br>" +
-                "Timeout has been adjusted to: " + clampedMinutes + " minutes.</html>", 
-                "Settings Validation", 
-                JOptionPane.WARNING_MESSAGE);
+                "Timeout has been adjusted to: " + clampedMinutes + " minutes.");
             timeoutMinutes = clampedMinutes;
         }
         autoLockTimeoutSpinner.setValue(timeoutMinutes);
@@ -395,7 +392,7 @@ public class SettingsPanel extends JPanel {
 
         // Validate clipboard timeout
         if (!isValidClipboardTimeout(newClipboardTimeout)) {
-            JOptionPane.showMessageDialog(editor, "Clipboard timeout must be a number between 5 and 30 seconds.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            gui.DialogHelper.showError(editor, "Invalid Input", "Clipboard timeout must be a number between 5 and 30 seconds.");
             loadCurrentSettings(); // Reset to current valid values
             return;
         }
@@ -404,14 +401,14 @@ public class SettingsPanel extends JPanel {
 
         // Validate reminder field
         if (!isValidReminder(newReminder)) {
-            JOptionPane.showMessageDialog(editor, "Password reminder must be less than 200 characters and cannot contain control characters.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            gui.DialogHelper.showError(editor, "Invalid Input", "Password reminder must be less than 200 characters and cannot contain control characters.");
             loadCurrentSettings(); // Reset to current valid values
             return;
         }
 
         // Validate backup directory
         if (!isValidBackupDirectory(newBackupDir)) {
-            JOptionPane.showMessageDialog(editor, "Backup directory path is invalid or contains unsafe characters.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            gui.DialogHelper.showError(editor, "Invalid Input", "Backup directory path is invalid or contains unsafe characters.");
             loadCurrentSettings(); // Reset to current valid values
             return;
         }
@@ -456,9 +453,9 @@ public class SettingsPanel extends JPanel {
             int timeoutValue = Integer.parseInt(newClipboardTimeout);
             clipboard.SecureClipboardManager.setTimeoutSeconds(timeoutValue);
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(editor, "Invalid clipboard timeout value. Using default.", "Settings Error", JOptionPane.WARNING_MESSAGE);
+            gui.DialogHelper.showWarning(editor, "Settings Error", "Invalid clipboard timeout value. Using default.", null);
         } catch (IllegalArgumentException e) {
-            JOptionPane.showMessageDialog(editor, "Clipboard timeout must be between 5 and 30 seconds.", "Settings Error", JOptionPane.WARNING_MESSAGE);
+            gui.DialogHelper.showWarning(editor, "Settings Error", "Clipboard timeout must be between 5 and 30 seconds.", null);
         }
 
         // Update auto-lock settings immediately (pass timeout in seconds as string)
@@ -474,7 +471,7 @@ public class SettingsPanel extends JPanel {
         if (pwd == null) return;
 
         if (pwd.length < 20) {
-            JOptionPane.showMessageDialog(editor, "Password must be at least 20 characters");
+            gui.DialogHelper.showError(editor, "Invalid Password", "Password must be at least 20 characters");
             return;
         }
 
@@ -493,20 +490,20 @@ public class SettingsPanel extends JPanel {
             
             if (!hasUpper || !hasSpecial) {
                 String requirements = "Password must contain at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':\",./<>?), OR score 'Strong' or higher in the strength indicator.";
-                JOptionPane.showMessageDialog(editor, requirements);
+                gui.DialogHelper.showWarning(editor, "Password Requirements", requirements, null);
                 return;
             }
         }
 
         if (score < 45) { // Require at least 'Good' (45+)
-            JOptionPane.showMessageDialog(editor, "Password is too weak. Please create a stronger password (aim for 'Good' or 'Strong' in the indicator).");
+            gui.DialogHelper.showWarning(editor, "Weak Password", "Password is too weak. Please create a stronger password (aim for 'Good' or 'Strong' in the indicator).", null);
             return;
         }
 
         var confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm new password", reminderField.getText(), "Confirm your new password.");
         var confirm = confirmResult.password;
         if (!java.util.Arrays.equals(pwd, confirm)) {
-            JOptionPane.showMessageDialog(editor, "Passwords do not match");
+            gui.DialogHelper.showError(editor, "Mismatch", "Passwords do not match");
             java.util.Arrays.fill(pwd, '\0');
             java.util.Arrays.fill(confirm, '\0');
             return;
@@ -561,7 +558,7 @@ public class SettingsPanel extends JPanel {
             cleanupOldUnencryptedBackups();
 
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(editor, "Encryption failed. Please check your password and try again.");
+            gui.DialogHelper.showError(editor, "Encryption Failed", "Encryption failed. Please check your password and try again.");
             statusLabel.setText("Encryption failed. Please check your password and try again.");
             statusLabel.setForeground(Color.RED);
         } finally {
@@ -606,16 +603,13 @@ public class SettingsPanel extends JPanel {
             message.append("You can keep them if you need them for recovery purposes.<br><br>");
             message.append("What would you like to do?</html>");
 
-            int choice = JOptionPane.showOptionDialog(
-                editor,
-                message.toString(),
+            int choice = gui.DialogHelper.showOptions(editor,
                 "Clean Up Old Backups",
-                JOptionPane.YES_NO_OPTION,
+                "Security Notice: Old Unencrypted Backups Found",
+                message.toString(),
                 JOptionPane.WARNING_MESSAGE,
-                null,
                 new String[]{"Delete old unencrypted backups", "Keep them"},
-                "Delete old unencrypted backups"
-            );
+                "Delete old unencrypted backups");
 
             if (choice == JOptionPane.YES_OPTION) {
                 // Delete the unencrypted backups securely
@@ -628,12 +622,7 @@ public class SettingsPanel extends JPanel {
                     }
                 }
 
-                JOptionPane.showMessageDialog(
-                    editor,
-                    "Old unencrypted backup files have been securely deleted.",
-                    "Cleanup Complete",
-                    JOptionPane.INFORMATION_MESSAGE
-                );
+                gui.DialogHelper.showSuccess(editor, "Cleanup Complete", "Old unencrypted backup files have been securely deleted.");
             }
 
         } catch (Exception e) {
@@ -660,8 +649,10 @@ public class SettingsPanel extends JPanel {
     }
 
     private void backupLogFile() {
-        var confirm = JOptionPane.showConfirmDialog(editor, "Backups are copies of your current log file.\nIf encrypted, the backup will remain encrypted for security.\nDo you want to proceed?", "Backup Info", JOptionPane.YES_NO_OPTION);
-        if (confirm != JOptionPane.YES_OPTION) return;
+        var confirm = gui.DialogHelper.confirm(editor, "Backup Info",
+            "Backups are copies of your current log file.",
+            "If encrypted, the backup will remain encrypted for security.<br>Do you want to proceed?");
+        if (!confirm) return;
 
         var chooser = new JFileChooser();
         var backupDir = backupDirField.getText();
@@ -695,7 +686,7 @@ public class SettingsPanel extends JPanel {
                 Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 statusLabel.setText("Backup saved to: " + backupPath.toString());
             } catch (java.io.IOException | SecurityException ex) {
-                JOptionPane.showMessageDialog(editor, "Backup failed. Please check file permissions and try again.");
+                gui.DialogHelper.showError(editor, "Backup Failed", "Backup failed. Please check file permissions and try again.");
             }
         }
     }
@@ -704,13 +695,13 @@ public class SettingsPanel extends JPanel {
         try (var fos = new FileOutputStream(settingsPath.toFile())) {
             settings.store(fos, "LogHog settings");
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(editor, "Error saving settings. Please check file permissions and try again.");
+            gui.DialogHelper.showError(editor, "Error", "Error saving settings. Please check file permissions and try again.");
         }
     }
 
     private void decryptLogFile() {
         if (!logFileHandler.isEncrypted()) {
-            JOptionPane.showMessageDialog(editor, "The log file is not currently encrypted.", "Not Encrypted", JOptionPane.INFORMATION_MESSAGE);
+            gui.DialogHelper.showInfo(editor, "Not Encrypted", "The log file is not currently encrypted.");
             return;
         }
 
@@ -744,16 +735,14 @@ public class SettingsPanel extends JPanel {
     }
 
     private boolean showDecryptionWarning() {
-        var confirm = JOptionPane.showConfirmDialog(editor,
-            "<html><b>WARNING: Security Risk</b><br><br>" +
+        var confirm = gui.DialogHelper.confirm(editor,
+            "Decrypt Log File - Security Warning",
+            "WARNING: Security Risk",
             "This will permanently decrypt your log file and save it as plain text.<br>" +
             "Anyone with access to your computer will be able to read the file.<br><br>" +
             "A backup of the encrypted file will be saved as log.txt.bak<br><br>" +
-            "Are you sure you want to proceed?</html>",
-            "Decrypt Log File - Security Warning",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE);
-        return confirm == JOptionPane.YES_OPTION;
+            "Are you sure you want to proceed?");
+        return confirm;
     }
 
     private void backupSettingsFile() {
@@ -798,17 +787,11 @@ public class SettingsPanel extends JPanel {
     }
 
     private void showDecryptionSuccessMessage() {
-        JOptionPane.showMessageDialog(editor,
-            "Log file has been decrypted successfully.\nA backup of the encrypted file was saved as log.txt.bak",
-            "Decryption Complete",
-            JOptionPane.INFORMATION_MESSAGE);
+        gui.DialogHelper.showSuccess(editor, "Decryption Complete", "Log file has been decrypted successfully.", "A backup of the encrypted file was saved as log.txt.bak");
     }
 
     private void handleDecryptionError(Exception ex) {
-        JOptionPane.showMessageDialog(editor,
-            "Decryption failed: " + ex.getMessage(),
-            "Error",
-            JOptionPane.ERROR_MESSAGE);
+        gui.DialogHelper.showError(editor, "Error", "Decryption failed: " + ex.getMessage());
         statusLabel.setText("Decryption failed.");
         statusLabel.setForeground(Color.RED);
     }
