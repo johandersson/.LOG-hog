@@ -391,6 +391,21 @@ public class FullLogPanel extends LogPanel {
                     // Update statistics on EDT
                     LogStatistics stats = new LogStatistics(parsedData.allEntries, logPath);
                     infoPanel.updateStatistics(stats);
+                    // If requested, scroll to the end of the document so newest entries are visible
+                    if (scrollToBottom) {
+                        try {
+                            int len = fullLogPane.getDocument().getLength();
+                            fullLogPane.setCaretPosition(len);
+                            fullLogPane.requestFocusInWindow();
+                            try {
+                                var rect = fullLogPane.modelToView(fullLogPane.getCaretPosition());
+                                if (rect != null) fullLogPane.scrollRectToVisible(rect);
+                            } catch (javax.swing.text.BadLocationException ignored) {
+                                // best-effort scroll; ignore if location not available
+                            }
+                        } catch (Exception ignored) {}
+                    }
+
                     if (onComplete != null) onComplete.run();
                 } catch (InterruptedException | java.util.concurrent.CancellationException ex) {
                     // cancelled - ignore
