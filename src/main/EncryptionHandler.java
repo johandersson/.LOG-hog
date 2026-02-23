@@ -22,6 +22,7 @@ import java.util.Properties;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 import filehandling.LogFileHandler;
 import gui.DialogHelper;
@@ -102,7 +103,20 @@ public class EncryptionHandler {
         boolean success = false;
         int attempts = 0;
         while (!success) {
-            PasswordDialog.PasswordResult result = PasswordDialog.showPasswordDialog(parentFrame, dialogTitle, passwordReminder);
+            PasswordDialog.PasswordResult result;
+            // Ensure the password dialog is shown on the EDT regardless of caller thread
+            if (SwingUtilities.isEventDispatchThread()) {
+                result = PasswordDialog.showPasswordDialog(parentFrame, dialogTitle, passwordReminder);
+            } else {
+                final PasswordDialog.PasswordResult[] holder = new PasswordDialog.PasswordResult[1];
+                try {
+                    SwingUtilities.invokeAndWait(() -> holder[0] = PasswordDialog.showPasswordDialog(parentFrame, dialogTitle, passwordReminder));
+                } catch (Exception e) {
+                    // If dialog invocation fails, treat as cancel
+                    return false;
+                }
+                result = holder[0];
+            }
             char[] pwd = result.password;
             if (pwd == null) {
                 if (exitOnCancel) {
@@ -169,7 +183,7 @@ public class EncryptionHandler {
                 
                 if (isAuthError) {
                     int remaining = 4 - attempts;
-                    JOptionPane.showMessageDialog(parentFrame, "<html><b>🔒 Authentication Failed</b><br><br>The password you entered appears to be incorrect,<br>or the encrypted file has an unexpected format.<br><br>You have <b>" + remaining + "</b> attempt" + (remaining == 1 ? "" : "s") + " remaining before the application locks for security.<br><br><i>Tip: Double-check your password or password manager.</i></html>", "Authentication Failed", JOptionPane.ERROR_MESSAGE);
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parentFrame, "<html><b>🔒 Authentication Failed</b><br><br>The password you entered appears to be incorrect,<br>or the encrypted file has an unexpected format.<br><br>You have <b>" + remaining + "</b> attempt" + (remaining == 1 ? "" : "s") + " remaining before the application locks for security.<br><br><i>Tip: Double-check your password or password manager.</i></html>", "Authentication Failed", JOptionPane.ERROR_MESSAGE));
                     // WindowShakeAnimation.shake(parentFrame);
                     // Add progressive delay after failed attempts
                     long delay = switch (attempts) {
@@ -178,7 +192,7 @@ public class EncryptionHandler {
                         case 3 -> 30000; // 30 seconds
                         default -> 0;
                     };
-                    SecurityDelayDialog.showDialog(delay, parentFrame);
+                    SwingUtilities.invokeLater(() -> SecurityDelayDialog.showDialog(delay, parentFrame));
                 } else {
                     // For non-authentication errors, show error and exit/return
                     logFileHandler.showErrorDialog("<html><b>📁 Load Failed</b><br><br>Unable to load log entries due to a file error.<br><br><i>Technical details: " + e.getClass().getSimpleName() + "</i><br><br><i>Tip: The file may be corrupted. Try restoring from a backup.</i></html>");

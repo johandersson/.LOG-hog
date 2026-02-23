@@ -19,6 +19,7 @@ package gui;
 
 import java.awt.Component;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 /**
  * Utility class for showing consistent, formatted dialogs throughout the application.
@@ -39,7 +40,12 @@ public class DialogHelper {
             html += "<br><br>" + details;
         }
         html += "</html>";
-        JOptionPane.showMessageDialog(parent, html, title, JOptionPane.ERROR_MESSAGE);
+        final String htmlFinal = html;
+        if (SwingUtilities.isEventDispatchThread()) {
+            JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.ERROR_MESSAGE);
+        } else {
+            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.ERROR_MESSAGE));
+        }
     }
     
     /**
@@ -58,7 +64,12 @@ public class DialogHelper {
             html += "<br><br>" + details;
         }
         html += "</html>";
-        JOptionPane.showMessageDialog(parent, html, title, JOptionPane.WARNING_MESSAGE);
+        final String htmlFinal = html;
+        if (SwingUtilities.isEventDispatchThread()) {
+            JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.WARNING_MESSAGE);
+        } else {
+            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.WARNING_MESSAGE));
+        }
     }
     
     /**
@@ -77,7 +88,12 @@ public class DialogHelper {
             html += "<br><br>" + details;
         }
         html += "</html>";
-        JOptionPane.showMessageDialog(parent, html, title, JOptionPane.INFORMATION_MESSAGE);
+        final String htmlFinal = html;
+        if (SwingUtilities.isEventDispatchThread()) {
+            JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.INFORMATION_MESSAGE));
+        }
     }
     
     /**
@@ -96,7 +112,12 @@ public class DialogHelper {
             html += "<br><br>" + details;
         }
         html += "</html>";
-        JOptionPane.showMessageDialog(parent, html, title, JOptionPane.INFORMATION_MESSAGE);
+        final String htmlFinal = html;
+        if (SwingUtilities.isEventDispatchThread()) {
+            JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.INFORMATION_MESSAGE));
+        }
     }
     
     /**
@@ -116,9 +137,21 @@ public class DialogHelper {
             html += "<br><br>" + details;
         }
         html += "</html>";
-        int result = JOptionPane.showConfirmDialog(parent, html, title, 
-            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-        return result == JOptionPane.YES_OPTION;
+        final String htmlFinal = html;
+        if (SwingUtilities.isEventDispatchThread()) {
+            int result = JOptionPane.showConfirmDialog(parent, htmlFinal, title,
+                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            return result == JOptionPane.YES_OPTION;
+        } else {
+            final int[] result = new int[1];
+            try {
+                SwingUtilities.invokeAndWait(() -> result[0] = JOptionPane.showConfirmDialog(parent, htmlFinal, title,
+                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE));
+            } catch (Exception e) {
+                return false;
+            }
+            return result[0] == JOptionPane.YES_OPTION;
+        }
     }
     
     /**
@@ -141,8 +174,20 @@ public class DialogHelper {
             html += "<br><br>" + details;
         }
         html += "</html>";
-        return JOptionPane.showOptionDialog(parent, html, title,
-            JOptionPane.YES_NO_OPTION, messageType, null, options, defaultOption);
+        final String htmlFinal = html;
+        if (SwingUtilities.isEventDispatchThread()) {
+            return JOptionPane.showOptionDialog(parent, htmlFinal, title,
+                JOptionPane.YES_NO_OPTION, messageType, null, options, defaultOption);
+        } else {
+            final int[] result = new int[1];
+            try {
+                SwingUtilities.invokeAndWait(() -> result[0] = JOptionPane.showOptionDialog(parent, htmlFinal, title,
+                    JOptionPane.YES_NO_OPTION, messageType, null, options, defaultOption));
+            } catch (Exception e) {
+                return -1;
+            }
+            return result[0];
+        }
     }
     
     /**

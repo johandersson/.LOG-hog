@@ -380,29 +380,19 @@ public class LogTextEditor extends JFrame {
             System.exit(0);
         }
 
-        // Show a startup progress dialog before constructing the main UI.
-        // Use invokeLater to show the dialog, then queue UI construction afterwards
-        // so the dialog becomes visible before heavy initialization runs.
-        LoadingProgressDialog startupProgress = new LoadingProgressDialog(null, "Starting");
-        startupProgress.show();
-
-        Thread uiStarter = new Thread(() -> {
-            SwingUtilities.invokeLater(() -> {
-                try {
-                    LogTextEditor editor = new LogTextEditor();
-                    // Close the startup dialog and show the main window
-                    startupProgress.close();
-                    editor.setVisible(true);
-                    editor.startSingleInstanceListener();
-                } catch (Exception e) {
-                    // Security: Don't log exception details to console
-                    startupProgress.close();
-                    System.exit(1);
-                }
-            });
-        }, "UIStarter");
-        uiStarter.setDaemon(true);
-        uiStarter.start();
+        // Construct the main UI on the EDT. The constructor and loadSettings
+        // will show splash and the loading progress at the appropriate times.
+        SwingUtilities.invokeLater(() -> {
+            try {
+                LogTextEditor editor = new LogTextEditor();
+                // don't call setVisible here: loadSettings will make the
+                // window visible after any loading/decryption completes.
+                editor.startSingleInstanceListener();
+            } catch (Exception e) {
+                // Security: Don't log exception details to console
+                System.exit(1);
+            }
+        });
     }
 
     public void updateRecentLogsMenu(Menu recentLogsMenu) {
@@ -475,7 +465,25 @@ public class LogTextEditor extends JFrame {
                 passwordReminder = secureSettings.getDecryptedProperty(settings, "passwordReminder", "");
                 var dataLoaded = false;
                 if ("true".equals(enc)) {
-                    encryptionHandler.handleEncryptionSetup();
+                    // Run encryption setup (password prompt + decryption & loading)
+                    // on a background thread so the EDT stays responsive. The
+                    // EncryptionHandler will prompt for password on the EDT
+                    // and show its own LoadingProgressDialog during decryption.
+                    Thread encLoader = new Thread(() -> {
+                        try {
+                            encryptionHandler.handleEncryptionSetup();
+                        } catch (Exception e) {
+                            SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
+                        } finally {
+                            SwingUtilities.invokeLater(() -> {
+                                // Show main window after loading/decryption completes
+                                LogTextEditor.this.setVisible(true);
+                                entryPanel.getTextArea().requestFocusInWindow();
+                            });
+                        }
+                    }, "EncryptedLoader");
+                    encLoader.setDaemon(true);
+                    encLoader.start();
                     dataLoaded = true;
                 }
                 if (!dataLoaded) {

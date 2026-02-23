@@ -27,6 +27,7 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 
 import javax.swing.Box;
+import javax.swing.DefaultListModel;
 import javax.swing.BoxLayout;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -238,24 +239,40 @@ public class UIInitializer {
             if (idx == 2) {
                 if (!editor.getFullLogPanel().isSuppressAutoLoad()) {
                     LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
-                    progress.show();
-                    editor.getFullLogPanel().loadFullLog(() -> progress.close());
+                    // Delay showing the dialog to avoid flashing for fast loads
+                    final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+                    showTimer.setRepeats(false);
+                    showTimer.start();
+                    editor.getFullLogPanel().loadFullLog(() -> {
+                        if (showTimer.isRunning()) showTimer.stop();
+                        progress.close();
+                    });
                 }
             } else if (idx == 1) {
-                // Log Entries tab
+                // Log Entries tab - load only filtered entries (default to current year/month)
                 LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
-                progress.show();
-                // Load entries in background then update view on EDT
+                final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+                showTimer.setRepeats(false);
+                showTimer.start();
+                // Determine default filter: current year and month
+                int currentYear = java.time.Year.now().getValue();
+                int currentMonth = java.time.LocalDate.now().getMonthValue();
+                DefaultListModel<String> model = editor.getLogListPanel().getListModel();
+
+                // Load filtered entries in background then update view on EDT
                 new Thread(() -> {
                     try {
-                        editor.loadLogEntries();
+                        editor.getLogFileHandler().loadFilteredEntries(model, currentYear, currentMonth);
                         SwingUtilities.invokeLater(() -> editor.updateLogListView());
                     } catch (Exception ex) {
                         SwingUtilities.invokeLater(() -> editor.getLogFileHandler().showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
                     } finally {
-                        SwingUtilities.invokeLater(() -> progress.close());
+                        SwingUtilities.invokeLater(() -> {
+                            if (showTimer.isRunning()) showTimer.stop();
+                            progress.close();
+                        });
                     }
-                }, "LogEntriesLoader").start();
+                }, "LogEntriesFilteredLoader").start();
             } else if (idx == 3) {
                 editor.getSettingsPanel().loadCurrentSettings();
             } else if (idx == 5) {
@@ -290,16 +307,19 @@ public class UIInitializer {
         dialog.setSize(300, 100);
         dialog.setLocationRelativeTo(parent);
 
-        // Show dialog and simulate progress
-        SwingUtilities.invokeLater(() -> {
-            dialog.setVisible(true);
+        // Show dialog (non-modal) then perform delay off the EDT so UI stays responsive
+        dialog.setModal(false);
+        SwingUtilities.invokeLater(() -> dialog.setVisible(true));
+        new Thread(() -> {
             try {
                 Thread.sleep(3000); // 3 seconds delay
             } catch (InterruptedException e) {
                 // Ignore
             }
-            dialog.setVisible(false);
-            dialog.dispose();
-        });
+            SwingUtilities.invokeLater(() -> {
+                dialog.setVisible(false);
+                dialog.dispose();
+            });
+        }, "SecurityDelayCloser").start();
     }
 }

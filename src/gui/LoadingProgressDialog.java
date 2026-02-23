@@ -51,7 +51,19 @@ public class LoadingProgressDialog extends ProgressDialogBase {
      */
     public void show() {
         startTime = System.currentTimeMillis();
-        SwingUtilities.invokeLater(() -> dialog.setVisible(true));
+        // Ensure the dialog is visible before returning. If called from the EDT,
+        // setVisible directly; otherwise use invokeAndWait so the caller can
+        // continue only after the dialog is shown.
+        if (SwingUtilities.isEventDispatchThread()) {
+            dialog.setVisible(true);
+        } else {
+            try {
+                SwingUtilities.invokeAndWait(() -> dialog.setVisible(true));
+            } catch (Exception e) {
+                // If we fail to show synchronously, fall back to asynchronous show
+                SwingUtilities.invokeLater(() -> dialog.setVisible(true));
+            }
+        }
     }
     
     /**
