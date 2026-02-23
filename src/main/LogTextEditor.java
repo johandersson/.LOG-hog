@@ -380,16 +380,29 @@ public class LogTextEditor extends JFrame {
             System.exit(0);
         }
 
-        SwingUtilities.invokeLater(() -> {
-            try {
-                LogTextEditor editor = new LogTextEditor();
-                editor.setVisible(true);
-                editor.startSingleInstanceListener();
-            } catch (Exception e) {
-                // Security: Don't log exception details to console
-                System.exit(1);
-            }
-        });
+        // Show a startup progress dialog before constructing the main UI.
+        // Use invokeLater to show the dialog, then queue UI construction afterwards
+        // so the dialog becomes visible before heavy initialization runs.
+        LoadingProgressDialog startupProgress = new LoadingProgressDialog(null, "Starting");
+        startupProgress.show();
+
+        Thread uiStarter = new Thread(() -> {
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    LogTextEditor editor = new LogTextEditor();
+                    // Close the startup dialog and show the main window
+                    startupProgress.close();
+                    editor.setVisible(true);
+                    editor.startSingleInstanceListener();
+                } catch (Exception e) {
+                    // Security: Don't log exception details to console
+                    startupProgress.close();
+                    System.exit(1);
+                }
+            });
+        }, "UIStarter");
+        uiStarter.setDaemon(true);
+        uiStarter.start();
     }
 
     public void updateRecentLogsMenu(Menu recentLogsMenu) {
