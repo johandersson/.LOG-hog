@@ -121,14 +121,7 @@ public class FullLogFileLoader {
 
         if (allEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
             // Take the most recent N entries (already sorted newest first)
-            entriesToRender = allEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER);
-            // Add info message at top
-            List<String> infoEntry = new ArrayList<>();
-            infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + allEntries.size() + " total)");
-            infoEntry.add("Use the Log List view with filters to browse older entries.");
-            entriesToRender = new ArrayList<>(entriesToRender);
-            // Put info entry at the bottom so it doesn't push newest entries out of view
-            entriesToRender.add(infoEntry);
+            entriesToRender = new ArrayList<>(allEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER));
         } else {
             entriesToRender = allEntries;
         }
@@ -169,14 +162,7 @@ public class FullLogFileLoader {
         // Apply lazy loading if too many entries
         List<List<String>> entriesToRender;
         if (filteredEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
-            entriesToRender = filteredEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER);
-            // Add info message at top
-            List<String> infoEntry = new ArrayList<>();
-            infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + filteredEntries.size() + " total for " + year + "-" + String.format("%02d", month) + ")");
-            infoEntry.add("Use the Log List view with filters to browse older entries.");
-            entriesToRender = new ArrayList<>(entriesToRender);
-            // Put info entry at the bottom so it doesn't push newest entries out of view
-            entriesToRender.add(infoEntry);
+            entriesToRender = new ArrayList<>(filteredEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER));
         } else {
             entriesToRender = filteredEntries;
         }
@@ -210,14 +196,7 @@ public class FullLogFileLoader {
         // Apply lazy loading if too many entries
         List<List<String>> entriesToRender;
         if (filteredEntries.size() > MAX_ENTRIES_TO_RENDER) {
-            entriesToRender = filteredEntries.subList(0, MAX_ENTRIES_TO_RENDER);
-            // Add info message at top
-            List<String> infoEntry = new ArrayList<>();
-            infoEntry.add("Showing " + MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + filteredEntries.size() + " total for " + year + ")");
-            infoEntry.add("Use the Log List view with filters to browse older entries.");
-            entriesToRender = new ArrayList<>(entriesToRender);
-            // Put info entry at the bottom so it doesn't push newest entries out of view
-            entriesToRender.add(infoEntry);
+            entriesToRender = new ArrayList<>(filteredEntries.subList(0, MAX_ENTRIES_TO_RENDER));
         } else {
             entriesToRender = filteredEntries;
         }

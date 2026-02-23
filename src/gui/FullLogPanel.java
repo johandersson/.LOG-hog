@@ -270,6 +270,13 @@ public class FullLogPanel extends LogPanel {
                         // Update statistics
                         LogStatistics stats = new LogStatistics(parsed.allEntries, logPath);
                         infoPanel.updateStatistics(stats);
+                        // Show a steady small red info message under the stats if view is limited
+                        if (parsed.allEntries != null && parsed.entriesToRender != null && parsed.allEntries.size() > parsed.entriesToRender.size()) {
+                            String infoHtml = "<html>Showing " + parsed.entriesToRender.size() + " most recent entries (out of " + parsed.allEntries.size() + " total)<br>Use the Log List view with filters to browse older entries.</html>";
+                            infoPanel.setLimitInfo(infoHtml);
+                        } else {
+                            infoPanel.clearLimitInfo();
+                        }
                         updateLockButton();
                         if (onComplete != null) onComplete.run();
                     } catch (Exception ex) {
@@ -328,6 +335,12 @@ public class FullLogPanel extends LogPanel {
                         LinkHandler.addLinkListeners(fullLogPane);
                         LogStatistics stats = new LogStatistics(parsed.allEntries, logPath);
                         infoPanel.updateStatistics(stats);
+                            if (parsed.allEntries != null && parsed.entriesToRender != null && parsed.allEntries.size() > parsed.entriesToRender.size()) {
+                                String infoHtml = "<html>Showing " + parsed.entriesToRender.size() + " most recent entries (out of " + parsed.allEntries.size() + " total)<br>Use the Log List view with filters to browse older entries.</html>";
+                                infoPanel.setLimitInfo(infoHtml);
+                            } else {
+                                infoPanel.clearLimitInfo();
+                            }
                         if (callback != null) callback.run();
                         updateLockButton();
                     } catch (Exception ex) {
