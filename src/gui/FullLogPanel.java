@@ -233,21 +233,43 @@ public class FullLogPanel extends LogPanel {
     }
 
     public void loadFullLog() {
-        SwingUtilities.invokeLater(() -> {
-            if (editor.isLocked()) {
-                handleLockedState();
-                return;
+        if (editor.isLocked()) {
+            SwingUtilities.invokeLater(this::handleLockedState);
+            return;
+        }
+
+        updateButtonStates(false);
+        var logPath = Path.of(System.getProperty("user.home"), "log.txt");
+        if (!Files.exists(logPath)) {
+            SwingUtilities.invokeLater(this::showLogNotFound);
+            return;
+        }
+
+        clearEditorForNewLoad(logPath);
+
+        // Parse in background to avoid blocking the EDT and allow progress dialog to show
+        Thread loader = new Thread(() -> {
+            try {
+                var parsed = fileLoader.parseLogFile(logPath, true);
+                // Render and link handling must run on EDT
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        MarkdownRenderer.renderMarkdownFromEntries(fullLogPane, parsed.entriesToRender, true);
+                        LinkHandler.addLinkListeners(fullLogPane);
+                        // Update statistics
+                        LogStatistics stats = new LogStatistics(parsed.allEntries, logPath);
+                        infoPanel.updateStatistics(stats);
+                        updateLockButton();
+                    } catch (Exception ex) {
+                        handleLoadException(ex, logPath);
+                    }
+                });
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> handleLoadException(ex, logPath));
             }
-            updateButtonStates(false);
-            var logPath = Path.of(System.getProperty("user.home"), "log.txt");
-            if (!Files.exists(logPath)) {
-                showLogNotFound();
-                return;
-            }
-            clearEditorForNewLoad(logPath);
-            loadAndProcessLogFile(logPath, true);
-            updateLockButton();
-        });
+        }, "FullLogLoader");
+        loader.setDaemon(true);
+        loader.start();
     }
 
     public void loadFullLogNoScroll() {
@@ -256,25 +278,47 @@ public class FullLogPanel extends LogPanel {
 
     public void loadFullLogNoScroll(Runnable callback) {
         suppressAutoLoad = true;
-        SwingUtilities.invokeLater(() -> {
-            if (editor.isLocked()) {
-                handleLockedState();
-                return;
-            }
-            updateButtonStates(false);
-            var logPath = Path.of(System.getProperty("user.home"), "log.txt");
-            if (!Files.exists(logPath)) {
-                showLogNotFound();
-                return;
-            }
-            clearEditorForNewLoad(logPath);
-            loadAndProcessLogFile(logPath, false);
-            updateLockButton();
-            if (callback != null) {
-                callback.run();
-            }
+        if (editor.isLocked()) {
+            SwingUtilities.invokeLater(this::handleLockedState);
             suppressAutoLoad = false;
-        });
+            return;
+        }
+
+        updateButtonStates(false);
+        var logPath = Path.of(System.getProperty("user.home"), "log.txt");
+        if (!Files.exists(logPath)) {
+            SwingUtilities.invokeLater(this::showLogNotFound);
+            suppressAutoLoad = false;
+            return;
+        }
+        clearEditorForNewLoad(logPath);
+
+        Thread loader = new Thread(() -> {
+            try {
+                var parsed = fileLoader.parseLogFile(logPath, false);
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        MarkdownRenderer.renderMarkdownFromEntries(fullLogPane, parsed.entriesToRender, false);
+                        LinkHandler.addLinkListeners(fullLogPane);
+                        LogStatistics stats = new LogStatistics(parsed.allEntries, logPath);
+                        infoPanel.updateStatistics(stats);
+                        if (callback != null) callback.run();
+                        updateLockButton();
+                    } catch (Exception ex) {
+                        handleLoadException(ex, logPath);
+                    } finally {
+                        suppressAutoLoad = false;
+                    }
+                });
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> {
+                    handleLoadException(ex, logPath);
+                    suppressAutoLoad = false;
+                });
+            }
+        }, "FullLogLoaderNoScroll");
+        loader.setDaemon(true);
+        loader.start();
     }
 
     private void handleLockedState() {

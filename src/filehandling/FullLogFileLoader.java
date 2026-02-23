@@ -87,10 +87,19 @@ public class FullLogFileLoader {
      * @throws Exception if loading fails
      */
     public ParsedLogData loadAndProcessLogFileWithData(Path logPath, boolean scrollToBottom) throws Exception {
+        // For compatibility: parse then render on current thread
         ParsedLogData data = loadAndProcessLogFileInternal(logPath, scrollToBottom);
         MarkdownRenderer.renderMarkdownFromEntries(textPane, data.entriesToRender, scrollToBottom);
         LinkHandler.addLinkListeners(textPane);
         return data;
+    }
+
+    /**
+     * Parse the log file and return parsed data without performing any rendering.
+     * Callers can invoke rendering on the EDT after parsing completes.
+     */
+    public ParsedLogData parseLogFile(Path logPath, boolean scrollToBottom) throws Exception {
+        return loadAndProcessLogFileInternal(logPath, scrollToBottom);
     }
 
     /**
