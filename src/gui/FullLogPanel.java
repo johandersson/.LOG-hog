@@ -73,12 +73,16 @@ public class FullLogPanel extends LogPanel {
         return suppressAutoLoad;
     }
     private FullLogFileLoader fileLoader;
+    private Runnable cacheInvalidationListener;
 
     public FullLogPanel(LogTextEditor editor, LogFileHandler logFileHandler) {
         this.editor = editor;
         this.logFileHandler = logFileHandler;
         this.fullLogPane = new HighlightableTextPane();
         this.fileLoader = new FullLogFileLoader(logFileHandler, fullLogPane);
+        // Register listener so FullLogFileLoader cache is invalidated when filehandler updates
+        this.cacheInvalidationListener = () -> SwingUtilities.invokeLater(() -> fileLoader.invalidateCache());
+        this.logFileHandler.addCacheInvalidationListener(this.cacheInvalidationListener);
         this.fullLogPathLabel = new JLabel("Log file: (not loaded)");
         this.lockFileButton = new AccentButton(editor.isLocked() ? "Unlock File" : "Lock File");
         this.copyFullLogButton = new AccentButton("Copy Full Log to Clipboard");
@@ -248,6 +252,8 @@ public class FullLogPanel extends LogPanel {
             return;
         }
 
+        // Invalidate cached parsed data to ensure fresh parse (encryption/state may have changed)
+        fileLoader.invalidateCache();
         updateButtonStates(false);
         var logPath = Path.of(System.getProperty("user.home"), "log.txt");
         if (!Files.exists(logPath)) {
@@ -301,6 +307,8 @@ public class FullLogPanel extends LogPanel {
 
     public void loadFullLogNoScroll(Runnable callback) {
         suppressAutoLoad = true;
+        // Ensure cached parsed data is invalidated before loading
+        fileLoader.invalidateCache();
         loadFullLogNoScroll(callback, false);
     }
 
@@ -373,6 +381,8 @@ public class FullLogPanel extends LogPanel {
     }
 
     private void loadAndProcessLogFile(Path logPath) {
+        // Ensure cache is invalidated to reflect latest file/encryption state
+        fileLoader.invalidateCache();
         loadAndProcessLogFile(logPath, true);
     }
 
@@ -541,6 +551,10 @@ public class FullLogPanel extends LogPanel {
         if (timestampClickHandler != null) {
             timestampClickHandler.dispose();
             timestampClickHandler = null;
+        }
+        if (this.cacheInvalidationListener != null) {
+            this.logFileHandler.removeCacheInvalidationListener(this.cacheInvalidationListener);
+            this.cacheInvalidationListener = null;
         }
     }
 }

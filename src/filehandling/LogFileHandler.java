@@ -62,6 +62,34 @@ public class LogFileHandler implements LogFileOperations {
     private final FileCache cache = new FileCache();
     private EntryLoader entryLoader;
     private EntryEditor entryEditor;
+    // Listeners that should be invoked when entry caches or parsed data need invalidation
+    private final java.util.List<Runnable> cacheInvalidationListeners = new java.util.ArrayList<>();
+
+    public void addCacheInvalidationListener(Runnable r) {
+        if (r == null) return;
+        synchronized (cacheInvalidationListeners) {
+            cacheInvalidationListeners.add(r);
+        }
+    }
+
+    public void removeCacheInvalidationListener(Runnable r) {
+        if (r == null) return;
+        synchronized (cacheInvalidationListeners) {
+            cacheInvalidationListeners.remove(r);
+        }
+    }
+
+    private void notifyCacheInvalidationListeners() {
+        synchronized (cacheInvalidationListeners) {
+            for (Runnable r : new ArrayList<>(cacheInvalidationListeners)) {
+                try {
+                    r.run();
+                } catch (Exception e) {
+                    // swallow listener exceptions to avoid breaking file operations
+                }
+            }
+        }
+    }
 
     // Default constructor for backward compatibility
     public LogFileHandler() {
@@ -313,6 +341,8 @@ public class LogFileHandler implements LogFileOperations {
             
             // Invalidate caches after deletion
             entryLoader.invalidateCaches();
+            // Notify UI to invalidate parsed/full-log caches
+            notifyCacheInvalidationListeners();
             
             // Update list model if provided
             if (listModel != null) {
@@ -417,6 +447,8 @@ public class LogFileHandler implements LogFileOperations {
         encryptionManager.encryptFile(fullText);
         cache.updateCachedLines(new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1))));
         encrypted = true;
+        // Notify UI that encryption state changed and cached parsed data should be invalidated
+        notifyCacheInvalidationListeners();
     }
 
     private void invalidateEntryCache() {
@@ -472,6 +504,7 @@ public class LogFileHandler implements LogFileOperations {
 
         // Clear any cached data since encryption state changed
         cache.invalidateCaches();
+        notifyCacheInvalidationListeners();
     }
 
     @Override
@@ -501,6 +534,8 @@ public class LogFileHandler implements LogFileOperations {
         encrypted = false;
         this.salt = null;
         encryptionManager.disableEncryption();
+        // Notify UI that encryption was disabled and caches should be invalidated
+        notifyCacheInvalidationListeners();
     }
 
     private void sortListModel(DefaultListModel<String> listModel) {
@@ -550,6 +585,8 @@ public class LogFileHandler implements LogFileOperations {
         // Clear cache to force re-read with new credentials
         cache.clearCachedLines();
         cache.invalidateEntryCache();
+        // Notify listeners that parsed/full-log cache should be invalidated
+        notifyCacheInvalidationListeners();
     }
 
     @Override
@@ -672,6 +709,8 @@ public class LogFileHandler implements LogFileOperations {
         if (entryLoader != null) {
             entryLoader.invalidateCaches();
         }
+        // Notify listeners that sensitive data cleared and caches should be invalidated
+        notifyCacheInvalidationListeners();
     }
 
     public void showErrorDialog(String message) {

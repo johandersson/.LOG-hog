@@ -38,6 +38,10 @@ public class FullLogFileLoader {
     
     private final LogFileHandler logFileHandler;
     private final HighlightableTextPane textPane;
+    // Cached parsed data to avoid reparsing when the file hasn't changed
+    private ParsedLogData cachedParsedData = null;
+    private long cachedLastModified = 0L;
+    private final Object cacheLock = new Object();
     
     public FullLogFileLoader(LogFileHandler logFileHandler, HighlightableTextPane textPane) {
         this.logFileHandler = logFileHandler;
@@ -103,9 +107,35 @@ public class FullLogFileLoader {
     }
 
     /**
+     * Invalidate any cached parsed data. Call when the underlying file is modified externally
+     * or when encryption/decryption state has changed.
+     */
+    public void invalidateCache() {
+        synchronized (cacheLock) {
+            cachedParsedData = null;
+            cachedLastModified = 0L;
+        }
+    }
+
+    /**
      * Internal method that handles the parsing logic without rendering.
      */
     private ParsedLogData loadAndProcessLogFileInternal(Path logPath, boolean scrollToBottom) throws Exception {
+        // Try to reuse cached parsed data when file unchanged and no pending writes
+        try {
+            long lastModified = 0L;
+            if (Files.exists(logPath)) {
+                lastModified = Files.getLastModifiedTime(logPath).toMillis();
+            }
+            synchronized (cacheLock) {
+                if (cachedParsedData != null && cachedLastModified == lastModified && !logFileHandler.hasPendingWrites()) {
+                    return cachedParsedData;
+                }
+            }
+        } catch (Exception e) {
+            // Fall through to normal parse on any error
+        }
+
         // Use getLines() which returns cached lines for encrypted files
         // This ensures we get the most recent data including any formatting changes
         List<String> lines = logFileHandler.getLines();
@@ -126,7 +156,22 @@ public class FullLogFileLoader {
             entriesToRender = allEntries;
         }
 
-        return new ParsedLogData(allEntries, entriesToRender);
+        ParsedLogData result = new ParsedLogData(allEntries, entriesToRender);
+        // Update cache
+        try {
+            long lastModified = 0L;
+            if (Files.exists(logPath)) {
+                lastModified = Files.getLastModifiedTime(logPath).toMillis();
+            }
+            synchronized (cacheLock) {
+                cachedParsedData = result;
+                cachedLastModified = lastModified;
+            }
+        } catch (Exception e) {
+            // Ignore cache update failures
+        }
+
+        return result;
     }
     
     /**
@@ -145,20 +190,37 @@ public class FullLogFileLoader {
     }
 
     public void loadFilteredEntries(int year, int month) throws Exception {
-        // Use getLines() which returns cached lines
-        List<String> lines = logFileHandler.getLines();
-        
-        // Remove secure clipboard markers from lines
-        lines = lines.stream()
-            .map(LogFileHandler::removeSecureMarker)
-            .collect(Collectors.toList());
-        
-        // Parse all entries
-        List<List<String>> allEntries = LogParser.parseEntriesForFullLog(lines);
-        
+        // Prefer using cached parsed data when valid to avoid reparsing
+        List<List<String>> allEntries = null;
+        try {
+            long lastModified = 0L;
+            Path logPath = logFileHandler.getFilePath();
+            if (Files.exists(logPath)) {
+                lastModified = Files.getLastModifiedTime(logPath).toMillis();
+            }
+            synchronized (cacheLock) {
+                if (cachedParsedData != null && cachedLastModified == lastModified && !logFileHandler.hasPendingWrites()) {
+                    allEntries = cachedParsedData.allEntries;
+                }
+            }
+        } catch (Exception e) {
+            allEntries = null;
+        }
+
+        if (allEntries == null) {
+            // Use getLines() which returns cached lines
+            List<String> lines = logFileHandler.getLines();
+            // Remove secure clipboard markers from lines
+            lines = lines.stream()
+                .map(LogFileHandler::removeSecureMarker)
+                .collect(Collectors.toList());
+            // Parse all entries
+            allEntries = LogParser.parseEntriesForFullLog(lines);
+        }
+
         // Filter entries by year and month
         List<List<String>> filteredEntries = filterEntriesByDate(allEntries, year, month);
-        
+
         // Apply lazy loading if too many entries
         List<List<String>> entriesToRender;
         if (filteredEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
@@ -166,7 +228,7 @@ public class FullLogFileLoader {
         } else {
             entriesToRender = filteredEntries;
         }
-        
+
         MarkdownRenderer.renderMarkdownFromEntries(textPane, entriesToRender, true);
         LinkHandler.addLinkListeners(textPane);
     }
@@ -176,31 +238,46 @@ public class FullLogFileLoader {
      * @param year The year to filter by
      * @throws Exception if loading fails
      */
-    /**
-     * Loads and processes the log file for display without scrolling to bottom.
-     * @param logPath Path to the log file
-        // Use getLines() which returns cached lines
-        List<String> lines = logFileHandler.getLines();
-        
-        // Remove secure clipboard markers from lines
-        lines = lines.stream()
-            .map(LogFileHandler::removeSecureMarker)
-            .collect(Collectors.toList());
-        
-        // Parse all entries
-        List<List<String>> allEntries = LogParser.parseEntriesForFullLog(lines);
-        
+    public void loadFilteredEntriesByYear(int year) throws Exception {
+        // Prefer using cached parsed data when valid to avoid reparsing
+        List<List<String>> allEntries = null;
+        try {
+            long lastModified = 0L;
+            Path logPath = logFileHandler.getFilePath();
+            if (Files.exists(logPath)) {
+                lastModified = Files.getLastModifiedTime(logPath).toMillis();
+            }
+            synchronized (cacheLock) {
+                if (cachedParsedData != null && cachedLastModified == lastModified && !logFileHandler.hasPendingWrites()) {
+                    allEntries = cachedParsedData.allEntries;
+                }
+            }
+        } catch (Exception e) {
+            allEntries = null;
+        }
+
+        if (allEntries == null) {
+            // Use getLines() which returns cached lines
+            List<String> lines = logFileHandler.getLines();
+            // Remove secure clipboard markers from lines
+            lines = lines.stream()
+                .map(LogFileHandler::removeSecureMarker)
+                .collect(Collectors.toList());
+            // Parse all entries
+            allEntries = LogParser.parseEntriesForFullLog(lines);
+        }
+
         // Filter entries by year
         List<List<String>> filteredEntries = filterEntriesByYear(allEntries, year);
-        
+
         // Apply lazy loading if too many entries
         List<List<String>> entriesToRender;
-        if (filteredEntries.size() > MAX_ENTRIES_TO_RENDER) {
-            entriesToRender = new ArrayList<>(filteredEntries.subList(0, MAX_ENTRIES_TO_RENDER));
+        if (filteredEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
+            entriesToRender = new ArrayList<>(filteredEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER));
         } else {
             entriesToRender = filteredEntries;
         }
-        
+
         MarkdownRenderer.renderMarkdownFromEntries(textPane, entriesToRender, true);
         LinkHandler.addLinkListeners(textPane);
     }
