@@ -252,8 +252,8 @@ public class FullLogPanel extends LogPanel {
             return;
         }
 
-        // Invalidate cached parsed data to ensure fresh parse (encryption/state may have changed)
-        fileLoader.invalidateCache();
+        // Rely on `FullLogFileLoader` cache and `logFileHandler` invalidation listeners
+        // to avoid unnecessary reparsing on tab switches.
         updateButtonStates(false);
         var logPath = Path.of(System.getProperty("user.home"), "log.txt");
         if (!Files.exists(logPath)) {
@@ -307,8 +307,8 @@ public class FullLogPanel extends LogPanel {
 
     public void loadFullLogNoScroll(Runnable callback) {
         suppressAutoLoad = true;
-        // Ensure cached parsed data is invalidated before loading
-        fileLoader.invalidateCache();
+        // Rely on `FullLogFileLoader` cache and `logFileHandler` invalidation listeners
+        // for cache coherence; perform the load without forcing invalidation.
         loadFullLogNoScroll(callback, false);
     }
 

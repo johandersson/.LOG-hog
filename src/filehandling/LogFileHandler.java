@@ -139,6 +139,8 @@ public class LogFileHandler implements LogFileOperations {
             // Invalidate both file cache and entry loader caches so the UI
             // picks up the newly saved entry and renders markdown immediately.
             invalidateEntryCache();
+            // Notify UI (FullLog, etc.) that parsed/full-log caches should be invalidated
+            notifyCacheInvalidationListeners();
         } catch (java.nio.file.AccessDeniedException e) {
             showErrorDialog("<html><b>💾 Save Failed - Access Denied</b><br><br>" +
                 "The log file is <b>read-only</b> or you don't have write permissions.<br><br>" +
@@ -157,6 +159,7 @@ public class LogFileHandler implements LogFileOperations {
                     sortListModel(listModel);
                     // Ensure both caches are invalidated after creating the file
                     invalidateEntryCache();
+                    notifyCacheInvalidationListeners();
                 } catch (Exception ex) {
                     // Security: Don't expose internal error details
                     showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save log entry. Please check file permissions.</html>");
@@ -215,6 +218,9 @@ public class LogFileHandler implements LogFileOperations {
             cache.invalidateEntryCache();
             // Also set pending lines so write-back will flush to disk
             cache.setPendingLines(updatedLines);
+
+            // Notify UI that parsed/full-log caches should be invalidated or refreshed
+            notifyCacheInvalidationListeners();
             
             // Invalidate EntryLoader caches (timestamps, parsed entries, content cache)
             if (entryLoader != null) {
@@ -244,6 +250,8 @@ public class LogFileHandler implements LogFileOperations {
                     backupManager.createNumberedBackup();
                 }
                 encryptionManager.encryptFile(fullText);
+                // Notify UI that file content changed
+                notifyCacheInvalidationListeners();
             } else {
                 // Create numbered backup before writing
                 if (backupManager != null) {
@@ -253,6 +261,8 @@ public class LogFileHandler implements LogFileOperations {
             }
             
             cache.clearPendingWrites();
+            // Notify UI that pending writes were flushed to disk and caches may need refresh
+            notifyCacheInvalidationListeners();
         } catch (Exception e) {
             // Security: Don't expose internal error details
             showErrorDialog("<html><b>💾 Write Failed</b><br><br>Unable to save changes to disk.<br>Please check file permissions and disk space.</html>");
@@ -297,6 +307,8 @@ public class LogFileHandler implements LogFileOperations {
                     backupManager.createNumberedBackup();
                 }
                 Files.write(filePath, lines);
+                // Notify UI that file content changed
+                notifyCacheInvalidationListeners();
             }
             
             // Update the list model
