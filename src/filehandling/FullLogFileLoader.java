@@ -107,6 +107,23 @@ public class FullLogFileLoader {
     }
 
     /**
+     * Returns true if the cached parsed data is fresh (file unchanged and no pending writes).
+     */
+    public boolean isCacheFresh(Path logPath) {
+        try {
+            long lastModified = 0L;
+            if (Files.exists(logPath)) {
+                lastModified = Files.getLastModifiedTime(logPath).toMillis();
+            }
+            synchronized (cacheLock) {
+                return cachedParsedData != null && cachedLastModified == lastModified && !logFileHandler.hasPendingWrites();
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
      * Invalidate any cached parsed data. Call when the underlying file is modified externally
      * or when encryption/decryption state has changed.
      */

@@ -64,6 +64,9 @@ public class LogFileHandler implements LogFileOperations {
     private EntryEditor entryEditor;
     // Listeners that should be invoked when entry caches or parsed data need invalidation
     private final java.util.List<Runnable> cacheInvalidationListeners = new java.util.ArrayList<>();
+    // WatchService for external file changes (Notepad or other editors)
+    private java.nio.file.WatchService watchService;
+    private Thread watchThread;
 
     public void addCacheInvalidationListener(Runnable r) {
         if (r == null) return;
@@ -103,6 +106,49 @@ public class LogFileHandler implements LogFileOperations {
         this.encryptionManager = new FileEncryptionManager(filePath, encryptor);
         this.entryLoader = new EntryLoader(this, encryptor);
         this.entryEditor = new EntryEditor(filePath, encryptionManager, cache);
+        startFileWatcher();
+    }
+
+    private void startFileWatcher() {
+        try {
+            Path dir = filePath.getParent();
+            if (dir == null) return;
+            watchService = java.nio.file.FileSystems.getDefault().newWatchService();
+            dir.register(watchService, java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY,
+                    java.nio.file.StandardWatchEventKinds.ENTRY_CREATE,
+                    java.nio.file.StandardWatchEventKinds.ENTRY_DELETE);
+            watchThread = new Thread(() -> {
+                while (!Thread.currentThread().isInterrupted()) {
+                    try {
+                        java.nio.file.WatchKey key = watchService.take();
+                        for (java.nio.file.WatchEvent<?> ev : key.pollEvents()) {
+                            java.nio.file.Path changed = (java.nio.file.Path) ev.context();
+                            if (changed != null && changed.equals(filePath.getFileName())) {
+                                // External modification detected - invalidate caches and notify listeners
+                                invalidateEntryCache();
+                                notifyCacheInvalidationListeners();
+                            }
+                        }
+                        key.reset();
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                    } catch (Exception ex) {
+                        // Swallow exceptions to keep watcher alive
+                    }
+                }
+            }, "LogFileHandler-Watcher");
+            watchThread.setDaemon(true);
+            watchThread.start();
+        } catch (Exception e) {
+            // If watcher can't be started, continue without it
+        }
+    }
+
+    private void stopFileWatcher() {
+        try {
+            if (watchThread != null) watchThread.interrupt();
+            if (watchService != null) watchService.close();
+        } catch (Exception ignored) {}
     }
 
     public static String removeSecureMarker(String text) {
@@ -130,6 +176,7 @@ public class LogFileHandler implements LogFileOperations {
         String uniqueTimeStamp = entryEditor.createUniqueTimestamp(count);
 
         try {
+            writeDebug("saveText: attempt (len=" + text.length() + ")");
             entryEditor.setBackupManager(backupManager);
             entryEditor.saveEntry(text, uniqueTimeStamp, encrypted);
 
@@ -141,7 +188,9 @@ public class LogFileHandler implements LogFileOperations {
             invalidateEntryCache();
             // Notify UI (FullLog, etc.) that parsed/full-log caches should be invalidated
             notifyCacheInvalidationListeners();
+            writeDebug("saveText: success (ts=" + uniqueTimeStamp + ")");
         } catch (java.nio.file.AccessDeniedException e) {
+            writeDebug("saveText: access denied - " + e.getMessage());
             showErrorDialog("<html><b>💾 Save Failed - Access Denied</b><br><br>" +
                 "The log file is <b>read-only</b> or you don't have write permissions.<br><br>" +
                 "<b>Solutions:</b><br>" +
@@ -160,6 +209,7 @@ public class LogFileHandler implements LogFileOperations {
                     // Ensure both caches are invalidated after creating the file
                     invalidateEntryCache();
                     notifyCacheInvalidationListeners();
+                    writeDebug("saveText: success after recreate (ts=" + uniqueTimeStamp + ")");
                 } catch (Exception ex) {
                     // Security: Don't expose internal error details
                     showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save log entry. Please check file permissions.</html>");
@@ -178,9 +228,21 @@ public class LogFileHandler implements LogFileOperations {
                 errorMsg += "Unable to write to the log file.<br><br>" +
                     "<i>Tip: Ensure the file is not read-only or in use by another program.</i></html>";
             }
+            writeDebug("saveText: io error - " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
             showErrorDialogWithRecovery(errorMsg, "Save Error");
         } catch (Exception e) {
+            writeDebug("saveText: unknown error - " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
             showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save your log entry.<br>Please check your input and try again.<br><br><i>Tip: Ensure the file is not read-only or in use by another program.</i></html>");
+        }
+    }
+
+    private void writeDebug(String msg) {
+        try {
+            java.nio.file.Path dbg = filePath.resolveSibling("loghog_debug.log");
+            String line = java.time.LocalDateTime.now().toString() + " - " + msg + System.lineSeparator();
+            java.nio.file.Files.writeString(dbg, line, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) {
+            // Don't fail save due to debug logging
         }
     }
 

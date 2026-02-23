@@ -38,6 +38,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.ToolTipManager;
 import javax.swing.text.StyledDocument;
 
@@ -61,9 +62,11 @@ public class FullLogPanel extends LogPanel {
     private final JButton searchButton;
     private final JButton formatButton;
     private final LogInfoPanel infoPanel;
+    private final javax.swing.JProgressBar fullLogProgressBar;
     private SearchDialog searchDialog;
     private boolean suppressAutoLoad = false;
     private TimestampClickHandler timestampClickHandler;
+    private SwingWorker<StyledDocument, Integer> currentLoadWorker;
 
     public void setSuppressAutoLoad(boolean suppress) {
         this.suppressAutoLoad = suppress;
@@ -80,8 +83,19 @@ public class FullLogPanel extends LogPanel {
         this.logFileHandler = logFileHandler;
         this.fullLogPane = new HighlightableTextPane();
         this.fileLoader = new FullLogFileLoader(logFileHandler, fullLogPane);
-        // Register listener so FullLogFileLoader cache is invalidated when filehandler updates
-        this.cacheInvalidationListener = () -> SwingUtilities.invokeLater(() -> fileLoader.invalidateCache());
+        // Register listener so FullLogFileLoader cache and markdown caches are invalidated when filehandler updates
+        this.cacheInvalidationListener = () -> SwingUtilities.invokeLater(() -> {
+            fileLoader.invalidateCache();
+            // Invalidate markdown renderer caches so document-level and entry-level caches are cleared
+            markdown.MarkdownRenderer.invalidateAllCaches();
+            // If this panel is currently visible, refresh the view so newly saved entries appear
+            try {
+                // If part of the tab pane and currently selected, reload without forcing scroll
+                if (FullLogPanel.this.isShowing()) {
+                    loadFullLogNoScroll(null);
+                }
+            } catch (Exception ignored) {}
+        });
         this.logFileHandler.addCacheInvalidationListener(this.cacheInvalidationListener);
         this.fullLogPathLabel = new JLabel("Log file: (not loaded)");
         this.lockFileButton = new AccentButton(editor.isLocked() ? "Unlock File" : "Lock File");
@@ -97,6 +111,9 @@ public class FullLogPanel extends LogPanel {
         
         // Initialize info panel component
         this.infoPanel = new LogInfoPanel();
+        this.fullLogProgressBar = new javax.swing.JProgressBar(0, 100);
+        this.fullLogProgressBar.setVisible(false);
+        this.fullLogProgressBar.setStringPainted(true);
         
         initPanel();
         updateLockButton(); // Ensure buttons are in correct state based on lock status
@@ -141,6 +158,7 @@ public class FullLogPanel extends LogPanel {
         pathPanel.setOpaque(false);
         fullLogPathLabel.setForeground(new Color(0x3A4A52));
         pathPanel.add(fullLogPathLabel, BorderLayout.WEST);
+        // Use the shared LoadingProgressDialog for progress; do not add inline progress bar
         add(pathPanel, BorderLayout.NORTH);
 
         var bottom = new JPanel(new BorderLayout(10, 0));
@@ -265,40 +283,8 @@ public class FullLogPanel extends LogPanel {
         clearEditorForNewLoad(logPath);
 
         // Parse in background to avoid blocking the EDT and allow progress dialog to show
-        Thread loader = new Thread(() -> {
-            try {
-                var parsed = fileLoader.parseLogFile(logPath, true);
-                // Render and link handling must run on EDT
-                SwingUtilities.invokeLater(() -> {
-                    try {
-                        MarkdownRenderer.renderMarkdownFromEntries(fullLogPane, parsed.entriesToRender, true);
-                        LinkHandler.addLinkListeners(fullLogPane);
-                        // Update statistics
-                        LogStatistics stats = new LogStatistics(parsed.allEntries, logPath);
-                        infoPanel.updateStatistics(stats);
-                        // Show a steady small red info message under the stats if view is limited
-                        if (parsed.allEntries != null && parsed.entriesToRender != null && parsed.allEntries.size() > parsed.entriesToRender.size()) {
-                            String infoHtml = "<html>Showing " + parsed.entriesToRender.size() + " most recent entries (out of " + parsed.allEntries.size() + " total)<br>Use the Log List view with filters to browse older entries.</html>";
-                            infoPanel.setLimitInfo(infoHtml);
-                        } else {
-                            infoPanel.clearLimitInfo();
-                        }
-                        updateLockButton();
-                        if (onComplete != null) onComplete.run();
-                    } catch (Exception ex) {
-                        handleLoadException(ex, logPath);
-                        if (onComplete != null) onComplete.run();
-                    }
-                });
-            } catch (Exception ex) {
-                SwingUtilities.invokeLater(() -> {
-                    handleLoadException(ex, logPath);
-                    if (onComplete != null) onComplete.run();
-                });
-            }
-        }, "FullLogLoader");
-        loader.setDaemon(true);
-        loader.start();
+        // Use background SwingWorker with progress bar and optional onComplete
+        loadAndProcessLogFile(logPath, true, onComplete);
     }
 
     public void loadFullLogNoScroll() {
@@ -334,39 +320,11 @@ public class FullLogPanel extends LogPanel {
         }
         clearEditorForNewLoad(logPath);
 
-        Thread loader = new Thread(() -> {
-            try {
-                var parsed = fileLoader.parseLogFile(logPath, false);
-                SwingUtilities.invokeLater(() -> {
-                    try {
-                        MarkdownRenderer.renderMarkdownFromEntries(fullLogPane, parsed.entriesToRender, false);
-                        LinkHandler.addLinkListeners(fullLogPane);
-                        LogStatistics stats = new LogStatistics(parsed.allEntries, logPath);
-                        infoPanel.updateStatistics(stats);
-                            if (parsed.allEntries != null && parsed.entriesToRender != null && parsed.allEntries.size() > parsed.entriesToRender.size()) {
-                                String infoHtml = "<html>Showing " + parsed.entriesToRender.size() + " most recent entries (out of " + parsed.allEntries.size() + " total)<br>Use the Log List view with filters to browse older entries.</html>";
-                                infoPanel.setLimitInfo(infoHtml);
-                            } else {
-                                infoPanel.clearLimitInfo();
-                            }
-                        if (callback != null) callback.run();
-                        updateLockButton();
-                    } catch (Exception ex) {
-                        handleLoadException(ex, logPath);
-                    } finally {
-                        suppressAutoLoad = false;
-                    }
-                });
-            } catch (Exception ex) {
-                SwingUtilities.invokeLater(() -> {
-                    handleLoadException(ex, logPath);
-                    suppressAutoLoad = false;
-                    if (callback != null) callback.run();
-                });
-            }
-        }, "FullLogLoaderNoScroll");
-        loader.setDaemon(true);
-        loader.start();
+        // Use background SwingWorker with progress bar and ensure suppressAutoLoad is reset
+        loadAndProcessLogFile(logPath, false, () -> {
+            suppressAutoLoad = false;
+            if (callback != null) callback.run();
+        });
     }
 
     private void handleLockedState() {
@@ -383,20 +341,81 @@ public class FullLogPanel extends LogPanel {
     private void loadAndProcessLogFile(Path logPath) {
         // Ensure cache is invalidated to reflect latest file/encryption state
         fileLoader.invalidateCache();
-        loadAndProcessLogFile(logPath, true);
+        loadAndProcessLogFile(logPath, true, null);
     }
 
-    private void loadAndProcessLogFile(Path logPath, boolean scrollToBottom) {
-        try {
-            // Use optimized loading that returns parsed data for statistics
-            ParsedLogData parsedData = fileLoader.loadAndProcessLogFileWithData(logPath, scrollToBottom);
-            
-            // Calculate statistics from already parsed data (O(1) additional work)
-            LogStatistics stats = new LogStatistics(parsedData.allEntries, logPath);
-            infoPanel.updateStatistics(stats);
-        } catch (Exception ex) {
-            handleLoadException(ex, logPath);
+    private void loadAndProcessLogFile(Path logPath, boolean scrollToBottom, Runnable onComplete) {
+        // Ensure cache is invalidated before starting
+        fileLoader.invalidateCache();
+
+        // Cancel any previous load worker
+        if (currentLoadWorker != null && !currentLoadWorker.isDone()) {
+            currentLoadWorker.cancel(true);
         }
+
+        // Only show LoadingProgressDialog if the loader cache is not fresh
+        final LoadingProgressDialog[] progressHolder = new LoadingProgressDialog[1];
+        final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> {
+            if (progressHolder[0] != null) progressHolder[0].show();
+        });
+        showTimer.setRepeats(false);
+        try {
+            if (!fileLoader.isCacheFresh(logPath)) {
+                progressHolder[0] = new LoadingProgressDialog(editor, "Loading");
+                showTimer.start();
+            }
+        } catch (Exception e) {
+            // On error, fall back to showing the dialog
+            progressHolder[0] = new LoadingProgressDialog(editor, "Loading");
+            showTimer.start();
+        }
+
+        SwingWorker<StyledDocument, Integer> worker = new SwingWorker<>() {
+            private ParsedLogData parsedData;
+
+            @Override
+            protected StyledDocument doInBackground() throws Exception {
+                // Parse (may be cached inside FileLoader) — use parse-only to avoid accidental off-EDT rendering
+                parsedData = fileLoader.parseLogFile(logPath, scrollToBottom);
+                // Build document with progress callbacks using setProgress to report
+                StyledDocument doc = MarkdownRenderer.buildDocumentFromEntries(parsedData.entriesToRender, pct -> setProgress(pct));
+                return doc;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    if (isCancelled()) return;
+                    StyledDocument doc = get();
+                    fullLogPane.setDocument(doc);
+                    // Update statistics on EDT
+                    LogStatistics stats = new LogStatistics(parsedData.allEntries, logPath);
+                    infoPanel.updateStatistics(stats);
+                    if (onComplete != null) onComplete.run();
+                } catch (InterruptedException | java.util.concurrent.CancellationException ex) {
+                    // cancelled - ignore
+                } catch (Exception ex) {
+                    handleLoadException(ex, logPath);
+                } finally {
+                    if (showTimer.isRunning()) showTimer.stop();
+                    if (progressHolder[0] != null) progressHolder[0].close();
+                }
+            }
+        };
+
+        // Update progress bar when worker reports progress
+        worker.addPropertyChangeListener(evt -> {
+            if ("progress".equals(evt.getPropertyName())) {
+                Object val = evt.getNewValue();
+                    if (val instanceof Integer) {
+                    int v = (Integer) val;
+                    if (progressHolder[0] != null) progressHolder[0].setProgress(v);
+                }
+            }
+        });
+
+        currentLoadWorker = worker;
+        worker.execute();
     }
 
     private void handleLoadException(Exception ex, Path logPath) {

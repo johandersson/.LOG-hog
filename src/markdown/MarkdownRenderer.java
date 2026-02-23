@@ -27,6 +27,10 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.Element;
 
 /**
  * Markdown renderer with centralized styling and consistent spacing.
@@ -44,18 +48,58 @@ import javax.swing.text.StyledDocument;
  */
 public class MarkdownRenderer {
 
+    // Simple in-memory cache keyed by content hash (SHA-256). Stores rendered StyledDocument
+    // and a timestamp. Uses insertion-order LinkedHashMap to provide a small LRU-like behavior.
+    private static final int MAX_CACHE_ENTRIES = 16;
+    // Use SoftReference for values so JVM can reclaim rendered documents under memory pressure
+    private static final java.util.Map<String, java.lang.ref.SoftReference<CacheEntry>> CACHE = new java.util.LinkedHashMap<>() {
+        protected boolean removeEldestEntry(java.util.Map.Entry<String, java.lang.ref.SoftReference<CacheEntry>> eldest) {
+            return size() > MAX_CACHE_ENTRIES;
+        }
+    };
+
+    private static class CacheEntry {
+        final StyledDocument doc;
+        final long createdAt;
+        CacheEntry(StyledDocument d) { this.doc = d; this.createdAt = System.currentTimeMillis(); }
+    }
+
+    private static String computeHash(List<String> lines) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            for (String l : lines) {
+                if (l == null) l = "";
+                md.update(l.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                // separator to avoid ambiguity between ["ab","c"] and ["a","bc"]
+                md.update((byte)0);
+            }
+            return java.util.Base64.getEncoder().encodeToString(md.digest());
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void renderMarkdown(JTextPane pane, List<String> lines) {
         renderMarkdown(pane, lines, false);
     }
     
     public static void renderMarkdown(JTextPane pane, List<String> lines, boolean scrollToBottom) {
-        StyledDocument doc = pane.getStyledDocument();
-        // Clear existing content
-        try {
-            doc.remove(0, doc.getLength());
-        } catch (BadLocationException e) {
-            // Document already empty
+        String key = "full:" + computeHash(lines);
+        synchronized (CACHE) {
+            java.lang.ref.SoftReference<CacheEntry> ref = CACHE.get(key);
+            CacheEntry cached = (ref == null) ? null : ref.get();
+            if (ref != null && cached == null) {
+                // value reclaimed, remove stale ref
+                CACHE.remove(key);
+            }
+            if (cached != null) {
+                pane.setDocument(cached.doc);
+                pane.setCaretPosition(scrollToBottom ? cached.doc.getLength() : 0);
+                return;
+            }
         }
+
+        DefaultStyledDocument doc = new DefaultStyledDocument();
         Map<String, Style> styles = createStyles(doc);
         try {
             List<List<String>> entries = filehandling.LogParser.parseEntriesForFullLog(lines);
@@ -63,7 +107,13 @@ public class MarkdownRenderer {
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
-        // Set caret position based on scroll preference
+
+        // Cache the rendered document
+        synchronized (CACHE) {
+            CACHE.put(key, new java.lang.ref.SoftReference<>(new CacheEntry(doc)));
+        }
+
+        pane.setDocument(doc);
         pane.setCaretPosition(scrollToBottom ? doc.getLength() : 0);
     }
     
@@ -82,21 +132,29 @@ public class MarkdownRenderer {
      * @param scrollToBottom If true, scroll to bottom (latest entries); if false, scroll to top
      */
     public static void renderMarkdownFromEntries(JTextPane pane, List<List<String>> entries, boolean scrollToBottom) {
-        StyledDocument doc = pane.getStyledDocument();
-        // Clear existing content
-        try {
-            doc.remove(0, doc.getLength());
-        } catch (BadLocationException e) {
-            // Document already empty
+        // Compute a cache key for the pre-parsed entries
+        String key = "entries:" + computeHashFromEntries(entries);
+        synchronized (CACHE) {
+            java.lang.ref.SoftReference<CacheEntry> ref = CACHE.get(key);
+            CacheEntry cached = (ref == null) ? null : ref.get();
+            if (ref != null && cached == null) CACHE.remove(key);
+            if (cached != null) {
+                pane.setDocument(cached.doc);
+                pane.setCaretPosition(scrollToBottom ? cached.doc.getLength() : 0);
+                return;
+            }
         }
-        Map<String, Style> styles = createStyles(doc);
+
         try {
-            renderEntries(entries, doc, styles);
+            StyledDocument doc = buildDocumentFromEntries(entries, null);
+            synchronized (CACHE) {
+                CACHE.put(key, new java.lang.ref.SoftReference<>(new CacheEntry(doc)));
+            }
+            pane.setDocument(doc);
+            pane.setCaretPosition(scrollToBottom ? doc.getLength() : 0);
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
-        // Set caret position based on scroll preference
-        pane.setCaretPosition(scrollToBottom ? doc.getLength() : 0);
     }
 
     /**
@@ -104,13 +162,19 @@ public class MarkdownRenderer {
      * Treats the entire content as a single entry to avoid extra spacing between sections.
      */
     public static void renderMarkdownDirect(JTextPane pane, List<String> lines) {
-        StyledDocument doc = pane.getStyledDocument();
-        // Clear existing content
-        try {
-            doc.remove(0, doc.getLength());
-        } catch (BadLocationException e) {
-            // Document already empty
+        String key = "direct:" + computeHash(lines);
+        synchronized (CACHE) {
+            java.lang.ref.SoftReference<CacheEntry> ref = CACHE.get(key);
+            CacheEntry cached = (ref == null) ? null : ref.get();
+            if (ref != null && cached == null) CACHE.remove(key);
+            if (cached != null) {
+                pane.setDocument(cached.doc);
+                pane.setCaretPosition(0);
+                return;
+            }
         }
+
+        DefaultStyledDocument doc = new DefaultStyledDocument();
         Map<String, Style> styles = createStyles(doc);
         try {
             // Filter out extra blank lines to reduce line breaks in help text
@@ -135,7 +199,180 @@ public class MarkdownRenderer {
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
+
+        synchronized (CACHE) {
+            CACHE.put(key, new java.lang.ref.SoftReference<>(new CacheEntry(doc)));
+        }
+
+        pane.setDocument(doc);
         pane.setCaretPosition(0);
+    }
+
+    private static String computeHashFromEntries(List<List<String>> entries) {
+        try {
+            // For very large lists, computing a full SHA-256 over every line can be expensive
+            // and may block the UI. Use a fast fingerprint for large datasets and full hash
+            // only for reasonably sized lists.
+            if (entries.size() > 256) {
+                long count = entries.size();
+                String first = entries.isEmpty() || entries.get(0).isEmpty() ? "" : entries.get(0).get(0);
+                List<String> lastEntry = entries.get(entries.size() - 1);
+                String last = lastEntry.isEmpty() ? "" : lastEntry.get(0);
+                long totalLen = 0L;
+                for (List<String> e : entries) {
+                    for (String s : e) totalLen += (s == null ? 0 : s.length());
+                }
+                String fingerprint = "fast:" + count + ":" + first + ":" + last + ":" + totalLen;
+                return Integer.toHexString(fingerprint.hashCode());
+            }
+
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            for (List<String> entry : entries) {
+                // mark entry boundary
+                md.update((byte)1);
+                for (String l : entry) {
+                    if (l == null) l = "";
+                    md.update(l.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    md.update((byte)0);
+                }
+            }
+            return java.util.Base64.getEncoder().encodeToString(md.digest());
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Entry-level cache: map entry-hash -> list of (text, AttributeSet) segments
+    private static final int MAX_ENTRY_CACHE = 1024;
+    // Entry cache also stored in SoftReference for memory efficiency
+    private static final java.util.Map<String, java.lang.ref.SoftReference<java.util.List<Segment>>> ENTRY_CACHE = new java.util.LinkedHashMap<>() {
+        protected boolean removeEldestEntry(java.util.Map.Entry<String, java.lang.ref.SoftReference<java.util.List<Segment>>> eldest) {
+            return size() > MAX_ENTRY_CACHE;
+        }
+    };
+
+    private static record Segment(String text, SimpleAttributeSet attrs) {}
+
+    private static String computeHashForEntry(List<String> entry) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            md.update((byte)2); // entry marker
+            for (String l : entry) {
+                if (l == null) l = "";
+                md.update(l.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                md.update((byte)0);
+            }
+            return java.util.Base64.getEncoder().encodeToString(md.digest());
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static java.util.List<Segment> buildSegmentsForEntry(List<String> entry) throws BadLocationException {
+        DefaultStyledDocument temp = new DefaultStyledDocument();
+        Map<String, Style> styles = createStyles(temp);
+        MarkdownEntryRenderer.renderEntry(entry, new MarkdownRenderingContext(temp, styles));
+
+        int len = temp.getLength();
+        java.util.List<Segment> segments = new java.util.ArrayList<>();
+        int pos = 0;
+        while (pos < len) {
+            Element elem = temp.getCharacterElement(pos);
+            AttributeSet attrs = elem.getAttributes();
+            int start = pos;
+            int end = pos + elem.getEndOffset() - elem.getStartOffset();
+            if (end > len) end = len;
+            String text = temp.getText(start, end - start);
+            // copy attributes into SimpleAttributeSet to decouple from temp doc
+            SimpleAttributeSet copy = new SimpleAttributeSet(attrs);
+            segments.add(new Segment(text, copy));
+            pos = end;
+        }
+
+        return segments;
+    }
+
+    private static void insertSegmentsIntoDoc(StyledDocument target, java.util.List<Segment> segments) throws BadLocationException {
+        for (Segment s : segments) {
+            target.insertString(target.getLength(), s.text(), s.attrs());
+        }
+    }
+
+    /**
+     * Build a StyledDocument from pre-parsed entries. This method can be called off-EDT
+     * and accepts an optional progress consumer (0-100).
+     */
+    public static StyledDocument buildDocumentFromEntries(List<List<String>> entries, java.util.function.IntConsumer progress) throws BadLocationException {
+        DefaultStyledDocument doc = new DefaultStyledDocument();
+        Map<String, Style> styles = createStyles(doc);
+
+        // Trim trailing blank lines from entries similar to renderEntries
+        List<List<String>> trimmedEntries = new ArrayList<>(entries.size());
+        for (List<String> entry : entries) {
+            List<String> trimmed = new ArrayList<>(entry);
+            while (!trimmed.isEmpty() && trimmed.get(trimmed.size() - 1).trim().isEmpty()) {
+                trimmed.remove(trimmed.size() - 1);
+            }
+            trimmedEntries.add(trimmed);
+        }
+
+        Style sepStyle = styles.get("sep");
+        boolean firstEntry = true;
+        int total = Math.max(1, trimmedEntries.size());
+        for (int idx = 0; idx < trimmedEntries.size(); idx++) {
+            List<String> entry = trimmedEntries.get(idx);
+            if (!firstEntry) {
+                String separator = filehandling.LogFileFormat.INTERNAL_LINE_SEPARATOR.repeat(filehandling.LogFileFormat.DISPLAY_ENTRY_SEPARATOR_BLANKS);
+                doc.insertString(doc.getLength(), separator, sepStyle);
+            }
+            firstEntry = false;
+
+            if (!entry.isEmpty() && entry.get(0).startsWith("Showing ") && entry.size() > 1 && entry.get(1).contains("Log List view")) {
+                // Render info entry directly
+                MarkdownRenderingContext context = new MarkdownRenderingContext(doc, styles);
+                Style info = styles.get("info");
+                for (int i = 0; i < entry.size(); i++) {
+                    context.insertString(entry.get(i), info);
+                    if (i < entry.size() - 1) context.insertLineSeparator();
+                }
+                context.insertDoubleLineSeparator();
+            } else {
+                // Use entry-level cache
+                String entryKey = computeHashForEntry(entry);
+                java.util.List<Segment> segs = null;
+                synchronized (ENTRY_CACHE) {
+                    java.lang.ref.SoftReference<java.util.List<Segment>> ref = ENTRY_CACHE.get(entryKey);
+                    segs = (ref == null) ? null : ref.get();
+                    if (ref != null && segs == null) ENTRY_CACHE.remove(entryKey);
+                }
+                if (segs != null) {
+                    insertSegmentsIntoDoc(doc, segs);
+                } else {
+                    segs = buildSegmentsForEntry(entry);
+                    synchronized (ENTRY_CACHE) {
+                        ENTRY_CACHE.put(entryKey, new java.lang.ref.SoftReference<>(segs));
+                    }
+                    insertSegmentsIntoDoc(doc, segs);
+                }
+            }
+
+            // Trim trailing newlines after each entry
+            while (doc.getLength() > 0) {
+                try {
+                    if (!"\n".equals(doc.getText(doc.getLength() - 1, 1))) break;
+                    doc.remove(doc.getLength() - 1, 1);
+                } catch (BadLocationException e) {
+                    break;
+                }
+            }
+
+            if (progress != null) {
+                int pct = (int) ((idx + 1) * 100L / total);
+                try { progress.accept(pct); } catch (Exception ignored) {}
+            }
+        }
+
+        return doc;
     }
 
     /**
@@ -418,7 +655,31 @@ public class MarkdownRenderer {
             if (!entry.isEmpty() && entry.get(0).startsWith("Showing ") && entry.size() > 1 && entry.get(1).contains("Log List view")) {
                 renderInfoEntry(entry, doc, styles);
             } else {
-                MarkdownEntryRenderer.renderEntry(entry, new MarkdownRenderingContext(doc, styles));
+                // Try entry-level cache to avoid re-rendering identical entries
+                try {
+                    String entryKey = computeHashForEntry(entry);
+                    java.util.List<Segment> segs = null;
+                    synchronized (ENTRY_CACHE) {
+                        java.lang.ref.SoftReference<java.util.List<Segment>> ref = ENTRY_CACHE.get(entryKey);
+                        segs = (ref == null) ? null : ref.get();
+                        if (ref != null && segs == null) {
+                            // reclaimed
+                            ENTRY_CACHE.remove(entryKey);
+                        }
+                    }
+                    if (segs != null) {
+                        insertSegmentsIntoDoc(doc, segs);
+                    } else {
+                        segs = buildSegmentsForEntry(entry);
+                        synchronized (ENTRY_CACHE) {
+                            ENTRY_CACHE.put(entryKey, new java.lang.ref.SoftReference<>(segs));
+                        }
+                        insertSegmentsIntoDoc(doc, segs);
+                    }
+                } catch (BadLocationException e) {
+                    // Fallback to direct rendering if building/inserting segments fails
+                    MarkdownEntryRenderer.renderEntry(entry, new MarkdownRenderingContext(doc, styles));
+                }
             }
             
             // Trim trailing newlines from the rendered entry to prevent extra spacing between entries
@@ -455,5 +716,29 @@ public class MarkdownRenderer {
 
     private static boolean isTimestampLine(String line) {
         return line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
+    }
+
+    /**
+     * Invalidate entire caches (both document-level and per-entry).
+     */
+    public static void invalidateAllCaches() {
+        synchronized (CACHE) { CACHE.clear(); }
+        synchronized (ENTRY_CACHE) { ENTRY_CACHE.clear(); }
+    }
+
+    /**
+     * Invalidate cache for a specific pre-parsed full-lines key.
+     */
+    public static void invalidateFullCacheForLines(List<String> lines) {
+        String key = "full:" + computeHash(lines);
+        synchronized (CACHE) { CACHE.remove(key); }
+    }
+
+    /**
+     * Invalidate cache for a specific entry.
+     */
+    public static void invalidateEntryCache(List<String> entry) {
+        String key = computeHashForEntry(entry);
+        synchronized (ENTRY_CACHE) { ENTRY_CACHE.remove(key); }
     }
 }
