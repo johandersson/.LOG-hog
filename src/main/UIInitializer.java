@@ -44,6 +44,7 @@ import gui.InformationPanel;
 import gui.NavItem;
 import gui.SplashScreen;
 import gui.StatusBar;
+import gui.LoadingProgressDialog;
 
 public class UIInitializer {
     private final LogTextEditor editor;

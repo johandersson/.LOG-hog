@@ -50,6 +50,10 @@ public class SplashEntryLoader {
         SecureRandom random = new SecureRandom();
         try {
             var is = SplashEntryLoader.class.getResourceAsStream("/resources/entries.txt");
+            if (is == null) {
+                // Some builds may package resources at the jar root; try fallback
+                is = SplashEntryLoader.class.getResourceAsStream("/entries.txt");
+            }
             if (is != null) {
                 var reader = new BufferedReader(new InputStreamReader(is));
                 String line;
@@ -106,6 +110,9 @@ public class SplashEntryLoader {
 
         try {
             var is = SplashEntryLoader.class.getResourceAsStream("/resources/entries.txt");
+            if (is == null) {
+                is = SplashEntryLoader.class.getResourceAsStream("/entries.txt");
+            }
             if (is != null) {
                 var reader = new BufferedReader(new InputStreamReader(is));
                 String line;

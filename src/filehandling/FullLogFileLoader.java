@@ -127,7 +127,8 @@ public class FullLogFileLoader {
             infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + allEntries.size() + " total)");
             infoEntry.add("Use the Log List view with filters to browse older entries.");
             entriesToRender = new ArrayList<>(entriesToRender);
-            entriesToRender.add(0, infoEntry);
+            // Put info entry at the bottom so it doesn't push newest entries out of view
+            entriesToRender.add(infoEntry);
         } else {
             entriesToRender = allEntries;
         }
@@ -174,7 +175,8 @@ public class FullLogFileLoader {
             infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + filteredEntries.size() + " total for " + year + "-" + String.format("%02d", month) + ")");
             infoEntry.add("Use the Log List view with filters to browse older entries.");
             entriesToRender = new ArrayList<>(entriesToRender);
-            entriesToRender.add(0, infoEntry);
+            // Put info entry at the bottom so it doesn't push newest entries out of view
+            entriesToRender.add(infoEntry);
         } else {
             entriesToRender = filteredEntries;
         }
@@ -214,7 +216,8 @@ public class FullLogFileLoader {
             infoEntry.add("Showing " + MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + filteredEntries.size() + " total for " + year + ")");
             infoEntry.add("Use the Log List view with filters to browse older entries.");
             entriesToRender = new ArrayList<>(entriesToRender);
-            entriesToRender.add(0, infoEntry);
+            // Put info entry at the bottom so it doesn't push newest entries out of view
+            entriesToRender.add(infoEntry);
         } else {
             entriesToRender = filteredEntries;
         }

@@ -218,11 +218,6 @@ public class LogTextEditor extends JFrame {
             // Start periodic backup timer (checks every minute for changes)
             startPeriodicBackupTimer();
 
-            setVisible(true);
-
-            // Focus the entry text area on startup
-            SwingUtilities.invokeLater(() -> entryPanel.getTextArea().requestFocusInWindow());
-
         } catch (Exception e) {
             // Security: Don't log exception details to console
             throw e;
@@ -472,18 +467,27 @@ public class LogTextEditor extends JFrame {
                 }
                 if (!dataLoaded) {
                     LoadingProgressDialog progress = new LoadingProgressDialog(this, "Loading");
-                    try {
-                        progress.show();
+                    progress.show();
+                    Thread loader = new Thread(() -> {
                         try {
-                            loadLogEntries();
-                            fullLogPanel.loadFullLog();
-                        } catch (Exception e) {
-                            // Security: Don't expose exception details (Guideline 2-1)
-                            logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
+                            try {
+                                loadLogEntries();
+                                fullLogPanel.loadFullLog();
+                            } catch (Exception e) {
+                                SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
+                            }
+                        } finally {
+                            SwingUtilities.invokeLater(() -> {
+                                progress.close();
+                                // Show main window after loading completes
+                                LogTextEditor.this.setVisible(true);
+                                // Focus the entry text area on startup
+                                entryPanel.getTextArea().requestFocusInWindow();
+                            });
                         }
-                    } finally {
-                        progress.close();
-                    }
+                    }, "LogLoader");
+                    loader.setDaemon(true);
+                    loader.start();
                 }
             } catch (Exception e) {
                 // Security: Don't expose exception details (Guideline 2-1)
@@ -491,18 +495,27 @@ public class LogTextEditor extends JFrame {
             }
         } else {
             LoadingProgressDialog progress = new LoadingProgressDialog(this, "Loading");
-            try {
-                progress.show();
+            progress.show();
+            Thread loader = new Thread(() -> {
                 try {
-                    loadLogEntries();
-                    fullLogPanel.loadFullLog();
-                } catch (Exception e) {
-                    // Security: Don't expose exception details (Guideline 2-1)
-                    logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
+                    try {
+                        loadLogEntries();
+                        fullLogPanel.loadFullLog();
+                    } catch (Exception e) {
+                        SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
+                    }
+                } finally {
+                    SwingUtilities.invokeLater(() -> {
+                        progress.close();
+                        // Show main window after loading completes
+                        LogTextEditor.this.setVisible(true);
+                        // Focus the entry text area on startup
+                        entryPanel.getTextArea().requestFocusInWindow();
+                    });
                 }
-            } finally {
-                progress.close();
-            }
+            }, "LogLoader");
+            loader.setDaemon(true);
+            loader.start();
         }
     }
 
