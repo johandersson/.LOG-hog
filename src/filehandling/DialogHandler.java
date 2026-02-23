@@ -20,8 +20,11 @@ package filehandling;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 import gui.DialogHelper;
 
@@ -37,15 +40,22 @@ public class DialogHandler {
      */
     public static void showErrorDialog(String message) {
         // Extract title from HTML message if present
-        String title = "Error";
-        String details = message;
-        if (message.contains("<b>") && message.contains("</b>")) {
+        final String computedTitle;
+        final String computedDetails;
+        if (message != null && message.contains("<b>") && message.contains("</b>")) {
             int start = message.indexOf("<b>") + 3;
             int end = message.indexOf("</b>");
-            title = message.substring(start, end).replace("💾 ", "").replace("🔄 ", "");
-            details = message.substring(end + 4).replace("<html>", "").replace("</html>", "").replace("<br><br>", "<br>").trim();
+            computedTitle = message.substring(start, end).replace("💾 ", "").replace("🔄 ", "");
+            computedDetails = message.substring(end + 4).replace("<html>", "").replace("</html>", "").replace("<br><br>", "<br>").trim();
+        } else {
+            computedTitle = "Error";
+            computedDetails = message;
         }
-        DialogHelper.showError(null, "Error", title, details);
+
+        runOnEDT(() -> {
+            DialogHelper.showError(null, "Error", computedTitle, computedDetails);
+            return null;
+        });
     }
     
     /**
@@ -55,7 +65,7 @@ public class DialogHandler {
         Object[] options = {"OK", "Restore from Backup"};
         // Extract clean message from HTML
         String cleanMsg = message.replace("<html>", "").replace("</html>", "").replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "");
-        int choice = DialogHelper.showOptions(
+        int choice = runOnEDT(() -> DialogHelper.showOptions(
             null,
             title,
             title,
@@ -63,11 +73,11 @@ public class DialogHandler {
             JOptionPane.ERROR_MESSAGE,
             new Object[]{"OK", "Restore from Backup"},
             "OK"
-        );
-        
+        ));
+
         if (choice == 1 && onRestoreBackup != null) {
-            // User chose to restore from backup
-            onRestoreBackup.run();
+            // Run restore on background thread to avoid blocking EDT during file IO
+            new Thread(() -> onRestoreBackup.run(), "BackupRestore").start();
         }
     }
     
@@ -91,7 +101,7 @@ public class DialogHandler {
         );
         
         Object[] options = {"Create New", "Restore from Backup", "Exit"};
-        int choice = DialogHelper.showOptions(
+        int choice = runOnEDT(() -> DialogHelper.showOptions(
             null,
             "Log File Missing",
             "Log File Missing",
@@ -99,20 +109,23 @@ public class DialogHandler {
             JOptionPane.WARNING_MESSAGE,
             new Object[]{"Create New", "Restore from Backup", "Exit"},
             "Create New"
-        );
+        ));
         
         if (choice == 0) {
             // Create new file
             try {
                 Files.createDirectories(filePath.getParent());
                 Files.writeString(filePath, ".LOG" + LogFileFormat.LINE_SEPARATOR + LogFileFormat.LINE_SEPARATOR);
-                DialogHelper.showSuccess(
-                    null,
-                    "Success",
-                    "File Created",
-                    "New log file created successfully!<br><br>" +
-                    "Location: <b>" + filePath + "</b>"
-                );
+                runOnEDT(() -> {
+                    DialogHelper.showSuccess(
+                        null,
+                        "Success",
+                        "File Created",
+                        "New log file created successfully!<br><br>" +
+                        "Location: <b>" + filePath + "</b>"
+                    );
+                    return null;
+                });
                 return true;
             } catch (Exception e) {
                 // Security: Don't expose internal error details
@@ -134,38 +147,51 @@ public class DialogHandler {
      * @return true if restore was successful, false otherwise
      */
     public static boolean showBackupRestoreDialog(Path filePath, Runnable onInvalidateCache) {
-        javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
-        fileChooser.setDialogTitle("Select Backup File to Restore");
-        fileChooser.setCurrentDirectory(new java.io.File(System.getProperty("user.home")));
-        fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
-            @Override
-            public boolean accept(java.io.File f) {
-                return f.isDirectory() || f.getName().endsWith(".txt") || f.getName().endsWith(".bak");
+        final java.io.File[] selected = new java.io.File[1];
+
+        // Show file chooser on EDT and capture selection
+        runOnEDT(() -> {
+            javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+            fileChooser.setDialogTitle("Select Backup File to Restore");
+            fileChooser.setCurrentDirectory(new java.io.File(System.getProperty("user.home")));
+            fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
+                @Override
+                public boolean accept(java.io.File f) {
+                    return f.isDirectory() || f.getName().endsWith(".txt") || f.getName().endsWith(".bak");
+                }
+
+                @Override
+                public String getDescription() {
+                    return "Backup Files (*.txt, *.bak)";
+                }
+            });
+
+            int result = fileChooser.showOpenDialog(null);
+            if (result == javax.swing.JFileChooser.APPROVE_OPTION) {
+                selected[0] = fileChooser.getSelectedFile();
             }
-            
-            @Override
-            public String getDescription() {
-                return "Backup Files (*.txt, *.bak)";
-            }
+            return null;
         });
-        
-        int result = fileChooser.showOpenDialog(null);
-        if (result == javax.swing.JFileChooser.APPROVE_OPTION) {
-            java.io.File backupFile = fileChooser.getSelectedFile();
+
+        if (selected[0] != null) {
+            java.io.File backupFile = selected[0];
             try {
-                // Copy backup to log file location
+                // Perform file copy off the EDT to avoid blocking UI
                 Files.copy(backupFile.toPath(), filePath, StandardCopyOption.REPLACE_EXISTING);
                 if (onInvalidateCache != null) {
-                    onInvalidateCache.run();
+                    SwingUtilities.invokeLater(onInvalidateCache);
                 }
-                DialogHelper.showSuccess(
-                    null,
-                    "Restore Complete",
-                    "Backup Restored",
-                    "Backup restored successfully!<br><br>" +
-                    "From: <b>" + backupFile.getName() + "</b><br>" +
-                    "To: <b>" + filePath.getFileName() + "</b>"
-                );
+                runOnEDT(() -> {
+                    DialogHelper.showSuccess(
+                        null,
+                        "Restore Complete",
+                        "Backup Restored",
+                        "Backup restored successfully!<br><br>" +
+                        "From: <b>" + backupFile.getName() + "</b><br>" +
+                        "To: <b>" + filePath.getFileName() + "</b>"
+                    );
+                    return null;
+                });
                 return true;
             } catch (Exception e) {
                 // Security: Don't expose internal error details
@@ -188,6 +214,38 @@ public class DialogHandler {
             longMessage
         );
 
-        DialogHelper.showError(null, "Limit Exceeded", shortTitle, message);
+        runOnEDT(() -> {
+            DialogHelper.showError(null, "Limit Exceeded", shortTitle, message);
+            return null;
+        });
+    }
+
+    private static <T> T runOnEDT(Callable<T> callable) {
+        if (SwingUtilities.isEventDispatchThread()) {
+            try {
+                return callable.call();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        AtomicReference<T> result = new AtomicReference<>();
+        AtomicReference<Exception> exRef = new AtomicReference<>();
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                try {
+                    result.set(callable.call());
+                } catch (Exception e) {
+                    exRef.set(e);
+                }
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        if (exRef.get() != null) {
+            throw new RuntimeException(exRef.get());
+        }
+        return result.get();
     }
 }
