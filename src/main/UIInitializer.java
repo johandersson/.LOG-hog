@@ -259,11 +259,38 @@ public class UIInitializer {
                 int currentMonth = java.time.LocalDate.now().getMonthValue();
                 DefaultListModel<String> model = editor.getLogListPanel().getListModel();
 
-                // Load filtered entries in background then update view on EDT
+                // Load filtered entries in background then update view on EDT.
+                // If there are no entries for the current month, fall back to
+                // the month/year of the latest entry in the file.
                 new Thread(() -> {
+                    int filterYear = currentYear;
+                    int filterMonth = currentMonth;
                     try {
-                        editor.getLogFileHandler().loadFilteredEntries(model, currentYear, currentMonth);
-                        SwingUtilities.invokeLater(() -> editor.updateLogListView());
+                        editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
+
+                        if (model.getSize() == 0) {
+                            // Try to find the latest entry and use its month/year
+                            java.util.List<String> recent = editor.getLogFileHandler().getRecentLogEntries(1);
+                            if (!recent.isEmpty()) {
+                                try {
+                                    java.time.LocalDateTime dt = utils.DateHandler.parseTimestamp(recent.get(0));
+                                    filterYear = dt.getYear();
+                                    filterMonth = dt.getMonthValue();
+                                    // reload with fallback filter
+                                    editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
+                                } catch (Exception ignore) {
+                                    // keep original filter if parse fails
+                                }
+                            }
+                        }
+
+                        int fYear = filterYear;
+                        int fMonth = filterMonth;
+                        SwingUtilities.invokeLater(() -> {
+                            editor.updateLogListView();
+                            // Update the UI controls to reflect the active filter
+                            editor.getLogListPanel().setFilterSelection(fYear, fMonth);
+                        });
                     } catch (Exception ex) {
                         SwingUtilities.invokeLater(() -> editor.getLogFileHandler().showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
                     } finally {

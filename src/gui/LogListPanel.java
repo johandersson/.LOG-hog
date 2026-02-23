@@ -71,6 +71,8 @@ public class LogListPanel extends JPanel {
     private boolean isPreviewMode = false;
     private JComboBox<Integer> yearCombo;
     private JComboBox<String> monthCombo;
+    // Suppress filter action events when programmatically changing selection
+    private boolean suppressFilterEvents = false;
 
     public LogListPanel(LogTextEditor editor, LogFileHandler logFileHandler, DefaultListModel<String> listModel, JList<String> logList) {
         this.editor = editor;
@@ -132,6 +134,7 @@ public class LogListPanel extends JPanel {
     }
 
     private void applyFilter(JComboBox<Integer> yearCombo, JComboBox<String> monthCombo) {
+        if (suppressFilterEvents) return;
         // Don't filter if locked - controls should be disabled but add extra safety
         if (editor.isLocked()) {
             return;
@@ -153,6 +156,27 @@ public class LogListPanel extends JPanel {
         } catch (Exception ex) {
             // Security: Don't expose internal error details
             logFileHandler.showErrorDialog("<html><b>📅 Filter Failed</b><br><br>Unable to apply date filter.<br><br><i>Tip: Check the selected year and month.</i></html>");
+        }
+    }
+
+    /**
+     * Programmatically set the filter selection without triggering the filter action.
+     * @param year year value (e.g. 2026)
+     * @param month month value 1..12 (use 0 to select "All Months")
+     */
+    public void setFilterSelection(int year, int month) {
+        suppressFilterEvents = true;
+        try {
+            if (yearCombo != null) {
+                yearCombo.setSelectedItem(year);
+            }
+            if (monthCombo != null) {
+                // month param uses 1..12 where 0 means "All Months"
+                int idx = Math.max(0, Math.min(month, 12));
+                monthCombo.setSelectedIndex(idx);
+            }
+        } finally {
+            suppressFilterEvents = false;
         }
     }
 
