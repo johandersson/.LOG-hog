@@ -223,15 +223,7 @@ public class LogFileFormatter {
                     List<String> lines;
                     boolean isEncrypted = logFileHandler.isEncrypted();
 
-                    // Security: Check file size before processing
-                    if (!isEncrypted && Files.size(logPath) > MAX_FILE_SIZE) {
-                        String shortTitle = "File Too Large";
-                        String longMessage = "The selected log file is too large to format in memory. "
-                            + "To protect the application from running out of memory, formatting is limited to files up to "
-                            + (MAX_FILE_SIZE / (1024 * 1024)) + " MB.";
-                        DialogHandler.showLimitExceeded(shortTitle, longMessage);
-                        throw new IllegalStateException("File too large to format (max " + (MAX_FILE_SIZE / (1024 * 1024)) + " MB)");
-                    }
+                    // Removed file-size limit: allow formatting of large files (caller should ensure enough memory)
 
                     if (isEncrypted) {
                         progress.setStatus("Decrypting log file...");
