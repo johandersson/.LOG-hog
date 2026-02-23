@@ -47,6 +47,7 @@ import gui.EntryPanel;
 import gui.FullLogPanel;
 import gui.LogListPanel;
 import gui.NavItem;
+import gui.LoadingProgressDialog;
 import gui.SettingsPanel;
 import gui.SystemTrayMenu;
 
@@ -470,12 +471,18 @@ public class LogTextEditor extends JFrame {
                     dataLoaded = true;
                 }
                 if (!dataLoaded) {
+                    LoadingProgressDialog progress = new LoadingProgressDialog(this, "Loading");
                     try {
-                        loadLogEntries();
-                        fullLogPanel.loadFullLog();
-                    } catch (Exception e) {
-                        // Security: Don't expose exception details (Guideline 2-1)
-                        logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
+                        progress.show();
+                        try {
+                            loadLogEntries();
+                            fullLogPanel.loadFullLog();
+                        } catch (Exception e) {
+                            // Security: Don't expose exception details (Guideline 2-1)
+                            logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
+                        }
+                    } finally {
+                        progress.close();
                     }
                 }
             } catch (Exception e) {
@@ -483,12 +490,18 @@ public class LogTextEditor extends JFrame {
                 logFileHandler.showErrorDialog("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
             }
         } else {
+            LoadingProgressDialog progress = new LoadingProgressDialog(this, "Loading");
             try {
-                loadLogEntries();
-                fullLogPanel.loadFullLog();
-            } catch (Exception e) {
-                // Security: Don't expose exception details (Guideline 2-1)
-                logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
+                progress.show();
+                try {
+                    loadLogEntries();
+                    fullLogPanel.loadFullLog();
+                } catch (Exception e) {
+                    // Security: Don't expose exception details (Guideline 2-1)
+                    logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
+                }
+            } finally {
+                progress.close();
             }
         }
     }
