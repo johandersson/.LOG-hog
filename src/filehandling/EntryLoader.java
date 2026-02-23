@@ -127,6 +127,27 @@ public class EntryLoader {
         }
 
         // Use centralized getLines() which enforces file-size limits and handles decryption
+        // If we have a valid parsed cache, use it to populate the list quickly
+        if (isCacheValid() && parsedEntriesCache != null) {
+            List<String> elementsToAdd = new ArrayList<>(parsedEntriesCache.size());
+            List<String> timestamps = new ArrayList<>(parsedEntriesCache.size());
+            for (ParsedEntry pe : parsedEntriesCache) {
+                elementsToAdd.add(pe.timestamp);
+                timestamps.add(pe.timestamp);
+            }
+
+            // Batch update the model
+            listModel.removeAllElements();
+            for (String element : elementsToAdd) {
+                listModel.addElement(element);
+            }
+
+            // Keep timestamp cache for other callers
+            timestampListCache = timestamps;
+            // We've populated the view from cache - done
+            return;
+        }
+
         List<String> lines = logFileHandler.getLines();
 
         // Single pass: remove markers and clean timestamps in one operation
