@@ -150,8 +150,10 @@ public class FullLogFileLoader {
         List<List<String>> entriesToRender;
 
         if (allEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
-            // Take the most recent N entries (already sorted newest first)
-            entriesToRender = new ArrayList<>(allEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER));
+            // `allEntries` is sorted oldest first; take the last N (most recent) entries
+            int total = allEntries.size();
+            int start = Math.max(0, total - ResourceLimits.MAX_ENTRIES_TO_RENDER);
+            entriesToRender = new ArrayList<>(allEntries.subList(start, total));
         } else {
             entriesToRender = allEntries;
         }
@@ -224,7 +226,9 @@ public class FullLogFileLoader {
         // Apply lazy loading if too many entries
         List<List<String>> entriesToRender;
         if (filteredEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
-            entriesToRender = new ArrayList<>(filteredEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER));
+            int total = filteredEntries.size();
+            int start = Math.max(0, total - ResourceLimits.MAX_ENTRIES_TO_RENDER);
+            entriesToRender = new ArrayList<>(filteredEntries.subList(start, total));
         } else {
             entriesToRender = filteredEntries;
         }
@@ -273,7 +277,9 @@ public class FullLogFileLoader {
         // Apply lazy loading if too many entries
         List<List<String>> entriesToRender;
         if (filteredEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
-            entriesToRender = new ArrayList<>(filteredEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER));
+            int total = filteredEntries.size();
+            int start = Math.max(0, total - ResourceLimits.MAX_ENTRIES_TO_RENDER);
+            entriesToRender = new ArrayList<>(filteredEntries.subList(start, total));
         } else {
             entriesToRender = filteredEntries;
         }
