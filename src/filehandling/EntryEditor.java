@@ -117,7 +117,7 @@ public class EntryEditor {
 
             if (inTargetEntry) {
                 // stop skipping when we hit the next timestamp line
-                if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                if (utils.DateHandler.isTimestamp(line)) {
                     inTargetEntry = false;
                     updatedLines.add(line); // add the next timestamp line
                 }
@@ -156,7 +156,7 @@ public class EntryEditor {
             }
             
             // Check if we hit the next timestamp (end of deleted entry)
-            if (inDeletedEntry && trimmed.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+            if (inDeletedEntry && utils.DateHandler.isTimestamp(trimmed)) {
                 inDeletedEntry = false;
                 updatedLines.add(line);
                 continue;

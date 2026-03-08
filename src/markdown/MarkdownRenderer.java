@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.swing.JTextPane;
 import javax.swing.text.BadLocationException;
@@ -44,27 +45,27 @@ import javax.swing.text.StyledDocument;
  */
 public class MarkdownRenderer {
 
+    // Pre-compiled pattern for timestamp validation - much faster than String.matches()
+    private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
+
     public static void renderMarkdown(JTextPane pane, List<String> lines) {
         renderMarkdown(pane, lines, false);
     }
     
     public static void renderMarkdown(JTextPane pane, List<String> lines, boolean scrollToBottom) {
-        StyledDocument doc = pane.getStyledDocument();
-        // Clear existing content
-        try {
-            doc.remove(0, doc.getLength());
-        } catch (BadLocationException e) {
-            // Document already empty
-        }
-        Map<String, Style> styles = createStyles(doc);
+        // Create a new document for rendering (avoids live update overhead)
+        javax.swing.text.DefaultStyledDocument newDoc = new javax.swing.text.DefaultStyledDocument();
+        Map<String, Style> styles = createStyles(newDoc);
         try {
             List<List<String>> entries = filehandling.LogParser.parseEntriesForFullLog(lines);
-            renderEntries(entries, doc, styles);
+            renderEntries(entries, newDoc, styles);
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
+        // Swap in the new document (atomic, fast)
+        pane.setDocument(newDoc);
         // Set caret position based on scroll preference
-        pane.setCaretPosition(scrollToBottom ? doc.getLength() : 0);
+        pane.setCaretPosition(scrollToBottom ? newDoc.getLength() : 0);
     }
     
     /**
@@ -82,21 +83,18 @@ public class MarkdownRenderer {
      * @param scrollToBottom If true, scroll to bottom (latest entries); if false, scroll to top
      */
     public static void renderMarkdownFromEntries(JTextPane pane, List<List<String>> entries, boolean scrollToBottom) {
-        StyledDocument doc = pane.getStyledDocument();
-        // Clear existing content
+        // Create a new document for rendering (avoids live update overhead)
+        javax.swing.text.DefaultStyledDocument newDoc = new javax.swing.text.DefaultStyledDocument();
+        Map<String, Style> styles = createStyles(newDoc);
         try {
-            doc.remove(0, doc.getLength());
-        } catch (BadLocationException e) {
-            // Document already empty
-        }
-        Map<String, Style> styles = createStyles(doc);
-        try {
-            renderEntries(entries, doc, styles);
+            renderEntries(entries, newDoc, styles);
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
+        // Swap in the new document (atomic, fast)
+        pane.setDocument(newDoc);
         // Set caret position based on scroll preference
-        pane.setCaretPosition(scrollToBottom ? doc.getLength() : 0);
+        pane.setCaretPosition(scrollToBottom ? newDoc.getLength() : 0);
     }
 
     /**
@@ -408,9 +406,20 @@ public class MarkdownRenderer {
             MarkdownEntryRenderer.renderEntry(entry, new MarkdownRenderingContext(doc, styles));
             
             // Trim trailing newlines from the rendered entry to prevent extra spacing between entries
+            // Optimized: count trailing newlines first, then remove in one operation
             try {
-                while (doc.getLength() > 0 && doc.getText(doc.getLength() - 1, 1).equals("\n")) {
-                    doc.remove(doc.getLength() - 1, 1);
+                int docLen = doc.getLength();
+                if (docLen > 0) {
+                    // Get up to last 10 chars to find trailing newlines (should be enough)
+                    int checkLen = Math.min(10, docLen);
+                    String tail = doc.getText(docLen - checkLen, checkLen);
+                    int trailingNewlines = 0;
+                    for (int i = tail.length() - 1; i >= 0 && tail.charAt(i) == '\n'; i--) {
+                        trailingNewlines++;
+                    }
+                    if (trailingNewlines > 0) {
+                        doc.remove(docLen - trailingNewlines, trailingNewlines);
+                    }
                 }
             } catch (BadLocationException e) {
                 // Ignore if can't trim
@@ -423,6 +432,6 @@ public class MarkdownRenderer {
     }
 
     private static boolean isTimestampLine(String line) {
-        return line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
+        return TIMESTAMP_PATTERN.matcher(line.trim()).matches();
     }
 }

@@ -19,6 +19,7 @@ package markdown;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
@@ -28,6 +29,9 @@ import javax.swing.text.Style;
  * Reduces method parameters by holding the entry and rendering context as fields.
  */
 public class MarkdownEntryProcessor {
+
+    // Pre-compiled pattern for timestamp validation - much faster than String.matches()
+    private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
 
     private final List<String> entry;
     private final MarkdownRenderingContext context;
@@ -101,7 +105,7 @@ public class MarkdownEntryProcessor {
     }
 
     private static boolean isTimestampLine(String line) {
-        return line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
+        return TIMESTAMP_PATTERN.matcher(line.trim()).matches();
     }
 
     private boolean handleCodeBlockMarker(boolean inCodeBlock) throws BadLocationException {

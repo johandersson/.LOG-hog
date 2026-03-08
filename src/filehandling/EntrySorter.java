@@ -151,7 +151,7 @@ public class EntrySorter {
 
             if (skipping) {
                 // stop skipping when we hit the next timestamp line
-                if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                if (utils.DateHandler.isTimestamp(line)) {
                     skipping = false;
                     // This line is the next timestamp; it should be kept
                     updatedLines.add(line);

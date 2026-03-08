@@ -94,6 +94,28 @@ public class FullLogFileLoader {
     }
 
     /**
+     * Parses the log file without rendering - for use with background workers.
+     * Rendering should be done on the EDT after this returns.
+     * @param logPath Path to the log file
+     * @return ParsedLogData containing all entries and entries to render
+     * @throws Exception if loading fails
+     */
+    public ParsedLogData parseLogFile(Path logPath) throws Exception {
+        return loadAndProcessLogFileInternal(logPath, false);
+    }
+
+    /**
+     * Renders pre-parsed entries to the text pane.
+     * Must be called on the EDT.
+     * @param data The parsed log data
+     * @param scrollToBottom whether to scroll to bottom after rendering
+     */
+    public void renderParsedData(ParsedLogData data, boolean scrollToBottom) {
+        MarkdownRenderer.renderMarkdownFromEntries(textPane, data.entriesToRender, scrollToBottom);
+        LinkHandler.addLinkListeners(textPane);
+    }
+
+    /**
      * Internal method that handles the parsing logic without rendering.
      */
     private ParsedLogData loadAndProcessLogFileInternal(Path logPath, boolean scrollToBottom) throws Exception {

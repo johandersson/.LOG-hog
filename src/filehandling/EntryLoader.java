@@ -470,7 +470,7 @@ public class EntryLoader {
             List<String> lines = logFileHandler.getLines();
             List<String> timestamps = new ArrayList<>();
             for (String line : lines) {
-                if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?")) {
+                if (utils.DateHandler.isTimestamp(line)) {
                     timestamps.add(line.trim());
                 }
             }

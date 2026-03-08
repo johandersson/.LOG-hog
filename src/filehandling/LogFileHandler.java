@@ -91,6 +91,23 @@ public class LogFileHandler implements LogFileOperations {
         return text;
     }
 
+    /**
+     * Reads all lines from a file, attempting UTF-8 first and falling back to ISO-8859-1
+     * if the file contains bytes that are not valid UTF-8.
+     * 
+     * @param path the file path to read
+     * @return list of lines from the file
+     * @throws java.io.IOException if an I/O error occurs
+     */
+    public static List<String> readAllLinesSafe(Path path) throws java.io.IOException {
+        try {
+            return Files.readAllLines(path);
+        } catch (java.nio.charset.MalformedInputException e) {
+            // File contains bytes invalid for UTF-8; fall back to ISO-8859-1
+            return Files.readAllLines(path, java.nio.charset.StandardCharsets.ISO_8859_1);
+        }
+    }
+
     @Override
     public void saveText(String text, DefaultListModel<String> listModel) {
         if (text == null || text.isBlank()) return;
@@ -388,7 +405,14 @@ public class LogFileHandler implements LogFileOperations {
             }
             return cachedLines;
         } else {
-            List<String> lines = Files.readAllLines(filePath);
+            // Try UTF-8 first, fall back to ISO-8859-1 if invalid bytes are found
+            List<String> lines;
+            try {
+                lines = Files.readAllLines(filePath);
+            } catch (java.nio.charset.MalformedInputException e) {
+                // File contains bytes invalid for UTF-8; fall back to ISO-8859-1
+                lines = Files.readAllLines(filePath, java.nio.charset.StandardCharsets.ISO_8859_1);
+            }
             // Keep .LOG in unencrypted files for Notepad compatibility
             return lines;
         }

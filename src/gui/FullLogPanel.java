@@ -19,6 +19,7 @@ package gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Frame;
@@ -38,6 +39,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.ToolTipManager;
 import javax.swing.text.StyledDocument;
 
@@ -245,8 +247,35 @@ public class FullLogPanel extends LogPanel {
                 return;
             }
             clearEditorForNewLoad(logPath);
-            loadAndProcessLogFile(logPath, true);
-            updateLockButton();
+            
+            // Show loading feedback for large files
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            fullLogPane.setText("Loading...");
+            
+            // Use SwingWorker to keep UI responsive during large file loads
+            new SwingWorker<ParsedLogData, Void>() {
+                @Override
+                protected ParsedLogData doInBackground() throws Exception {
+                    // Parse in background thread
+                    return fileLoader.parseLogFile(logPath);
+                }
+                
+                @Override
+                protected void done() {
+                    setCursor(Cursor.getDefaultCursor());
+                    try {
+                        ParsedLogData parsedData = get();
+                        // Render on EDT
+                        fileLoader.renderParsedData(parsedData, true);
+                        LogStatistics stats = new LogStatistics(parsedData.allEntries, logPath);
+                        infoPanel.updateStatistics(stats);
+                    } catch (Exception ex) {
+                        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                        handleLoadException(cause instanceof Exception ? (Exception) cause : new Exception(cause), logPath);
+                    }
+                    updateLockButton();
+                }
+            }.execute();
         });
     }
 
@@ -268,12 +297,39 @@ public class FullLogPanel extends LogPanel {
                 return;
             }
             clearEditorForNewLoad(logPath);
-            loadAndProcessLogFile(logPath, false);
-            updateLockButton();
-            if (callback != null) {
-                callback.run();
-            }
-            suppressAutoLoad = false;
+            
+            // Show loading feedback for large files
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            fullLogPane.setText("Loading...");
+            
+            // Use SwingWorker to keep UI responsive during large file loads
+            new SwingWorker<ParsedLogData, Void>() {
+                @Override
+                protected ParsedLogData doInBackground() throws Exception {
+                    // Parse in background thread
+                    return fileLoader.parseLogFile(logPath);
+                }
+                
+                @Override
+                protected void done() {
+                    setCursor(Cursor.getDefaultCursor());
+                    try {
+                        ParsedLogData parsedData = get();
+                        // Render on EDT
+                        fileLoader.renderParsedData(parsedData, false);
+                        LogStatistics stats = new LogStatistics(parsedData.allEntries, logPath);
+                        infoPanel.updateStatistics(stats);
+                    } catch (Exception ex) {
+                        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                        handleLoadException(cause instanceof Exception ? (Exception) cause : new Exception(cause), logPath);
+                    }
+                    updateLockButton();
+                    if (callback != null) {
+                        callback.run();
+                    }
+                    suppressAutoLoad = false;
+                }
+            }.execute();
         });
     }
 
