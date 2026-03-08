@@ -177,7 +177,11 @@ public class SecureClipboardManager implements ClipboardHandler {
                 toastParent = window;
             }
             synchronized (LOCK) {
-                Toast.showToast(toastParent, successMessage + " (Auto-clear in " + timeoutSeconds + "s)");
+                if (autoClearEnabled) {
+                    Toast.showToast(toastParent, successMessage + " (Auto-clear in " + timeoutSeconds + "s)");
+                } else {
+                    Toast.showToast(toastParent, successMessage);
+                }
             }
 
             // Schedule automatic clearing if enabled

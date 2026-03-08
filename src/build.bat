@@ -19,7 +19,7 @@ javac -d . %files%
 if %errorlevel% neq 0 exit /b %errorlevel%
 REM Create the JAR file in the src directory to avoid duplicate jars in the repository root
 pushd "%~dp0"
-jar cvfm loghog.jar manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class main/*.class services/*.class utils/*.class -C resources .
+jar cvfm loghog.jar manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class main/*.class services/*.class utils/*.class resources/
 popd
 echo Production build completed: loghog.jar
 pause

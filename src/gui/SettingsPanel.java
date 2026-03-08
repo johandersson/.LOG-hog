@@ -687,13 +687,26 @@ public class SettingsPanel extends JPanel {
         if (res == JFileChooser.APPROVE_OPTION) {
             var selectedFile = chooser.getSelectedFile();
             var backupPath = selectedFile.toPath();
+            var selectedDir = backupPath.getParent();
             try {
                 // Securely delete existing backup file if it exists
                 if (Files.exists(backupPath)) {
                     main.BackupManager.secureDelete(backupPath);
                 }
                 Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                statusLabel.setText("Backup saved to: " + backupPath.toString());
+                
+                // Also backup settings.ini from home folder
+                var settingsSource = Paths.get(System.getProperty("user.home"), "settings.ini");
+                if (Files.exists(settingsSource)) {
+                    var settingsBackupPath = selectedDir.resolve("settings.ini");
+                    if (Files.exists(settingsBackupPath)) {
+                        main.BackupManager.secureDelete(settingsBackupPath);
+                    }
+                    Files.copy(settingsSource, settingsBackupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    statusLabel.setText("Backup saved to: " + selectedDir.toString());
+                } else {
+                    statusLabel.setText("Backup saved to: " + backupPath.toString());
+                }
             } catch (java.io.IOException | SecurityException ex) {
                 JOptionPane.showMessageDialog(editor, "Backup failed. Please check file permissions and try again.");
             }

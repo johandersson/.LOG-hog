@@ -95,8 +95,9 @@ public class FileEncryptionManager {
                 // If size check fails, let the underlying read throw a clearer exception
             }
 
-            byte[] data = Files.readAllBytes(filePath);
-            return encryptor.decryptWithFallback(data, pwd, salt);
+            try (java.io.InputStream in = Files.newInputStream(filePath)) {
+                return encryptor.decryptStream(in, pwd, salt);
+            }
         } finally {
             // Always clear password copy from memory
             Arrays.fill(pwd, '\0');

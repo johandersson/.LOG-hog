@@ -113,7 +113,7 @@ public class LogTextEditor extends JFrame {
     private final java.nio.file.Path settingsPath = java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
 
     // Secure settings for sensitive data
-    private final SecureSettings secureSettings;
+    private SecureSettings secureSettings;
 
     private String passwordReminder = "";
     private boolean isLocked = false;
@@ -151,7 +151,16 @@ public class LogTextEditor extends JFrame {
         // For backward compatibility
         logFileHandler = (LogFileHandler) application.getLogFileOperations();
 
-        // Initialize secure settings
+        // Load settings file FIRST so SecureSettings can use existing salt
+        if (java.nio.file.Files.exists(settingsPath)) {
+            try (var fis = new java.io.FileInputStream(settingsPath.toFile())) {
+                settings.load(fis);
+            } catch (Exception e) {
+                // Settings will use defaults if load fails
+            }
+        }
+
+        // Initialize secure settings (must be after settings are loaded)
         secureSettings = new SecureSettings(settings);
         
         // Initialize backup manager
