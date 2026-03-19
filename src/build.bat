@@ -14,12 +14,16 @@ powershell -Command "Get-ChildItem -Path '%~dp0' -Recurse -Filter *.class | Remo
 
 powershell -Command "Get-Process javaw -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*loghog*' } | Stop-Process -Force"
 set "files="
+pushd "%~dp0"
+set "files="
 for /f "delims=" %%i in ('dir /s /b *.java ^| findstr /v test') do set "files=!files! "%%i""
 javac -d . %files%
-if %errorlevel% neq 0 exit /b %errorlevel%
+if %errorlevel% neq 0 (
+    popd
+    exit /b %errorlevel%
+)
 REM Create the JAR file in the top-level build directory (single artifact)
 if not exist "%~dp0..\build" mkdir "%~dp0..\build"
-pushd "%~dp0"
 jar cvfm "%~dp0..\build\loghog.jar" manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class main/*.class services/*.class utils/*.class resources/
 popd
 echo Production build completed: %~dp0..\build\loghog.jar
