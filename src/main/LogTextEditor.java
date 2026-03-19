@@ -480,44 +480,43 @@ public class LogTextEditor extends JFrame {
                     dataLoaded = encryptionHandler.handleEncryptionSetup();
                 }
                 if (!dataLoaded) {
-                    LoadingProgressDialog progressDialog = null;
-                    try {
-                        progressDialog = new LoadingProgressDialog(this, "Loading");
-                        progressDialog.setStatus("Loading log entries...");
-                        progressDialog.setIndeterminate(true);
-                        progressDialog.show();
-                        loadLogEntries();
-                        fullLogPanel.loadFullLog();
-                    } catch (Exception e) {
-                        // Security: Don't expose exception details (Guideline 2-1)
-                        logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
-                    } finally {
-                        if (progressDialog != null) {
+                    LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
+                    progressDialog.setStatus("Loading log entries...");
+                    progressDialog.setIndeterminate(true);
+                    progressDialog.show();
+
+                    // Run load in background so dialog can display and UI remains responsive
+                    new Thread(() -> {
+                        try {
+                            loadLogEntries();
+                            fullLogPanel.loadFullLog();
+                        } catch (Exception e) {
+                            javax.swing.SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
+                        } finally {
                             try { progressDialog.close(); } catch (Exception ignore) {}
                         }
-                    }
+                    }, "loghog-startup-load").start();
                 }
             } catch (Exception e) {
                 // Security: Don't expose exception details (Guideline 2-1)
                 logFileHandler.showErrorDialog("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
             }
         } else {
-            LoadingProgressDialog progressDialog = null;
-            try {
-                progressDialog = new LoadingProgressDialog(this, "Loading");
-                progressDialog.setStatus("Loading log entries...");
-                progressDialog.setIndeterminate(true);
-                progressDialog.show();
-                loadLogEntries();
-                fullLogPanel.loadFullLog();
-            } catch (Exception e) {
-                // Security: Don't expose exception details (Guideline 2-1)
-                logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
-            } finally {
-                if (progressDialog != null) {
+            LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
+            progressDialog.setStatus("Loading log entries...");
+            progressDialog.setIndeterminate(true);
+            progressDialog.show();
+
+            new Thread(() -> {
+                try {
+                    loadLogEntries();
+                    fullLogPanel.loadFullLog();
+                } catch (Exception e) {
+                    javax.swing.SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
+                } finally {
                     try { progressDialog.close(); } catch (Exception ignore) {}
                 }
-            }
+            }, "loghog-startup-load").start();
         }
     }
 
