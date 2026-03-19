@@ -30,6 +30,19 @@ import gui.DialogHelper;
  * Extracted from LogFileHandler to separate UI concerns from file operations.
  */
 public class DialogHandler {
+    public enum MissingFileAction {
+        NONE,
+        CREATED,
+        COPIED,
+        RESTORED,
+        EXIT
+    }
+
+    private static MissingFileAction lastMissingFileAction = MissingFileAction.NONE;
+
+    public static MissingFileAction getLastMissingFileAction() {
+        return lastMissingFileAction;
+    }
     
     /**
      * Shows error dialog with formatted message.
@@ -79,28 +92,32 @@ public class DialogHandler {
         if (Files.exists(filePath)) {
             return true; // File exists, no action needed
         }
-        
+
         String message = String.format(
             "<html><b>⚠️ Log File Not Found</b><br><br>" +
             "The log file <b>%s</b> does not exist.<br><br>" +
             "Would you like to:<br>" +
             "• <b>Create a new log file</b> (starts fresh)<br>" +
+            "• <b>Browse for log.txt</b> (set as default)<br>" +
             "• <b>Restore from backup</b> (if available)<br>" +
-            "• <b>Exit</b> and manually fix the issue</html>",
+            "• <b>Exit and manually fix the issue </b><br></html>",
             filePath.getFileName()
         );
-        
-        Object[] options = {"Create New", "Restore from Backup", "Exit"};
+
+        Object[] options = {"Create New", "Browse...", "Restore from Backup", "Exit"};
         int choice = DialogHelper.showOptions(
             null,
             "Log File Missing",
             "Log File Missing",
             message,
             JOptionPane.WARNING_MESSAGE,
-            new Object[]{"Create New", "Restore from Backup", "Exit"},
+            options,
             "Create New"
         );
-        
+
+        // reset action
+        lastMissingFileAction = MissingFileAction.NONE;
+
         if (choice == 0) {
             // Create new file
             try {
@@ -113,18 +130,89 @@ public class DialogHandler {
                     "New log file created successfully!<br><br>" +
                     "Location: <b>" + filePath + "</b>"
                 );
+                // Inform user that new file will NOT be encrypted until they enable encryption
+                DialogHelper.showInfo(null, "New File Created", "Not Encrypted", "The new log file is currently unencrypted. You must enable encryption in Settings to encrypt it.");
+                lastMissingFileAction = MissingFileAction.CREATED;
+                if (onInvalidateCache != null) onInvalidateCache.run();
                 return true;
             } catch (Exception e) {
-                // Security: Don't expose internal error details
-                showErrorDialog("<html><b>Failed to create log file</b><br><br>" +
-                    "Unable to create the log file. Please check permissions and try again.</html>");
+                showErrorDialog("<html><b>Failed to create log file</b><br><br>Unable to create the log file. Please check permissions and try again.</html>");
                 return false;
             }
         } else if (choice == 1) {
+            // Browse for log.txt
+            javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+            fileChooser.setDialogTitle("Select log.txt file");
+            fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
+                @Override
+                public boolean accept(java.io.File f) {
+                    return f.isDirectory() || f.getName().equalsIgnoreCase("log.txt");
+                }
+                @Override
+                public String getDescription() {
+                    return "Log File (log.txt)";
+                }
+            });
+            int result = fileChooser.showOpenDialog(null);
+            if (result == javax.swing.JFileChooser.APPROVE_OPTION) {
+                java.io.File selectedFile = fileChooser.getSelectedFile();
+                if (!selectedFile.getName().equalsIgnoreCase("log.txt")) {
+                    showErrorDialog("<html><b>Invalid File</b><br><br>Please select a file named log.txt.</html>");
+                    return false;
+                }
+                // Optionally validate file contents (e.g., check for .LOG header)
+                try {
+                    String content = java.nio.file.Files.readString(selectedFile.toPath());
+                    if (!content.startsWith(".LOG")) {
+                        int confirm = DialogHelper.showOptions(
+                            null,
+                            "Confirm log.txt",
+                            "Confirm log.txt",
+                            "Selected file does not appear to be a valid log.txt. Set as default anyway?",
+                            JOptionPane.QUESTION_MESSAGE,
+                            new Object[]{"Yes", "No"},
+                            "No"
+                        );
+                        if (confirm != 0) return false;
+                    }
+                } catch (Exception e) {
+                    showErrorDialog("<html><b>File Read Error</b><br><br>Unable to read the selected file.</html>");
+                    return false;
+                }
+                // Ask user if they want to use this file as the active log file (copy into place)
+                int confirm = DialogHelper.showOptions(
+                    null,
+                    "Use Selected File",
+                    "Use Selected File",
+                    "Copy the selected file to the default log location and use it as the active log file?",
+                    JOptionPane.QUESTION_MESSAGE,
+                    new Object[]{"Yes", "No"},
+                    "No"
+                );
+                if (confirm == 0) {
+                    try {
+                        // Ensure parent directory exists
+                        Files.createDirectories(filePath.getParent());
+                        Files.copy(selectedFile.toPath(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                        if (onInvalidateCache != null) onInvalidateCache.run();
+                        lastMissingFileAction = MissingFileAction.COPIED;
+                        DialogHelper.showSuccess(null, "Default Set", "Default log.txt Updated", "Copied and set active log file:<br><b>" + filePath.toString() + "</b>");
+                        return true;
+                    } catch (Exception ex) {
+                        showErrorDialog("<html><b>Copy Failed</b><br><br>Unable to copy the selected file to the default location.</html>");
+                        return false;
+                    }
+                }
+                return false;
+            }
+            return false;
+        } else if (choice == 2) {
             // Restore from backup
+            lastMissingFileAction = MissingFileAction.RESTORED;
             return showBackupRestoreDialog(filePath, onInvalidateCache);
         } else {
             // Exit
+            lastMissingFileAction = MissingFileAction.EXIT;
             return false;
         }
     }

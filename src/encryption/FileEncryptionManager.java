@@ -65,12 +65,22 @@ public class FileEncryptionManager {
 
         // Use password then immediately clear it from memory
         char[] pwd = password.clone();
+        gui.LoadingProgressDialog progressDialog = null;
         try {
+            // Show indeterminate progress dialog for large file encryption
+            progressDialog = new gui.LoadingProgressDialog(null, "Encrypting");
+            progressDialog.setStatus("Encrypting file...");
+            progressDialog.setIndeterminate(true);
+            progressDialog.show();
+
             var encryptedData = encryptor.encrypt(content, pwd, salt);
             Files.write(filePath, encryptedData);
         } finally {
             // Always clear password copy from memory
             Arrays.fill(pwd, '\0');
+            if (progressDialog != null) {
+                progressDialog.close();
+            }
         }
     }
 

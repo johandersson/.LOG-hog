@@ -202,7 +202,8 @@ public class LogTextEditor extends JFrame {
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
-                });
+                },
+                this::saveSettings);
 
             // Setup key bindings and system components
             setupKeyBindings();
@@ -475,8 +476,7 @@ public class LogTextEditor extends JFrame {
                 passwordReminder = secureSettings.getDecryptedProperty(settings, "passwordReminder", "");
                 var dataLoaded = false;
                 if ("true".equals(enc)) {
-                    encryptionHandler.handleEncryptionSetup();
-                    dataLoaded = true;
+                    dataLoaded = encryptionHandler.handleEncryptionSetup();
                 }
                 if (!dataLoaded) {
                     try {

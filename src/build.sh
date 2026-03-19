@@ -25,9 +25,10 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Create JAR file
+# Create JAR file in top-level build directory
 echo "Creating JAR file..."
-jar cvfm loghog.jar "$SCRIPT_DIR/manifest.txt" \
+mkdir -p "$SCRIPT_DIR/../build"
+jar cvfm "$SCRIPT_DIR/../build/loghog.jar" "$SCRIPT_DIR/manifest.txt" \
     LogHog.class \
     main/LogTextEditor.class \
     gui/*.class \
@@ -43,7 +44,7 @@ jar cvfm loghog.jar "$SCRIPT_DIR/manifest.txt" \
     -C "$SCRIPT_DIR" resources/
 
 if [ $? -eq 0 ]; then
-    echo "Production build completed: loghog.jar"
+    echo "Production build completed: $SCRIPT_DIR/../build/loghog.jar"
 else
     echo "JAR creation failed!"
     exit 1

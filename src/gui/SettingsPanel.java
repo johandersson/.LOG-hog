@@ -95,8 +95,13 @@ public class SettingsPanel extends JPanel {
         // Encryption section
         contentPanel.add(createEncryptionPanel());
 
-        // Decrypt section
-        contentPanel.add(createDecryptPanel());
+        // Decrypt section: only show if encryption is not enabled OR (encryption enabled AND log.txt exists)
+        boolean encryptionEnabled = "true".equals(settings.getProperty("encrypted"));
+        java.nio.file.Path logPath = logFileHandler.getFilePath();
+        boolean logExists = java.nio.file.Files.exists(logPath);
+        if (!encryptionEnabled || (encryptionEnabled && logExists)) {
+            contentPanel.add(createDecryptPanel());
+        }
 
         // Backup section
         contentPanel.add(createBackupPanel());
@@ -722,6 +727,13 @@ public class SettingsPanel extends JPanel {
     }
 
     private void decryptLogFile() {
+        // Prevent decrypt dialog if log.txt is missing and encryption is enabled
+        java.nio.file.Path logPath = logFileHandler.getFilePath();
+        boolean encryptionEnabled = "true".equals(settings.getProperty("encrypted"));
+        if (encryptionEnabled && !java.nio.file.Files.exists(logPath)) {
+            JOptionPane.showMessageDialog(editor, "Cannot decrypt: log.txt file not found.", "Missing log.txt", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         if (!logFileHandler.isEncrypted()) {
             JOptionPane.showMessageDialog(editor, "The log file is not currently encrypted.", "Not Encrypted", JOptionPane.INFORMATION_MESSAGE);
             return;

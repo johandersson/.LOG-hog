@@ -17,9 +17,10 @@ set "files="
 for /f "delims=" %%i in ('dir /s /b *.java ^| findstr /v test') do set "files=!files! "%%i""
 javac -d . %files%
 if %errorlevel% neq 0 exit /b %errorlevel%
-REM Create the JAR file in the src directory to avoid duplicate jars in the repository root
+REM Create the JAR file in the top-level build directory (single artifact)
+if not exist "%~dp0..\build" mkdir "%~dp0..\build"
 pushd "%~dp0"
-jar cvfm loghog.jar manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class main/*.class services/*.class utils/*.class resources/
+jar cvfm "%~dp0..\build\loghog.jar" manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class main/*.class services/*.class utils/*.class resources/
 popd
-echo Production build completed: loghog.jar
+echo Production build completed: %~dp0..\build\loghog.jar
 pause

@@ -90,6 +90,16 @@ public class LoadingProgressDialog extends ProgressDialogBase {
             progressLabel.setText(value + "%");
         });
     }
+
+    /**
+     * Sets whether the progress bar should be indeterminate (spinner).
+     * Useful when exact progress cannot be measured (e.g., streaming encryption).
+     *
+     * @param indeterminate true to make the progress bar indeterminate
+     */
+    public void setIndeterminate(boolean indeterminate) {
+        SwingUtilities.invokeLater(() -> progressBar.setIndeterminate(indeterminate));
+    }
     
     /**
      * Updates progress display with percentage and estimated time.

@@ -115,12 +115,12 @@ If you prefer to build manually:
 ```bash
 cd src
 javac -d . $(find . -name "*.java" ! -path "*/test/*")
-jar cvfm loghog.jar manifest.txt LogHog.class main/*.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class services/*.class utils/*.class resources/
+jar cvfm ../build/loghog.jar manifest.txt LogHog.class main/*.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class services/*.class utils/*.class resources/
 ```
 
 ### Running
 ```bash
-java -jar loghog.jar
+java -jar build/loghog.jar
 ```
 
 ## Testing
