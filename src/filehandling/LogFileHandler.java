@@ -112,18 +112,15 @@ public class LogFileHandler implements LogFileOperations {
     public void saveText(String text, DefaultListModel<String> listModel) {
         if (text == null || text.isBlank()) return;
 
-        text = removeSecureMarker(text);
-
-        String timeStamp = FORMATTER.format(LocalDateTime.now());
-        int count = getDuplicateCount(timeStamp);
-        String uniqueTimeStamp = entryEditor.createUniqueTimestamp(count);
-
+        // Default synchronous save path (keeps existing behavior)
+        String uniqueTimeStamp = null;
         try {
-            entryEditor.setBackupManager(backupManager);
-            entryEditor.saveEntry(text, uniqueTimeStamp, encrypted);
+            uniqueTimeStamp = saveTextInternal(text);
 
-            listModel.addElement(uniqueTimeStamp);
-            sortListModel(listModel);
+            if (uniqueTimeStamp != null) {
+                listModel.addElement(uniqueTimeStamp);
+                sortListModel(listModel);
+            }
 
             // Invalidate both file cache and entry loader caches so the UI
             // picks up the newly saved entry and renders markdown immediately.
@@ -141,9 +138,11 @@ public class LogFileHandler implements LogFileOperations {
             if (handleMissingLogFile()) {
                 // File created/restored, try save again
                 try {
-                    entryEditor.saveEntry(text, uniqueTimeStamp, encrypted);
-                    listModel.addElement(uniqueTimeStamp);
-                    sortListModel(listModel);
+                    String ts = saveTextInternal(text);
+                    if (ts != null) {
+                        listModel.addElement(ts);
+                        sortListModel(listModel);
+                    }
                     // Ensure both caches are invalidated after creating the file
                     invalidateEntryCache();
                 } catch (Exception ex) {
@@ -168,6 +167,70 @@ public class LogFileHandler implements LogFileOperations {
         } catch (Exception e) {
             showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save your log entry.<br>Please check your input and try again.<br><br><i>Tip: Ensure the file is not read-only or in use by another program.</i></html>");
         }
+    }
+
+    /**
+     * Performs the actual I/O for saving text and returns the generated timestamp.
+     * This method does not touch Swing components and is safe to run off the EDT.
+     */
+    private String saveTextInternal(String text) throws Exception {
+        if (text == null || text.isBlank()) return null;
+
+        text = removeSecureMarker(text);
+
+        String timeStamp = FORMATTER.format(LocalDateTime.now());
+        int count = getDuplicateCount(timeStamp);
+        String uniqueTimeStamp = entryEditor.createUniqueTimestamp(count);
+
+        entryEditor.setBackupManager(backupManager);
+        entryEditor.saveEntry(text, uniqueTimeStamp, encrypted);
+
+        return uniqueTimeStamp;
+    }
+
+    /**
+     * Asynchronous save helper: runs save on a background thread and updates the model on EDT.
+     */
+    public void saveTextAsync(String text, DefaultListModel<String> listModel, Runnable onComplete) {
+        if (text == null || text.isBlank()) return;
+        new Thread(() -> {
+            gui.LoadingProgressDialog progress = null;
+            try {
+                javax.swing.SwingUtilities.invokeAndWait(() -> {
+                    progress = new gui.LoadingProgressDialog(null, "Saving");
+                    progress.setStatus("Saving file...");
+                    progress.setIndeterminate(true);
+                    progress.show();
+                });
+            } catch (Exception e) {
+                // Ignore dialog show failure
+            }
+
+            String ts = null;
+            try {
+                ts = saveTextInternal(text);
+                // Invalidate caches after save
+                invalidateEntryCache();
+            } catch (Exception e) {
+                final Exception ex = e;
+                javax.swing.SwingUtilities.invokeLater(() -> showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save your log entry.<br>Please check your input and try again.<br><br><i>Tip: Ensure the file is not read-only or in use by another program.</i></html>"));
+            } finally {
+                if (progress != null) {
+                    try { progress.close(); } catch (Exception ignore) {}
+                }
+            }
+
+            if (ts != null) {
+                final String addedTs = ts;
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    listModel.addElement(addedTs);
+                    sortListModel(listModel);
+                    if (onComplete != null) onComplete.run();
+                });
+            } else {
+                if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
+            }
+        }, "loghog-save-thread").start();
     }
 
     //sort and normalize file
@@ -246,6 +309,52 @@ public class LogFileHandler implements LogFileOperations {
             // Security: Don't expose internal error details
             showErrorDialog("<html><b>💾 Write Failed</b><br><br>Unable to save changes to disk.<br>Please check file permissions and disk space.</html>");
         }
+    }
+
+    /**
+     * Async version of flushPendingWrites - shows a progress dialog and runs write off-EDT.
+     */
+    public void flushPendingWritesAsync(Runnable onComplete) {
+        if (!cache.hasPendingWrites()) {
+            if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
+            return;
+        }
+
+        new Thread(() -> {
+            gui.LoadingProgressDialog progress = null;
+            try {
+                javax.swing.SwingUtilities.invokeAndWait(() -> {
+                    progress = new gui.LoadingProgressDialog(null, "Saving");
+                    progress.setStatus("Saving file...");
+                    progress.setIndeterminate(true);
+                    progress.show();
+                });
+            } catch (Exception e) {
+                // ignore
+            }
+
+            try {
+                List<String> pendingLines = cache.getPendingLines();
+                if (encryptionManager.isEncrypted()) {
+                    cache.updateCachedLines(pendingLines);
+                    String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cache.getCachedLines());
+                    if (backupManager != null) backupManager.createNumberedBackup();
+                    encryptionManager.encryptFile(fullText);
+                } else {
+                    if (backupManager != null) backupManager.createNumberedBackup();
+                    Files.write(filePath, pendingLines);
+                }
+                cache.clearPendingWrites();
+            } catch (Exception e) {
+                javax.swing.SwingUtilities.invokeLater(() -> showErrorDialog("<html><b>💾 Write Failed</b><br><br>Unable to save changes to disk.<br>Please check file permissions and disk space.</html>"));
+            } finally {
+                if (progress != null) {
+                    try { progress.close(); } catch (Exception ignore) {}
+                }
+            }
+
+            if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
+        }, "loghog-flush-thread").start();
     }
     
     /**
