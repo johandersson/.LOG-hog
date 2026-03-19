@@ -518,7 +518,13 @@ public class SettingsPanel extends JPanel {
         }
 
         // Encrypt current file
+        LoadingProgressDialog progressDialog = null;
         try {
+            progressDialog = new LoadingProgressDialog(editor, "Encrypting");
+            progressDialog.setStatus("Encrypting file...");
+            progressDialog.setIndeterminate(true);
+            progressDialog.show();
+
             logFileHandler.enableEncryption(pwd);
 
             // Backup settings file before modifying
@@ -570,6 +576,12 @@ public class SettingsPanel extends JPanel {
             statusLabel.setText("Encryption failed. Please check your password and try again.");
             statusLabel.setForeground(Color.RED);
         } finally {
+            if (progressDialog != null) {
+                try {
+                    progressDialog.close();
+                } catch (Exception ignore) {
+                }
+            }
             java.util.Arrays.fill(pwd, '\0');
             java.util.Arrays.fill(confirm, '\0');
         }
