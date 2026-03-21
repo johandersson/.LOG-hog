@@ -8,6 +8,8 @@ import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import filehandling.ResourceLimits;
+
 /**
  * A reusable info panel component that displays log statistics.
  * Features a clean, professional design with proper spacing and typography.
@@ -55,7 +57,14 @@ public class LogInfoPanel extends JPanel {
      */
     public void updateStatistics(LogStatistics stats) {
         if (stats != null) {
-            entriesLabel.setText("Entries: " + stats.getEntryCount());
+            int count = stats.getEntryCount();
+            if (count > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
+                String total = String.format("%,d", count);
+                String cap = String.format("%,d", ResourceLimits.MAX_ENTRIES_TO_RENDER);
+                entriesLabel.setText("Entries: " + total + " (" + cap + ") – limit reached");
+            } else {
+                entriesLabel.setText("Entries: " + stats.getEntryCount());
+            }
             daysLabel.setText("Days: " + stats.getDayCount());
             fileSizeLabel.setText("Size: " + stats.getFormattedFileSize());
         } else {
