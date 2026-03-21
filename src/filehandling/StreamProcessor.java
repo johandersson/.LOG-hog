@@ -11,7 +11,7 @@ import java.util.List;
 public final class StreamProcessor {
     private StreamProcessor() {}
 
-    private static final java.util.regex.Pattern TS_PATTERN = java.util.regex.Pattern.compile("^\\d{2}:\\d{2} \\\d{4}-\\d{2}-\\d{2}( .*|)$");
+    private static final java.util.regex.Pattern TS_PATTERN = java.util.regex.Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( .*|)$");
 
     public static final class ParseResult {
         public final long totalEntries;
