@@ -131,7 +131,12 @@ public class EncryptionManager implements StreamEncryptor {
             var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             spec = new PBEKeySpec(password, salt, PBKDF2_ITERATIONS, AES_KEY_LENGTH);
             var tmp = factory.generateSecret(spec);
-            return new SecretKeySpec(tmp.getEncoded(), "AES");
+            byte[] raw = tmp.getEncoded();
+            try {
+                return new SecretKeySpec(raw, "AES");
+            } finally {
+                if (raw != null) Arrays.fill(raw, (byte)0);
+            }
         } catch (Exception e) {
             throw new EncryptionException("Unable to process your password. Please check your password and try again.", e);
         } finally {
@@ -163,7 +168,12 @@ public class EncryptionManager implements StreamEncryptor {
             var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             spec = new PBEKeySpec(password, salt, PBKDF2_ITERATIONS_LEGACY, AES_KEY_LENGTH);
             var tmp = factory.generateSecret(spec);
-            return new SecretKeySpec(tmp.getEncoded(), "AES");
+            byte[] raw = tmp.getEncoded();
+            try {
+                return new SecretKeySpec(raw, "AES");
+            } finally {
+                if (raw != null) Arrays.fill(raw, (byte)0);
+            }
         } catch (Exception e) {
             throw new EncryptionException("Unable to process your password with legacy settings. This may be a compatibility issue with older encrypted files.", e);
         } finally {

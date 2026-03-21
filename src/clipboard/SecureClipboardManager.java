@@ -68,7 +68,7 @@ public class SecureClipboardManager implements ClipboardHandler {
     private static ScheduledFuture<?> clearTask;
     private static int timeoutSeconds = 30; // Default 30 seconds
     private static boolean autoClearEnabled = true;
-    private static String lastCopiedContent = null; // Track what we last copied
+    private static byte[] lastCopiedDigest = null; // Track hash of content we last copied
 
     private static final SecureClipboardManager INSTANCE = new SecureClipboardManager();
 
@@ -166,9 +166,14 @@ public class SecureClipboardManager implements ClipboardHandler {
 
         try {
             clipboard.setContents(selection, selection);
-            synchronized (LOCK) {
-                lastCopiedContent = text; // Track what we copied
-            }
+                synchronized (LOCK) {
+                    try {
+                        java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+                        lastCopiedDigest = md.digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    } catch (Exception e) {
+                        lastCopiedDigest = null;
+                    }
+                }
 
             // Show success message
             Component toastParent = parent;
@@ -176,20 +181,20 @@ public class SecureClipboardManager implements ClipboardHandler {
             if (window != null) {
                 toastParent = window;
             }
-            synchronized (LOCK) {
-                if (autoClearEnabled) {
-                    Toast.showToast(toastParent, successMessage + " (Auto-clear in " + timeoutSeconds + "s)");
-                } else {
-                    Toast.showToast(toastParent, successMessage);
+                synchronized (LOCK) {
+                    if (autoClearEnabled) {
+                        Toast.showToast(toastParent, successMessage + " (Auto-clear in " + timeoutSeconds + "s)");
+                    } else {
+                        Toast.showToast(toastParent, successMessage);
+                    }
                 }
-            }
 
             // Schedule automatic clearing if enabled
-            synchronized (LOCK) {
-                if (autoClearEnabled) {
-                    scheduleClipboardClearing();
+                synchronized (LOCK) {
+                    if (autoClearEnabled) {
+                        scheduleClipboardClearing();
+                    }
                 }
-            }
 
         } catch (IllegalStateException ise) {
             JOptionPane.showMessageDialog(parent, "Unable to access clipboard right now. Try again.", "Clipboard Error", JOptionPane.ERROR_MESSAGE);
@@ -207,31 +212,41 @@ public class SecureClipboardManager implements ClipboardHandler {
         try {
             Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
             
-            synchronized (LOCK) {
-                // Clear if we have tracked content
-                if (lastCopiedContent != null) {
-                    Transferable contents = clipboard.getContents(null);
-                    if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
-                        String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
-                        // Only clear if clipboard still contains what we copied
-                        if (data != null && data.equals(lastCopiedContent)) {
-                            // Clear clipboard by setting empty content
-                            StringSelection emptySelection = new StringSelection("");
-                            clipboard.setContents(emptySelection, emptySelection);
-                            lastCopiedContent = null;
+                synchronized (LOCK) {
+                    // Clear if we have tracked content (compare hashes instead of storing full text)
+                    if (lastCopiedDigest != null) {
+                        Transferable contents = clipboard.getContents(null);
+                        if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                            String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
+                            if (data != null) {
+                                try {
+                                    java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+                                    byte[] now = md.digest(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                                    if (java.util.Arrays.equals(now, lastCopiedDigest)) {
+                                        // Clear clipboard by setting empty content
+                                        StringSelection emptySelection = new StringSelection("");
+                                        clipboard.setContents(emptySelection, emptySelection);
+                                        lastCopiedDigest = null;
 
-                            // Cancel any pending clear task
-                            if (clearTask != null) {
-                                clearTask.cancel(false);
-                                clearTask = null;
+                                        // Cancel any pending clear task
+                                        if (clearTask != null) {
+                                            clearTask.cancel(false);
+                                            clearTask = null;
+                                        }
+                                    } else {
+                                        // Clipboard was changed by user - don't clear
+                                        lastCopiedDigest = null;
+                                    }
+                                } catch (Exception e) {
+                                    // On digest errors, clear tracked value to avoid repeated failures
+                                    lastCopiedDigest = null;
+                                }
+                            } else {
+                                lastCopiedDigest = null;
                             }
-                        } else {
-                            // Clipboard was changed by user - don't clear
-                            lastCopiedContent = null;
                         }
                     }
                 }
-            }
         } catch (IllegalStateException ise) {
             // Clipboard not available - silently ignore
         } catch (UnsupportedFlavorException ufe) {
@@ -251,7 +266,7 @@ public class SecureClipboardManager implements ClipboardHandler {
      */
     public static boolean hasSecureContent() {
         synchronized (LOCK) {
-            if (lastCopiedContent == null) {
+            if (lastCopiedDigest == null) {
                 return false;
             }
         }
@@ -262,9 +277,16 @@ public class SecureClipboardManager implements ClipboardHandler {
 
             if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
                 String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
-                // Check if clipboard still contains what we copied
-                synchronized (LOCK) {
-                    return data != null && data.equals(lastCopiedContent);
+                // Check if clipboard still contains what we copied by comparing digest
+                if (data == null) return false;
+                try {
+                    java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+                    byte[] now = md.digest(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    synchronized (LOCK) {
+                        return java.util.Arrays.equals(now, lastCopiedDigest);
+                    }
+                } catch (Exception e) {
+                    return false;
                 }
             }
         } catch (IllegalStateException ise) {

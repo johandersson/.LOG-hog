@@ -111,7 +111,21 @@ public class FullLogFileLoader {
      * @param scrollToBottom whether to scroll to bottom after rendering
      */
     public void renderParsedData(ParsedLogData data, boolean scrollToBottom) {
-        MarkdownRenderer.renderMarkdownFromEntries(textPane, data.entriesToRender, scrollToBottom);
+        // Respect a practical UI render cap to avoid blocking the EDT when many entries
+        List<List<String>> toRender = data.entriesToRender;
+        if (toRender != null && toRender.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER_UI) {
+            // Create an informational top entry and render only the newest UI-limited subset
+            List<String> infoEntry = new ArrayList<>();
+            infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER_UI + " most recent entries (UI-limited) out of " + data.getTotalEntryCount() + " total");
+            infoEntry.add("Use the Log List view with filters to browse older entries.");
+
+            List<List<String>> uiSubset = new ArrayList<>();
+            uiSubset.add(infoEntry);
+            uiSubset.addAll(toRender.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER_UI));
+            MarkdownRenderer.renderMarkdownFromEntries(textPane, uiSubset, scrollToBottom);
+        } else {
+            MarkdownRenderer.renderMarkdownFromEntries(textPane, toRender, scrollToBottom);
+        }
         LinkHandler.addLinkListeners(textPane);
     }
 

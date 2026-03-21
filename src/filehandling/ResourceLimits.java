@@ -21,4 +21,9 @@ public final class ResourceLimits {
     // UI render cap for FullLog view (limit how many entries are passed to renderer)
     // Increased to support large log files while still protecting memory.
     public static final int MAX_ENTRIES_TO_RENDER = 600_000;
+
+    // Practical UI render cap to keep the Event Dispatch Thread responsive.
+    // Rendering more than this number of entries will be delegated to a limited
+    // subset so tab switching and UI interactions stay responsive.
+    public static final int MAX_ENTRIES_TO_RENDER_UI = 10_000;
 }
