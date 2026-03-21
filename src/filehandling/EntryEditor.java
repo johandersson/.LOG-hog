@@ -216,8 +216,8 @@ public class EntryEditor {
             if (encryptionManager.isEncrypted()) {
                 existingLines = cache.getCachedLines();
                 if (existingLines == null || existingLines.isEmpty()) {
-                    String decrypted = encryptionManager.decryptFile();
-                    existingLines = new java.util.ArrayList<>(java.util.Arrays.asList(decrypted.split("\r?\n", -1)));
+                    // Use streaming API that avoids allocating a full String for large files
+                    existingLines = encryptionManager.decryptFileToLines();
                     cache.updateCachedLines(existingLines);
                 }
             } else {

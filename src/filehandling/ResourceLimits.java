@@ -25,5 +25,5 @@ public final class ResourceLimits {
     // Practical UI render cap to keep the Event Dispatch Thread responsive.
     // Rendering more than this number of entries will be delegated to a limited
     // subset so tab switching and UI interactions stay responsive.
-    public static final int MAX_ENTRIES_TO_RENDER_UI = 10_000;
+    public static final int MAX_ENTRIES_TO_RENDER_UI = 3_000;
 }

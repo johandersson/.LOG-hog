@@ -121,7 +121,8 @@ public class FullLogFileLoader {
 
             List<List<String>> uiSubset = new ArrayList<>();
             uiSubset.add(infoEntry);
-            uiSubset.addAll(toRender.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER_UI));
+            int start = Math.max(0, toRender.size() - ResourceLimits.MAX_ENTRIES_TO_RENDER_UI);
+            uiSubset.addAll(toRender.subList(start, toRender.size()));
             MarkdownRenderer.renderMarkdownFromEntries(textPane, uiSubset, scrollToBottom);
         } else {
             MarkdownRenderer.renderMarkdownFromEntries(textPane, toRender, scrollToBottom);
@@ -141,7 +142,9 @@ public class FullLogFileLoader {
             lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
             List<List<String>> allEntries = LogParser.parseEntriesForFullLog(lines);
             if (allEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
-                entriesToRender = new ArrayList<>(allEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER));
+                // Select the most recent entries (tail) and keep chronological order (oldest->newest)
+                int start = Math.max(0, allEntries.size() - ResourceLimits.MAX_ENTRIES_TO_RENDER);
+                entriesToRender = new ArrayList<>(allEntries.subList(start, allEntries.size()));
                 List<String> infoEntry = new ArrayList<>();
                 infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + allEntries.size() + " total)");
                 infoEntry.add("Use the Log List view with filters to browse older entries.");
@@ -156,15 +159,23 @@ public class FullLogFileLoader {
                 StreamProcessor.ParseResult res = StreamProcessor.parseEntriesForFullLogStreamWithStats(cleaned);
                 long total = res.totalEntries;
                 List<List<String>> limited = res.entriesNewestFirst;
+                // limited is newest-first; convert to chronological order (oldest->newest)
+                List<List<String>> chrono = new ArrayList<>();
+                if (limited != null) {
+                    chrono.addAll(limited);
+                    java.util.Collections.reverse(chrono);
+                }
+
                 if (total > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
+                    int start = Math.max(0, chrono.size() - ResourceLimits.MAX_ENTRIES_TO_RENDER);
+                    List<List<String>> tail = new ArrayList<>(chrono.subList(start, chrono.size()));
                     List<String> infoEntry = new ArrayList<>();
                     infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + total + " total)");
                     infoEntry.add("Use the Log List view with filters to browse older entries.");
-                    // limited already contains at most MAX_ENTRIES_TO_RENDER newest-first
-                    entriesToRender = new ArrayList<>(limited);
-                    entriesToRender.add(0, infoEntry);
+                    tail.add(0, infoEntry);
+                    entriesToRender = tail;
                 } else {
-                    entriesToRender = limited;
+                    entriesToRender = chrono;
                 }
                 return new ParsedLogData((int)Math.min(total, Integer.MAX_VALUE), entriesToRender);
             }
@@ -204,12 +215,12 @@ public class FullLogFileLoader {
         // Apply lazy loading if too many entries
         List<List<String>> entriesToRender;
         if (filteredEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
-            entriesToRender = filteredEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER);
+            int start = Math.max(0, filteredEntries.size() - ResourceLimits.MAX_ENTRIES_TO_RENDER);
+            entriesToRender = new ArrayList<>(filteredEntries.subList(start, filteredEntries.size()));
             // Add info message at top
             List<String> infoEntry = new ArrayList<>();
             infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + filteredEntries.size() + " total for " + year + "-" + String.format("%02d", month) + ")");
             infoEntry.add("Use the Log List view with filters to browse older entries.");
-            entriesToRender = new ArrayList<>(entriesToRender);
             entriesToRender.add(0, infoEntry);
         } else {
             entriesToRender = filteredEntries;

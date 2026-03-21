@@ -5,9 +5,9 @@
 ## Overview
 .LOG-hog implements enterprise-grade security suitable for personal sensitive data storage. This document provides comprehensive details about the security architecture, encryption implementation, and protection mechanisms.
 
-## Security Rating: 9.5/10 Overall
+## Security Rating: 8.5/10 Overall
 
-.LOG-hog provides excellent security for a personal logging application, with enterprise-standard encryption, robust anti-brute-force protection, comprehensive clipboard security, automatic secure backups, and enforced password strength requirements.
+.LOG-hog provides strong security for a personal logging application. Several high-impact hardening steps have been implemented (streaming decrypt-to-lines, zeroing derived key bytes, atomic encrypted writes, clipboard digesting), and a small set of remaining tasks are documented below.
 
 ---
 
@@ -16,17 +16,23 @@
 ### Technical Implementation
 - **Algorithm**: AES-256-GCM (Galois/Counter Mode)
 - **Key Derivation**: PBKDF2 with HMAC-SHA256
-- **Iterations**: 100,000 (current) / 65,536 (legacy compatibility)
+- **Iterations**: 600,000 (current default) / 65,536 (legacy compatibility)
 - **Key Length**: 256 bits
 - **IV Length**: 96 bits (12 bytes)
 - **Authentication Tag**: 128 bits (16 bytes)
 
-### Security Features
+### Security Features (implemented)
 - **Authenticated Encryption**: GCM provides both confidentiality and integrity
 - **Random IVs**: Each encryption uses a unique initialization vector
 - **Salt Generation**: Cryptographically secure 128-bit salts
-- **Memory Security**: Keys cleared immediately after use
+- **Memory Security**: Best-effort clearing of derived key material and password copies where possible
+- **Streaming Reads**: `decryptFileToLines()` and streaming `openDecryptedStream()` reduce full-heap plaintext allocations for large files
 - **Backward Compatibility**: Supports legacy PBKDF2 iteration counts
+
+### Remaining Items (short list)
+- Standardize explicit on-disk file header (magic + version + salt-length + salt + iv + ciphertext) and update encrypt/open-decrypt to write/parse it. Currently code detects salt prefix heuristically for backward compatibility.
+- Replace any remaining APIs that return full plaintext `String` (some callers may still use `decrypt()`/`decryptStream()` that allocate full buffers) — migrate to streaming consumer style where possible.
+- Add unit tests covering v1 header parsing, streaming decryption, and legacy fallback behavior.
 
 ### Code Example
 ```java

@@ -106,24 +106,31 @@ public class InformationPanel extends JPanel {
     }
 
     private String loadPanelText(String fileName) {
-        // 1) Try file in current working directory
-        var p = Path.of(fileName);
+        // 1) Try file in several likely locations in the development/work directory
+        Path p1 = Path.of(fileName);
+        Path p2 = Path.of("src", fileName);
+        Path p3 = Path.of("resources", fileName);
         try {
-            if (Files.exists(p)) return Files.readString(p, StandardCharsets.UTF_8);
+            if (Files.exists(p1)) return Files.readString(p1, StandardCharsets.UTF_8);
+            if (Files.exists(p2)) return Files.readString(p2, StandardCharsets.UTF_8);
+            if (Files.exists(p3)) return Files.readString(p3, StandardCharsets.UTF_8);
         } catch (IOException couldNotReadFile) {
             return "Could not read " + fileName + " from file system: " + couldNotReadFile.getMessage();
         }
 
-        // 2) Try resource from JAR
-        try (var is = getClass().getResourceAsStream("/" + fileName)) {
-            if (is != null) {
-                return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-            } else {
-                return fileName + " not found as file or resource.";
+        // 2) Try resource locations inside the JAR (several common packaging locations)
+        String[] resourcePaths = new String[]{"/" + fileName, "/resources/" + fileName, "/src/resources/" + fileName};
+        for (String rp : resourcePaths) {
+            try (var is = getClass().getResourceAsStream(rp)) {
+                if (is != null) {
+                    return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            } catch (IOException e) {
+                return "Could not read " + fileName + " from resources: " + e.getMessage();
             }
-        } catch (IOException e) {
-            return "Could not read " + fileName + " from resources: " + e.getMessage();
         }
+
+        return fileName + " not found as file or resource.";
     }
 
 }

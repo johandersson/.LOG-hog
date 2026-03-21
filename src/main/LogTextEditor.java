@@ -486,7 +486,7 @@ public class LogTextEditor extends JFrame {
                     progressDialog.show();
 
                     // Run load in background so dialog can display and UI remains responsive
-                    new Thread(() -> {
+                    Runnable startupLoad = () -> {
                         try {
                             loadLogEntries();
                             fullLogPanel.loadFullLog();
@@ -495,7 +495,10 @@ public class LogTextEditor extends JFrame {
                         } finally {
                             try { progressDialog.close(); } catch (Exception ignore) {}
                         }
-                    }, "loghog-startup-load").start();
+                    };
+                    Thread startupThread = new Thread(startupLoad, "loghog-startup-load");
+                    startupThread.setDaemon(true);
+                    startupThread.start();
                 }
             } catch (Exception e) {
                 // Security: Don't expose exception details (Guideline 2-1)
@@ -507,7 +510,7 @@ public class LogTextEditor extends JFrame {
             progressDialog.setIndeterminate(true);
             progressDialog.show();
 
-            new Thread(() -> {
+            Runnable startupLoad2 = () -> {
                 try {
                     loadLogEntries();
                     fullLogPanel.loadFullLog();
@@ -516,7 +519,10 @@ public class LogTextEditor extends JFrame {
                 } finally {
                     try { progressDialog.close(); } catch (Exception ignore) {}
                 }
-            }, "loghog-startup-load").start();
+            };
+            Thread startupThread2 = new Thread(startupLoad2, "loghog-startup-load");
+            startupThread2.setDaemon(true);
+            startupThread2.start();
         }
     }
 
@@ -675,7 +681,9 @@ public class LogTextEditor extends JFrame {
     private void startPeriodicBackupTimer() {
         periodicBackupTimer = new javax.swing.Timer(60000, e -> {
             // Run backup check in background to avoid blocking UI
-            new Thread(() -> backupManager.checkPeriodicBackup()).start();
+            Thread backupChecker = new Thread(() -> backupManager.checkPeriodicBackup(), "loghog-backup-check");
+            backupChecker.setDaemon(true);
+            backupChecker.start();
         });
         periodicBackupTimer.start();
     }

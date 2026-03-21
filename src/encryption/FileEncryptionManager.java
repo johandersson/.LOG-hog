@@ -129,6 +129,45 @@ public class FileEncryptionManager {
         return encrypted;
     }
 
+    /**
+     * Helper that opens a decrypted InputStream and passes it to the provided consumer.
+     * If the underlying encryptor supports streaming, uses that; otherwise decrypts into
+     * memory and supplies a ByteArrayInputStream.
+     */
+    public void withDecryptedStream(java.io.InputStream encryptedIn, char[] password, byte[] salt, java.util.function.Consumer<java.io.InputStream> consumer) throws EncryptionException {
+        if (consumer == null) throw new IllegalArgumentException("consumer cannot be null");
+        try {
+            if (encryptor instanceof StreamEncryptor) {
+                try (var dec = ((StreamEncryptor) encryptor).openDecryptedStream(encryptedIn, password, salt, null)) {
+                    consumer.accept(dec);
+                }
+            } else {
+                // Fallback: read all bytes and decrypt to memory then supply stream
+                byte[] data = Files.readAllBytes(filePath);
+                String decrypted = encryptor.decrypt(data, password);
+                try (var bis = new java.io.ByteArrayInputStream(decrypted.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+                    consumer.accept(bis);
+                }
+            }
+        } catch (EncryptionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to open decrypted stream in FileEncryptionManager", e);
+        }
+    }
+
+    public void withDecryptedReader(java.io.InputStream encryptedIn, char[] password, byte[] salt, java.util.function.Consumer<java.io.BufferedReader> consumer) throws EncryptionException {
+        if (consumer == null) throw new IllegalArgumentException("consumer cannot be null");
+        withDecryptedStream(encryptedIn, password, salt, (in) -> {
+            try (var isr = new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8);
+                 var br = new java.io.BufferedReader(isr)) {
+                consumer.accept(br);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
     public char[] getPassword() {
         // Return a clone to prevent external modification of the password
         return password != null ? password.clone() : null;

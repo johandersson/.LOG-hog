@@ -315,8 +315,13 @@ public class FullLogPanel extends LogPanel {
                     setCursor(Cursor.getDefaultCursor());
                     try {
                         ParsedLogData parsedData = get();
-                        // Render on EDT
-                        fileLoader.renderParsedData(parsedData, false);
+                        // Render on EDT and always scroll to bottom when loading
+                        fileLoader.renderParsedData(parsedData, true);
+                        // Ensure caret is at end and visible
+                        try {
+                            fullLogPane.setCaretPosition(fullLogPane.getDocument().getLength());
+                            fullLogPane.requestFocusInWindow();
+                        } catch (Exception ignored) {}
                         LogStatistics stats = new LogStatistics(parsedData.getTotalEntryCount(), parsedData.entriesToRender, logPath);
                         infoPanel.updateStatistics(stats);
                     } catch (Exception ex) {

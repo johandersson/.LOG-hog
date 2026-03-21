@@ -30,7 +30,7 @@ public class AsyncSaver {
 
     public void saveTextAsync(String text, javax.swing.DefaultListModel<String> listModel, Runnable onComplete) {
         if (text == null || text.isBlank()) return;
-        new Thread(() -> {
+        Thread t = new Thread(() -> {
             final gui.LoadingProgressDialog[] holder = new gui.LoadingProgressDialog[1];
             try {
                 javax.swing.SwingUtilities.invokeAndWait(() -> {
@@ -69,7 +69,9 @@ public class AsyncSaver {
             } else {
                 if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
             }
-        }, "loghog-save-thread").start();
+        }, "loghog-save-thread");
+        t.setDaemon(true);
+        t.start();
     }
 
     public void flushPendingWritesAsync(Runnable onComplete) {
@@ -78,7 +80,7 @@ public class AsyncSaver {
             return;
         }
 
-        new Thread(() -> {
+        Thread t2 = new Thread(() -> {
             final gui.LoadingProgressDialog[] holder = new gui.LoadingProgressDialog[1];
             try {
                 javax.swing.SwingUtilities.invokeAndWait(() -> {
@@ -114,6 +116,8 @@ public class AsyncSaver {
             }
 
             if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
-        }, "loghog-flush-thread").start();
+        }, "loghog-flush-thread");
+        t2.setDaemon(true);
+        t2.start();
     }
 }

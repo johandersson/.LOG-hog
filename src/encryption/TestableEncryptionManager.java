@@ -37,10 +37,10 @@ public class TestableEncryptionManager implements Encryptor {
     }
 
     public javax.crypto.SecretKey deriveKeyLegacy(char[] password, byte[] salt) throws EncryptionException {
-        return delegate.deriveKeyLegacy(password, salt);
+        throw new UnsupportedOperationException("Legacy key derivation removed");
     }
 
     public byte[] encryptLegacy(String data, javax.crypto.SecretKey key) throws EncryptionException {
-        return delegate.encryptLegacy(data, key);
+        throw new UnsupportedOperationException("Legacy encrypt removed");
     }
 }

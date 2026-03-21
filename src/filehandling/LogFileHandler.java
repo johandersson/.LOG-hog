@@ -566,23 +566,52 @@ public class LogFileHandler implements LogFileOperations {
         if (!encryptionManager.isEncrypted()) {
             throw new IllegalStateException("File is not encrypted");
         }
-        
-        // Read and decrypt the current file
-        byte[] data = Files.readAllBytes(filePath);
-        String decrypted = encryptor.decryptWithFallback(data, encryptionManager.getPassword(), encryptionManager.getSalt());
-        
-        // Save decrypted to backup first (as encrypted bytes)
+        // Back up the encrypted file bytes first
         Path backupPath = getBackupPath(filePath.getFileName().toString() + ".bak");
-        Files.write(backupPath, data);
-        
-        // Ensure .LOG header is present (for backward compatibility with old encrypted files)
-        String contentWithHeader = decrypted;
-        if (!contentWithHeader.startsWith(".LOG")) {
-            contentWithHeader = ".LOG\n\n" + contentWithHeader;
+        Files.copy(filePath, backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+        // Decrypt stream-to-temp file to avoid holding full plaintext in heap
+        Path temp = Files.createTempFile("loghog-decrypt-", ".tmp");
+        try (java.io.InputStream encIn = Files.newInputStream(filePath)) {
+            encryptionManager.withDecryptedStream(encIn, encryptionManager.getPassword(), encryptionManager.getSalt(), (decIn) -> {
+                try (java.io.OutputStream out = Files.newOutputStream(temp, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
+                    byte[] buf = new byte[8192];
+                    int r;
+                    while ((r = decIn.read(buf)) != -1) {
+                        out.write(buf, 0, r);
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
         }
-        
-        // Write decrypted content as plain text (using writeString to preserve encoding)
-        Files.writeString(filePath, contentWithHeader);
+
+        // Ensure .LOG header is present; if missing, prepend it when moving into place
+        boolean hasHeader = false;
+        try (java.io.BufferedReader br = Files.newBufferedReader(temp, java.nio.charset.StandardCharsets.UTF_8)) {
+            String first = br.readLine();
+            if (first != null && first.startsWith(".LOG")) hasHeader = true;
+        }
+
+        if (hasHeader) {
+            Files.move(temp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } else {
+            Path temp2 = Files.createTempFile("loghog-decrypt-final-", ".tmp");
+            try (java.io.BufferedWriter bw = Files.newBufferedWriter(temp2, java.nio.charset.StandardCharsets.UTF_8)) {
+                bw.write(".LOG\n\n");
+                try (java.io.InputStream in2 = Files.newInputStream(temp);
+                     java.io.InputStreamReader isr = new java.io.InputStreamReader(in2, java.nio.charset.StandardCharsets.UTF_8);
+                     java.io.BufferedReader br2 = new java.io.BufferedReader(isr)) {
+                    String line;
+                    while ((line = br2.readLine()) != null) {
+                        bw.write(line);
+                        bw.newLine();
+                    }
+                }
+            }
+            Files.move(temp2, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            Files.deleteIfExists(temp);
+        }
         
         // Clear encryption state
         encrypted = false;
