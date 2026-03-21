@@ -102,12 +102,26 @@ public class LogFileHandler implements LogFileOperations {
      * @throws java.io.IOException if an I/O error occurs
      */
     public static List<String> readAllLinesSafe(Path path) throws java.io.IOException {
+        long size = -1;
+        try { size = Files.size(path); } catch (Exception ignored) {}
+        if (size > 0 && size > ResourceLimits.MAX_FILE_SIZE) {
+            throw new java.io.IOException("File too large to read into memory: " + size + " bytes");
+        }
         try {
             return Files.readAllLines(path);
         } catch (java.nio.charset.MalformedInputException e) {
             // File contains bytes invalid for UTF-8; fall back to ISO-8859-1
             return Files.readAllLines(path, java.nio.charset.StandardCharsets.ISO_8859_1);
         }
+    }
+
+    public static List<String> readAllLinesSafe(Path path, java.nio.charset.Charset cs) throws java.io.IOException {
+        long size = -1;
+        try { size = Files.size(path); } catch (Exception ignored) {}
+        if (size > 0 && size > ResourceLimits.MAX_FILE_SIZE) {
+            throw new java.io.IOException("File too large to read into memory: " + size + " bytes");
+        }
+        return Files.readAllLines(path, cs);
     }
 
     @Override
@@ -208,7 +222,7 @@ public class LogFileHandler implements LogFileOperations {
         if (encryptionManager.isEncrypted()) {
             lines = new ArrayList<>(getLines());
         } else {
-            lines = Files.readAllLines(filePath);
+            lines = readAllLinesSafe(filePath);
         }
         
         entryEditor.setBackupManager(backupManager);
@@ -223,7 +237,7 @@ public class LogFileHandler implements LogFileOperations {
             if (encrypted) {
                 lines = new ArrayList<>(getLines());
             } else {
-                lines = Files.readAllLines(filePath);
+                lines = readAllLinesSafe(filePath);
             }
             
             List<String> updatedLines = entryEditor.updateEntry(timeStamp, newText, lines);
@@ -299,7 +313,7 @@ public class LogFileHandler implements LogFileOperations {
             if (encrypted) {
                 lines = new ArrayList<>(getLines());
             } else {
-                lines = Files.readAllLines(filePath);
+                lines = readAllLinesSafe(filePath);
             }
             for (int i = 0; i < lines.size(); i++) {
                 if (lines.get(i).trim().equals(oldTimestamp.trim())) {
@@ -355,7 +369,7 @@ public class LogFileHandler implements LogFileOperations {
             if (encrypted) {
                 lines = new ArrayList<>(getLines());
             } else {
-                lines = Files.readAllLines(filePath);
+                lines = readAllLinesSafe(filePath);
             }
             
             List<String> updatedLines = entryEditor.deleteEntries(timestamps, lines);
@@ -489,7 +503,7 @@ public class LogFileHandler implements LogFileOperations {
         }
         
         this.salt = encryptor.generateSalt();
-        List<String> lines = Files.readAllLines(filePath);
+        List<String> lines = readAllLinesSafe(filePath);
         // Preserve .LOG header in encrypted files (don't remove it)
         String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, lines);
         // Ensure .LOG header is present
@@ -538,20 +552,24 @@ public class LogFileHandler implements LogFileOperations {
     }
 
     public void enableEncryption() throws Exception {
-
-        String plainContent = Files.readString(filePath);
+        // Read lines safely (with size checks) and encrypt via streaming API when possible
+        List<String> lines = readAllLinesSafe(filePath);
 
         // Ensure .LOG header is present
-        if (!plainContent.startsWith(".LOG")) {
-            plainContent = ".LOG\n\n" + plainContent;
+        if (lines.isEmpty() || !lines.get(0).startsWith(".LOG")) {
+            List<String> withHeader = new ArrayList<>();
+            withHeader.add(".LOG");
+            withHeader.add("");
+            withHeader.addAll(lines);
+            lines = withHeader;
         }
 
-        // Save plain text to backup first
+        // Save plain text to backup first (use copy to avoid large in-memory allocation)
         Path backupPath = getBackupPath(filePath.getFileName().toString() + ".bak");
-        Files.writeString(backupPath, plainContent);
+        Files.copy(filePath, backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-        // Encrypt and write the content
-        encryptionManager.encryptFile(plainContent);
+        // Use streaming encrypt-from-lines helper to avoid building a giant String
+        encryptionManager.encryptFileFromLines(lines);
 
         // Set encryption state
         encrypted = true;
