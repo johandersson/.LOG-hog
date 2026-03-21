@@ -41,6 +41,17 @@ public class LoadingProgressDialog extends ProgressDialogBase {
         super(parent, title, false); // Non-modal so UI stays responsive
         messageLabel.setText("Loading encrypted file...");
     }
+
+    /**
+     * Create a LoadingProgressDialog with explicit modality control.
+     * @param parent parent frame
+     * @param title dialog title
+     * @param modal whether dialog is modal
+     */
+    public LoadingProgressDialog(Frame parent, String title, boolean modal) {
+        super(parent, title, modal);
+        messageLabel.setText("Loading encrypted file...");
+    }
     
     /**
      * Shows the dialog.
@@ -48,6 +59,15 @@ public class LoadingProgressDialog extends ProgressDialogBase {
     public void show() {
         startTime = System.currentTimeMillis();
         SwingUtilities.invokeLater(() -> dialog.setVisible(true));
+    }
+
+    /**
+     * Shows the dialog and blocks until it is closed. Use when a caller
+     * needs synchronous behaviour (the dialog must be modal for this to block).
+     */
+    public void showModal() {
+        startTime = System.currentTimeMillis();
+        dialog.setVisible(true);
     }
     
     /**

@@ -273,13 +273,25 @@ public class BackupManager {
             return;
         }
 
+        // If called on the EDT, run the backup in a background thread to avoid blocking UI.
+        if (SwingUtilities.isEventDispatchThread()) {
+            Thread bg = new Thread(() -> performAutomaticBackupImpl(), "loghog-automatic-backup");
+            bg.setDaemon(true);
+            bg.start();
+            return;
+        }
+
+        // Otherwise run synchronously (useful for tests and non-UI callers)
+        performAutomaticBackupImpl();
+    }
+
+    private void performAutomaticBackupImpl() {
         LoadingProgressDialog progressDialog = null;
-        
         try {
             Path backupPath = createBackupPath();
             Path logPath = getLogFilePath();
-            
-            // Show progress dialog for larger files
+
+            // Show progress dialog for larger files (only if parentFrame is set)
             long fileSize = Files.exists(logPath) ? Files.size(logPath) : 0;
             if (fileSize > SHOW_PROGRESS_THRESHOLD && parentFrame != null) {
                 progressDialog = new LoadingProgressDialog(parentFrame, "Automatic Backup");
@@ -293,7 +305,7 @@ public class BackupManager {
 
             // Ensure backup directory exists
             Files.createDirectories(backupPath.getParent());
-            
+
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
                 SwingUtilities.invokeLater(() -> finalDialog.setProgress(25));
@@ -303,7 +315,7 @@ public class BackupManager {
             if (Files.exists(backupPath)) {
                 secureDelete(backupPath);
             }
-            
+
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
                 SwingUtilities.invokeLater(() -> finalDialog.setProgress(50));
@@ -311,23 +323,23 @@ public class BackupManager {
 
             // Copy log file
             Files.copy(logPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
-            
+
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
                 SwingUtilities.invokeLater(() -> finalDialog.setProgress(75));
             }
-            
+
             // Verify backup was created successfully
             if (!verifyBackup(logPath, backupPath)) {
                 // Security: Don't log verification failures to console
                 return;
             }
-            
+
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
                 SwingUtilities.invokeLater(() -> finalDialog.setProgress(100));
             }
-            
+
             // Rotate old backups asynchronously to avoid blocking
             Thread t = new Thread(() -> rotateAutoBackups());
             t.setDaemon(true);

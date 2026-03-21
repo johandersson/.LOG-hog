@@ -522,56 +522,88 @@ public class SettingsPanel extends JPanel {
         statusLabel.setForeground(Color.BLUE);
         encryptionCheckBox.setEnabled(false);
 
-        new javax.swing.SwingWorker<Void, Void>() {
+        // Show a specialized progress dialog that stays at 100% and provides an OK button.
+        EncryptionProgressDialog progressDialog = new EncryptionProgressDialog(editor, "Encrypting");
+        progressDialog.setStatus("Encrypting file...");
+        progressDialog.setIndeterminate(true);
+        progressDialog.show();
+
+        // Run encryption in background and then refresh parsed entries in a separate worker
+        new javax.swing.SwingWorker<List<String>, Void>() {
             private Exception error;
 
             @Override
-            protected Void doInBackground() {
+            protected List<String> doInBackground() {
                 try {
                     logFileHandler.enableEncryption(pwd);
+
+                    // Save settings backup and update properties
+                    if (java.nio.file.Files.exists(settingsPath)) {
+                        String backupDir = settings.getProperty("backupDirectory", "");
+                        java.nio.file.Path backupSettingsPath;
+                        if (backupDir != null && !backupDir.isEmpty()) {
+                            java.nio.file.Path backupDirPath = java.nio.file.Paths.get(backupDir);
+                            java.nio.file.Files.createDirectories(backupDirPath);
+                            backupSettingsPath = backupDirPath.resolve(settingsPath.getFileName().toString() + ".bak");
+                        } else {
+                            backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+                        }
+                        java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+
+                    var saltBytes = logFileHandler.getSalt();
+                    var saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
+                    settings.setProperty("encrypted", "true");
+                    settings.setProperty("salt", saltBase64);
+                    saveSettings();
+
+                    // Compute parsed entries off-EDT to avoid blocking UI when updating list model
+                    List<List<String>> parsed = logFileHandler.getParsedEntries();
+                    List<String> elements = new java.util.ArrayList<>();
+                    for (List<String> entry : parsed) {
+                        if (entry != null && !entry.isEmpty()) {
+                            elements.add(entry.get(0).trim());
+                        }
+                    }
+                    return elements;
                 } catch (Exception ex) {
                     this.error = ex;
+                    return java.util.Collections.emptyList();
                 }
-                return null;
             }
 
             @Override
             protected void done() {
                 try {
                     if (error != null) {
+                        progressDialog.close();
                         JOptionPane.showMessageDialog(editor, "Encryption failed. Please check your password and try again.");
                         statusLabel.setText("Encryption failed. Please check your password and try again.");
                         statusLabel.setForeground(Color.RED);
                         encryptionCheckBox.setSelected(false);
                     } else {
-                        // Backup settings file before modifying
                         try {
-                            if (java.nio.file.Files.exists(settingsPath)) {
-                                String backupDir = settings.getProperty("backupDirectory", "");
-                                java.nio.file.Path backupSettingsPath;
-                                if (backupDir != null && !backupDir.isEmpty()) {
-                                    java.nio.file.Path backupDirPath = java.nio.file.Paths.get(backupDir);
-                                    java.nio.file.Files.createDirectories(backupDirPath);
-                                    backupSettingsPath = backupDirPath.resolve(settingsPath.getFileName().toString() + ".bak");
-                                } else {
-                                    backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
-                                }
-                                java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                            }
+                            List<String> elements = get();
 
-                            var saltBytes = logFileHandler.getSalt();
-                            var saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
-                            settings.setProperty("encrypted", "true");
-                            settings.setProperty("salt", saltBase64);
-                            saveSettings();
+                            // Update list model on EDT in a single batch
+                            javax.swing.SwingUtilities.invokeLater(() -> {
+                                try {
+                                    var logListPanel = editor.getLogListPanel();
+                                    var listModel = logListPanel.getListModel();
+                                    listModel.removeAllElements();
+                                    for (String el : elements) listModel.addElement(el);
+                                    editor.updateLogListView();
+                                } catch (Exception ignore) {}
+                            });
+
+                            // Ask FullLogPanel to reload (it uses its own SwingWorker internally)
+                            editor.getFullLogPanel().loadFullLog();
 
                             statusLabel.setText("Encryption enabled successfully.");
                             statusLabel.setForeground(Color.BLUE);
-                            editor.loadLogEntries();
-                            editor.getFullLogPanel().loadFullLog();
 
-                            // Show completion dialog
-                            JOptionPane.showMessageDialog(editor, "Encryption completed successfully.", "Encryption", JOptionPane.INFORMATION_MESSAGE);
+                            // Show completion state on our progress dialog (stays until user clicks OK)
+                            progressDialog.showCompletion();
 
                             // Perform automatic backup after successful encryption
                             performAutomaticBackup();
@@ -579,15 +611,18 @@ public class SettingsPanel extends JPanel {
                             // Check for and offer to clean up old unencrypted backups
                             cleanupOldUnencryptedBackups();
                         } catch (Exception ex2) {
+                            progressDialog.close();
                             JOptionPane.showMessageDialog(editor, "Encryption succeeded but saving settings failed: " + ex2.getMessage(), "Warning", JOptionPane.WARNING_MESSAGE);
                             statusLabel.setText("Encryption completed but settings update failed.");
                             statusLabel.setForeground(Color.ORANGE);
                         }
                     }
                 } finally {
-                    encryptionCheckBox.setEnabled(false); // Keep disabled when encrypted
+                    // Ensure sensitive data cleared
                     java.util.Arrays.fill(pwd, '\0');
                     java.util.Arrays.fill(confirm, '\0');
+                    // Keep the checkbox disabled when encrypted
+                    encryptionCheckBox.setEnabled(false);
                 }
             }
         }.execute();
@@ -641,22 +676,40 @@ public class SettingsPanel extends JPanel {
             );
 
             if (choice == JOptionPane.YES_OPTION) {
-                // Delete the unencrypted backups securely
-                for (Path backup : unencryptedBackups) {
-                    try {
-                        main.BackupManager.secureDelete(backup);
-                    } catch (Exception e) {
-                        // Log error but continue with others
-                        System.err.println("Failed to securely delete backup: " + backup + " - " + e.getMessage());
-                    }
+                // Run secure deletion off the EDT to avoid blocking the UI.
+                LoadingProgressDialog progress = null;
+                if (editor != null) {
+                    progress = new LoadingProgressDialog(editor, "Cleaning Old Backups");
+                    progress.setStatus("Deleting old backups...");
+                    progress.setIndeterminate(true);
+                    progress.show();
                 }
+                LoadingProgressDialog finalProgress = progress;
 
-                JOptionPane.showMessageDialog(
-                    editor,
-                    "Old unencrypted backup files have been securely deleted.",
-                    "Cleanup Complete",
-                    JOptionPane.INFORMATION_MESSAGE
-                );
+                Thread cleanupThread = new Thread(() -> {
+                    for (Path backup : unencryptedBackups) {
+                        try {
+                            main.BackupManager.secureDelete(backup);
+                        } catch (Exception e) {
+                            System.err.println("Failed to securely delete backup: " + backup + " - " + e.getMessage());
+                        }
+                    }
+
+                    if (finalProgress != null) {
+                        finalProgress.close();
+                    }
+
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(
+                            editor,
+                            "Old unencrypted backup files have been securely deleted.",
+                            "Cleanup Complete",
+                            JOptionPane.INFORMATION_MESSAGE
+                        );
+                    });
+                }, "loghog-backup-cleanup");
+                cleanupThread.setDaemon(true);
+                cleanupThread.start();
             }
 
         } catch (Exception e) {
@@ -711,28 +764,44 @@ public class SettingsPanel extends JPanel {
             var selectedFile = chooser.getSelectedFile();
             var backupPath = selectedFile.toPath();
             var selectedDir = backupPath.getParent();
-            try {
-                // Securely delete existing backup file if it exists
-                if (Files.exists(backupPath)) {
-                    main.BackupManager.secureDelete(backupPath);
-                }
-                Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                
-                // Also backup settings.ini from home folder
-                var settingsSource = Paths.get(System.getProperty("user.home"), "settings.ini");
-                if (Files.exists(settingsSource)) {
-                    var settingsBackupPath = selectedDir.resolve("settings.ini");
-                    if (Files.exists(settingsBackupPath)) {
-                        main.BackupManager.secureDelete(settingsBackupPath);
-                    }
-                    Files.copy(settingsSource, settingsBackupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                    statusLabel.setText("Backup saved to: " + selectedDir.toString());
-                } else {
-                    statusLabel.setText("Backup saved to: " + backupPath.toString());
-                }
-            } catch (java.io.IOException | SecurityException ex) {
-                JOptionPane.showMessageDialog(editor, "Backup failed. Please check file permissions and try again.");
+
+            LoadingProgressDialog progress = null;
+            if (editor != null) {
+                progress = new LoadingProgressDialog(editor, "Manual Backup");
+                progress.setStatus("Saving backup...");
+                progress.setIndeterminate(true);
+                progress.show();
             }
+            LoadingProgressDialog finalProgress = progress;
+
+            Thread bg = new Thread(() -> {
+                try {
+                    // Securely delete existing backup file if it exists
+                    if (Files.exists(backupPath)) {
+                        main.BackupManager.secureDelete(backupPath);
+                    }
+                    Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+                    // Also backup settings.ini from home folder
+                    var settingsSource = Paths.get(System.getProperty("user.home"), "settings.ini");
+                    if (Files.exists(settingsSource)) {
+                        var settingsBackupPath = selectedDir.resolve("settings.ini");
+                        if (Files.exists(settingsBackupPath)) {
+                            main.BackupManager.secureDelete(settingsBackupPath);
+                        }
+                        Files.copy(settingsSource, settingsBackupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        javax.swing.SwingUtilities.invokeLater(() -> statusLabel.setText("Backup saved to: " + selectedDir.toString()));
+                    } else {
+                        javax.swing.SwingUtilities.invokeLater(() -> statusLabel.setText("Backup saved to: " + backupPath.toString()));
+                    }
+                } catch (Exception ex) {
+                    javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(editor, "Backup failed. Please check file permissions and try again."));
+                } finally {
+                    if (finalProgress != null) finalProgress.close();
+                }
+            }, "loghog-manual-backup");
+            bg.setDaemon(true);
+            bg.start();
         }
     }
 

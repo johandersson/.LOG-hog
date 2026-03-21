@@ -190,15 +190,37 @@ public class DialogHandler {
                     "No"
                 );
                 if (confirm == 0) {
-                    try {
-                        // Ensure parent directory exists
-                        Files.createDirectories(filePath.getParent());
-                        Files.copy(selectedFile.toPath(), filePath, StandardCopyOption.REPLACE_EXISTING);
-                        if (onInvalidateCache != null) onInvalidateCache.run();
-                        lastMissingFileAction = MissingFileAction.COPIED;
+                    // Run copy on background thread and show modal progress dialog
+                    final gui.LoadingProgressDialog progress = new gui.LoadingProgressDialog(null, "Copying File", true);
+                    progress.setStatus("Copying selected log file...");
+                    progress.setIndeterminate(true);
+
+                    final java.util.concurrent.atomic.AtomicBoolean success = new java.util.concurrent.atomic.AtomicBoolean(false);
+                    final java.util.concurrent.atomic.AtomicReference<Exception> err = new java.util.concurrent.atomic.AtomicReference<>();
+
+                    Thread bg = new Thread(() -> {
+                        try {
+                            Files.createDirectories(filePath.getParent());
+                            Files.copy(selectedFile.toPath(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                            if (onInvalidateCache != null) onInvalidateCache.run();
+                            lastMissingFileAction = MissingFileAction.COPIED;
+                            success.set(true);
+                        } catch (Exception e) {
+                            err.set(e);
+                        } finally {
+                            javax.swing.SwingUtilities.invokeLater(() -> progress.close());
+                        }
+                    }, "loghog-copy-selected-file");
+                    bg.setDaemon(true);
+                    bg.start();
+
+                    // Block UI with modal dialog until copy completes
+                    progress.showModal();
+
+                    if (success.get()) {
                         DialogHelper.showSuccess(null, "Default Set", "Default log.txt Updated", "Copied and set active log file:<br><b>" + filePath.toString() + "</b>");
                         return true;
-                    } catch (Exception ex) {
+                    } else {
                         showErrorDialog("<html><b>Copy Failed</b><br><br>Unable to copy the selected file to the default location.</html>");
                         return false;
                     }
@@ -240,12 +262,34 @@ public class DialogHandler {
         int result = fileChooser.showOpenDialog(null);
         if (result == javax.swing.JFileChooser.APPROVE_OPTION) {
             java.io.File backupFile = fileChooser.getSelectedFile();
-            try {
-                // Copy backup to log file location
-                Files.copy(backupFile.toPath(), filePath, StandardCopyOption.REPLACE_EXISTING);
-                if (onInvalidateCache != null) {
-                    onInvalidateCache.run();
+
+            // Use a modal progress dialog and run the copy on a background thread.
+            var progress = new gui.LoadingProgressDialog(null, "Restoring Backup", true);
+            progress.setStatus("Restoring backup: " + backupFile.getName());
+            progress.setIndeterminate(true);
+
+            final java.util.concurrent.atomic.AtomicBoolean success = new java.util.concurrent.atomic.AtomicBoolean(false);
+            final java.util.concurrent.atomic.AtomicReference<Exception> errorRef = new java.util.concurrent.atomic.AtomicReference<>();
+
+            Thread bg = new Thread(() -> {
+                try {
+                    Files.copy(backupFile.toPath(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                    if (onInvalidateCache != null) onInvalidateCache.run();
+                    success.set(true);
+                } catch (Exception e) {
+                    errorRef.set(e);
+                } finally {
+                    // Close the modal dialog from the EDT
+                    javax.swing.SwingUtilities.invokeLater(() -> progress.close());
                 }
+            }, "loghog-restore-backup");
+            bg.setDaemon(true);
+            bg.start();
+
+            // Show modal dialog (blocks until progress.close() is called)
+            progress.showModal();
+
+            if (success.get()) {
                 DialogHelper.showSuccess(
                     null,
                     "Restore Complete",
@@ -255,10 +299,8 @@ public class DialogHandler {
                     "To: <b>" + filePath.getFileName() + "</b>"
                 );
                 return true;
-            } catch (Exception e) {
-                // Security: Don't expose internal error details
-                showErrorDialog("<html><b>Restore Failed</b><br><br>" +
-                    "Unable to restore from backup. The backup file may be corrupted.</html>");
+            } else {
+                showErrorDialog("<html><b>Restore Failed</b><br><br>Unable to restore from backup. The backup file may be corrupted.</html>");
                 return false;
             }
         }
