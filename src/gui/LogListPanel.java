@@ -343,6 +343,17 @@ public class LogListPanel extends JPanel {
             var text = displayField.getText().trim();
             var url = urlField.getText().trim();
 
+            // Basic validation: accept http(s)://, file: or local filesystem paths
+            if (!url.isEmpty()) {
+                String u = url.toLowerCase();
+                boolean looksLikeUrl = u.startsWith("http://") || u.startsWith("https://") || u.startsWith("file:");
+                boolean looksLikePath = url.matches("^[a-zA-Z]:\\\\.*") || url.startsWith("/");
+                if (!looksLikeUrl && !looksLikePath) {
+                    DialogHelper.showError(dialog, "Invalid Link", "Invalid URL or file path.", "Only HTTP/HTTPS/file URLs or local file paths are allowed.");
+                    return;
+                }
+            }
+
             if (!text.isEmpty() && !url.isEmpty()) {
                 var link = "[" + text + "](" + url + ")";
                 var pos = entryArea.getCaretPosition();

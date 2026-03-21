@@ -47,7 +47,7 @@ public class EncryptionProgressDialog extends LoadingProgressDialog {
                     try {
                         onOkCallback.run();
                     } catch (Exception ex) {
-                        System.err.println("Error running onOk callback: " + ex.getMessage());
+                        System.err.println("Error running onOk callback.");
                     }
                 }
             });
