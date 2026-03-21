@@ -17,6 +17,8 @@
 
 package filehandling;
 
+import gui.InputLimits;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -99,6 +101,16 @@ public class EntryEditor {
      */
     public List<String> updateEntry(String timeStamp, String newText, List<String> lines) {
         if (newText.isBlank()) return lines;
+
+        // Enforce maximum entry length on updates as well
+        try {
+            if (newText.length() > InputLimits.ENTRY_MAX_CHARS) {
+                newText = newText.substring(0, InputLimits.ENTRY_MAX_CHARS);
+                if (!newText.endsWith(System.lineSeparator())) newText = newText + System.lineSeparator();
+                newText = newText + "[TRUNCATED]" + System.lineSeparator();
+            }
+        } catch (Exception ignore) {
+        }
         
         List<String> updatedLines = new ArrayList<>();
         boolean inTargetEntry = false;
@@ -206,6 +218,16 @@ public class EntryEditor {
      */
     public String createAndSaveEntry(String text) throws Exception {
         if (text == null || text.isBlank()) return null;
+
+        // Enforce maximum entry length to avoid extremely large entries
+        try {
+            if (text.length() > InputLimits.ENTRY_MAX_CHARS) {
+                text = text.substring(0, InputLimits.ENTRY_MAX_CHARS);
+                if (!text.endsWith(System.lineSeparator())) text = text + System.lineSeparator();
+                text = text + "[TRUNCATED]" + System.lineSeparator();
+            }
+        } catch (Exception ignore) {
+        }
 
         String timeStamp = FORMATTER.format(LocalDateTime.now());
         int count = 0;

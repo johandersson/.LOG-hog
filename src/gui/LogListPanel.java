@@ -50,6 +50,7 @@ import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.text.AbstractDocument;
 
 import filehandling.LogFileHandler;
 import main.LogTextEditor;
@@ -210,6 +211,13 @@ public class LogListPanel extends JPanel {
         entryArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         entryArea.setLineWrap(true);
         entryArea.setWrapStyleWord(true);
+        // Enforce maximum entry length in the editor
+        try {
+            if (entryArea.getDocument() instanceof AbstractDocument) {
+                ((AbstractDocument) entryArea.getDocument()).setDocumentFilter(new LengthLimitFilter(InputLimits.ENTRY_MAX_CHARS));
+            }
+        } catch (Exception ignore) {
+        }
         entryArea.setBackground(Color.WHITE);
         entryScroll.setPreferredSize(new Dimension(600, 220));
         entryScroll.setBorder(BorderFactory.createEmptyBorder());
@@ -288,12 +296,26 @@ public class LogListPanel extends JPanel {
         // Display text field
         inputPanel.add(new JLabel("Display Text:"));
         var displayField = new JTextField(displayText, 20);
+        // Limit display text length
+        try {
+            if (displayField.getDocument() instanceof AbstractDocument) {
+                ((AbstractDocument) displayField.getDocument()).setDocumentFilter(new LengthLimitFilter(InputLimits.DISPLAY_TEXT_MAX));
+            }
+        } catch (Exception ignore) {
+        }
         inputPanel.add(displayField);
 
         // URL/File path field
         inputPanel.add(new JLabel("URL or File Path:"));
         var urlPanel = new JPanel(new BorderLayout());
         var urlField = new JTextField(20);
+        // Limit URL/path length
+        try {
+            if (urlField.getDocument() instanceof AbstractDocument) {
+                ((AbstractDocument) urlField.getDocument()).setDocumentFilter(new LengthLimitFilter(InputLimits.FIELD_MAX_CHARS));
+            }
+        } catch (Exception ignore) {
+        }
         urlPanel.add(urlField, BorderLayout.CENTER);
         var browseBtn = new StandardButton("Browse...", new Color(0xE0E0E0), new Color(0xB0B0B0));
         browseBtn.addActionListener(e -> {
