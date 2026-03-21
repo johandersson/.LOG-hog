@@ -267,7 +267,7 @@ public class FullLogPanel extends LogPanel {
                         ParsedLogData parsedData = get();
                         // Render on EDT
                         fileLoader.renderParsedData(parsedData, true);
-                        LogStatistics stats = new LogStatistics(parsedData.allEntries, logPath);
+                        LogStatistics stats = new LogStatistics(parsedData.getTotalEntryCount(), parsedData.entriesToRender, logPath);
                         infoPanel.updateStatistics(stats);
                     } catch (Exception ex) {
                         Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
@@ -317,7 +317,7 @@ public class FullLogPanel extends LogPanel {
                         ParsedLogData parsedData = get();
                         // Render on EDT
                         fileLoader.renderParsedData(parsedData, false);
-                        LogStatistics stats = new LogStatistics(parsedData.allEntries, logPath);
+                        LogStatistics stats = new LogStatistics(parsedData.getTotalEntryCount(), parsedData.entriesToRender, logPath);
                         infoPanel.updateStatistics(stats);
                     } catch (Exception ex) {
                         Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
@@ -354,7 +354,7 @@ public class FullLogPanel extends LogPanel {
             ParsedLogData parsedData = fileLoader.loadAndProcessLogFileWithData(logPath, scrollToBottom);
             
             // Calculate statistics from already parsed data (O(1) additional work)
-            LogStatistics stats = new LogStatistics(parsedData.allEntries, logPath);
+            LogStatistics stats = new LogStatistics(parsedData.getTotalEntryCount(), parsedData.entriesToRender, logPath);
             infoPanel.updateStatistics(stats);
         } catch (Exception ex) {
             handleLoadException(ex, logPath);

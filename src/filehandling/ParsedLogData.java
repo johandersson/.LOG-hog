@@ -10,6 +10,7 @@ import java.util.List;
 public class ParsedLogData {
     public final List<List<String>> allEntries;
     public final List<List<String>> entriesToRender;
+    private final int totalEntryCount;
 
     /**
      * Creates a new ParsedLogData instance.
@@ -20,13 +21,23 @@ public class ParsedLogData {
     public ParsedLogData(List<List<String>> allEntries, List<List<String>> entriesToRender) {
         this.allEntries = allEntries;
         this.entriesToRender = entriesToRender;
+        this.totalEntryCount = allEntries != null ? allEntries.size() : entriesToRender.size();
+    }
+
+    /**
+     * Create ParsedLogData when only a total entry count is known (streamed parser).
+     */
+    public ParsedLogData(int totalEntryCount, List<List<String>> entriesToRender) {
+        this.allEntries = null;
+        this.entriesToRender = entriesToRender;
+        this.totalEntryCount = totalEntryCount;
     }
 
     /**
      * Gets the total number of entries in the log file.
      */
     public int getTotalEntryCount() {
-        return allEntries.size();
+        return allEntries != null ? allEntries.size() : totalEntryCount;
     }
 
     /**
@@ -40,6 +51,7 @@ public class ParsedLogData {
      * Checks if all entries are being rendered or if there's a subset.
      */
     public boolean isShowingAllEntries() {
-        return allEntries.size() == entriesToRender.size();
+        if (allEntries != null) return allEntries.size() == entriesToRender.size();
+        return totalEntryCount == entriesToRender.size();
     }
 }

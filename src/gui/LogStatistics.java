@@ -31,6 +31,17 @@ public class LogStatistics {
     }
 
     /**
+     * Creates statistics when the total entry count is known but only a subset
+     * of entries are available for date/day calculation (streamed parsing).
+     */
+    public LogStatistics(int totalEntryCount, List<List<String>> subsetForDays, Path filePath) {
+        this.entryCount = totalEntryCount;
+        this.dayCount = calculateUniqueDays(subsetForDays);
+        this.fileSize = getFileSize(filePath);
+        this.formattedFileSize = formatFileSize(fileSize);
+    }
+
+    /**
      * Creates statistics from raw lines (fallback for cases where entries aren't pre-parsed).
      * This is O(N) and should be avoided when possible.
      */

@@ -120,34 +120,41 @@ public class FullLogFileLoader {
      */
     private ParsedLogData loadAndProcessLogFileInternal(Path logPath, boolean scrollToBottom) throws Exception {
         // Use streaming parsing when possible to avoid allocating large intermediate lists
-        List<List<String>> allEntries;
+        List<List<String>> entriesToRender;
         if (logFileHandler.isEncrypted()) {
             // Encrypted files use cached lines already
             List<String> lines = logFileHandler.getLines();
             lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
-            allEntries = LogParser.parseEntriesForFullLog(lines);
+            List<List<String>> allEntries = LogParser.parseEntriesForFullLog(lines);
+            if (allEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
+                entriesToRender = new ArrayList<>(allEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER));
+                List<String> infoEntry = new ArrayList<>();
+                infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + allEntries.size() + " total)");
+                infoEntry.add("Use the Log List view with filters to browse older entries.");
+                entriesToRender.add(0, infoEntry);
+            } else {
+                entriesToRender = allEntries;
+            }
+            return new ParsedLogData(allEntries, entriesToRender);
         } else {
             try (var stream = logFileHandler.getLinesStreamed()) {
                 java.util.stream.Stream<String> cleaned = stream.map(LogFileHandler::removeSecureMarker);
-                allEntries = StreamProcessor.parseEntriesForFullLogStream(cleaned);
+                StreamProcessor.ParseResult res = StreamProcessor.parseEntriesForFullLogStreamWithStats(cleaned);
+                long total = res.totalEntries;
+                List<List<String>> limited = res.entriesNewestFirst;
+                if (total > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
+                    List<String> infoEntry = new ArrayList<>();
+                    infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + total + " total)");
+                    infoEntry.add("Use the Log List view with filters to browse older entries.");
+                    // limited already contains at most MAX_ENTRIES_TO_RENDER newest-first
+                    entriesToRender = new ArrayList<>(limited);
+                    entriesToRender.add(0, infoEntry);
+                } else {
+                    entriesToRender = limited;
+                }
+                return new ParsedLogData((int)Math.min(total, Integer.MAX_VALUE), entriesToRender);
             }
         }
-        List<List<String>> entriesToRender;
-
-        if (allEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
-            // Take the most recent N entries (already sorted newest first)
-            entriesToRender = allEntries.subList(0, ResourceLimits.MAX_ENTRIES_TO_RENDER);
-            // Add info message at top
-            List<String> infoEntry = new ArrayList<>();
-            infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + allEntries.size() + " total)");
-            infoEntry.add("Use the Log List view with filters to browse older entries.");
-            entriesToRender = new ArrayList<>(entriesToRender);
-            entriesToRender.add(0, infoEntry);
-        } else {
-            entriesToRender = allEntries;
-        }
-
-        return new ParsedLogData(allEntries, entriesToRender);
     }
     
     /**
