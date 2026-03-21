@@ -517,74 +517,80 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
-        // Encrypt current file
-        LoadingProgressDialog progressDialog = null;
-        try {
-            progressDialog = new LoadingProgressDialog(editor, "Encrypting");
-            progressDialog.setStatus("Encrypting file...");
-            progressDialog.setIndeterminate(true);
-            progressDialog.show();
+        // Run encryption off the EDT to keep the UI responsive and show progress.
+        statusLabel.setText("Encrypting...");
+        statusLabel.setForeground(Color.BLUE);
+        encryptionCheckBox.setEnabled(false);
 
-            logFileHandler.enableEncryption(pwd);
+        new javax.swing.SwingWorker<Void, Void>() {
+            private Exception error;
 
-            // Backup settings file before modifying
-            if (java.nio.file.Files.exists(settingsPath)) {
-                // Save backup in configured backup directory
-                String backupDir = settings.getProperty("backupDirectory", "");
-                java.nio.file.Path backupSettingsPath;
-                
-                if (backupDir != null && !backupDir.isEmpty()) {
-                    java.nio.file.Path backupDirPath = java.nio.file.Paths.get(backupDir);
-                    java.nio.file.Files.createDirectories(backupDirPath);
-                    backupSettingsPath = backupDirPath.resolve(settingsPath.getFileName().toString() + ".bak");
-                } else {
-                    // Fallback to sibling if no backup directory configured
-                    backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
-                }
-                
-                java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            }
-
-            var saltBytes = logFileHandler.getSalt();
-            var saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
-            settings.setProperty("encrypted", "true");
-            settings.setProperty("salt", saltBase64);
-            saveSettings();
-
-            // Verify the settings were saved correctly
-            var savedSalt = settings.getProperty("salt");
-            if (savedSalt == null || savedSalt.isEmpty()) {
-                throw new Exception("Failed to save encryption salt to settings");
-            }
-            if (!savedSalt.equals(saltBase64)) {
-                throw new Exception("Salt mismatch after save! Expected: " + saltBase64 + ", Got: " + savedSalt);
-            }
-
-            statusLabel.setText("Encryption enabled successfully.");
-            statusLabel.setForeground(Color.BLUE);
-            editor.loadLogEntries();
-            editor.getFullLogPanel().loadFullLog();
-
-            // Perform automatic backup after successful encryption
-            performAutomaticBackup();
-
-            // Check for and offer to clean up old unencrypted backups
-            cleanupOldUnencryptedBackups();
-
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(editor, "Encryption failed. Please check your password and try again.");
-            statusLabel.setText("Encryption failed. Please check your password and try again.");
-            statusLabel.setForeground(Color.RED);
-        } finally {
-            if (progressDialog != null) {
+            @Override
+            protected Void doInBackground() {
                 try {
-                    progressDialog.close();
-                } catch (Exception ignore) {
+                    logFileHandler.enableEncryption(pwd);
+                } catch (Exception ex) {
+                    this.error = ex;
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    if (error != null) {
+                        JOptionPane.showMessageDialog(editor, "Encryption failed. Please check your password and try again.");
+                        statusLabel.setText("Encryption failed. Please check your password and try again.");
+                        statusLabel.setForeground(Color.RED);
+                        encryptionCheckBox.setSelected(false);
+                    } else {
+                        // Backup settings file before modifying
+                        try {
+                            if (java.nio.file.Files.exists(settingsPath)) {
+                                String backupDir = settings.getProperty("backupDirectory", "");
+                                java.nio.file.Path backupSettingsPath;
+                                if (backupDir != null && !backupDir.isEmpty()) {
+                                    java.nio.file.Path backupDirPath = java.nio.file.Paths.get(backupDir);
+                                    java.nio.file.Files.createDirectories(backupDirPath);
+                                    backupSettingsPath = backupDirPath.resolve(settingsPath.getFileName().toString() + ".bak");
+                                } else {
+                                    backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+                                }
+                                java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            }
+
+                            var saltBytes = logFileHandler.getSalt();
+                            var saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
+                            settings.setProperty("encrypted", "true");
+                            settings.setProperty("salt", saltBase64);
+                            saveSettings();
+
+                            statusLabel.setText("Encryption enabled successfully.");
+                            statusLabel.setForeground(Color.BLUE);
+                            editor.loadLogEntries();
+                            editor.getFullLogPanel().loadFullLog();
+
+                            // Show completion dialog
+                            JOptionPane.showMessageDialog(editor, "Encryption completed successfully.", "Encryption", JOptionPane.INFORMATION_MESSAGE);
+
+                            // Perform automatic backup after successful encryption
+                            performAutomaticBackup();
+
+                            // Check for and offer to clean up old unencrypted backups
+                            cleanupOldUnencryptedBackups();
+                        } catch (Exception ex2) {
+                            JOptionPane.showMessageDialog(editor, "Encryption succeeded but saving settings failed: " + ex2.getMessage(), "Warning", JOptionPane.WARNING_MESSAGE);
+                            statusLabel.setText("Encryption completed but settings update failed.");
+                            statusLabel.setForeground(Color.ORANGE);
+                        }
+                    }
+                } finally {
+                    encryptionCheckBox.setEnabled(false); // Keep disabled when encrypted
+                    java.util.Arrays.fill(pwd, '\0');
+                    java.util.Arrays.fill(confirm, '\0');
                 }
             }
-            java.util.Arrays.fill(pwd, '\0');
-            java.util.Arrays.fill(confirm, '\0');
-        }
+        }.execute();
     }
 
     private void cleanupOldUnencryptedBackups() {
