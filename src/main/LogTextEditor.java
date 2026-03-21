@@ -353,8 +353,8 @@ public class LogTextEditor extends JFrame {
         
         // Check if running in headless environment
         if (java.awt.GraphicsEnvironment.isHeadless()) {
-            System.err.println("LogHog is a GUI application and cannot run in a headless environment.");
-            System.err.println("Please run LogHog in a desktop environment with display capabilities.");
+            // Log and exit when running in an unsupported headless environment
+            utils.Log.error("LogHog cannot run in a headless environment. Exiting.");
             System.exit(1);
         }
         
@@ -401,7 +401,8 @@ public class LogTextEditor extends JFrame {
                 editor.setVisible(true);
                 editor.startSingleInstanceListener();
             } catch (Exception e) {
-                // Security: Don't log exception details to console
+                // Security: Log error and exit
+                utils.Log.error("Fatal error starting UI", e);
                 System.exit(1);
             }
         });

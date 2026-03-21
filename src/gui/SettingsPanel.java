@@ -17,6 +17,8 @@
 
 package gui;
 
+import utils.Log;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
@@ -680,7 +682,7 @@ public class SettingsPanel extends JPanel {
                         try {
                             main.BackupManager.secureDelete(backup);
                         } catch (Exception e) {
-                            System.err.println("Failed to securely delete backup: " + backup + " - " + e.getMessage());
+                            Log.error("Failed to securely delete backup: " + backup, e);
                         }
                     }
 
@@ -695,7 +697,7 @@ public class SettingsPanel extends JPanel {
 
         } catch (Exception e) {
             // Silently ignore cleanup errors to not disrupt the encryption success
-            System.err.println("Error during backup cleanup: " + e.getMessage());
+            Log.error("Error during backup cleanup", e);
         }
     }
 

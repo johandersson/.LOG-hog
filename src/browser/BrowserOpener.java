@@ -21,6 +21,7 @@ import java.awt.*;
 import java.net.URI;
 import gui.DialogHelper;
 import security.PathValidator;
+import utils.Log;
 
 public class BrowserOpener {
     public static void openInBrowser(String url) {
@@ -32,8 +33,8 @@ public class BrowserOpener {
             }
             Desktop.getDesktop().browse(new URI(url));
         } catch (Exception e) {
-            // Do not expose internal exception details to the user or logs
-            System.err.println("Error opening URL in browser.");
+            // Do not expose internal exception details to the user; log safely
+            Log.error("Error opening URL in browser.", e);
         }
     }
 }

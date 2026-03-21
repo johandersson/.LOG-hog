@@ -29,6 +29,7 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+import utils.Log;
 
 /**
  * Secure settings storage for sensitive configuration data.
@@ -64,8 +65,6 @@ public class SecureSettings {
     private static final int PBKDF2_ITERATIONS = 600000; // Keep consistent with file encryption
     private static final String SETTINGS_SALT_KEY = "settingsSalt";
     private final SecretKeySpec settingsKey;
-    private final SecretKeySpec legacyV2Key; // For decrypting old static salt encrypted settings
-    private final SecretKeySpec legacyV1Key; // For decrypting old SHA-256 encrypted settings
     private final SecureRandom secureRandom;
     private final Properties settings;
 
@@ -84,17 +83,7 @@ public class SecureSettings {
             SecretKey tmp = factory.generateSecret(spec);
             this.settingsKey = new SecretKeySpec(tmp.getEncoded(), "AES");
             
-            // Initialize legacy v2 key (static salt) for backward compatibility
-            byte[] legacyV2Salt = "LogHog_Settings_Salt_v2".getBytes(StandardCharsets.UTF_8);
-            KeySpec legacyV2Spec = new PBEKeySpec((username + "_LogHog_Settings_v2").toCharArray(), legacyV2Salt, 10000, 128);
-            SecretKey legacyV2Tmp = factory.generateSecret(legacyV2Spec);
-            this.legacyV2Key = new SecretKeySpec(legacyV2Tmp.getEncoded(), "AES");
-            
-            // Initialize legacy v1 key (SHA-256) for backward compatibility
-            String legacyV1KeySeed = username + "_LogHog_Settings_v1";
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] legacyV1KeyBytes = digest.digest(legacyV1KeySeed.getBytes(StandardCharsets.UTF_8));
-            this.legacyV1Key = new SecretKeySpec(legacyV1KeyBytes, 0, 16, "AES");
+            // No legacy ECB fallbacks are initialized. Only AES/GCM is supported.
             
             this.secureRandom = new SecureRandom();
         } catch (Exception e) {
@@ -170,56 +159,26 @@ public class SecureSettings {
                 String encryptedData = storedValue.substring(ENCRYPTED_PREFIX.length());
                 byte[] encryptedBytes = Base64.getDecoder().decode(encryptedData);
                 
-                // Try GCM first (new format with IV prefix and random salt)
+                // Only support AES/GCM (authenticated) encrypted settings.
                 if (encryptedBytes.length >= GCM_IV_LENGTH + GCM_TAG_LENGTH) {
                     try {
                         byte[] iv = new byte[GCM_IV_LENGTH];
                         System.arraycopy(encryptedBytes, 0, iv, 0, GCM_IV_LENGTH);
                         byte[] encrypted = new byte[encryptedBytes.length - GCM_IV_LENGTH];
                         System.arraycopy(encryptedBytes, GCM_IV_LENGTH, encrypted, 0, encrypted.length);
-                        
+
                         Cipher cipher = Cipher.getInstance(ALGORITHM);
                         GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
                         cipher.init(Cipher.DECRYPT_MODE, settingsKey, spec);
                         byte[] decrypted = cipher.doFinal(encrypted);
                         return new String(decrypted, StandardCharsets.UTF_8);
                     } catch (Exception gcmException) {
-                        // Not GCM format or wrong key, try ECB fallbacks
+                        // Failed to decrypt with GCM — do not attempt insecure fallbacks.
+                        Log.warn("Failed to decrypt settings value with AES/GCM; legacy fallbacks are disabled.");
+                        return "";
                     }
                 }
-                
-                // Try ECB with new key (for data encrypted during transition)
-                try {
-                    Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-                    cipher.init(Cipher.DECRYPT_MODE, settingsKey);
-                    byte[] decrypted = cipher.doFinal(encryptedBytes);
-                    return new String(decrypted, StandardCharsets.UTF_8);
-                } catch (Exception newEcbException) {
-                    // Try legacy v2 key (static salt PBKDF2)
-                    try {
-                        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-                        cipher.init(Cipher.DECRYPT_MODE, legacyV2Key);
-                        byte[] decrypted = cipher.doFinal(encryptedBytes);
-                        String value = new String(decrypted, StandardCharsets.UTF_8);
-                        // Note: Auto-migration to new key happens when setting is next saved
-                        return value;
-                    } catch (Exception legacyV2Exception) {
-                        // Try legacy v1 key (SHA-256)
-                        try {
-                            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-                            cipher.init(Cipher.DECRYPT_MODE, legacyV1Key);
-                            byte[] decrypted = cipher.doFinal(encryptedBytes);
-                            String value = new String(decrypted, StandardCharsets.UTF_8);
-                            // Note: Auto-migration to new key happens when setting is next saved
-                            return value;
-                        } catch (Exception legacyV1Exception) {
-                            // All decryption attempts failed
-                        }
-                    }
-                }
-                
-                // If we get here, decryption failed - return empty string
-                // This indicates no valid password reminder is set
+                Log.warn("Encrypted settings value too short to contain IV/tag; ignoring.");
                 return "";
             } catch (Exception e) {
                 // Silent failure - setting may be in old format or plaintext

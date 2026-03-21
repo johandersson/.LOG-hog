@@ -4,6 +4,7 @@ import java.awt.FlowLayout;
 import java.awt.Frame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import utils.Log;
 
 /**
  * Specialized progress dialog for encryption operations.
@@ -47,7 +48,7 @@ public class EncryptionProgressDialog extends LoadingProgressDialog {
                     try {
                         onOkCallback.run();
                     } catch (Exception ex) {
-                        System.err.println("Error running onOk callback.");
+                        Log.error("Error running onOk callback.", ex);
                     }
                 }
             });
