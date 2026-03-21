@@ -162,18 +162,24 @@ public class DialogHandler {
                 }
                 // Optionally validate file contents (e.g., check for .LOG header)
                 try {
-                    String content = java.nio.file.Files.readString(selectedFile.toPath());
-                    if (!content.startsWith(".LOG")) {
-                        int confirm = DialogHelper.showOptions(
-                            null,
-                            "Confirm log.txt",
-                            "Confirm log.txt",
-                            "Selected file does not appear to be a valid log.txt. Set as default anyway?",
-                            JOptionPane.QUESTION_MESSAGE,
-                            new Object[]{"Yes", "No"},
-                            "No"
-                        );
-                        if (confirm != 0) return false;
+                    // Read only the prefix of the file (cheap) to detect the .LOG header
+                    java.nio.file.Path selPath = selectedFile.toPath();
+                    try (java.io.InputStream in = java.nio.file.Files.newInputStream(selPath)) {
+                        byte[] buf = new byte[4];
+                        int r = in.read(buf);
+                        String start = r > 0 ? new String(buf, 0, Math.max(0, r), java.nio.charset.StandardCharsets.UTF_8) : "";
+                        if (!start.startsWith(".LOG")) {
+                            int confirm = DialogHelper.showOptions(
+                                null,
+                                "Confirm log.txt",
+                                "Confirm log.txt",
+                                "Selected file does not appear to be a valid log.txt. Set as default anyway?",
+                                JOptionPane.QUESTION_MESSAGE,
+                                new Object[]{"Yes", "No"},
+                                "No"
+                            );
+                            if (confirm != 0) return false;
+                        }
                     }
                 } catch (Exception e) {
                     showErrorDialog("<html><b>File Read Error</b><br><br>Unable to read the selected file.</html>");

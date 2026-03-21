@@ -293,6 +293,50 @@ public class EntryLoader {
         }
     }
 
+    /**
+     * Compute a list of timestamps for a given year without touching Swing components.
+     * Safe to call off the EDT.
+     */
+    public List<String> computeTimestampsByYear(int year) throws Exception {
+        if (!Files.exists(logFileHandler.getFilePath())) {
+            return Collections.emptyList();
+        }
+
+        if (!isCacheValid() || parsedEntriesCache == null) {
+            parseParsedEntriesCache();
+        }
+
+        List<String> filtered = new ArrayList<>();
+        for (ParsedEntry entry : parsedEntriesCache) {
+            if (entry.dateTime != null && entry.dateTime.getYear() == year) {
+                filtered.add(entry.timestamp);
+            }
+        }
+        return filtered;
+    }
+
+    /**
+     * Compute a list of timestamps for a given year+month without touching Swing components.
+     * Safe to call off the EDT.
+     */
+    public List<String> computeTimestampsByYearMonth(int year, int month) throws Exception {
+        if (!Files.exists(logFileHandler.getFilePath())) {
+            return Collections.emptyList();
+        }
+
+        if (!isCacheValid() || parsedEntriesCache == null) {
+            parseParsedEntriesCache();
+        }
+
+        List<String> filtered = new ArrayList<>();
+        for (ParsedEntry entry : parsedEntriesCache) {
+            if (entry.dateTime != null && entry.dateTime.getYear() == year && entry.dateTime.getMonthValue() == month) {
+                filtered.add(entry.timestamp);
+            }
+        }
+        return filtered;
+    }
+
     public void loadFilteredEntries(DefaultListModel<String> listModel, int year, int month) {
         if (!Files.exists(logFileHandler.getFilePath())) {
             listModel.removeAllElements();

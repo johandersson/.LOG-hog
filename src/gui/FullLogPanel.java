@@ -42,6 +42,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.ToolTipManager;
 import javax.swing.text.StyledDocument;
+import javax.swing.JProgressBar;
 
 import filehandling.FullLogFileLoader;
 import filehandling.LogFileFormatter;
@@ -61,6 +62,7 @@ public class FullLogPanel extends LogPanel {
     private final JButton searchButton;
     private final JButton formatButton;
     private final LogInfoPanel infoPanel;
+    private final JProgressBar fullLoadProgress;
     private SearchDialog searchDialog;
     private boolean suppressAutoLoad = false;
     private TimestampClickHandler timestampClickHandler;
@@ -93,6 +95,7 @@ public class FullLogPanel extends LogPanel {
         
         // Initialize info panel component
         this.infoPanel = new LogInfoPanel();
+        this.fullLoadProgress = new JProgressBar();
         
         initPanel();
         updateLockButton(); // Ensure buttons are in correct state based on lock status
@@ -137,6 +140,10 @@ public class FullLogPanel extends LogPanel {
         pathPanel.setOpaque(false);
         fullLogPathLabel.setForeground(new Color(0x3A4A52));
         pathPanel.add(fullLogPathLabel, BorderLayout.WEST);
+        fullLoadProgress.setIndeterminate(true);
+        fullLoadProgress.setVisible(false);
+        fullLoadProgress.setPreferredSize(new java.awt.Dimension(140, 16));
+        pathPanel.add(fullLoadProgress, BorderLayout.EAST);
         add(pathPanel, BorderLayout.NORTH);
 
         var bottom = new JPanel(new BorderLayout(10, 0));
@@ -250,7 +257,7 @@ public class FullLogPanel extends LogPanel {
             
             // Show loading feedback for large files
             setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-            fullLogPane.setText("Loading...");
+            fullLoadProgress.setVisible(true);
             
             // Use SwingWorker to keep UI responsive during large file loads
             new SwingWorker<ParsedLogData, Void>() {
@@ -273,6 +280,7 @@ public class FullLogPanel extends LogPanel {
                         Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
                         handleLoadException(cause instanceof Exception ? (Exception) cause : new Exception(cause), logPath);
                     }
+                    fullLoadProgress.setVisible(false);
                     updateLockButton();
                 }
             }.execute();
@@ -300,7 +308,8 @@ public class FullLogPanel extends LogPanel {
             
             // Show loading feedback for large files
             setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-            fullLogPane.setText("Loading...");
+            fullLoadProgress.setVisible(true);
+            fullLogPane.setText("");
             
             // Use SwingWorker to keep UI responsive during large file loads
             new SwingWorker<ParsedLogData, Void>() {
@@ -313,6 +322,7 @@ public class FullLogPanel extends LogPanel {
                 @Override
                 protected void done() {
                     setCursor(Cursor.getDefaultCursor());
+                    fullLoadProgress.setVisible(false);
                     try {
                         ParsedLogData parsedData = get();
                         // Render on EDT and always scroll to bottom when loading

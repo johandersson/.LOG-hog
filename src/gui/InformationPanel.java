@@ -85,12 +85,30 @@ public class InformationPanel extends JPanel {
     }
 
     public void loadText() {
-        if (fileName != null) {
-            var informationTextToDisplay = loadPanelText(fileName);
-            MarkdownRenderer.renderMarkdownDirect(textPane, informationTextToDisplay.lines().toList());
-            LinkHandler.addLinkListeners(textPane);
-            textPane.setCaretPosition(0);
-        }
+        if (fileName == null) return;
+
+        // Load panel text off the EDT to avoid blocking UI for large or slow resource reads
+        new javax.swing.SwingWorker<String, Void>() {
+            @Override
+            protected String doInBackground() throws Exception {
+                return loadPanelText(fileName);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    String informationTextToDisplay = get();
+                    java.util.List<String> lines = informationTextToDisplay == null ? java.util.List.of() : informationTextToDisplay.lines().toList();
+                    MarkdownRenderer.renderMarkdownDirect(textPane, lines);
+                    LinkHandler.addLinkListeners(textPane);
+                    textPane.setCaretPosition(0);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                } catch (java.util.concurrent.ExecutionException ee) {
+                    textPane.setText("Could not load content.");
+                }
+            }
+        }.execute();
     }
 
     public void unloadText() {

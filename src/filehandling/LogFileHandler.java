@@ -726,6 +726,13 @@ public class LogFileHandler implements LogFileOperations {
     public FileEncryptionManager getEncryptionManager() {
         return encryptionManager;
     }
+
+    /**
+     * Expose EntryLoader for read-only operations that compute results off-EDT.
+     */
+    public EntryLoader getEntryLoader() {
+        return entryLoader;
+    }
     
     /**
      * Updates the cached lines (used for encrypted files).
