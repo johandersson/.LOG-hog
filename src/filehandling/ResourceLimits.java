@@ -26,4 +26,10 @@ public final class ResourceLimits {
     // Rendering more than this number of entries will be delegated to a limited
     // subset so tab switching and UI interactions stay responsive.
     public static final int MAX_ENTRIES_TO_RENDER_UI = 3_000;
+
+    // Maximum size (in bytes) of a file that is allowed to be decrypted into
+    // a single in-memory String. Files larger than this should be streamed
+    // and processed incrementally to avoid OOM and secret exposure in heap.
+    // Default: 20 MB
+    public static final long MAX_DECRYPT_STRING_SIZE = 20L * 1024L * 1024L;
 }

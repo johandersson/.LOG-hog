@@ -144,8 +144,20 @@ public class FileEncryptionManager {
                     consumer.accept(dec);
                 }
             } else {
-                // Fallback: read all bytes and decrypt to memory then supply stream
-                byte[] data = Files.readAllBytes(filePath);
+                // Fallback: read all bytes from the provided stream and decrypt to memory then supply stream
+                byte[] data;
+                try {
+                    data = encryptedIn.readAllBytes();
+                } catch (NoSuchMethodError nsme) {
+                    // Java versions without InputStream.readAllBytes(): fallback to manual read
+                    try (var bout = new java.io.ByteArrayOutputStream()) {
+                        byte[] buf = new byte[8192];
+                        int r;
+                        while ((r = encryptedIn.read(buf)) != -1) bout.write(buf, 0, r);
+                        data = bout.toByteArray();
+                    }
+                }
+
                 String decrypted = encryptor.decrypt(data, password);
                 try (var bis = new java.io.ByteArrayInputStream(decrypted.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
                     consumer.accept(bis);
@@ -261,6 +273,15 @@ public class FileEncryptionManager {
         // Use password then immediately clear it from memory
         char[] pwd = password.clone();
         try {
+            long size = -1;
+            try {
+                size = java.nio.file.Files.size(filePath);
+            } catch (Exception ignored) {}
+
+            if (size > 0 && size > filehandling.ResourceLimits.MAX_DECRYPT_STRING_SIZE) {
+                throw new EncryptionException("Refusing to decrypt file into a single String because file is too large (" + size + " bytes). Use streaming APIs like decryptFileToLines() or a streaming consumer to avoid OOM.");
+            }
+
             if (encryptor instanceof StreamEncryptor) {
                 try (var in = Files.newInputStream(filePath);
                      var dec = ((StreamEncryptor) encryptor).openDecryptedStream(in, pwd, salt, null);
@@ -277,6 +298,13 @@ public class FileEncryptionManager {
                     return sb.toString();
                 }
             } else {
+                // Fallback: only allow reading entire file when it's reasonably small
+                long fileSize = -1;
+                try { fileSize = java.nio.file.Files.size(filePath); } catch (Exception ignored) {}
+                if (fileSize > 0 && fileSize > filehandling.ResourceLimits.MAX_DECRYPT_STRING_SIZE) {
+                    throw new EncryptionException("Refusing to decrypt large file into memory (" + fileSize + " bytes). Use decryptFileToLines() or streaming APIs instead.");
+                }
+
                 byte[] encryptedBytes = Files.readAllBytes(filePath);
                 String decrypted = encryptor.decrypt(encryptedBytes, pwd);
                 return decrypted;
