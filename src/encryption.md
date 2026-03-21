@@ -198,7 +198,7 @@ The encryption system is highly modular and well-encapsulated, making it suitabl
 ALGORITHM = "AES/GCM/NoPadding"
 GCM_IV_LENGTH = 12 bytes
 GCM_TAG_LENGTH = 16 bytes
-PBKDF2_ITERATIONS = 100,000
+PBKDF2_ITERATIONS = 600,000
 AES_KEY_LENGTH = 256 bits
 ```
 

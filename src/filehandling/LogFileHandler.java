@@ -696,6 +696,21 @@ public class LogFileHandler implements LogFileOperations {
     public void setBackupDirectory(String backupDirectory) {
         this.backupDirectory = backupDirectory != null ? backupDirectory : "";
     }
+
+    /**
+     * Returns the distinct years present in the log file, newest-first.
+     * Delegates to EntryLoader and limits the number of years returned.
+     */
+    public java.util.List<Integer> getAvailableYears(int maxYears) {
+        try {
+            if (entryLoader != null) {
+                return entryLoader.getAvailableYears(maxYears);
+            }
+        } catch (Exception e) {
+            // Ignore and fall back to current year
+        }
+        return java.util.List.of(java.time.LocalDate.now().getYear());
+    }
     
     public void setBackupManager(BackupManager backupManager) {
         this.backupManager = backupManager;

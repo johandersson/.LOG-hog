@@ -61,7 +61,7 @@ public class SecureSettings {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
-    private static final int PBKDF2_ITERATIONS = 100000; // Increased to match file encryption
+    private static final int PBKDF2_ITERATIONS = 600000; // Keep consistent with file encryption
     private static final String SETTINGS_SALT_KEY = "settingsSalt";
     private final SecretKeySpec settingsKey;
     private final SecretKeySpec legacyV2Key; // For decrypting old static salt encrypted settings

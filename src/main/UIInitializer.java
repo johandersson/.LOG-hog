@@ -231,7 +231,7 @@ public class UIInitializer {
         tabPane.addTab("Full Log", editor.getFullLogPanel());
         tabPane.addTab("Settings", editor.getSettingsPanel());
         tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help", false, true));
-        tabPane.addTab("About", new InformationPanel(tabPane, "license.md", "About", true, true));
+        tabPane.addTab("About", new InformationPanel(tabPane, "LICENSE.md", "About", true, true));
         tabPane.addChangeListener(e -> {
             if (tabPane.getSelectedIndex() == 2) {
                 if (!editor.getFullLogPanel().isSuppressAutoLoad()) {

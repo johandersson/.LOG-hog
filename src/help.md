@@ -15,7 +15,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 .LOG-hog implements **enterprise-grade security** with comprehensive protection against modern threats. The application has undergone extensive security hardening to address all identified vulnerabilities.
 
 **Key Security Features:**
-- **AES-256-GCM authenticated encryption** with PBKDF2-100,000 iterations key derivation
+- **AES-256-GCM authenticated encryption** with PBKDF2-600,000 iterations key derivation
 - **Progressive brute-force protection** (3s → 15s → 30s) with cryptographically secure randomization and progress feedback
 - **4-attempt limit** with application restart requirement and real-time countdown
 - **Immediate memory clearing** of all sensitive data (passwords, keys, cached content)
@@ -114,6 +114,8 @@ The Full Log tab renders your log entries with Markdown formatting for better re
 - **Line Breaks**: Use two spaces at the end of a line or a blank line for paragraphs
 
 Formatting is applied in the Full Log window for a polished view of your entries.
+
+If a log file contains more entries than the UI rendering limit, the Full Log view will display the most recent entries only to keep the application responsive. Use the Log Entries tab's date filter to load other periods or years explicitly.
 
 ## License
 .LOG-hog is licensed under the GNU General Public License version 3 (GPL3). See the ../LICENSE.md file for full license text.

@@ -71,6 +71,7 @@ public class LogListPanel extends JPanel {
     private boolean isPreviewMode = false;
     private JComboBox<Integer> yearCombo;
     private JComboBox<String> monthCombo;
+    private final LogInfoPanel infoPanel;
 
     public LogListPanel(LogTextEditor editor, LogFileHandler logFileHandler, DefaultListModel<String> listModel, JList<String> logList) {
         this.editor = editor;
@@ -83,6 +84,7 @@ public class LogListPanel extends JPanel {
         this.entryContainer = new JPanel(new BorderLayout());
         this.previewPane = new HighlightableTextPane();
         this.previewScrollPane = new JScrollPane(previewPane);
+        this.infoPanel = new LogInfoPanel();
         initPanel();
     }
 
@@ -98,7 +100,22 @@ public class LogListPanel extends JPanel {
         var split = createLogSplitPane();
         add(split, BorderLayout.CENTER);
 
+        // Bottom: info panel (reuse same LogInfoPanel used in FullLog view)
+        var bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        var infoWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        infoWrapper.setOpaque(false);
+        infoWrapper.add(infoPanel);
+        bottom.add(infoWrapper, BorderLayout.WEST);
+        add(bottom, BorderLayout.SOUTH);
+
         setupListeners(split);
+
+        // Populate initial info from the current listModel (most recent view)
+        updateInfoFromListModel();
+
+        // Indicate scope in the info panel
+        infoPanel.updateYearScope("Most recent (from list view)");
     }
 
     private JPanel createFilterPanel() {
@@ -108,10 +125,26 @@ public class LogListPanel extends JPanel {
         filterLabel.setFont(filterLabel.getFont().deriveFont(Font.BOLD));
         filterPanel.add(filterLabel);
 
-        var currentYear = Year.now().getValue();
-        var years = IntStream.rangeClosed(2000, currentYear).boxed().toArray(Integer[]::new);
-        yearCombo = new JComboBox<>(years);
-        yearCombo.setSelectedItem(currentYear);
+        // Populate year combo from the currently displayed entries in the list (most recent view)
+        java.util.Set<Integer> yearsSet = new java.util.LinkedHashSet<>();
+        for (int i = 0; i < listModel.getSize(); i++) {
+            try {
+                String ts = listModel.getElementAt(i);
+                java.time.LocalDateTime dt = utils.DateHandler.parseTimestamp(ts);
+                yearsSet.add(dt.getYear());
+            } catch (Exception ignored) {
+            }
+        }
+        Integer[] yearsArr;
+        if (!yearsSet.isEmpty()) {
+            yearsArr = yearsSet.toArray(new Integer[0]);
+        } else {
+            var currentYear = Year.now().getValue();
+            yearsArr = IntStream.rangeClosed(currentYear, currentYear).boxed().toArray(Integer[]::new);
+        }
+        yearCombo = new JComboBox<>(yearsArr);
+        // Select the most recent year by default if present
+        if (yearsArr.length > 0) yearCombo.setSelectedItem(yearsArr[0]);
         filterPanel.add(yearCombo);
 
         var months = new String[]{

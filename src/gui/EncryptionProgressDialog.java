@@ -2,7 +2,6 @@ package gui;
 
 import java.awt.FlowLayout;
 import java.awt.Frame;
-import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
@@ -12,6 +11,7 @@ import javax.swing.SwingUtilities;
  */
 public class EncryptionProgressDialog extends LoadingProgressDialog {
     private boolean completionShown = false;
+    private Runnable onOkCallback = null;
 
     public EncryptionProgressDialog(Frame parent, String title) {
         super(parent, title);
@@ -37,19 +37,34 @@ public class EncryptionProgressDialog extends LoadingProgressDialog {
             setProgress(100);
             setStatus("Encryption complete");
 
-            // Add an OK button below the existing content
-            JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-            JButton ok = new JButton("OK");
-            ok.addActionListener(e -> close());
+            // Add an OK button below the existing content, left-aligned with spacing
+            JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            btnPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 12, 12, 12));
+            AccentButton ok = new AccentButton("OK");
+            ok.addActionListener(e -> {
+                close();
+                if (onOkCallback != null) {
+                    try {
+                        onOkCallback.run();
+                    } catch (Exception ex) {
+                        System.err.println("Error running onOk callback: " + ex.getMessage());
+                    }
+                }
+            });
             btnPanel.add(ok);
 
-            // Add to dialog; BorderLayout.PAGE_END will replace existing SOUTH component,
-            // but ProgressDialogBase uses SOUTH for the progress bar — instead we add
-            // the button panel to the dialog's content pane after the progress bar so
-            // it appears visually below it.
+            // Place the button panel after the progress bar so it appears visually below it
             dialog.getContentPane().add(btnPanel, java.awt.BorderLayout.AFTER_LAST_LINE);
             dialog.revalidate();
             dialog.repaint();
         });
+    }
+
+    /**
+     * Register a callback to be executed when the user clicks OK on the completion state.
+     * The callback will be invoked on the EDT after the dialog is closed.
+     */
+    public void setOnOkCallback(Runnable r) {
+        this.onOkCallback = r;
     }
 }

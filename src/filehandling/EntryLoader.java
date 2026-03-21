@@ -71,6 +71,34 @@ public class EntryLoader {
         this.logFileHandler = logFileHandler;
         this.encryptor = encryptor;
     }
+
+    /**
+     * Returns a list of distinct years that appear in the parsed entries.
+     * Uses the cached parsed entries if available to avoid re-parsing the file.
+     * The returned list is ordered newest-first and limited to {@code maxYears} entries.
+     */
+    public List<Integer> getAvailableYears(int maxYears) throws Exception {
+        if (!isCacheValid() || parsedEntriesCache == null) {
+            parseParsedEntriesCache();
+        }
+
+        java.util.LinkedHashSet<Integer> years = new java.util.LinkedHashSet<>();
+        if (parsedEntriesCache != null) {
+            for (ParsedEntry pe : parsedEntriesCache) {
+                if (pe.dateTime != null) {
+                    years.add(pe.dateTime.getYear());
+                    // If maxYears is positive, respect the cap; if <= 0, return all years
+                    if (maxYears > 0 && years.size() >= maxYears) break;
+                }
+            }
+        }
+
+        if (years.isEmpty()) {
+            years.add(java.time.LocalDate.now().getYear());
+        }
+
+        return new ArrayList<>(years);
+    }
     
     /**
      * Invalidates all caches. Called when file is modified.

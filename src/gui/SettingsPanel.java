@@ -602,14 +602,13 @@ public class SettingsPanel extends JPanel {
                             statusLabel.setText("Encryption enabled successfully.");
                             statusLabel.setForeground(Color.BLUE);
 
-                            // Show completion state on our progress dialog (stays until user clicks OK)
+                            // Arrange to show completion state; only after the user clicks OK
+                            // will we offer cleanup of old unencrypted backups.
+                            progressDialog.setOnOkCallback(() -> cleanupOldUnencryptedBackups());
                             progressDialog.showCompletion();
 
                             // Perform automatic backup after successful encryption
                             performAutomaticBackup();
-
-                            // Check for and offer to clean up old unencrypted backups
-                            cleanupOldUnencryptedBackups();
                         } catch (Exception ex2) {
                             progressDialog.close();
                             JOptionPane.showMessageDialog(editor, "Encryption succeeded but saving settings failed: " + ex2.getMessage(), "Warning", JOptionPane.WARNING_MESSAGE);
@@ -676,17 +675,7 @@ public class SettingsPanel extends JPanel {
             );
 
             if (choice == JOptionPane.YES_OPTION) {
-                // Run secure deletion off the EDT to avoid blocking the UI.
-                LoadingProgressDialog progress = null;
-                if (editor != null) {
-                    progress = new LoadingProgressDialog(editor, "Cleaning Old Backups");
-                    progress.setStatus("Deleting old backups...");
-                    progress.setIndeterminate(true);
-                    progress.show();
-                }
-                LoadingProgressDialog finalProgress = progress;
-
-                Thread cleanupThread = new Thread(() -> {
+                UiTaskRunner.runModalBackgroundTask(editor, "Cleaning Old Backups", "Deleting old backups...", () -> {
                     for (Path backup : unencryptedBackups) {
                         try {
                             main.BackupManager.secureDelete(backup);
@@ -695,21 +684,13 @@ public class SettingsPanel extends JPanel {
                         }
                     }
 
-                    if (finalProgress != null) {
-                        finalProgress.close();
-                    }
-
-                    javax.swing.SwingUtilities.invokeLater(() -> {
-                        JOptionPane.showMessageDialog(
-                            editor,
-                            "Old unencrypted backup files have been securely deleted.",
-                            "Cleanup Complete",
-                            JOptionPane.INFORMATION_MESSAGE
-                        );
-                    });
-                }, "loghog-backup-cleanup");
-                cleanupThread.setDaemon(true);
-                cleanupThread.start();
+                    javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(
+                        editor,
+                        "Old unencrypted backup files have been securely deleted.",
+                        "Cleanup Complete",
+                        JOptionPane.INFORMATION_MESSAGE
+                    ));
+                });
             }
 
         } catch (Exception e) {
@@ -765,24 +746,13 @@ public class SettingsPanel extends JPanel {
             var backupPath = selectedFile.toPath();
             var selectedDir = backupPath.getParent();
 
-            LoadingProgressDialog progress = null;
-            if (editor != null) {
-                progress = new LoadingProgressDialog(editor, "Manual Backup");
-                progress.setStatus("Saving backup...");
-                progress.setIndeterminate(true);
-                progress.show();
-            }
-            LoadingProgressDialog finalProgress = progress;
-
-            Thread bg = new Thread(() -> {
+            UiTaskRunner.runModalBackgroundTask(editor, "Manual Backup", "Saving backup...", () -> {
                 try {
-                    // Securely delete existing backup file if it exists
                     if (Files.exists(backupPath)) {
                         main.BackupManager.secureDelete(backupPath);
                     }
                     Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-                    // Also backup settings.ini from home folder
                     var settingsSource = Paths.get(System.getProperty("user.home"), "settings.ini");
                     if (Files.exists(settingsSource)) {
                         var settingsBackupPath = selectedDir.resolve("settings.ini");
@@ -796,12 +766,8 @@ public class SettingsPanel extends JPanel {
                     }
                 } catch (Exception ex) {
                     javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(editor, "Backup failed. Please check file permissions and try again."));
-                } finally {
-                    if (finalProgress != null) finalProgress.close();
                 }
-            }, "loghog-manual-backup");
-            bg.setDaemon(true);
-            bg.start();
+            });
         }
     }
 

@@ -19,6 +19,7 @@ public class LogInfoPanel extends JPanel {
     private final JLabel entriesLabel;
     private final JLabel daysLabel;
     private final JLabel fileSizeLabel;
+    private final JLabel yearsScopeLabel;
 
     public LogInfoPanel() {
         super(new FlowLayout(FlowLayout.LEFT, 15, 5));
@@ -46,10 +47,15 @@ public class LogInfoPanel extends JPanel {
         fileSizeLabel.setFont(infoFont);
         fileSizeLabel.setForeground(infoColor);
 
+        yearsScopeLabel = new JLabel("");
+        yearsScopeLabel.setFont(infoFont);
+        yearsScopeLabel.setForeground(infoColor);
+
         // Add components
         add(entriesLabel);
         add(daysLabel);
         add(fileSizeLabel);
+        add(yearsScopeLabel);
     }
 
     /**
@@ -69,6 +75,17 @@ public class LogInfoPanel extends JPanel {
             fileSizeLabel.setText("Size: " + stats.getFormattedFileSize());
         } else {
             resetStatistics();
+        }
+    }
+
+    /**
+     * Updates the year-scope indicator shown in the info panel (e.g. "Tail-only").
+     */
+    public void updateYearScope(String scopeText) {
+        if (scopeText == null || scopeText.isEmpty()) {
+            yearsScopeLabel.setText("");
+        } else {
+            yearsScopeLabel.setText("Years: " + scopeText);
         }
     }
 
