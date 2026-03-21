@@ -200,8 +200,14 @@ public class DialogHandler {
 
                     Thread bg = new Thread(() -> {
                         try {
-                            Files.createDirectories(filePath.getParent());
-                            Files.copy(selectedFile.toPath(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                                    Files.createDirectories(filePath.getParent());
+                                    // Only copy if selected file path appears safe
+                                    java.nio.file.Path sel = selectedFile.toPath();
+                                    if (!security.PathValidator.isSafeFilePath(sel)) {
+                                        showErrorDialog("<html><b>Invalid File</b><br><br>Selected file path is not allowed.</html>");
+                                        return false;
+                                    }
+                                    Files.copy(sel, filePath, StandardCopyOption.REPLACE_EXISTING);
                             if (onInvalidateCache != null) onInvalidateCache.run();
                             lastMissingFileAction = MissingFileAction.COPIED;
                             success.set(true);
@@ -273,7 +279,13 @@ public class DialogHandler {
 
             Thread bg = new Thread(() -> {
                 try {
-                    Files.copy(backupFile.toPath(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                    // Validate backup path before copying
+                    java.nio.file.Path b = backupFile.toPath();
+                    if (!security.PathValidator.isSafeFilePath(b)) {
+                        showErrorDialog("<html><b>Invalid Backup</b><br><br>Selected backup path is not allowed.</html>");
+                        return false;
+                    }
+                    Files.copy(b, filePath, StandardCopyOption.REPLACE_EXISTING);
                     if (onInvalidateCache != null) onInvalidateCache.run();
                     success.set(true);
                 } catch (Exception e) {

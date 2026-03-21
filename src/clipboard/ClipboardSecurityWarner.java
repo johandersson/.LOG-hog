@@ -180,9 +180,16 @@ public class ClipboardSecurityWarner {
         htmlPane.addHyperlinkListener(e -> {
             if (e.getEventType() == javax.swing.event.HyperlinkEvent.EventType.ACTIVATED) {
                 try {
-                    java.awt.Desktop.getDesktop().browse(e.getURL().toURI());
+                    String url = e.getURL().toString();
+                    // Only allow http/https links from clickable HTML panels
+                    if (security.PathValidator.isSafeHttpUrl(url)) {
+                        java.awt.Desktop.getDesktop().browse(e.getURL().toURI());
+                    } else {
+                        gui.DialogHelper.showWarning(null, "Blocked Link", "Blocked Link",
+                            "This link uses an unsupported scheme and was blocked for your safety.");
+                    }
                 } catch (Exception ex) {
-                    // Ignore
+                    // Ignore silently to avoid exposing internals
                 }
             }
         });

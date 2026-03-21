@@ -47,8 +47,10 @@ public class FileEncryptionManager {
         try {
             // Use streaming encryptor if available
             if (encryptor instanceof StreamEncryptor) {
-                Path tmp = filePath.resolveSibling(filePath.getFileName().toString() + ".tmp");
-                try (var in = new utils.LinesInputStream(lines, LogFileFormat.INTERNAL_LINE_SEPARATOR, java.nio.charset.StandardCharsets.UTF_8);
+                 // Create secure temp file in the same directory to allow atomic move
+                 String prefix = filePath.getFileName().toString();
+                 Path tmp = Files.createTempFile(filePath.getParent(), prefix + "-", ".tmp");
+                 try (var in = new utils.LinesInputStream(lines, LogFileFormat.INTERNAL_LINE_SEPARATOR, java.nio.charset.StandardCharsets.UTF_8);
                      var out = Files.newOutputStream(tmp)) {
 
                     progressDialog = new gui.LoadingProgressDialog(null, "Encrypting");
@@ -90,7 +92,7 @@ public class FileEncryptionManager {
                 progressDialog.show();
 
                 var encryptedData = encryptor.encrypt(full, pwd, salt);
-                Path tmp = filePath.resolveSibling(filePath.getFileName().toString() + ".tmp");
+                Path tmp = Files.createTempFile(filePath.getParent(), filePath.getFileName().toString() + "-", ".tmp");
                 Files.write(tmp, encryptedData);
                 try {
                     java.nio.file.Files.move(tmp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
@@ -194,8 +196,8 @@ public class FileEncryptionManager {
         try {
             // Try to stream encryption when the encryptor supports it to allow progress reporting
             if (encryptor instanceof StreamEncryptor) {
-                Path tmp = filePath.resolveSibling(filePath.getFileName().toString() + ".tmp");
-                try (var in = new java.io.ByteArrayInputStream(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                 Path tmp = Files.createTempFile(filePath.getParent(), filePath.getFileName().toString() + "-", ".tmp");
+                 try (var in = new java.io.ByteArrayInputStream(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                      var out = Files.newOutputStream(tmp)) {
 
 
@@ -234,7 +236,7 @@ public class FileEncryptionManager {
                 progressDialog.show();
 
                 var encryptedData = encryptor.encrypt(content, pwd, salt);
-                Path tmp = filePath.resolveSibling(filePath.getFileName().toString() + ".tmp");
+                Path tmp = Files.createTempFile(filePath.getParent(), filePath.getFileName().toString() + "-", ".tmp");
                 Files.write(tmp, encryptedData);
                 try {
                     java.nio.file.Files.move(tmp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
