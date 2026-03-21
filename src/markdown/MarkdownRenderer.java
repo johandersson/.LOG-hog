@@ -391,7 +391,12 @@ public class MarkdownRenderer {
             while (!trimmed.isEmpty() && trimmed.get(trimmed.size() - 1).trim().isEmpty()) {
                 trimmed.remove(trimmed.size() - 1);
             }
-            trimmedEntries.add(trimmed);
+            // Sanitize each line to remove control characters and dangerous script tags
+            List<String> sanitized = new ArrayList<>(trimmed.size());
+            for (String line : trimmed) {
+                sanitized.add(sanitizeLine(line));
+            }
+            trimmedEntries.add(sanitized);
         }
         
         for (List<String> entry : trimmedEntries) {
@@ -427,6 +432,24 @@ public class MarkdownRenderer {
         }
     }
 
+    private static String sanitizeLine(String line) {
+        if (line == null) return "";
+        // Remove nulls and most control characters but keep tab and newline semantics handled elsewhere
+        try {
+            // Remove ASCII control chars except tab (\t)
+            line = line.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
+            // Neutralize any <script occurrences (case-insensitive)
+            line = line.replaceAll("(?i)<script", "&lt;script");
+        } catch (Exception e) {
+            // On any regex issues, fall back to a safe plain string
+            StringBuilder sb = new StringBuilder();
+            for (char c : line.toCharArray()) {
+                if (c >= 0x20 || c == '\t') sb.append(c);
+            }
+            line = sb.toString();
+        }
+        return line;
+    }
     private static boolean isHeadingLine(String line) {
         return line.startsWith("# ") || line.startsWith("## ") || line.startsWith("### ");
     }

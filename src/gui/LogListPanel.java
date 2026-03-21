@@ -483,6 +483,15 @@ public class LogListPanel extends JPanel {
         return entryArea;
     }
 
+    private void updateInfoFromListModel() {
+        try {
+            var stats = new LogStatistics(listModel.getSize(), new java.util.ArrayList<>(), logFileHandler.getFilePath());
+            infoPanel.updateStatistics(stats);
+        } catch (Exception ex) {
+            infoPanel.resetStatistics();
+        }
+    }
+
     private void togglePreview(javax.swing.JButton toggleBtn) {
         if (isPreviewMode) {
             // Switch to edit mode

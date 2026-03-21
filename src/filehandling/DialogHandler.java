@@ -204,8 +204,10 @@ public class DialogHandler {
                                     // Only copy if selected file path appears safe
                                     java.nio.file.Path sel = selectedFile.toPath();
                                     if (!security.PathValidator.isSafeFilePath(sel)) {
-                                        showErrorDialog("<html><b>Invalid File</b><br><br>Selected file path is not allowed.</html>");
-                                        return false;
+                                        // Record error for UI thread and exit runnable
+                                        err.set(new IllegalArgumentException("Selected file path is not allowed"));
+                                        javax.swing.SwingUtilities.invokeLater(() -> showErrorDialog("<html><b>Invalid File</b><br><br>Selected file path is not allowed.</html>"));
+                                        return;
                                     }
                                     Files.copy(sel, filePath, StandardCopyOption.REPLACE_EXISTING);
                             if (onInvalidateCache != null) onInvalidateCache.run();
@@ -277,13 +279,15 @@ public class DialogHandler {
             final java.util.concurrent.atomic.AtomicBoolean success = new java.util.concurrent.atomic.AtomicBoolean(false);
             final java.util.concurrent.atomic.AtomicReference<Exception> errorRef = new java.util.concurrent.atomic.AtomicReference<>();
 
-            Thread bg = new Thread(() -> {
+                    Thread bg = new Thread(() -> {
                 try {
                     // Validate backup path before copying
                     java.nio.file.Path b = backupFile.toPath();
                     if (!security.PathValidator.isSafeFilePath(b)) {
-                        showErrorDialog("<html><b>Invalid Backup</b><br><br>Selected backup path is not allowed.</html>");
-                        return false;
+                        // Record error and close
+                        errorRef.set(new IllegalArgumentException("Selected backup path is not allowed"));
+                        javax.swing.SwingUtilities.invokeLater(() -> showErrorDialog("<html><b>Invalid Backup</b><br><br>Selected backup path is not allowed.</html>"));
+                        return;
                     }
                     Files.copy(b, filePath, StandardCopyOption.REPLACE_EXISTING);
                     if (onInvalidateCache != null) onInvalidateCache.run();
