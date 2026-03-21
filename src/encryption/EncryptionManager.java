@@ -85,7 +85,7 @@ import javax.crypto.spec.SecretKeySpec;
  * <h2>Thread Safety</h2>
  * <p>This class is thread-safe. The singleton instance can be safely used from multiple threads.</p>
  */
-public class EncryptionManager implements Encryptor {
+public class EncryptionManager implements StreamEncryptor {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
@@ -212,6 +212,56 @@ public class EncryptionManager implements Encryptor {
             return result;
         } catch (Exception e) {
             throw new EncryptionException("Unable to encrypt your data. Please try again or contact support if the problem persists.", e);
+        }
+    }
+
+    @Override
+    public void encryptStream(java.io.InputStream in, java.io.OutputStream out, char[] password, byte[] salt, utils.ProgressCallback progress) throws EncryptionException {
+        if (in == null) throw new EncryptionException("Input stream cannot be null");
+        if (out == null) throw new EncryptionException("Output stream cannot be null");
+        if (password == null) throw new EncryptionException("Password cannot be null");
+        if (salt == null) throw new EncryptionException("Salt cannot be null");
+
+        try {
+            // Write salt prefix
+            out.write(salt);
+
+            SecretKey key = deriveKey(password, salt);
+            var cipher = Cipher.getInstance(ALGORITHM);
+            var iv = new byte[GCM_IV_LENGTH];
+            new SecureRandom().nextBytes(iv);
+            var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+            cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+
+            // Write IV
+            out.write(iv);
+
+            // Wrap output in CipherOutputStream
+            try (var cos = new javax.crypto.CipherOutputStream(out, cipher);
+                 var bin = new java.io.BufferedInputStream(in)) {
+
+                byte[] buf = new byte[8192];
+                int n;
+                long total = -1;
+                try {
+                    if (in instanceof java.io.ByteArrayInputStream) {
+                        total = bin.available();
+                    }
+                } catch (Exception ignored) {}
+                if (progress != null && total > 0) progress.setTotalBytes(total + 0);
+
+                long processed = 0;
+                while ((n = bin.read(buf)) != -1) {
+                    cos.write(buf, 0, n);
+                    processed += n;
+                    if (progress != null) progress.setProcessedBytes(processed);
+                }
+                cos.flush();
+            }
+        } catch (EncryptionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to encrypt stream", e);
         }
     }
 

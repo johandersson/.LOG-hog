@@ -78,7 +78,7 @@ public class EntryEditor {
             cache.updateCachedLines(normalized);
             
             fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cache.getCachedLines());
-            encryptionManager.encryptFile(fullText);
+            encryptionManager.encryptFileFromLines(cache.getCachedLines());
         } else {
             if (Files.exists(filePath)) {
                 String toWrite = uniqueTimeStamp + ls + text + ls;
@@ -199,6 +199,41 @@ public class EntryEditor {
         String timeStamp = FORMATTER.format(LocalDateTime.now());
         return duplicateCount > 0 ? timeStamp + " (" + duplicateCount + ")" : timeStamp;
     }
+
+    /**
+     * Helper that creates a unique timestamp and writes the entry to disk.
+     * Returns the generated unique timestamp or null on failure.
+     */
+    public String createAndSaveEntry(String text) throws Exception {
+        if (text == null || text.isBlank()) return null;
+
+        String timeStamp = FORMATTER.format(LocalDateTime.now());
+        int count = 0;
+
+        // Determine duplicate count using cache or file read
+        List<String> existingLines = null;
+        if (Files.exists(filePath)) {
+            if (encryptionManager.isEncrypted()) {
+                existingLines = cache.getCachedLines();
+                if (existingLines == null || existingLines.isEmpty()) {
+                    String decrypted = encryptionManager.decryptFile();
+                    existingLines = new java.util.ArrayList<>(java.util.Arrays.asList(decrypted.split("\r?\n", -1)));
+                    cache.updateCachedLines(existingLines);
+                }
+            } else {
+                existingLines = Files.readAllLines(filePath);
+            }
+            if (existingLines != null) {
+                for (String line : existingLines) {
+                    if (line.trim().startsWith(timeStamp)) count++;
+                }
+            }
+        }
+
+        String unique = createUniqueTimestamp(count);
+        saveEntry(text, unique, encryptionManager.isEncrypted());
+        return unique;
+    }
     
     /**
      * Writes lines to file with backup and normalization.
@@ -214,7 +249,7 @@ public class EntryEditor {
             if (backupManager != null) {
                 backupManager.createNumberedBackup();
             }
-            encryptionManager.encryptFile(fullText);
+            encryptionManager.encryptFileFromLines(cache.getCachedLines());
         } else {
             if (backupManager != null) {
                 backupManager.createNumberedBackup();

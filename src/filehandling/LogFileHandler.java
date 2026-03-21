@@ -62,6 +62,7 @@ public class LogFileHandler implements LogFileOperations {
     private final FileCache cache = new FileCache();
     private EntryLoader entryLoader;
     private EntryEditor entryEditor;
+    private final AsyncSaver asyncSaver;
 
     // Default constructor for backward compatibility
     public LogFileHandler() {
@@ -75,6 +76,7 @@ public class LogFileHandler implements LogFileOperations {
         this.encryptionManager = new FileEncryptionManager(filePath, encryptor);
         this.entryLoader = new EntryLoader(this, encryptor);
         this.entryEditor = new EntryEditor(filePath, encryptionManager, cache);
+        this.asyncSaver = new AsyncSaver(filePath, encryptionManager, entryEditor, cache, backupManager);
     }
 
     public static String removeSecureMarker(String text) {
@@ -192,45 +194,10 @@ public class LogFileHandler implements LogFileOperations {
      * Asynchronous save helper: runs save on a background thread and updates the model on EDT.
      */
     public void saveTextAsync(String text, DefaultListModel<String> listModel, Runnable onComplete) {
-        if (text == null || text.isBlank()) return;
-        new Thread(() -> {
-            gui.LoadingProgressDialog progress = null;
-            try {
-                javax.swing.SwingUtilities.invokeAndWait(() -> {
-                    progress = new gui.LoadingProgressDialog(null, "Saving");
-                    progress.setStatus("Saving file...");
-                    progress.setIndeterminate(true);
-                    progress.show();
-                });
-            } catch (Exception e) {
-                // Ignore dialog show failure
-            }
-
-            String ts = null;
-            try {
-                ts = saveTextInternal(text);
-                // Invalidate caches after save
-                invalidateEntryCache();
-            } catch (Exception e) {
-                final Exception ex = e;
-                javax.swing.SwingUtilities.invokeLater(() -> showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save your log entry.<br>Please check your input and try again.<br><br><i>Tip: Ensure the file is not read-only or in use by another program.</i></html>"));
-            } finally {
-                if (progress != null) {
-                    try { progress.close(); } catch (Exception ignore) {}
-                }
-            }
-
-            if (ts != null) {
-                final String addedTs = ts;
-                javax.swing.SwingUtilities.invokeLater(() -> {
-                    listModel.addElement(addedTs);
-                    sortListModel(listModel);
-                    if (onComplete != null) onComplete.run();
-                });
-            } else {
-                if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
-            }
-        }, "loghog-save-thread").start();
+        asyncSaver.saveTextAsync(text, listModel, () -> {
+            sortListModel(listModel);
+            if (onComplete != null) onComplete.run();
+        });
     }
 
     //sort and normalize file
@@ -290,12 +257,11 @@ public class LogFileHandler implements LogFileOperations {
             List<String> pendingLines = cache.getPendingLines();
             if (encryptionManager.isEncrypted()) {
                 cache.updateCachedLines(pendingLines);
-                String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cache.getCachedLines());
                 // Create numbered backup before encryption
                 if (backupManager != null) {
                     backupManager.createNumberedBackup();
                 }
-                encryptionManager.encryptFile(fullText);
+                encryptionManager.encryptFileFromLines(cache.getCachedLines());
             } else {
                 // Create numbered backup before writing
                 if (backupManager != null) {
@@ -315,46 +281,7 @@ public class LogFileHandler implements LogFileOperations {
      * Async version of flushPendingWrites - shows a progress dialog and runs write off-EDT.
      */
     public void flushPendingWritesAsync(Runnable onComplete) {
-        if (!cache.hasPendingWrites()) {
-            if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
-            return;
-        }
-
-        new Thread(() -> {
-            gui.LoadingProgressDialog progress = null;
-            try {
-                javax.swing.SwingUtilities.invokeAndWait(() -> {
-                    progress = new gui.LoadingProgressDialog(null, "Saving");
-                    progress.setStatus("Saving file...");
-                    progress.setIndeterminate(true);
-                    progress.show();
-                });
-            } catch (Exception e) {
-                // ignore
-            }
-
-            try {
-                List<String> pendingLines = cache.getPendingLines();
-                if (encryptionManager.isEncrypted()) {
-                    cache.updateCachedLines(pendingLines);
-                    String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cache.getCachedLines());
-                    if (backupManager != null) backupManager.createNumberedBackup();
-                    encryptionManager.encryptFile(fullText);
-                } else {
-                    if (backupManager != null) backupManager.createNumberedBackup();
-                    Files.write(filePath, pendingLines);
-                }
-                cache.clearPendingWrites();
-            } catch (Exception e) {
-                javax.swing.SwingUtilities.invokeLater(() -> showErrorDialog("<html><b>💾 Write Failed</b><br><br>Unable to save changes to disk.<br>Please check file permissions and disk space.</html>"));
-            } finally {
-                if (progress != null) {
-                    try { progress.close(); } catch (Exception ignore) {}
-                }
-            }
-
-            if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
-        }, "loghog-flush-thread").start();
+        asyncSaver.flushPendingWritesAsync(onComplete);
     }
     
     /**
@@ -383,12 +310,11 @@ public class LogFileHandler implements LogFileOperations {
 
             if (encryptionManager.isEncrypted()) {
                 cache.updateCachedLines(lines);
-                String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cache.getCachedLines());
                 // Create numbered backup before encryption
                 if (backupManager != null) {
                     backupManager.createNumberedBackup();
                 }
-                encryptionManager.encryptFile(fullText);
+                encryptionManager.encryptFileFromLines(cache.getCachedLines());
             } else {
                 // Create numbered backup before writing
                 if (backupManager != null) {
@@ -716,6 +642,9 @@ public class LogFileHandler implements LogFileOperations {
     
     public void setBackupManager(BackupManager backupManager) {
         this.backupManager = backupManager;
+        if (asyncSaver != null) {
+            asyncSaver.setBackupManager(backupManager);
+        }
     }
     
     public BackupManager getBackupManager() {

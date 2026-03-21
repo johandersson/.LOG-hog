@@ -268,11 +268,9 @@ public class LogFileFormatter {
                     // Write to disk securely and memory-efficiently
                     progress.setStatus("Writing formatted file...");
                     if (isEncrypted) {
-                        // For encrypted files: encrypt the formatted content
-                        String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, formatted);
-                        logFileHandler.getEncryptionManager().encryptFile(fullText);
-                        // Update the cache with the formatted content
-                        // This ensures the next getLines() call returns the formatted data
+                        // For encrypted files: encrypt the formatted content using streaming API
+                        logFileHandler.getEncryptionManager().encryptFileFromLines(formatted);
+                        // Update the cache with the formatted content so subsequent reads are fast
                         logFileHandler.updateCachedLines(formatted);
                     } else {
                         // Write directly to file
