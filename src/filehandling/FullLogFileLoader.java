@@ -119,17 +119,19 @@ public class FullLogFileLoader {
      * Internal method that handles the parsing logic without rendering.
      */
     private ParsedLogData loadAndProcessLogFileInternal(Path logPath, boolean scrollToBottom) throws Exception {
-        // Use getLines() which returns cached lines for encrypted files
-        // This ensures we get the most recent data including any formatting changes
-        List<String> lines = logFileHandler.getLines();
-
-        // Remove secure clipboard markers from lines
-        lines = lines.stream()
-            .map(LogFileHandler::removeSecureMarker)
-            .collect(Collectors.toList());
-
-        // Parse all entries (needed for statistics)
-        List<List<String>> allEntries = LogParser.parseEntriesForFullLog(lines);
+        // Use streaming parsing when possible to avoid allocating large intermediate lists
+        List<List<String>> allEntries;
+        if (logFileHandler.isEncrypted()) {
+            // Encrypted files use cached lines already
+            List<String> lines = logFileHandler.getLines();
+            lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
+            allEntries = LogParser.parseEntriesForFullLog(lines);
+        } else {
+            try (var stream = logFileHandler.getLinesStreamed()) {
+                java.util.stream.Stream<String> cleaned = stream.map(LogFileHandler::removeSecureMarker);
+                allEntries = StreamProcessor.parseEntriesForFullLogStream(cleaned);
+            }
+        }
         List<List<String>> entriesToRender;
 
         if (allEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {

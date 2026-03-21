@@ -366,6 +366,50 @@ public class EncryptionManager implements StreamEncryptor {
         }
     }
 
+    @Override
+    public java.io.InputStream openDecryptedStream(java.io.InputStream encryptedIn, char[] password, byte[] salt, utils.ProgressCallback progress) throws EncryptionException {
+        if (encryptedIn == null) throw new EncryptionException("Encrypted input cannot be null");
+        if (password == null) throw new EncryptionException("Password cannot be null");
+
+        try {
+            java.io.BufferedInputStream in = new java.io.BufferedInputStream(encryptedIn);
+            in.mark(16);
+            byte[] prefix = new byte[16];
+            int read = in.read(prefix);
+            boolean startsWithSalt = false;
+            if (read == 16 && salt != null && salt.length == 16) {
+                startsWithSalt = true;
+                for (int i = 0; i < 16; i++) {
+                    if (prefix[i] != salt[i]) {
+                        startsWithSalt = false;
+                        break;
+                    }
+                }
+            }
+            if (!startsWithSalt) {
+                in.reset();
+            }
+
+            // Read IV
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            int got = in.read(iv);
+            if (got != GCM_IV_LENGTH) {
+                throw new EncryptionException("Encrypted data missing IV or is corrupted.");
+            }
+
+            SecretKey key = deriveKey(password, salt);
+            var cipher = Cipher.getInstance(ALGORITHM);
+            var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+            cipher.init(Cipher.DECRYPT_MODE, key, spec);
+
+            return new javax.crypto.CipherInputStream(in, cipher);
+        } catch (EncryptionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to open decrypted stream.", e);
+        }
+    }
+
     private void validateEncryptedData(byte[] encryptedData) throws EncryptionException {
         if (encryptedData == null) {
             throw new EncryptionException("Cannot decrypt null data. Please check if your file exists and is readable.");

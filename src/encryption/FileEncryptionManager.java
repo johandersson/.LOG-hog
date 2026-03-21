@@ -3,7 +3,10 @@ package encryption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
+import java.util.ArrayList;
 import utils.ProgressCallback;
+import filehandling.LogFileFormat;
 
 /**
  * Handles file encryption and decryption operations.
@@ -192,15 +195,81 @@ public class FileEncryptionManager {
 
         // Use password then immediately clear it from memory
         char[] pwd = password.clone();
-                    if (encryptor instanceof StreamEncryptor) {
-                        // Fall through to new streaming API when encryptor supports it
-                        encryptFileFromLines(java.util.Arrays.asList(content.split("\r?\n", -1)));
-                        return;
-                    } else {
+        try {
+            if (encryptor instanceof StreamEncryptor) {
+                try (var in = Files.newInputStream(filePath);
+                     var dec = ((StreamEncryptor) encryptor).openDecryptedStream(in, pwd, salt, null);
+                     var reader = new java.io.BufferedReader(new java.io.InputStreamReader(dec, java.nio.charset.StandardCharsets.UTF_8))) {
+
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    boolean first = true;
+                    while ((line = reader.readLine()) != null) {
+                        if (!first) sb.append(LogFileFormat.INTERNAL_LINE_SEPARATOR);
+                        sb.append(line);
+                        first = false;
+                    }
+                    return sb.toString();
+                }
+            } else {
+                byte[] encryptedBytes = Files.readAllBytes(filePath);
+                String decrypted = encryptor.decrypt(encryptedBytes, pwd);
+                return decrypted;
+            }
+        } finally {
+            // Clear sensitive data
+            Arrays.fill(pwd, '\0');
+            if (salt != null) {
+                Arrays.fill(salt, (byte) 0);
+                salt = null;
+            }
         }
-        if (salt != null) {
-            Arrays.fill(salt, (byte) 0);
-            salt = null;
+    }
+
+    /**
+     * Stream-decrypt the file and return lines without allocating one giant string
+     * when possible. Falls back to full-string decrypt when streaming isn't
+     * supported by the underlying encryptor.
+     */
+    public List<String> decryptFileToLines() throws Exception {
+        if (!encrypted || password == null) {
+            throw new IllegalStateException("Encryption not set up");
+        }
+
+        char[] pwd = password.clone();
+        try {
+            if (encryptor instanceof StreamEncryptor) {
+                try (var in = Files.newInputStream(filePath);
+                     var dec = ((StreamEncryptor) encryptor).openDecryptedStream(in, pwd, salt, null);
+                     var reader = new java.io.BufferedReader(new java.io.InputStreamReader(dec, java.nio.charset.StandardCharsets.UTF_8))) {
+                    List<String> lines = new ArrayList<>();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        lines.add(line);
+                    }
+                    return lines;
+                }
+            } else {
+                String decrypted = decryptFile();
+                return Arrays.asList(decrypted.split("\r?\n", -1));
+            }
+        } finally {
+            Arrays.fill(pwd, '\0');
+        }
+    }
+
+    /**
+     * Clear any sensitive data held by this manager. Used by higher-level handlers.
+     */
+    public void clearSensitiveData() {
+        this.encrypted = false;
+        if (this.password != null) {
+            Arrays.fill(this.password, '\0');
+            this.password = null;
+        }
+        if (this.salt != null) {
+            Arrays.fill(this.salt, (byte) 0);
+            this.salt = null;
         }
     }
 }

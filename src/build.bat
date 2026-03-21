@@ -23,6 +23,9 @@ for /f "delims=" %%i in ('dir /s /b *.java ^| findstr /v test') do set "files=!f
 javac -d . %files%
 if %errorlevel% neq 0 (
     popd
+    REM PAUSE to allow user to see compilation errors before exiting
+    echo Compilation failed with errors. Please fix the issues and try again.
+    pause
     exit /b %errorlevel%
 )
 REM Create the JAR file in the src/build directory (single artifact)

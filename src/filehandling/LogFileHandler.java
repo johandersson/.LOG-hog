@@ -434,8 +434,9 @@ public class LogFileHandler implements LogFileOperations {
         if (encryptionManager.isEncrypted()) {
             List<String> cachedLines = cache.getCachedLines();
             if (cachedLines.isEmpty()) {
-                String decrypted = encryptionManager.decryptFile();
-                cachedLines = new ArrayList<>(Arrays.asList(decrypted.split("\r?\n", -1)));
+                // Use streaming decrypt-to-lines when available to avoid large allocations
+                List<String> decryptedLines = encryptionManager.decryptFileToLines();
+                cachedLines = new ArrayList<>(decryptedLines);
                 cache.updateCachedLines(cachedLines);
             }
             return cachedLines;
@@ -443,13 +444,40 @@ public class LogFileHandler implements LogFileOperations {
             // Try UTF-8 first, fall back to ISO-8859-1 if invalid bytes are found
             List<String> lines;
             try {
-                lines = Files.readAllLines(filePath);
+                // Stream lines to avoid allocating a single large byte[] for very big files
+                try (var stream = Files.lines(filePath, java.nio.charset.StandardCharsets.UTF_8)) {
+                    lines = stream.collect(java.util.stream.Collectors.toList());
+                }
             } catch (java.nio.charset.MalformedInputException e) {
                 // File contains bytes invalid for UTF-8; fall back to ISO-8859-1
-                lines = Files.readAllLines(filePath, java.nio.charset.StandardCharsets.ISO_8859_1);
+                try (var stream = Files.lines(filePath, java.nio.charset.StandardCharsets.ISO_8859_1)) {
+                    lines = stream.collect(java.util.stream.Collectors.toList());
+                }
             }
             // Keep .LOG in unencrypted files for Notepad compatibility
             return lines;
+        }
+    }
+
+    /**
+     * Returns a stream of lines for unencrypted files. Caller must close the stream.
+     */
+    public java.util.stream.Stream<String> getLinesStreamed() throws Exception {
+        if (Files.exists(filePath)) {
+            long fileSize = Files.size(filePath);
+            if (fileSize > MAX_FILE_SIZE) {
+                String shortTitle = "File Too Large";
+                String longMessage = "The log file is larger than the allowed limit (" + (MAX_FILE_SIZE / (1024 * 1024)) + " MB).\n\n" +
+                    "Loading very large files can cause the application to run out of memory.";
+                DialogHandler.showLimitExceeded(shortTitle, longMessage);
+                throw new IllegalStateException("File exceeds maximum size limit");
+            }
+        }
+
+        try {
+            return Files.lines(filePath, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.nio.charset.MalformedInputException e) {
+            return Files.lines(filePath, java.nio.charset.StandardCharsets.ISO_8859_1);
         }
     }
 

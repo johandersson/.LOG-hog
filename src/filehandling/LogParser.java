@@ -112,6 +112,7 @@ public class LogParser {
         return entries;
     }
 
+
     /**
      * Parses entries for full log view, sorted oldest first.
      */
@@ -134,4 +135,6 @@ public class LogParser {
 
         return entries;
     }
+
+    // Streaming helpers moved to StreamProcessor for separation-of-concerns
 }
