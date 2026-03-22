@@ -56,7 +56,7 @@ import utils.Toast;
  * </ul>
  */
 public class SecureClipboardManager implements ClipboardHandler {
-    private static final String LOGHOG_CLIPBOARD_MARKER = "";
+    // marker removed (unused) - kept behavior via digest comparison
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, r -> {
         Thread t = new Thread(r);
         t.setDaemon(true);
@@ -68,7 +68,7 @@ public class SecureClipboardManager implements ClipboardHandler {
     private static ScheduledFuture<?> clearTask;
     private static int timeoutSeconds = 30; // Default 30 seconds
     private static boolean autoClearEnabled = true;
-    private static byte[] lastCopiedDigest = null; // Track hash of content we last copied
+    private static byte[] lastCopiedDigest; // Track hash of content we last copied
 
     private static final SecureClipboardManager INSTANCE = new SecureClipboardManager();
 

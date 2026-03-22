@@ -78,7 +78,7 @@ public class LogHogOptimizationTest {
         handler.saveText("Second entry", new javax.swing.DefaultListModel<>());
 
         List<String> lines = handler.getLines();
-        utils.Log.info("    Saved " + lines.size() + " lines");
+        utils.Log.info(() -> "    Saved " + lines.size() + " lines");
 
         if (lines.isEmpty()) {
             throw new RuntimeException("Should have saved lines");

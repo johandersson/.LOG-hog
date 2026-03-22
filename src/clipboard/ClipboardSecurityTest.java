@@ -26,7 +26,7 @@ public class ClipboardSecurityTest {
 
             // Verify content was set
             String retrieved = (String) clipboard.getData(DataFlavor.stringFlavor);
-            utils.Log.info("✓ Content set to clipboard: " + retrieved);
+            utils.Log.info(() -> "✓ Content set to clipboard: " + retrieved);
 
             // Test SecureClipboardManager
             SecureClipboardManager secureManager = new SecureClipboardManager();
