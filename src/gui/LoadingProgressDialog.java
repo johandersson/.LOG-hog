@@ -45,6 +45,17 @@ public class LoadingProgressDialog extends ProgressDialogBase {
         dialog.setAlwaysOnTop(true);
         progressBar.setIndeterminate(true);
     }
+
+    /**
+     * Create a LoadingProgressDialog with explicit modality control.
+     * @param parent parent frame
+     * @param title dialog title
+     * @param modal whether dialog is modal
+     */
+    public LoadingProgressDialog(Frame parent, String title, boolean modal) {
+        super(parent, title, modal);
+        messageLabel.setText("Loading encrypted file...");
+    }
     
     /**
      * Shows the dialog.
@@ -64,6 +75,15 @@ public class LoadingProgressDialog extends ProgressDialogBase {
                 SwingUtilities.invokeLater(() -> dialog.setVisible(true));
             }
         }
+    }
+
+    /**
+     * Shows the dialog and blocks until it is closed. Use when a caller
+     * needs synchronous behaviour (the dialog must be modal for this to block).
+     */
+    public void showModal() {
+        startTime = System.currentTimeMillis();
+        dialog.setVisible(true);
     }
     
     /**
@@ -109,6 +129,16 @@ public class LoadingProgressDialog extends ProgressDialogBase {
             progressBar.setValue(value);
             progressLabel.setText(value + "%");
         });
+    }
+
+    /**
+     * Sets whether the progress bar should be indeterminate (spinner).
+     * Useful when exact progress cannot be measured (e.g., streaming encryption).
+     *
+     * @param indeterminate true to make the progress bar indeterminate
+     */
+    public void setIndeterminate(boolean indeterminate) {
+        SwingUtilities.invokeLater(() -> progressBar.setIndeterminate(indeterminate));
     }
     
     /**

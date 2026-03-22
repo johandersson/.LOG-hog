@@ -17,6 +17,8 @@
 
 package gui;
 
+import utils.Log;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
@@ -95,8 +97,13 @@ public class SettingsPanel extends JPanel {
         // Encryption section
         contentPanel.add(createEncryptionPanel());
 
-        // Decrypt section
-        contentPanel.add(createDecryptPanel());
+        // Decrypt section: only show if encryption is not enabled OR (encryption enabled AND log.txt exists)
+        boolean encryptionEnabled = "true".equals(settings.getProperty("encrypted"));
+        java.nio.file.Path logPath = logFileHandler.getFilePath();
+        boolean logExists = java.nio.file.Files.exists(logPath);
+        if (!encryptionEnabled || (encryptionEnabled && logExists)) {
+            contentPanel.add(createDecryptPanel());
+        }
 
         // Backup section
         contentPanel.add(createBackupPanel());
@@ -509,62 +516,114 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
-        // Encrypt current file
-        try {
-            logFileHandler.enableEncryption(pwd);
+        // Run encryption off the EDT to keep the UI responsive and show progress.
+        statusLabel.setText("Encrypting...");
+        statusLabel.setForeground(Color.BLUE);
+        encryptionCheckBox.setEnabled(false);
 
-            // Backup settings file before modifying
-            if (java.nio.file.Files.exists(settingsPath)) {
-                // Save backup in configured backup directory
-                String backupDir = settings.getProperty("backupDirectory", "");
-                java.nio.file.Path backupSettingsPath;
-                
-                if (backupDir != null && !backupDir.isEmpty()) {
-                    java.nio.file.Path backupDirPath = java.nio.file.Paths.get(backupDir);
-                    java.nio.file.Files.createDirectories(backupDirPath);
-                    backupSettingsPath = backupDirPath.resolve(settingsPath.getFileName().toString() + ".bak");
-                } else {
-                    // Fallback to sibling if no backup directory configured
-                    backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+        // Show a specialized progress dialog that stays at 100% and provides an OK button.
+        EncryptionProgressDialog progressDialog = new EncryptionProgressDialog(editor, "Encrypting");
+        progressDialog.setStatus("Encrypting file...");
+        progressDialog.setIndeterminate(true);
+        progressDialog.show();
+
+        // Run encryption in background and then refresh parsed entries in a separate worker
+        new javax.swing.SwingWorker<List<String>, Void>() {
+            private Exception error;
+
+            @Override
+            protected List<String> doInBackground() {
+                try {
+                    logFileHandler.enableEncryption(pwd);
+
+                    // Save settings backup and update properties
+                    if (java.nio.file.Files.exists(settingsPath)) {
+                        String backupDir = settings.getProperty("backupDirectory", "");
+                        java.nio.file.Path backupSettingsPath;
+                        if (backupDir != null && !backupDir.isEmpty()) {
+                            java.nio.file.Path backupDirPath = java.nio.file.Paths.get(backupDir);
+                            java.nio.file.Files.createDirectories(backupDirPath);
+                            backupSettingsPath = backupDirPath.resolve(settingsPath.getFileName().toString() + ".bak");
+                        } else {
+                            backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+                        }
+                        java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+
+                    var saltBytes = logFileHandler.getSalt();
+                    var saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
+                    settings.setProperty("encrypted", "true");
+                    settings.setProperty("salt", saltBase64);
+                    saveSettings();
+
+                    // Compute parsed entries off-EDT to avoid blocking UI when updating list model
+                    List<List<String>> parsed = logFileHandler.getParsedEntries();
+                    List<String> elements = new java.util.ArrayList<>();
+                    for (List<String> entry : parsed) {
+                        if (entry != null && !entry.isEmpty()) {
+                            elements.add(entry.get(0).trim());
+                        }
+                    }
+                    return elements;
+                } catch (Exception ex) {
+                    this.error = ex;
+                    return java.util.Collections.emptyList();
                 }
-                
-                java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
 
-            var saltBytes = logFileHandler.getSalt();
-            var saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
-            settings.setProperty("encrypted", "true");
-            settings.setProperty("salt", saltBase64);
-            saveSettings();
+            @Override
+            protected void done() {
+                try {
+                    if (error != null) {
+                        progressDialog.close();
+                        JOptionPane.showMessageDialog(editor, "Encryption failed. Please check your password and try again.");
+                        statusLabel.setText("Encryption failed. Please check your password and try again.");
+                        statusLabel.setForeground(Color.RED);
+                        encryptionCheckBox.setSelected(false);
+                    } else {
+                        try {
+                            List<String> elements = get();
 
-            // Verify the settings were saved correctly
-            var savedSalt = settings.getProperty("salt");
-            if (savedSalt == null || savedSalt.isEmpty()) {
-                throw new Exception("Failed to save encryption salt to settings");
+                            // Update list model on EDT in a single batch
+                            javax.swing.SwingUtilities.invokeLater(() -> {
+                                try {
+                                    var logListPanel = editor.getLogListPanel();
+                                    var listModel = logListPanel.getListModel();
+                                    listModel.removeAllElements();
+                                    for (String el : elements) listModel.addElement(el);
+                                    editor.updateLogListView();
+                                } catch (Exception ignore) {}
+                            });
+
+                            // Ask FullLogPanel to reload (it uses its own SwingWorker internally)
+                            editor.getFullLogPanel().loadFullLog();
+
+                            statusLabel.setText("Encryption enabled successfully.");
+                            statusLabel.setForeground(Color.BLUE);
+
+                            // Arrange to show completion state; only after the user clicks OK
+                            // will we offer cleanup of old unencrypted backups.
+                            progressDialog.setOnOkCallback(() -> cleanupOldUnencryptedBackups());
+                            progressDialog.showCompletion();
+
+                            // Perform automatic backup after successful encryption
+                            performAutomaticBackup();
+                        } catch (Exception ex2) {
+                            progressDialog.close();
+                            JOptionPane.showMessageDialog(editor, "Encryption succeeded but saving settings failed: " + ex2.getMessage(), "Warning", JOptionPane.WARNING_MESSAGE);
+                            statusLabel.setText("Encryption completed but settings update failed.");
+                            statusLabel.setForeground(Color.ORANGE);
+                        }
+                    }
+                } finally {
+                    // Ensure sensitive data cleared
+                    java.util.Arrays.fill(pwd, '\0');
+                    java.util.Arrays.fill(confirm, '\0');
+                    // Keep the checkbox disabled when encrypted
+                    encryptionCheckBox.setEnabled(false);
+                }
             }
-            if (!savedSalt.equals(saltBase64)) {
-                throw new Exception("Salt mismatch after save! Expected: " + saltBase64 + ", Got: " + savedSalt);
-            }
-
-            statusLabel.setText("Encryption enabled successfully.");
-            statusLabel.setForeground(Color.BLUE);
-            editor.loadLogEntries();
-            editor.getFullLogPanel().loadFullLog();
-
-            // Perform automatic backup after successful encryption
-            performAutomaticBackup();
-
-            // Check for and offer to clean up old unencrypted backups
-            cleanupOldUnencryptedBackups();
-
-        } catch (Exception ex) {
-            gui.DialogHelper.showError(editor, "Encryption Failed", "Encryption failed. Please check your password and try again.");
-            statusLabel.setText("Encryption failed. Please check your password and try again.");
-            statusLabel.setForeground(Color.RED);
-        } finally {
-            java.util.Arrays.fill(pwd, '\0');
-            java.util.Arrays.fill(confirm, '\0');
-        }
+        }.execute();
     }
 
     private void cleanupOldUnencryptedBackups() {
@@ -612,22 +671,27 @@ public class SettingsPanel extends JPanel {
                 "Delete old unencrypted backups");
 
             if (choice == JOptionPane.YES_OPTION) {
-                // Delete the unencrypted backups securely
-                for (Path backup : unencryptedBackups) {
-                    try {
-                        main.BackupManager.secureDelete(backup);
-                    } catch (Exception e) {
-                        // Log error but continue with others
-                        System.err.println("Failed to securely delete backup: " + backup + " - " + e.getMessage());
+                UiTaskRunner.runModalBackgroundTask(editor, "Cleaning Old Backups", "Deleting old backups...", () -> {
+                    for (Path backup : unencryptedBackups) {
+                        try {
+                            main.BackupManager.secureDelete(backup);
+                        } catch (Exception e) {
+                            Log.error("Failed to securely delete backup: " + backup, e);
+                        }
                     }
-                }
 
-                gui.DialogHelper.showSuccess(editor, "Cleanup Complete", "Old unencrypted backup files have been securely deleted.");
+                    javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(
+                        editor,
+                        "Old unencrypted backup files have been securely deleted.",
+                        "Cleanup Complete",
+                        JOptionPane.INFORMATION_MESSAGE
+                    ));
+                });
             }
 
         } catch (Exception e) {
             // Silently ignore cleanup errors to not disrupt the encryption success
-            System.err.println("Error during backup cleanup: " + e.getMessage());
+            Log.error("Error during backup cleanup", e);
         }
     }
 
@@ -678,16 +742,30 @@ public class SettingsPanel extends JPanel {
         if (res == JFileChooser.APPROVE_OPTION) {
             var selectedFile = chooser.getSelectedFile();
             var backupPath = selectedFile.toPath();
-            try {
-                // Securely delete existing backup file if it exists
-                if (Files.exists(backupPath)) {
-                    main.BackupManager.secureDelete(backupPath);
+            var selectedDir = backupPath.getParent();
+
+            UiTaskRunner.runModalBackgroundTask(editor, "Manual Backup", "Saving backup...", () -> {
+                try {
+                    if (Files.exists(backupPath)) {
+                        main.BackupManager.secureDelete(backupPath);
+                    }
+                    Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+                    var settingsSource = Paths.get(System.getProperty("user.home"), "settings.ini");
+                    if (Files.exists(settingsSource)) {
+                        var settingsBackupPath = selectedDir.resolve("settings.ini");
+                        if (Files.exists(settingsBackupPath)) {
+                            main.BackupManager.secureDelete(settingsBackupPath);
+                        }
+                        Files.copy(settingsSource, settingsBackupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        javax.swing.SwingUtilities.invokeLater(() -> statusLabel.setText("Backup saved to: " + selectedDir.toString()));
+                    } else {
+                        javax.swing.SwingUtilities.invokeLater(() -> statusLabel.setText("Backup saved to: " + backupPath.toString()));
+                    }
+                } catch (Exception ex) {
+                    javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(editor, "Backup failed. Please check file permissions and try again."));
                 }
-                Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                statusLabel.setText("Backup saved to: " + backupPath.toString());
-            } catch (java.io.IOException | SecurityException ex) {
-                gui.DialogHelper.showError(editor, "Backup Failed", "Backup failed. Please check file permissions and try again.");
-            }
+            });
         }
     }
 
@@ -700,6 +778,13 @@ public class SettingsPanel extends JPanel {
     }
 
     private void decryptLogFile() {
+        // Prevent decrypt dialog if log.txt is missing and encryption is enabled
+        java.nio.file.Path logPath = logFileHandler.getFilePath();
+        boolean encryptionEnabled = "true".equals(settings.getProperty("encrypted"));
+        if (encryptionEnabled && !java.nio.file.Files.exists(logPath)) {
+            JOptionPane.showMessageDialog(editor, "Cannot decrypt: log.txt file not found.", "Missing log.txt", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         if (!logFileHandler.isEncrypted()) {
             gui.DialogHelper.showInfo(editor, "Not Encrypted", "The log file is not currently encrypted.");
             return;
@@ -740,9 +825,12 @@ public class SettingsPanel extends JPanel {
             "WARNING: Security Risk",
             "This will permanently decrypt your log file and save it as plain text.<br>" +
             "Anyone with access to your computer will be able to read the file.<br><br>" +
-            "A backup of the encrypted file will be saved as log.txt.bak<br><br>" +
-            "Are you sure you want to proceed?");
-        return confirm;
+            "A backup of the encrypted file will be saved as log.txt.bak.enc<br><br> " +
+            "Are you sure you want to proceed?</html>",
+            "Decrypt Log File - Security Warning",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+        return confirm == JOptionPane.YES_OPTION;
     }
 
     private void backupSettingsFile() {
@@ -787,7 +875,10 @@ public class SettingsPanel extends JPanel {
     }
 
     private void showDecryptionSuccessMessage() {
-        gui.DialogHelper.showSuccess(editor, "Decryption Complete", "Log file has been decrypted successfully.", "A backup of the encrypted file was saved as log.txt.bak");
+        JOptionPane.showMessageDialog(editor,
+            "Log file has been decrypted successfully.\nA backup of the encrypted file was saved as log.txt.bak.enc",
+            "Decryption Complete",
+            JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void handleDecryptionError(Exception ex) {

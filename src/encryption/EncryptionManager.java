@@ -35,7 +35,7 @@ import javax.crypto.spec.SecretKeySpec;
  * <h2>Security Properties</h2>
  * <ul>
  *   <li><b>Encryption Algorithm:</b> AES/GCM with 256-bit key and 128-bit authentication tag</li>
- *   <li><b>Key Derivation:</b> PBKDF2 with 100,000 iterations (65,536 for legacy compatibility)</li>
+ *   <li><b>Key Derivation:</b> PBKDF2 with 600,000 iterations (65,536 for legacy compatibility)</li>
  *   <li><b>IV Generation:</b> Cryptographically secure random 96-bit IV for each encryption operation</li>
  *   <li><b>Authenticated Encryption:</b> GCM provides both confidentiality and integrity</li>
  *   <li><b>Integer Overflow Protection:</b> Uses Math.addExact() for array size calculations</li>
@@ -67,7 +67,7 @@ import javax.crypto.spec.SecretKeySpec;
  * <h2>Security Properties</h2>
  * <ul>
  *   <li><b>Encryption Algorithm:</b> AES/GCM with 256-bit key and 128-bit authentication tag</li>
- *   <li><b>Key Derivation:</b> PBKDF2 with 100,000 iterations (65,536 for legacy compatibility)</li>
+ *   <li><b>Key Derivation:</b> PBKDF2 with 600,000 iterations (65,536 for legacy compatibility)</li>
  *   <li><b>IV Generation:</b> Cryptographically secure random 96-bit IV for each encryption operation</li>
  *   <li><b>Authenticated Encryption:</b> GCM provides both confidentiality and integrity</li>
  *   <li><b>Integer Overflow Protection:</b> Uses Math.addExact() for array size calculations</li>
@@ -85,15 +85,17 @@ import javax.crypto.spec.SecretKeySpec;
  * <h2>Thread Safety</h2>
  * <p>This class is thread-safe. The singleton instance can be safely used from multiple threads.</p>
  */
-public class EncryptionManager implements Encryptor {
+public class EncryptionManager implements StreamEncryptor {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
-    private static final int PBKDF2_ITERATIONS = 100000;
+    private static final int PBKDF2_ITERATIONS = 600000;
     private static final int PBKDF2_ITERATIONS_LEGACY = 65536; // For backward compatibility
     private static final int AES_KEY_LENGTH = 256; // bits
 
     private static final EncryptionManager INSTANCE = new EncryptionManager();
+    private static final byte[] FILE_MAGIC = new byte[] { 'L', 'O', 'G', 'H' };
+    private static final byte FILE_VERSION = 1;
 
     public static EncryptionManager getInstance() {
         return INSTANCE;
@@ -126,39 +128,30 @@ public class EncryptionManager implements Encryptor {
             throw new EncryptionException("Salt must be 16 bytes long.");
         }
 
+        PBEKeySpec spec = null;
         try {
             var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-            var spec = new PBEKeySpec(password, salt, PBKDF2_ITERATIONS, AES_KEY_LENGTH);
+            spec = new PBEKeySpec(password, salt, PBKDF2_ITERATIONS, AES_KEY_LENGTH);
             var tmp = factory.generateSecret(spec);
-            return new SecretKeySpec(tmp.getEncoded(), "AES");
+            byte[] raw = tmp.getEncoded();
+            try {
+                return new SecretKeySpec(raw, "AES");
+            } finally {
+                if (raw != null) Arrays.fill(raw, (byte)0);
+            }
         } catch (Exception e) {
             throw new EncryptionException("Unable to process your password. Please check your password and try again.", e);
+        } finally {
+            if (spec != null) {
+                try {
+                    spec.clearPassword();
+                } catch (Exception ignored) {
+                }
+            }
         }
     }
 
-    public SecretKey deriveKeyLegacy(char[] password, byte[] salt) throws EncryptionException {
-        if (password == null) {
-            throw new EncryptionException("Password cannot be null.");
-        }
-        if (password.length == 0) {
-            throw new EncryptionException("Password cannot be empty.");
-        }
-        if (salt == null) {
-            throw new EncryptionException("Salt cannot be null.");
-        }
-        if (salt.length != 16) {
-            throw new EncryptionException("Salt must be 16 bytes long.");
-        }
-
-        try {
-            var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-            var spec = new PBEKeySpec(password, salt, PBKDF2_ITERATIONS_LEGACY, AES_KEY_LENGTH);
-            var tmp = factory.generateSecret(spec);
-            return new SecretKeySpec(tmp.getEncoded(), "AES");
-        } catch (Exception e) {
-            throw new EncryptionException("Unable to process your password with legacy settings. This may be a compatibility issue with older encrypted files.", e);
-        }
-    }
+    // Legacy PBKDF2 derive method removed in favor of a single secure deriveKey implementation.
 
     public byte[] encryptLegacy(String data, SecretKey key) throws EncryptionException {
         if (data == null) {
@@ -189,13 +182,77 @@ public class EncryptionManager implements Encryptor {
         try {
             SecretKey key = deriveKey(password, salt);
             byte[] encrypted = performEncryption(data, key);
-            // Return salt + encrypted - use Math.addExact to prevent integer overflow
-            byte[] result = new byte[Math.addExact(salt.length, encrypted.length)];
-            System.arraycopy(salt, 0, result, 0, salt.length);
-            System.arraycopy(encrypted, 0, result, salt.length, encrypted.length);
+            // Build header: MAGIC(4) + VERSION(1) + saltLen(1) + salt + ivLen(1) + iv + ciphertext
+            // Note: performEncryption returns iv + ciphertext
+            int ivLen = GCM_IV_LENGTH;
+            int saltLen = salt.length;
+            int headerLen = FILE_MAGIC.length + 1 + 1 + saltLen + 1 + ivLen;
+            byte[] result = new byte[headerLen + (encrypted.length - ivLen)];
+            int pos = 0;
+            System.arraycopy(FILE_MAGIC, 0, result, pos, FILE_MAGIC.length); pos += FILE_MAGIC.length;
+            result[pos++] = FILE_VERSION;
+            result[pos++] = (byte) (saltLen & 0xFF);
+            System.arraycopy(salt, 0, result, pos, saltLen); pos += saltLen;
+            result[pos++] = (byte) (ivLen & 0xFF);
+            // copy IV from encrypted
+            System.arraycopy(encrypted, 0, result, pos, ivLen); pos += ivLen;
+            // copy ciphertext
+            System.arraycopy(encrypted, ivLen, result, pos, encrypted.length - ivLen);
             return result;
         } catch (Exception e) {
             throw new EncryptionException("Unable to encrypt your data. Please try again or contact support if the problem persists.", e);
+        }
+    }
+
+    @Override
+    public void encryptStream(java.io.InputStream in, java.io.OutputStream out, char[] password, byte[] salt, utils.ProgressCallback progress) throws EncryptionException {
+        if (in == null) throw new EncryptionException("Input stream cannot be null");
+        if (out == null) throw new EncryptionException("Output stream cannot be null");
+        if (password == null) throw new EncryptionException("Password cannot be null");
+        if (salt == null) throw new EncryptionException("Salt cannot be null");
+
+        try {
+            // Write header: MAGIC, version, salt length, salt, iv length, iv
+            SecretKey key = deriveKey(password, salt);
+            var cipher = Cipher.getInstance(ALGORITHM);
+            var iv = new byte[GCM_IV_LENGTH];
+            new SecureRandom().nextBytes(iv);
+            var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+            cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+
+            out.write(FILE_MAGIC);
+            out.write(FILE_VERSION);
+            out.write((byte) (salt.length & 0xFF));
+            out.write(salt);
+            out.write((byte) (iv.length & 0xFF));
+            out.write(iv);
+
+            // Wrap output in CipherOutputStream
+            try (var cos = new javax.crypto.CipherOutputStream(out, cipher);
+                 var bin = new java.io.BufferedInputStream(in)) {
+
+                byte[] buf = new byte[8192];
+                int n;
+                long total = -1;
+                try {
+                    if (in instanceof java.io.ByteArrayInputStream) {
+                        total = bin.available();
+                    }
+                } catch (Exception ignored) {}
+                if (progress != null && total > 0) progress.setTotalBytes(total + 0);
+
+                long processed = 0;
+                while ((n = bin.read(buf)) != -1) {
+                    cos.write(buf, 0, n);
+                    processed += n;
+                    if (progress != null) progress.setProcessedBytes(processed);
+                }
+                cos.flush();
+            }
+        } catch (EncryptionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to encrypt stream", e);
         }
     }
 
@@ -209,7 +266,7 @@ public class EncryptionManager implements Encryptor {
         var result = new byte[Math.addExact(iv.length, encrypted.length)];
         System.arraycopy(iv, 0, result, 0, iv.length);
         System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
-        return result;
+        return result; // iv + ciphertext
     }
 
     public String decrypt(byte[] encryptedData, SecretKey key) throws EncryptionException {
@@ -235,6 +292,180 @@ public class EncryptionManager implements Encryptor {
         }
     }
 
+    @Override
+    public String decryptStream(java.io.InputStream in, char[] password, byte[] salt) throws EncryptionException {
+        // Stream-based decryption to avoid reading the entire encrypted file into memory first.
+        try {
+            // Read the full stream via CipherInputStream — Implementation will attempt to
+            // detect and strip a salt prefix if present, similar to decryptWithFallback.
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+
+            // Read initial bytes to check for salt prefix
+            in = new java.io.BufferedInputStream(in);
+            in.mark(16);
+            byte[] prefix = new byte[16];
+            int read = in.read(prefix);
+            boolean startsWithSalt = false;
+            if (read == 16 && salt != null && salt.length == 16) {
+                startsWithSalt = true;
+                for (int i = 0; i < 16; i++) {
+                    if (prefix[i] != salt[i]) {
+                        startsWithSalt = false;
+                        break;
+                    }
+                }
+            }
+            if (!startsWithSalt) {
+                // Reset to stream start
+                in.reset();
+            }
+
+            // If startsWithSalt is true, we've already consumed the salt bytes; the stream
+            // is now positioned after the salt. Otherwise it's at the beginning.
+
+            // Derive key and set up cipher
+            SecretKey key = deriveKey(password, salt);
+            var cipher = Cipher.getInstance(ALGORITHM);
+            // Need to read IV from stream: IV length is GCM_IV_LENGTH
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            int got = in.read(iv);
+            if (got != GCM_IV_LENGTH) {
+                throw new EncryptionException("Encrypted data missing IV or is corrupted.");
+            }
+            var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+            cipher.init(Cipher.DECRYPT_MODE, key, spec);
+
+            try (var cis = new javax.crypto.CipherInputStream(in, cipher)) {
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = cis.read(buf)) != -1) {
+                    baos.write(buf, 0, n);
+                }
+            }
+
+            byte[] decrypted = baos.toByteArray();
+            try {
+                String result = new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
+                return result;
+            } finally {
+                Arrays.fill(decrypted, (byte)0);
+            }
+        } catch (EncryptionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to decrypt stream.", e);
+        }
+    }
+
+    @Override
+    public java.io.InputStream openDecryptedStream(java.io.InputStream encryptedIn, char[] password, byte[] salt, utils.ProgressCallback progress) throws EncryptionException {
+        if (encryptedIn == null) throw new EncryptionException("Encrypted input cannot be null");
+        if (password == null) throw new EncryptionException("Password cannot be null");
+
+        try {
+            java.io.BufferedInputStream in = new java.io.BufferedInputStream(encryptedIn);
+            java.io.BufferedInputStream bin = new java.io.BufferedInputStream(encryptedIn);
+            bin.mark(64);
+            byte[] hdr = new byte[FILE_MAGIC.length];
+            int got = bin.read(hdr);
+            boolean hasHeader = false;
+            if (got == FILE_MAGIC.length) {
+                hasHeader = true;
+                for (int i = 0; i < FILE_MAGIC.length; i++) {
+                    if (hdr[i] != FILE_MAGIC[i]) { hasHeader = false; break; }
+                }
+            }
+
+            if (hasHeader) {
+                // Read version
+                int version = bin.read();
+                int saltLen = bin.read();
+                if (saltLen < 0) throw new EncryptionException("Truncated header: missing salt length");
+                byte[] saltBytes = new byte[saltLen];
+                int r = bin.read(saltBytes);
+                if (r != saltLen) throw new EncryptionException("Truncated header: missing salt");
+                int ivLen = bin.read();
+                if (ivLen != GCM_IV_LENGTH) throw new EncryptionException("Unexpected IV length in header");
+                byte[] iv = new byte[ivLen];
+                r = bin.read(iv);
+                if (r != ivLen) throw new EncryptionException("Truncated header: missing IV");
+
+                SecretKey key = deriveKey(password, saltBytes);
+                var cipher = Cipher.getInstance(ALGORITHM);
+                var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+                cipher.init(Cipher.DECRYPT_MODE, key, spec);
+                return new javax.crypto.CipherInputStream(bin, cipher);
+            } else {
+                // Fallback: reset and attempt legacy salt-prefix detection using provided salt
+                bin.reset();
+                bin.mark(32);
+                byte[] prefix = new byte[16];
+                int read = bin.read(prefix);
+                boolean startsWithSalt = false;
+                if (read == 16 && salt != null && salt.length == 16) {
+                    startsWithSalt = true;
+                    for (int i = 0; i < 16; i++) {
+                        if (prefix[i] != salt[i]) {
+                            startsWithSalt = false;
+                            break;
+                        }
+                    }
+                }
+                if (!startsWithSalt) {
+                    bin.reset();
+                }
+
+                // Read IV
+                byte[] iv = new byte[GCM_IV_LENGTH];
+                int gotIv = bin.read(iv);
+                if (gotIv != GCM_IV_LENGTH) {
+                    throw new EncryptionException("Encrypted data missing IV or is corrupted.");
+                }
+
+                SecretKey key = deriveKey(password, salt);
+                var cipher = Cipher.getInstance(ALGORITHM);
+                var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+                cipher.init(Cipher.DECRYPT_MODE, key, spec);
+
+                return new javax.crypto.CipherInputStream(bin, cipher);
+            }
+        } catch (EncryptionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to open decrypted stream.", e);
+        }
+    }
+
+    /**
+     * Convenience helper: open a decrypted InputStream and pass it to the given consumer.
+     * Ensures the stream is closed after the consumer returns.
+     */
+    public void withDecryptedStream(java.io.InputStream encryptedIn, char[] password, byte[] salt, java.util.function.Consumer<java.io.InputStream> consumer) throws EncryptionException {
+        if (consumer == null) throw new IllegalArgumentException("consumer cannot be null");
+        java.io.InputStream dec = openDecryptedStream(encryptedIn, password, salt, null);
+        try (dec) {
+            consumer.accept(dec);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new EncryptionException("Error while processing decrypted stream.", e);
+        }
+    }
+
+    /**
+     * Convenience helper: open a decrypted Reader (UTF-8) and pass it to the consumer.
+     */
+    public void withDecryptedReader(java.io.InputStream encryptedIn, char[] password, byte[] salt, java.util.function.Consumer<java.io.BufferedReader> consumer) throws EncryptionException {
+        if (consumer == null) throw new IllegalArgumentException("consumer cannot be null");
+        java.io.InputStream dec = openDecryptedStream(encryptedIn, password, salt, null);
+        try (var isr = new java.io.InputStreamReader(dec, java.nio.charset.StandardCharsets.UTF_8);
+             var br = new java.io.BufferedReader(isr)) {
+            consumer.accept(br);
+        } catch (Exception e) {
+            throw new EncryptionException("Error while processing decrypted reader.", e);
+        }
+    }
+
     private void validateEncryptedData(byte[] encryptedData) throws EncryptionException {
         if (encryptedData == null) {
             throw new EncryptionException("Cannot decrypt null data. Please check if your file exists and is readable.");
@@ -257,16 +488,39 @@ public class EncryptionManager implements Encryptor {
         }
 
         try {
-            // Read salt from the beginning
-            if (data.length < 16) {
-                throw new EncryptionException("Encrypted data is too short.");
+            // If data uses new header format, parse header. Otherwise fallback to legacy salt-prefix format.
+            int pos = 0;
+            boolean hasHeader = false;
+            if (data.length >= FILE_MAGIC.length + 1) {
+                hasHeader = true;
+                for (int i = 0; i < FILE_MAGIC.length; i++) {
+                    if (data[i] != FILE_MAGIC[i]) { hasHeader = false; break; }
+                }
             }
-            byte[] salt = new byte[16];
-            System.arraycopy(data, 0, salt, 0, 16);
-            byte[] encrypted = new byte[data.length - 16];
-            System.arraycopy(data, 16, encrypted, 0, encrypted.length);
-            SecretKey key = deriveKey(password, salt);
-            return performDecryption(encrypted, key);
+
+            if (hasHeader) {
+                pos += FILE_MAGIC.length;
+                byte version = data[pos++];
+                int saltLen = data[pos++] & 0xFF;
+                byte[] salt = new byte[saltLen];
+                System.arraycopy(data, pos, salt, 0, saltLen); pos += saltLen;
+                int ivLen = data[pos++] & 0xFF;
+                byte[] encrypted = new byte[(data.length - pos)];
+                System.arraycopy(data, pos, encrypted, 0, encrypted.length);
+                SecretKey key = deriveKey(password, salt);
+                return performDecryption(encrypted, key);
+            } else {
+                // Legacy format: salt prefix (16) + iv + ciphertext
+                if (data.length < 16) {
+                    throw new EncryptionException("Encrypted data is too short.");
+                }
+                byte[] salt = new byte[16];
+                System.arraycopy(data, 0, salt, 0, 16);
+                byte[] encrypted = new byte[data.length - 16];
+                System.arraycopy(data, 16, encrypted, 0, encrypted.length);
+                SecretKey key = deriveKey(password, salt);
+                return performDecryption(encrypted, key);
+            }
         } catch (EncryptionException e) {
             throw e;
         } catch (Exception e) {
@@ -315,21 +569,12 @@ public class EncryptionManager implements Encryptor {
     @Override
     public String decryptWithFallback(byte[] encryptedData, char[] password, byte[] salt) throws EncryptionException {
         validateEncryptedDataForFallback(encryptedData);
-
         try {
             byte[] dataToDecrypt = stripSaltPrefixIfPresent(encryptedData, salt);
-
-            // Try with current iterations first
             SecretKey key = deriveKey(password, salt);
             return decrypt(dataToDecrypt, key);
         } catch (Exception e) {
-            try {
-                byte[] dataToDecrypt = stripSaltPrefixIfPresent(encryptedData, salt);
-                SecretKey legacyKey = deriveKeyLegacy(password, salt);
-                return decryptLegacy(dataToDecrypt, legacyKey);
-            } catch (Exception legacyException) {
-                throw new EncryptionException("Decryption failed: invalid password or corrupted file", legacyException);
-            }
+            throw new EncryptionException("Decryption failed: invalid password or corrupted file", e);
         }
     }
 

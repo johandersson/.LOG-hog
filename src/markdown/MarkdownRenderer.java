@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.swing.JTextPane;
 import javax.swing.text.BadLocationException;
@@ -48,73 +49,27 @@ import javax.swing.text.Element;
  */
 public class MarkdownRenderer {
 
-    // Simple in-memory cache keyed by content hash (SHA-256). Stores rendered StyledDocument
-    // and a timestamp. Uses insertion-order LinkedHashMap to provide a small LRU-like behavior.
-    private static final int MAX_CACHE_ENTRIES = 16;
-    // Use SoftReference for values so JVM can reclaim rendered documents under memory pressure
-    private static final java.util.Map<String, java.lang.ref.SoftReference<CacheEntry>> CACHE = new java.util.LinkedHashMap<>() {
-        protected boolean removeEldestEntry(java.util.Map.Entry<String, java.lang.ref.SoftReference<CacheEntry>> eldest) {
-            return size() > MAX_CACHE_ENTRIES;
-        }
-    };
-
-    private static class CacheEntry {
-        final StyledDocument doc;
-        final long createdAt;
-        CacheEntry(StyledDocument d) { this.doc = d; this.createdAt = System.currentTimeMillis(); }
-    }
-
-    private static String computeHash(List<String> lines) {
-        try {
-            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-            for (String l : lines) {
-                if (l == null) l = "";
-                md.update(l.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                // separator to avoid ambiguity between ["ab","c"] and ["a","bc"]
-                md.update((byte)0);
-            }
-            return java.util.Base64.getEncoder().encodeToString(md.digest());
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    // Pre-compiled pattern for timestamp validation - much faster than String.matches()
+    private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
 
     public static void renderMarkdown(JTextPane pane, List<String> lines) {
         renderMarkdown(pane, lines, false);
     }
     
     public static void renderMarkdown(JTextPane pane, List<String> lines, boolean scrollToBottom) {
-        String key = "full:" + computeHash(lines);
-        synchronized (CACHE) {
-            java.lang.ref.SoftReference<CacheEntry> ref = CACHE.get(key);
-            CacheEntry cached = (ref == null) ? null : ref.get();
-            if (ref != null && cached == null) {
-                // value reclaimed, remove stale ref
-                CACHE.remove(key);
-            }
-            if (cached != null) {
-                pane.setDocument(cached.doc);
-                pane.setCaretPosition(scrollToBottom ? cached.doc.getLength() : 0);
-                return;
-            }
-        }
-
-        DefaultStyledDocument doc = new DefaultStyledDocument();
-        Map<String, Style> styles = createStyles(doc);
+        // Create a new document for rendering (avoids live update overhead)
+        javax.swing.text.DefaultStyledDocument newDoc = new javax.swing.text.DefaultStyledDocument();
+        Map<String, Style> styles = createStyles(newDoc);
         try {
             List<List<String>> entries = filehandling.LogParser.parseEntriesForFullLog(lines);
-            renderEntries(entries, doc, styles);
+            renderEntries(entries, newDoc, styles);
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
-
-        // Cache the rendered document
-        synchronized (CACHE) {
-            CACHE.put(key, new java.lang.ref.SoftReference<>(new CacheEntry(doc)));
-        }
-
-        pane.setDocument(doc);
-        pane.setCaretPosition(scrollToBottom ? doc.getLength() : 0);
+        // Swap in the new document (atomic, fast)
+        pane.setDocument(newDoc);
+        // Set caret position based on scroll preference
+        pane.setCaretPosition(scrollToBottom ? newDoc.getLength() : 0);
     }
     
     /**
@@ -132,29 +87,18 @@ public class MarkdownRenderer {
      * @param scrollToBottom If true, scroll to bottom (latest entries); if false, scroll to top
      */
     public static void renderMarkdownFromEntries(JTextPane pane, List<List<String>> entries, boolean scrollToBottom) {
-        // Compute a cache key for the pre-parsed entries
-        String key = "entries:" + computeHashFromEntries(entries);
-        synchronized (CACHE) {
-            java.lang.ref.SoftReference<CacheEntry> ref = CACHE.get(key);
-            CacheEntry cached = (ref == null) ? null : ref.get();
-            if (ref != null && cached == null) CACHE.remove(key);
-            if (cached != null) {
-                pane.setDocument(cached.doc);
-                pane.setCaretPosition(scrollToBottom ? cached.doc.getLength() : 0);
-                return;
-            }
-        }
-
+        // Create a new document for rendering (avoids live update overhead)
+        javax.swing.text.DefaultStyledDocument newDoc = new javax.swing.text.DefaultStyledDocument();
+        Map<String, Style> styles = createStyles(newDoc);
         try {
-            StyledDocument doc = buildDocumentFromEntries(entries, null);
-            synchronized (CACHE) {
-                CACHE.put(key, new java.lang.ref.SoftReference<>(new CacheEntry(doc)));
-            }
-            pane.setDocument(doc);
-            pane.setCaretPosition(scrollToBottom ? doc.getLength() : 0);
+            renderEntries(entries, newDoc, styles);
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }
+        // Swap in the new document (atomic, fast)
+        pane.setDocument(newDoc);
+        // Set caret position based on scroll preference
+        pane.setCaretPosition(scrollToBottom ? newDoc.getLength() : 0);
     }
 
     /**
@@ -638,7 +582,12 @@ public class MarkdownRenderer {
             while (!trimmed.isEmpty() && trimmed.get(trimmed.size() - 1).trim().isEmpty()) {
                 trimmed.remove(trimmed.size() - 1);
             }
-            trimmedEntries.add(trimmed);
+            // Sanitize each line to remove control characters and dangerous script tags
+            List<String> sanitized = new ArrayList<>(trimmed.size());
+            for (String line : trimmed) {
+                sanitized.add(sanitizeLine(line));
+            }
+            trimmedEntries.add(sanitized);
         }
         
         for (List<String> entry : trimmedEntries) {
@@ -683,9 +632,20 @@ public class MarkdownRenderer {
             }
             
             // Trim trailing newlines from the rendered entry to prevent extra spacing between entries
+            // Optimized: count trailing newlines first, then remove in one operation
             try {
-                while (doc.getLength() > 0 && doc.getText(doc.getLength() - 1, 1).equals("\n")) {
-                    doc.remove(doc.getLength() - 1, 1);
+                int docLen = doc.getLength();
+                if (docLen > 0) {
+                    // Get up to last 10 chars to find trailing newlines (should be enough)
+                    int checkLen = Math.min(10, docLen);
+                    String tail = doc.getText(docLen - checkLen, checkLen);
+                    int trailingNewlines = 0;
+                    for (int i = tail.length() - 1; i >= 0 && tail.charAt(i) == '\n'; i--) {
+                        trailingNewlines++;
+                    }
+                    if (trailingNewlines > 0) {
+                        doc.remove(docLen - trailingNewlines, trailingNewlines);
+                    }
                 }
             } catch (BadLocationException e) {
                 // Ignore if can't trim
@@ -693,29 +653,30 @@ public class MarkdownRenderer {
         }
     }
 
-    private static void renderInfoEntry(List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
-        MarkdownRenderingContext context = new MarkdownRenderingContext(doc, styles);
-        Style info = styles.get("info");
-
-        // Render each line in the info entry using the smaller info style.
-        for (int i = 0; i < entry.size(); i++) {
-            String line = entry.get(i);
-            // Keep a single-line separator between the two info lines
-            context.insertString(line, info);
-            if (i < entry.size() - 1) {
-                context.insertLineSeparator();
+    private static String sanitizeLine(String line) {
+        if (line == null) return "";
+        // Remove nulls and most control characters but keep tab and newline semantics handled elsewhere
+        try {
+            // Remove ASCII control chars except tab (\t)
+            line = line.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
+            // Neutralize any <script occurrences (case-insensitive)
+            line = line.replaceAll("(?i)<script", "&lt;script");
+        } catch (Exception e) {
+            // On any regex issues, fall back to a safe plain string
+            StringBuilder sb = new StringBuilder();
+            for (char c : line.toCharArray()) {
+                if (c >= 0x20 || c == '\t') sb.append(c);
             }
+            line = sb.toString();
         }
-        // After info block, keep the centralized double separator
-        context.insertDoubleLineSeparator();
+        return line;
     }
-
     private static boolean isHeadingLine(String line) {
         return line.startsWith("# ") || line.startsWith("## ") || line.startsWith("### ");
     }
 
     private static boolean isTimestampLine(String line) {
-        return line.trim().matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
+        return TIMESTAMP_PATTERN.matcher(line.trim()).matches();
     }
 
     /**

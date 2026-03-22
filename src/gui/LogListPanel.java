@@ -34,6 +34,7 @@ import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.JComboBox;
+import javax.swing.JProgressBar;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
@@ -50,8 +51,11 @@ import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.text.AbstractDocument;
 
 import filehandling.LogFileHandler;
+import filehandling.DialogHandler;
 import main.LogTextEditor;
 import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
@@ -71,8 +75,9 @@ public class LogListPanel extends JPanel {
     private boolean isPreviewMode = false;
     private JComboBox<Integer> yearCombo;
     private JComboBox<String> monthCombo;
-    // Suppress filter action events when programmatically changing selection
-    private boolean suppressFilterEvents = false;
+    private final LogInfoPanel infoPanel;
+    private final JProgressBar filterProgressBar;
+    private final JProgressBar entryProgressBar;
 
     public LogListPanel(LogTextEditor editor, LogFileHandler logFileHandler, DefaultListModel<String> listModel, JList<String> logList) {
         this.editor = editor;
@@ -85,7 +90,21 @@ public class LogListPanel extends JPanel {
         this.entryContainer = new JPanel(new BorderLayout());
         this.previewPane = new HighlightableTextPane();
         this.previewScrollPane = new JScrollPane(previewPane);
+        this.infoPanel = new LogInfoPanel();
+        this.filterProgressBar = new JProgressBar();
+        this.entryProgressBar = new JProgressBar();
         initPanel();
+    }
+
+    private void updateCharCountLabel(javax.swing.JLabel label, String text) {
+        int len = text == null ? 0 : text.length();
+        int left = Math.max(0, InputLimits.ENTRY_MAX_CHARS - len);
+        label.setText("Chars left: " + left);
+        if (left <= 100) {
+            label.setForeground(new java.awt.Color(0xA00000));
+        } else {
+            label.setForeground(java.awt.Color.GRAY);
+        }
     }
 
     private void initPanel() {
@@ -100,7 +119,22 @@ public class LogListPanel extends JPanel {
         var split = createLogSplitPane();
         add(split, BorderLayout.CENTER);
 
+        // Bottom: info panel (reuse same LogInfoPanel used in FullLog view)
+        var bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        var infoWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        infoWrapper.setOpaque(false);
+        infoWrapper.add(infoPanel);
+        bottom.add(infoWrapper, BorderLayout.WEST);
+        add(bottom, BorderLayout.SOUTH);
+
         setupListeners(split);
+
+        // Populate initial info from the current listModel (most recent view)
+        updateInfoFromListModel();
+
+        // Indicate scope in the info panel
+        infoPanel.updateYearScope("Most recent (from list view)");
     }
 
     private JPanel createFilterPanel() {
@@ -110,10 +144,26 @@ public class LogListPanel extends JPanel {
         filterLabel.setFont(filterLabel.getFont().deriveFont(Font.BOLD));
         filterPanel.add(filterLabel);
 
-        var currentYear = Year.now().getValue();
-        var years = IntStream.rangeClosed(2000, currentYear).boxed().toArray(Integer[]::new);
-        yearCombo = new JComboBox<>(years);
-        yearCombo.setSelectedItem(currentYear);
+        // Populate year combo from the currently displayed entries in the list (most recent view)
+        java.util.Set<Integer> yearsSet = new java.util.LinkedHashSet<>();
+        for (int i = 0; i < listModel.getSize(); i++) {
+            try {
+                String ts = listModel.getElementAt(i);
+                java.time.LocalDateTime dt = utils.DateHandler.parseTimestamp(ts);
+                yearsSet.add(dt.getYear());
+            } catch (Exception ignored) {
+            }
+        }
+        Integer[] yearsArr;
+        if (!yearsSet.isEmpty()) {
+            yearsArr = yearsSet.toArray(new Integer[0]);
+        } else {
+            var currentYear = Year.now().getValue();
+            yearsArr = IntStream.rangeClosed(currentYear, currentYear).boxed().toArray(Integer[]::new);
+        }
+        yearCombo = new JComboBox<>(yearsArr);
+        // Select the most recent year by default if present
+        if (yearsArr.length > 0) yearCombo.setSelectedItem(yearsArr[0]);
         filterPanel.add(yearCombo);
 
         var months = new String[]{
@@ -125,6 +175,12 @@ public class LogListPanel extends JPanel {
         monthCombo = new JComboBox<>(months);
         monthCombo.setSelectedIndex(LocalDate.now().getMonthValue()); // Offset by 1 due to "All Months" at index 0
         filterPanel.add(monthCombo);
+
+        // Lightweight non-blocking progress indicator for filters
+        filterProgressBar.setIndeterminate(true);
+        filterProgressBar.setVisible(false);
+        filterProgressBar.setPreferredSize(new Dimension(120, 16));
+        filterPanel.add(filterProgressBar);
 
         // Filter actions
         yearCombo.addActionListener(e -> applyFilter(yearCombo, monthCombo));
@@ -140,23 +196,59 @@ public class LogListPanel extends JPanel {
             return;
         }
         
-        try {
-            var year = (Integer) yearCombo.getSelectedItem();
-            var monthIndex = monthCombo.getSelectedIndex();
-            if (year != null) {
-                if (monthIndex == 0) {
-                    // "All Months" selected - show all entries for the year
-                    logFileHandler.loadFilteredEntriesByYear(listModel, year);
-                } else {
-                    // Specific month selected - monthIndex is offset by 1 due to "All Months" at index 0
-                    var month = monthIndex;
-                    logFileHandler.loadFilteredEntries(listModel, year, month);
+        var year = (Integer) yearCombo.getSelectedItem();
+        var monthIndex = monthCombo.getSelectedIndex();
+        if (year == null) return;
+
+        // Provide quick feedback: show an indeterminate progress bar while computing off-EDT
+        SwingUtilities.invokeLater(() -> {
+            listModel.removeAllElements();
+            filterProgressBar.setVisible(true);
+        });
+
+        // Compute filtered timestamps off the EDT and update model on completion
+        new SwingWorker<List<String>, Void>() {
+            @Override
+            protected List<String> doInBackground() throws Exception {
+                try {
+                    if (monthIndex == 0) {
+                        return logFileHandler.getEntryLoader().computeTimestampsByYear(year);
+                    } else {
+                        int month = monthIndex; // offset already considered in UI
+                        return logFileHandler.getEntryLoader().computeTimestampsByYearMonth(year, month);
+                    }
+                } catch (IllegalStateException ise) {
+                    // Propagate to done() to show limit dialog on EDT
+                    throw ise;
                 }
             }
-        } catch (Exception ex) {
-            // Security: Don't expose internal error details
-            logFileHandler.showErrorDialog("<html><b>📅 Filter Failed</b><br><br>Unable to apply date filter.<br><br><i>Tip: Check the selected year and month.</i></html>");
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    List<String> filtered = get();
+                    listModel.removeAllElements();
+                    filterProgressBar.setVisible(false);
+                    if (filtered == null || filtered.isEmpty()) {
+                        // Keep empty list if nothing found
+                        return;
+                    }
+                    for (String ts : filtered) {
+                        listModel.addElement(ts);
+                    }
+                } catch (java.util.concurrent.ExecutionException ee) {
+                    Throwable cause = ee.getCause();
+                    if (cause instanceof IllegalStateException) {
+                        // File too large - show friendly dialog handled by DialogHandler
+                        DialogHandler.showLimitExceeded("File Too Large", "The log file exceeds configured limits and cannot be filtered.");
+                    } else {
+                        logFileHandler.showErrorDialog("<html><b>📅 Filter Failed</b><br><br>Unable to apply date filter.<br><br><i>Tip: Check the selected year and month.</i></html>");
+                    }
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }.execute();
     }
 
     /**
@@ -201,6 +293,13 @@ public class LogListPanel extends JPanel {
         entryArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         entryArea.setLineWrap(true);
         entryArea.setWrapStyleWord(true);
+        // Enforce maximum entry length in the editor
+        try {
+            if (entryArea.getDocument() instanceof AbstractDocument) {
+                ((AbstractDocument) entryArea.getDocument()).setDocumentFilter(new LengthLimitFilter(InputLimits.ENTRY_MAX_CHARS));
+            }
+        } catch (Exception ignore) {
+        }
         entryArea.setBackground(Color.WHITE);
         entryScroll.setPreferredSize(new Dimension(600, 220));
         entryScroll.setBorder(BorderFactory.createEmptyBorder());
@@ -251,6 +350,19 @@ public class LogListPanel extends JPanel {
         // Save button
         var entryBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
         entryBottom.setOpaque(false);
+
+        // Character counter label to indicate remaining characters
+        var charCountLabel = new JLabel();
+        charCountLabel.setOpaque(false);
+        updateCharCountLabel(charCountLabel, entryArea.getText());
+        entryBottom.add(charCountLabel);
+
+        // Entry-specific progress indicator (hidden by default)
+        entryProgressBar.setIndeterminate(true);
+        entryProgressBar.setVisible(false);
+        entryProgressBar.setPreferredSize(new Dimension(140, 16));
+        entryBottom.add(entryProgressBar);
+
         var previewToggleBtn = new AccentButton("Preview");
         previewToggleBtn.addActionListener(e -> togglePreview(previewToggleBtn));
         entryBottom.add(previewToggleBtn);
@@ -258,6 +370,16 @@ public class LogListPanel extends JPanel {
         saveEntryBtn.addActionListener(e -> editor.saveEditedLogEntry());
         entryBottom.add(saveEntryBtn);
         entryContainer.add(entryBottom, BorderLayout.SOUTH);
+
+        // Update the char counter as the user types (keep UI updates on EDT)
+        entryArea.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            private void update() {
+                javax.swing.SwingUtilities.invokeLater(() -> updateCharCountLabel(charCountLabel, entryArea.getText()));
+            }
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { update(); }
+        });
 
         return split;
     }
@@ -279,12 +401,26 @@ public class LogListPanel extends JPanel {
         // Display text field
         inputPanel.add(new JLabel("Display Text:"));
         var displayField = new JTextField(displayText, 20);
+        // Limit display text length
+        try {
+            if (displayField.getDocument() instanceof AbstractDocument) {
+                ((AbstractDocument) displayField.getDocument()).setDocumentFilter(new LengthLimitFilter(InputLimits.DISPLAY_TEXT_MAX));
+            }
+        } catch (Exception ignore) {
+        }
         inputPanel.add(displayField);
 
         // URL/File path field
         inputPanel.add(new JLabel("URL or File Path:"));
         var urlPanel = new JPanel(new BorderLayout());
         var urlField = new JTextField(20);
+        // Limit URL/path length
+        try {
+            if (urlField.getDocument() instanceof AbstractDocument) {
+                ((AbstractDocument) urlField.getDocument()).setDocumentFilter(new LengthLimitFilter(InputLimits.FIELD_MAX_CHARS));
+            }
+        } catch (Exception ignore) {
+        }
         urlPanel.add(urlField, BorderLayout.CENTER);
         var browseBtn = new StandardButton("Browse...", new Color(0xE0E0E0), new Color(0xB0B0B0));
         browseBtn.addActionListener(e -> {
@@ -311,6 +447,17 @@ public class LogListPanel extends JPanel {
         okBtn.addActionListener(e -> {
             var text = displayField.getText().trim();
             var url = urlField.getText().trim();
+
+            // Basic validation: accept http(s)://, file: or local filesystem paths
+            if (!url.isEmpty()) {
+                String u = url.toLowerCase();
+                boolean looksLikeUrl = u.startsWith("http://") || u.startsWith("https://") || u.startsWith("file:");
+                boolean looksLikePath = url.matches("^[a-zA-Z]:\\\\.*") || url.startsWith("/");
+                if (!looksLikeUrl && !looksLikePath) {
+                    DialogHelper.showError(dialog, "Invalid Link", "Invalid URL or file path.", "Only HTTP/HTTPS/file URLs or local file paths are allowed.");
+                    return;
+                }
+            }
 
             if (!text.isEmpty() && !url.isEmpty()) {
                 var link = "[" + text + "](" + url + ")";
@@ -342,15 +489,35 @@ public class LogListPanel extends JPanel {
     }
 
     private void loadAndDisplayEntry(String timestamp) {
-        if (timestamp != null && !timestamp.trim().isEmpty()) {
-            String content = logFileHandler.loadEntry(timestamp);
-            entryArea.setText(content);
-        } else {
+        if (timestamp == null || timestamp.trim().isEmpty()) {
             entryArea.setText("");
+            if (isPreviewMode) renderPreview();
+            return;
         }
-        if (isPreviewMode) {
-            renderPreview();
-        }
+
+        // Load heavy content off the EDT and update the editor on completion
+        entryProgressBar.setIndeterminate(true);
+        entryProgressBar.setVisible(true);
+        new SwingWorker<String, Void>() {
+            @Override
+            protected String doInBackground() throws Exception {
+                return logFileHandler.loadEntry(timestamp);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    String content = get();
+                    entryArea.setText(content != null ? content : "");
+                    entryProgressBar.setVisible(false);
+                    if (isPreviewMode) renderPreview();
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                } catch (java.util.concurrent.ExecutionException ee) {
+                    logFileHandler.showErrorDialog("<html><b>👁️ Display Failed</b><br><br>Unable to display the log entry.</html>");
+                }
+            }
+        }.execute();
     }
 
     private void setupListeners(JSplitPane split) {
@@ -439,6 +606,15 @@ public class LogListPanel extends JPanel {
 
     public JTextArea getEntryArea() {
         return entryArea;
+    }
+
+    private void updateInfoFromListModel() {
+        try {
+            var stats = new LogStatistics(listModel.getSize(), new java.util.ArrayList<>(), logFileHandler.getFilePath());
+            infoPanel.updateStatistics(stats);
+        } catch (Exception ex) {
+            infoPanel.resetStatistics();
+        }
     }
 
     private void togglePreview(javax.swing.JButton toggleBtn) {

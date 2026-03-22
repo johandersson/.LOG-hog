@@ -3,7 +3,7 @@
 **A secure, feature-rich Java Swing logging application that works on Windows, macOS, and Linux.**
 
 ## Security
-**Security Rating: HIGH (9.5/10)** - Enterprise-grade encryption with AES-256-GCM, PBKDF2 key derivation, progressive delays, enforced password strength, automatic secure backups, and comprehensive input validation. Suitable for sensitive personal and professional data.
+**Security Rating: HIGH (8.5/10)** - Strong defaults (AES-256-GCM, PBKDF2 key derivation with 600,000 iterations), progressive delays, enforced password strength, atomic encrypted writes, and reduced in-memory exposure. A few remaining format/API hardenings are listed in `encryption.md`.
 
 **🔒 Oracle Secure Coding Guidelines Conformance** - .LOG-hog has been hardened to conform to [Oracle's Secure Coding Guidelines for Java SE](https://www.oracle.com/java/technologies/javase/seccodeguide.html), addressing all CRITICAL, HIGH, and MEDIUM priority security requirements:
 - ✅ **Information Disclosure Prevention**: Generic error messages without internal details
@@ -68,10 +68,10 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 .LOG-hog implements **enterprise-grade security** with comprehensive protection against modern threats. The application has been hardened according to [Oracle's Secure Coding Guidelines for Java SE](https://www.oracle.com/java/technologies/javase/seccodeguide.html), ensuring robust defense against information disclosure, state corruption, resource exhaustion, and cryptographic vulnerabilities.
 
 **Key Security Features:**
-- **AES-256-GCM authenticated encryption** with PBKDF2-100,000 iterations key derivation
+- **AES-256-GCM authenticated encryption** with PBKDF2 (600,000 iterations default; legacy 65,536 supported)
 - **Progressive brute-force protection** (3s → 15s → 30s) with cryptographically secure randomization
 - **4-attempt limit** with application restart requirement and real-time countdown
-- **Immediate memory clearing** of all sensitive data (passwords, keys, cached content)
+- **Best-effort memory clearing** of temporary password/key copies where possible; note that immutable `String` objects may still be retained by the JVM and cannot always be zeroed.
 - **Automatic clipboard security** with configurable timeout (1-3600 seconds) and educational warnings
 - **Secure Ctrl+C functionality** in all text areas with automatic clearing
 - **Automatic secure backups** after encryption/decryption operations with multiple overwrite deletion
@@ -115,12 +115,12 @@ If you prefer to build manually:
 ```bash
 cd src
 javac -d . $(find . -name "*.java" ! -path "*/test/*")
-jar cvfm loghog.jar manifest.txt LogHog.class main/*.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class services/*.class utils/*.class resources/
+jar cvfm ../build/loghog.jar manifest.txt LogHog.class main/*.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class services/*.class utils/*.class resources/
 ```
 
 ### Running
 ```bash
-java -jar loghog.jar
+java -jar build/loghog.jar
 ```
 
 ## Testing

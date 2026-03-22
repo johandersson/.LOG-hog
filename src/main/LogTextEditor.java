@@ -51,6 +51,7 @@ import gui.NavItem;
 import gui.LoadingProgressDialog;
 import gui.SettingsPanel;
 import gui.SystemTrayMenu;
+import gui.LoadingProgressDialog;
 
 public class LogTextEditor extends JFrame {
 
@@ -115,7 +116,7 @@ public class LogTextEditor extends JFrame {
     private final java.nio.file.Path settingsPath = java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
 
     // Secure settings for sensitive data
-    private final SecureSettings secureSettings;
+    private SecureSettings secureSettings;
 
     private String passwordReminder = "";
     private boolean isLocked = false;
@@ -153,7 +154,16 @@ public class LogTextEditor extends JFrame {
         // For backward compatibility
         logFileHandler = (LogFileHandler) application.getLogFileOperations();
 
-        // Initialize secure settings
+        // Load settings file FIRST so SecureSettings can use existing salt
+        if (java.nio.file.Files.exists(settingsPath)) {
+            try (var fis = new java.io.FileInputStream(settingsPath.toFile())) {
+                settings.load(fis);
+            } catch (Exception e) {
+                // Settings will use defaults if load fails
+            }
+        }
+
+        // Initialize secure settings (must be after settings are loaded)
         secureSettings = new SecureSettings(settings);
         
         // Initialize backup manager
@@ -195,7 +205,8 @@ public class LogTextEditor extends JFrame {
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
-                });
+                },
+                this::saveSettings);
 
             // Setup key bindings and system components
             setupKeyBindings();
@@ -339,8 +350,8 @@ public class LogTextEditor extends JFrame {
         
         // Check if running in headless environment
         if (java.awt.GraphicsEnvironment.isHeadless()) {
-            System.err.println("LogHog is a GUI application and cannot run in a headless environment.");
-            System.err.println("Please run LogHog in a desktop environment with display capabilities.");
+            // Log and exit when running in an unsupported headless environment
+            utils.Log.error("LogHog cannot run in a headless environment. Exiting.");
             System.exit(1);
         }
         
@@ -390,7 +401,8 @@ public class LogTextEditor extends JFrame {
                 // window visible after any loading/decryption completes.
                 editor.startSingleInstanceListener();
             } catch (Exception e) {
-                // Security: Don't log exception details to console
+                // Security: Log error and exit
+                utils.Log.error("Fatal error starting UI", e);
                 System.exit(1);
             }
         });
@@ -466,78 +478,52 @@ public class LogTextEditor extends JFrame {
                 passwordReminder = secureSettings.getDecryptedProperty(settings, "passwordReminder", "");
                 var dataLoaded = false;
                 if ("true".equals(enc)) {
-                    // Run encryption setup (password prompt + decryption & loading)
-                    // on a background thread so the EDT stays responsive. The
-                    // EncryptionHandler will prompt for password on the EDT
-                    // and show its own LoadingProgressDialog during decryption.
-                    Thread encLoader = new Thread(() -> {
-                        try {
-                            encryptionHandler.handleEncryptionSetup();
-                        } catch (Exception e) {
-                            SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
-                        } finally {
-                            SwingUtilities.invokeLater(() -> {
-                                // Show main window after loading/decryption completes
-                                LogTextEditor.this.setVisible(true);
-                                entryPanel.getTextArea().requestFocusInWindow();
-                            });
-                        }
-                    }, "EncryptedLoader");
-                    encLoader.setDaemon(true);
-                    encLoader.start();
-                    dataLoaded = true;
+                    dataLoaded = encryptionHandler.handleEncryptionSetup();
                 }
                 if (!dataLoaded) {
-                    LoadingProgressDialog progress = new LoadingProgressDialog(this, "Loading");
-                    progress.show();
-                    Thread loader = new Thread(() -> {
+                    LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
+                    progressDialog.setStatus("Loading log entries...");
+                    progressDialog.setIndeterminate(true);
+                    progressDialog.show();
+
+                    // Run load in background so dialog can display and UI remains responsive
+                    Runnable startupLoad = () -> {
                         try {
-                            try {
-                                loadLogEntries();
-                                fullLogPanel.loadFullLog();
-                            } catch (Exception e) {
-                                SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
-                            }
+                            loadLogEntries();
+                            fullLogPanel.loadFullLog();
+                        } catch (Exception e) {
+                            javax.swing.SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
                         } finally {
-                            SwingUtilities.invokeLater(() -> {
-                                progress.close();
-                                // Show main window after loading completes
-                                LogTextEditor.this.setVisible(true);
-                                // Focus the entry text area on startup
-                                entryPanel.getTextArea().requestFocusInWindow();
-                            });
+                            try { progressDialog.close(); } catch (Exception ignore) {}
                         }
-                    }, "LogLoader");
-                    loader.setDaemon(true);
-                    loader.start();
+                    };
+                    Thread startupThread = new Thread(startupLoad, "loghog-startup-load");
+                    startupThread.setDaemon(true);
+                    startupThread.start();
                 }
             } catch (Exception e) {
                 // Security: Don't expose exception details (Guideline 2-1)
                 logFileHandler.showErrorDialog("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
             }
         } else {
-            LoadingProgressDialog progress = new LoadingProgressDialog(this, "Loading");
-            progress.show();
-            Thread loader = new Thread(() -> {
+            LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
+            progressDialog.setStatus("Loading log entries...");
+            progressDialog.setIndeterminate(true);
+            progressDialog.show();
+
+            Runnable startupLoad2 = () -> {
                 try {
-                    try {
-                        loadLogEntries();
-                        fullLogPanel.loadFullLog();
-                    } catch (Exception e) {
-                        SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
-                    }
+                    loadLogEntries();
+                    fullLogPanel.loadFullLog();
+                } catch (Exception e) {
+                    javax.swing.SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
                 } finally {
-                    SwingUtilities.invokeLater(() -> {
-                        progress.close();
-                        // Show main window after loading completes
-                        LogTextEditor.this.setVisible(true);
-                        // Focus the entry text area on startup
-                        entryPanel.getTextArea().requestFocusInWindow();
-                    });
+                    try { progressDialog.close(); } catch (Exception ignore) {}
                 }
-            }, "LogLoader");
-            loader.setDaemon(true);
-            loader.start();
+            };
+            Thread startupThread2 = new Thread(startupLoad2, "loghog-startup-load");
+            startupThread2.setDaemon(true);
+            startupThread2.start();
         }
     }
 
@@ -690,7 +676,9 @@ public class LogTextEditor extends JFrame {
     private void startPeriodicBackupTimer() {
         periodicBackupTimer = new javax.swing.Timer(60000, e -> {
             // Run backup check in background to avoid blocking UI
-            new Thread(() -> backupManager.checkPeriodicBackup()).start();
+            Thread backupChecker = new Thread(() -> backupManager.checkPeriodicBackup(), "loghog-backup-check");
+            backupChecker.setDaemon(true);
+            backupChecker.start();
         });
         periodicBackupTimer.start();
     }

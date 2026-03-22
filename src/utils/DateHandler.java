@@ -21,11 +21,29 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * Utility class for handling date parsing and formatting operations.
  */
 public class DateHandler {
+
+    /**
+     * Pre-compiled pattern for LogHog's primary timestamp format.
+     * Much faster than String.matches() which compiles the regex each time.
+     */
+    public static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
+
+    /**
+     * Checks if a string matches LogHog's timestamp format.
+     * Uses pre-compiled pattern for efficiency.
+     * 
+     * @param line the string to check
+     * @return true if the string matches the timestamp format
+     */
+    public static boolean isTimestamp(String line) {
+        return TIMESTAMP_PATTERN.matcher(line.trim()).matches();
+    }
 
     /**
      * Parses a timestamp string from a log entry into a LocalDateTime object.
@@ -38,8 +56,8 @@ public class DateHandler {
     public static LocalDateTime parseTimestamp(String entry) {
         String trimmed = entry.trim();
         
-        // Quick check for LogHog's primary format
-        if (trimmed.matches("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?$")) {
+        // Quick check for LogHog's primary format using pre-compiled pattern
+        if (TIMESTAMP_PATTERN.matcher(trimmed).matches()) {
             return LocalDateTime.parse(trimmed.replaceAll(" \\(\\d+\\)", ""), DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT));
         }
         

@@ -31,11 +31,16 @@ public class TestableEncryptionManager implements Encryptor {
         return delegate.decryptWithFallback(data, password, salt);
     }
 
+    @Override
+    public String decryptStream(java.io.InputStream in, char[] password, byte[] salt) throws EncryptionException {
+        return delegate.decryptStream(in, password, salt);
+    }
+
     public javax.crypto.SecretKey deriveKeyLegacy(char[] password, byte[] salt) throws EncryptionException {
-        return delegate.deriveKeyLegacy(password, salt);
+        throw new UnsupportedOperationException("Legacy key derivation removed");
     }
 
     public byte[] encryptLegacy(String data, javax.crypto.SecretKey key) throws EncryptionException {
-        return delegate.encryptLegacy(data, key);
+        throw new UnsupportedOperationException("Legacy encrypt removed");
     }
 }

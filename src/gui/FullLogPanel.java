@@ -19,6 +19,7 @@ package gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Frame;
@@ -41,6 +42,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.ToolTipManager;
 import javax.swing.text.StyledDocument;
+import javax.swing.JProgressBar;
 
 import filehandling.FullLogFileLoader;
 import filehandling.LogFileFormatter;
@@ -62,7 +64,7 @@ public class FullLogPanel extends LogPanel {
     private final JButton searchButton;
     private final JButton formatButton;
     private final LogInfoPanel infoPanel;
-    private final javax.swing.JProgressBar fullLogProgressBar;
+    private final JProgressBar fullLoadProgress;
     private SearchDialog searchDialog;
     private boolean suppressAutoLoad = false;
     private TimestampClickHandler timestampClickHandler;
@@ -111,9 +113,7 @@ public class FullLogPanel extends LogPanel {
         
         // Initialize info panel component
         this.infoPanel = new LogInfoPanel();
-        this.fullLogProgressBar = new javax.swing.JProgressBar(0, 100);
-        this.fullLogProgressBar.setVisible(false);
-        this.fullLogProgressBar.setStringPainted(true);
+        this.fullLoadProgress = new JProgressBar();
         
         initPanel();
         updateLockButton(); // Ensure buttons are in correct state based on lock status
@@ -158,7 +158,10 @@ public class FullLogPanel extends LogPanel {
         pathPanel.setOpaque(false);
         fullLogPathLabel.setForeground(new Color(0x3A4A52));
         pathPanel.add(fullLogPathLabel, BorderLayout.WEST);
-        // Use the shared LoadingProgressDialog for progress; do not add inline progress bar
+        fullLoadProgress.setIndeterminate(true);
+        fullLoadProgress.setVisible(false);
+        fullLoadProgress.setPreferredSize(new java.awt.Dimension(140, 16));
+        pathPanel.add(fullLoadProgress, BorderLayout.EAST);
         add(pathPanel, BorderLayout.NORTH);
 
         var bottom = new JPanel(new BorderLayout(10, 0));
@@ -257,34 +260,49 @@ public class FullLogPanel extends LogPanel {
     }
 
     public void loadFullLog() {
-        loadFullLog(null);
-    }
-
-    /**
-     * Load full log and call onComplete on the EDT when finished (may be null).
-     */
-    public void loadFullLog(Runnable onComplete) {
-        if (editor.isLocked()) {
-            SwingUtilities.invokeLater(this::handleLockedState);
-            if (onComplete != null) SwingUtilities.invokeLater(onComplete);
-            return;
-        }
-
-        // Rely on `FullLogFileLoader` cache and `logFileHandler` invalidation listeners
-        // to avoid unnecessary reparsing on tab switches.
-        updateButtonStates(false);
-        var logPath = Path.of(System.getProperty("user.home"), "log.txt");
-        if (!Files.exists(logPath)) {
-            SwingUtilities.invokeLater(this::showLogNotFound);
-            if (onComplete != null) SwingUtilities.invokeLater(onComplete);
-            return;
-        }
-
-        clearEditorForNewLoad(logPath);
-
-        // Parse in background to avoid blocking the EDT and allow progress dialog to show
-        // Use background SwingWorker with progress bar and optional onComplete
-        loadAndProcessLogFile(logPath, true, onComplete);
+        SwingUtilities.invokeLater(() -> {
+            if (editor.isLocked()) {
+                handleLockedState();
+                return;
+            }
+            updateButtonStates(false);
+            var logPath = Path.of(System.getProperty("user.home"), "log.txt");
+            if (!Files.exists(logPath)) {
+                showLogNotFound();
+                return;
+            }
+            clearEditorForNewLoad(logPath);
+            
+            // Show loading feedback for large files
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            fullLoadProgress.setVisible(true);
+            
+            // Use SwingWorker to keep UI responsive during large file loads
+            new SwingWorker<ParsedLogData, Void>() {
+                @Override
+                protected ParsedLogData doInBackground() throws Exception {
+                    // Parse in background thread
+                    return fileLoader.parseLogFile(logPath);
+                }
+                
+                @Override
+                protected void done() {
+                    setCursor(Cursor.getDefaultCursor());
+                    try {
+                        ParsedLogData parsedData = get();
+                        // Render on EDT
+                        fileLoader.renderParsedData(parsedData, true);
+                        LogStatistics stats = new LogStatistics(parsedData.getTotalEntryCount(), parsedData.entriesToRender, logPath);
+                        infoPanel.updateStatistics(stats);
+                    } catch (Exception ex) {
+                        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                        handleLoadException(cause instanceof Exception ? (Exception) cause : new Exception(cause), logPath);
+                    }
+                    fullLoadProgress.setVisible(false);
+                    updateLockButton();
+                }
+            }.execute();
+        });
     }
 
     public void loadFullLogNoScroll() {
@@ -293,37 +311,58 @@ public class FullLogPanel extends LogPanel {
 
     public void loadFullLogNoScroll(Runnable callback) {
         suppressAutoLoad = true;
-        // Rely on `FullLogFileLoader` cache and `logFileHandler` invalidation listeners
-        // for cache coherence; perform the load without forcing invalidation.
-        loadFullLogNoScroll(callback, false);
-    }
-
-    /**
-     * Variant that accepts a callback invoked when loading completes.
-     */
-    public void loadFullLogNoScroll(Runnable callback, boolean internalCall) {
-        suppressAutoLoad = true;
-        if (editor.isLocked()) {
-            SwingUtilities.invokeLater(this::handleLockedState);
-            suppressAutoLoad = false;
-            if (callback != null) SwingUtilities.invokeLater(callback);
-            return;
-        }
-
-        updateButtonStates(false);
-        var logPath = Path.of(System.getProperty("user.home"), "log.txt");
-        if (!Files.exists(logPath)) {
-            SwingUtilities.invokeLater(this::showLogNotFound);
-            suppressAutoLoad = false;
-            if (callback != null) SwingUtilities.invokeLater(callback);
-            return;
-        }
-        clearEditorForNewLoad(logPath);
-
-        // Use background SwingWorker with progress bar and ensure suppressAutoLoad is reset
-        loadAndProcessLogFile(logPath, false, () -> {
-            suppressAutoLoad = false;
-            if (callback != null) callback.run();
+        SwingUtilities.invokeLater(() -> {
+            if (editor.isLocked()) {
+                handleLockedState();
+                return;
+            }
+            updateButtonStates(false);
+            var logPath = Path.of(System.getProperty("user.home"), "log.txt");
+            if (!Files.exists(logPath)) {
+                showLogNotFound();
+                return;
+            }
+            clearEditorForNewLoad(logPath);
+            
+            // Show loading feedback for large files
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            fullLoadProgress.setVisible(true);
+            fullLogPane.setText("");
+            
+            // Use SwingWorker to keep UI responsive during large file loads
+            new SwingWorker<ParsedLogData, Void>() {
+                @Override
+                protected ParsedLogData doInBackground() throws Exception {
+                    // Parse in background thread
+                    return fileLoader.parseLogFile(logPath);
+                }
+                
+                @Override
+                protected void done() {
+                    setCursor(Cursor.getDefaultCursor());
+                    fullLoadProgress.setVisible(false);
+                    try {
+                        ParsedLogData parsedData = get();
+                        // Render on EDT and always scroll to bottom when loading
+                        fileLoader.renderParsedData(parsedData, true);
+                        // Ensure caret is at end and visible
+                        try {
+                            fullLogPane.setCaretPosition(fullLogPane.getDocument().getLength());
+                            fullLogPane.requestFocusInWindow();
+                        } catch (Exception ignored) {}
+                        LogStatistics stats = new LogStatistics(parsedData.getTotalEntryCount(), parsedData.entriesToRender, logPath);
+                        infoPanel.updateStatistics(stats);
+                    } catch (Exception ex) {
+                        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                        handleLoadException(cause instanceof Exception ? (Exception) cause : new Exception(cause), logPath);
+                    }
+                    updateLockButton();
+                    if (callback != null) {
+                        callback.run();
+                    }
+                    suppressAutoLoad = false;
+                }
+            }.execute();
         });
     }
 
@@ -360,14 +399,14 @@ public class FullLogPanel extends LogPanel {
         });
         showTimer.setRepeats(false);
         try {
-            if (!fileLoader.isCacheFresh(logPath)) {
-                progressHolder[0] = new LoadingProgressDialog(editor, "Loading");
-                showTimer.start();
-            }
-        } catch (Exception e) {
-            // On error, fall back to showing the dialog
-            progressHolder[0] = new LoadingProgressDialog(editor, "Loading");
-            showTimer.start();
+            // Use optimized loading that returns parsed data for statistics
+            ParsedLogData parsedData = fileLoader.loadAndProcessLogFileWithData(logPath, scrollToBottom);
+            
+            // Calculate statistics from already parsed data (O(1) additional work)
+            LogStatistics stats = new LogStatistics(parsedData.getTotalEntryCount(), parsedData.entriesToRender, logPath);
+            infoPanel.updateStatistics(stats);
+        } catch (Exception ex) {
+            handleLoadException(ex, logPath);
         }
 
         SwingWorker<StyledDocument, Integer> worker = new SwingWorker<>() {

@@ -85,12 +85,30 @@ public class InformationPanel extends JPanel {
     }
 
     public void loadText() {
-        if (fileName != null) {
-            var informationTextToDisplay = loadPanelText(fileName);
-            MarkdownRenderer.renderMarkdownDirect(textPane, informationTextToDisplay.lines().toList());
-            LinkHandler.addLinkListeners(textPane);
-            textPane.setCaretPosition(0);
-        }
+        if (fileName == null) return;
+
+        // Load panel text off the EDT to avoid blocking UI for large or slow resource reads
+        new javax.swing.SwingWorker<String, Void>() {
+            @Override
+            protected String doInBackground() throws Exception {
+                return loadPanelText(fileName);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    String informationTextToDisplay = get();
+                    java.util.List<String> lines = informationTextToDisplay == null ? java.util.List.of() : informationTextToDisplay.lines().toList();
+                    MarkdownRenderer.renderMarkdownDirect(textPane, lines);
+                    LinkHandler.addLinkListeners(textPane);
+                    textPane.setCaretPosition(0);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                } catch (java.util.concurrent.ExecutionException ee) {
+                    textPane.setText("Could not load content.");
+                }
+            }
+        }.execute();
     }
 
     public void unloadText() {
@@ -106,24 +124,31 @@ public class InformationPanel extends JPanel {
     }
 
     private String loadPanelText(String fileName) {
-        // 1) Try file in current working directory
-        var p = Path.of(fileName);
+        // 1) Try file in several likely locations in the development/work directory
+        Path p1 = Path.of(fileName);
+        Path p2 = Path.of("src", fileName);
+        Path p3 = Path.of("resources", fileName);
         try {
-            if (Files.exists(p)) return Files.readString(p, StandardCharsets.UTF_8);
+            if (Files.exists(p1)) return Files.readString(p1, StandardCharsets.UTF_8);
+            if (Files.exists(p2)) return Files.readString(p2, StandardCharsets.UTF_8);
+            if (Files.exists(p3)) return Files.readString(p3, StandardCharsets.UTF_8);
         } catch (IOException couldNotReadFile) {
             return "Could not read " + fileName + " from file system: " + couldNotReadFile.getMessage();
         }
 
-        // 2) Try resource from JAR
-        try (var is = getClass().getResourceAsStream("/" + fileName)) {
-            if (is != null) {
-                return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-            } else {
-                return fileName + " not found as file or resource.";
+        // 2) Try resource locations inside the JAR (several common packaging locations)
+        String[] resourcePaths = new String[]{"/" + fileName, "/resources/" + fileName, "/src/resources/" + fileName};
+        for (String rp : resourcePaths) {
+            try (var is = getClass().getResourceAsStream(rp)) {
+                if (is != null) {
+                    return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            } catch (IOException e) {
+                return "Could not read " + fileName + " from resources: " + e.getMessage();
             }
-        } catch (IOException e) {
-            return "Could not read " + fileName + " from resources: " + e.getMessage();
         }
+
+        return fileName + " not found as file or resource.";
     }
 
 }

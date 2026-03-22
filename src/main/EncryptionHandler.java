@@ -25,6 +25,8 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import filehandling.LogFileHandler;
+import filehandling.DialogHandler;
+import encryption.EncryptionDetector;
 import gui.DialogHelper;
 import gui.LoadingProgressDialog;
 import gui.PasswordDialog;
@@ -43,6 +45,7 @@ public class EncryptionHandler {
     private final Runnable loadLogEntriesCallback;
     private final Runnable updateUILockStateCallback;
     private final Runnable loadFullLogCallback;
+    private final Runnable saveSettingsCallback;
     private final SecureSettings secureSettings;
 
     /**
@@ -58,7 +61,7 @@ public class EncryptionHandler {
      */
     public EncryptionHandler(JFrame parentFrame, LogFileHandler logFileHandler, Properties settings, SecureSettings secureSettings,
                            Runnable loadLogEntriesCallback, Runnable updateUILockStateCallback,
-                           Runnable loadFullLogCallback) {
+                           Runnable loadFullLogCallback, Runnable saveSettingsCallback) {
         this.parentFrame = parentFrame;
         this.logFileHandler = logFileHandler;
         this.settings = settings;
@@ -66,18 +69,76 @@ public class EncryptionHandler {
         this.loadLogEntriesCallback = loadLogEntriesCallback;
         this.updateUILockStateCallback = updateUILockStateCallback;
         this.loadFullLogCallback = loadFullLogCallback;
+        this.saveSettingsCallback = saveSettingsCallback;
     }
 
     /**
      * Handles the initial encryption setup process, including password authentication
      * and retry logic with progressive delays.
      */
-    public void handleEncryptionSetup() {
+    public boolean handleEncryptionSetup() {
         String saltStr = settings.getProperty("salt");
         if (saltStr != null) {
+            // If the log file does not exist, offer create/browse/restore first
+            java.nio.file.Path path = logFileHandler.getFilePath();
+            if (!java.nio.file.Files.exists(path)) {
+                boolean handled = DialogHandler.handleMissingLogFile(path, () -> {});
+                if (!handled) {
+                    // User chose to exit or did not provide a file; do not prompt for password
+                    return false;
+                }
+
+                // Inspect what the user did and act accordingly
+                DialogHandler.MissingFileAction action = DialogHandler.getLastMissingFileAction();
+                if (action == DialogHandler.MissingFileAction.CREATED) {
+                    // New file created -> clear encryption state (in-memory)
+                    settings.setProperty("encrypted", "false");
+                    settings.remove("salt");
+                    // Persist the cleared settings immediately
+                    try {
+                        if (saveSettingsCallback != null) saveSettingsCallback.run();
+                    } catch (Exception ex) {
+                        logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist settings after creating new log file.</html>");
+                    }
+                    DialogHelper.showInfo(parentFrame, "New File Created", "Not Encrypted", "The new log file is currently unencrypted. You must enable encryption in Settings to encrypt it.");
+                    return false;
+                } else if (action == DialogHandler.MissingFileAction.COPIED || action == DialogHandler.MissingFileAction.RESTORED) {
+                    // If user copied/restored a file into place, fall through and let detector decide
+                } else {
+                    return false;
+                }
+            }
+            // Now, if file exists, use detector to decide whether to prompt for password
+            java.nio.file.Path pathNow = logFileHandler.getFilePath();
+            if (!java.nio.file.Files.exists(pathNow)) {
+                return false;
+            }
+
+            boolean looksEncrypted = EncryptionDetector.isFileEncrypted(pathNow);
+            if (!looksEncrypted) {
+                // File is plain text -> clear encryption state
+                settings.setProperty("encrypted", "false");
+                settings.remove("salt");
+                // Persist the cleared settings
+                try {
+                    if (saveSettingsCallback != null) saveSettingsCallback.run();
+                } catch (Exception ex) {
+                    logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist settings after detecting an unencrypted log file.</html>");
+                }
+                return false;
+            }
+
+            // File looks encrypted -> ensure we have a salt to attempt decryption
+            saltStr = settings.getProperty("salt");
+            if (saltStr == null) {
+                DialogHelper.showError(parentFrame, "Missing Encryption Metadata", "Encrypted File Found", "The selected log file appears encrypted but the application has no encryption metadata (salt).\nPlease import settings or restore a settings backup.");
+                return false;
+            }
+
             byte[] salt = Base64.getDecoder().decode(saltStr);
-            performPasswordAuthentication(salt, "🔒 Enter Password", true);
+            return performPasswordAuthentication(salt, "🔒 Enter Password", true);
         }
+        return false;
     }
 
     /**

@@ -13,7 +13,7 @@ import javax.swing.JFrame;
 public class ClipboardSecurityTest {
 
     public static void main(String[] args) {
-        System.out.println("Testing Clipboard Security Features...");
+        utils.Log.info("Testing Clipboard Security Features...");
 
         try {
             // Test basic clipboard operations
@@ -26,11 +26,11 @@ public class ClipboardSecurityTest {
 
             // Verify content was set
             String retrieved = (String) clipboard.getData(DataFlavor.stringFlavor);
-            System.out.println("✓ Content set to clipboard: " + retrieved);
+            utils.Log.info(() -> "✓ Content set to clipboard: " + retrieved);
 
             // Test SecureClipboardManager
             SecureClipboardManager secureManager = new SecureClipboardManager();
-            System.out.println("✓ SecureClipboardManager initialized");
+            utils.Log.info("✓ SecureClipboardManager initialized");
 
             // Set timeout for testing
             SecureClipboardManager.setTimeoutSeconds(5); // 5 second timeout for testing
@@ -38,21 +38,20 @@ public class ClipboardSecurityTest {
             // Test secure copy (need a dummy component)
             JFrame dummyFrame = new JFrame();
             secureManager.copySecureTextToClipboard("Test secure content", dummyFrame);
-            System.out.println("✓ Secure content copied with 5-second timeout");
+            utils.Log.info("✓ Secure content copied with 5-second timeout");
 
             // Test manual clear
             secureManager.clearSecureClipboard();
-            System.out.println("✓ Secure clipboard manually cleared");
+            utils.Log.info("✓ Secure clipboard manually cleared");
 
             // Test ClipboardSecurityWarner
             ClipboardSecurityWarner warner = new ClipboardSecurityWarner();
-            System.out.println("✓ ClipboardSecurityWarner initialized");
+            utils.Log.info("✓ ClipboardSecurityWarner initialized");
 
-            System.out.println("\nAll clipboard security tests passed!");
+            utils.Log.info("\nAll clipboard security tests passed!");
 
         } catch (Exception e) {
-            System.err.println("✗ Test failed: " + e.getMessage());
-            e.printStackTrace();
+            utils.Log.error("✗ Test failed: " + e.getMessage(), e);
         }
     }
 }

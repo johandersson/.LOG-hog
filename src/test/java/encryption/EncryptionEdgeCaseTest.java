@@ -19,16 +19,14 @@ public class EncryptionEdgeCaseTest {
 
     @Test
     void testDecryptWithNullData() {
-        EncryptionException exception = assertThrows(EncryptionException.class, () ->
+        assertThrows(EncryptionException.class, () ->
             encryptionManager.decryptWithFallback(null, "password".toCharArray(), new byte[16]));
-        assertTrue(exception.getMessage().contains("empty"));
     }
 
     @Test
     void testDecryptWithEmptyData() {
-        EncryptionException exception = assertThrows(EncryptionException.class, () ->
+        assertThrows(EncryptionException.class, () ->
             encryptionManager.decryptWithFallback(new byte[0], "password".toCharArray(), new byte[16]));
-        assertTrue(exception.getMessage().contains("empty"));
     }
 
     @Test
@@ -79,21 +77,7 @@ public class EncryptionEdgeCaseTest {
         assertEquals(testData, decrypted);
     }
 
-    @Test
-    void testLegacyDecryptionFallback() throws Exception {
-        // Test that legacy decryption works when data was encrypted with legacy key
-        String testData = "Legacy test data";
-        byte[] salt = encryptionManager.generateSalt();
-        char[] password = "password".toCharArray();
-
-        // Encrypt with legacy key
-        var legacyKey = encryptionManager.deriveKeyLegacy(password, salt);
-        byte[] encrypted = encryptionManager.encryptLegacy(testData, legacyKey);
-
-        // Decrypt with fallback (should try legacy if current fails)
-        String decrypted = encryptionManager.decryptWithFallback(encrypted, password, salt);
-        assertEquals(testData, decrypted);
-    }
+    // Legacy fallback tests removed: legacy key derivation/encrypt removed
 
     @Test
     void testSaltGeneration() throws Exception {

@@ -19,14 +19,22 @@ package browser;
 
 import java.awt.*;
 import java.net.URI;
+import gui.DialogHelper;
+import security.PathValidator;
+import utils.Log;
 
 public class BrowserOpener {
     public static void openInBrowser(String url) {
         try {
+            if (!PathValidator.isSafeHttpUrl(url)) {
+                DialogHelper.showWarning(null, "Blocked URL", "Blocked URL",
+                        "Opening this URL is not allowed. Only HTTP/HTTPS links are supported.");
+                return;
+            }
             Desktop.getDesktop().browse(new URI(url));
         } catch (Exception e) {
-            // Handle exception, perhaps show a message
-            System.err.println("Error opening URL in browser: " + e.getMessage());
+            // Do not expose internal exception details to the user; log safely
+            Log.error("Error opening URL in browser.", e);
         }
     }
 }

@@ -17,6 +17,8 @@
 
 package filehandling;
 
+import gui.InputLimits;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -78,7 +80,7 @@ public class EntryEditor {
             cache.updateCachedLines(normalized);
             
             fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cache.getCachedLines());
-            encryptionManager.encryptFile(fullText);
+            encryptionManager.encryptFileFromLines(cache.getCachedLines());
         } else {
             // Normalize content lines: remove trailing blank lines from user-supplied text
             String[] parts = text.split("\r?\n", -1);
@@ -109,6 +111,16 @@ public class EntryEditor {
      */
     public List<String> updateEntry(String timeStamp, String newText, List<String> lines) {
         if (newText.isBlank()) return lines;
+
+        // Enforce maximum entry length on updates as well
+        try {
+            if (newText.length() > InputLimits.ENTRY_MAX_CHARS) {
+                newText = newText.substring(0, InputLimits.ENTRY_MAX_CHARS);
+                if (!newText.endsWith(System.lineSeparator())) newText = newText + System.lineSeparator();
+                newText = newText + "[TRUNCATED]" + System.lineSeparator();
+            }
+        } catch (Exception ignore) {
+        }
         
         List<String> updatedLines = new ArrayList<>();
         boolean inTargetEntry = false;
@@ -127,7 +139,7 @@ public class EntryEditor {
 
             if (inTargetEntry) {
                 // stop skipping when we hit the next timestamp line
-                if (line.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+                if (utils.DateHandler.isTimestamp(line)) {
                     inTargetEntry = false;
                     updatedLines.add(line); // add the next timestamp line
                 }
@@ -166,7 +178,7 @@ public class EntryEditor {
             }
             
             // Check if we hit the next timestamp (end of deleted entry)
-            if (inDeletedEntry && trimmed.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\(\\d+\\))?")) {
+            if (inDeletedEntry && utils.DateHandler.isTimestamp(trimmed)) {
                 inDeletedEntry = false;
                 updatedLines.add(line);
                 continue;
@@ -209,6 +221,51 @@ public class EntryEditor {
         String timeStamp = FORMATTER.format(LocalDateTime.now());
         return duplicateCount > 0 ? timeStamp + " (" + duplicateCount + ")" : timeStamp;
     }
+
+    /**
+     * Helper that creates a unique timestamp and writes the entry to disk.
+     * Returns the generated unique timestamp or null on failure.
+     */
+    public String createAndSaveEntry(String text) throws Exception {
+        if (text == null || text.isBlank()) return null;
+
+        // Enforce maximum entry length to avoid extremely large entries
+        try {
+            if (text.length() > InputLimits.ENTRY_MAX_CHARS) {
+                text = text.substring(0, InputLimits.ENTRY_MAX_CHARS);
+                if (!text.endsWith(System.lineSeparator())) text = text + System.lineSeparator();
+                text = text + "[TRUNCATED]" + System.lineSeparator();
+            }
+        } catch (Exception ignore) {
+        }
+
+        String timeStamp = FORMATTER.format(LocalDateTime.now());
+        int count = 0;
+
+        // Determine duplicate count using cache or file read
+        List<String> existingLines = null;
+        if (Files.exists(filePath)) {
+            if (encryptionManager.isEncrypted()) {
+                existingLines = cache.getCachedLines();
+                if (existingLines == null || existingLines.isEmpty()) {
+                    // Use streaming API that avoids allocating a full String for large files
+                    existingLines = encryptionManager.decryptFileToLines();
+                    cache.updateCachedLines(existingLines);
+                }
+            } else {
+                existingLines = Files.readAllLines(filePath);
+            }
+            if (existingLines != null) {
+                for (String line : existingLines) {
+                    if (line.trim().startsWith(timeStamp)) count++;
+                }
+            }
+        }
+
+        String unique = createUniqueTimestamp(count);
+        saveEntry(text, unique, encryptionManager.isEncrypted());
+        return unique;
+    }
     
     /**
      * Writes lines to file with backup and normalization.
@@ -224,7 +281,7 @@ public class EntryEditor {
             if (backupManager != null) {
                 backupManager.createNumberedBackup();
             }
-            encryptionManager.encryptFile(fullText);
+            encryptionManager.encryptFileFromLines(cache.getCachedLines());
         } else {
             if (backupManager != null) {
                 backupManager.createNumberedBackup();

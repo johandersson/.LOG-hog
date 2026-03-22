@@ -1,11 +1,14 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM Sync help.md to resources folder before building
+REM Sync help.md to resources folder before building (prefer top-level help.md)
 echo Syncing help.md to resources...
-copy /Y %~dp0help.md %~dp0resources\help.md >nul
-if %errorlevel% neq 0 (
-    echo WARNING: Failed to sync help files
+if exist "%~dp0..\help.md" (
+    copy /Y "%~dp0..\help.md" "%~dp0resources\help.md" >nul
+) else if exist "%~dp0help.md" (
+    copy /Y "%~dp0help.md" "%~dp0resources\help.md" >nul
+) else (
+    echo WARNING: help.md not found in expected locations
 )
 
 REM NOTE: removed aggressive deletion of .class files because it interferes with incremental builds
@@ -15,16 +18,21 @@ powershell -Command "Get-Process javaw -ErrorAction SilentlyContinue | Where-Obj
 REM Ensure we run from the script directory so compiled classes end up where the jar expects them
 pushd "%~dp0"
 set "files="
+pushd "%~dp0"
+set "files="
 for /f "delims=" %%i in ('dir /s /b *.java ^| findstr /v test') do set "files=!files! "%%i""
 javac -d . %files%
 if %errorlevel% neq 0 (
     popd
+    REM PAUSE to allow user to see compilation errors before exiting
+    echo Compilation failed with errors. Please fix the issues and try again.
+    pause
     exit /b %errorlevel%
 )
-REM Ensure build output directory exists and create the JAR in src\build
-if not exist build mkdir build
-if exist build\loghog.jar del /F /Q build\loghog.jar
-jar cvfm build\loghog.jar manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class main/*.class services/*.class utils/*.class -C . resources
+REM Create the JAR file in the src/build directory (single artifact)
+if not exist "%~dp0build" mkdir "%~dp0build"
+REM Include compiled classes, resource directory and any top-level text resources
+jar cvfm "%~dp0build\loghog.jar" manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class main/*.class services/*.class utils/*.class resources/ *.txt resources/*
 popd
-echo Production build completed: src\build\loghog.jar
+echo Production build completed: %~dp0build\loghog.jar
 pause

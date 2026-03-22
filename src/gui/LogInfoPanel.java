@@ -9,6 +9,8 @@ import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import filehandling.ResourceLimits;
+
 /**
  * A reusable info panel component that displays log statistics.
  * Features a clean, professional design with proper spacing and typography.
@@ -18,7 +20,7 @@ public class LogInfoPanel extends JPanel {
     private final JLabel entriesLabel;
     private final JLabel daysLabel;
     private final JLabel fileSizeLabel;
-    private final JLabel limitInfoLabel;
+    private final JLabel yearsScopeLabel;
 
     public LogInfoPanel() {
         super(new BorderLayout());
@@ -52,18 +54,15 @@ public class LogInfoPanel extends JPanel {
         fileSizeLabel.setFont(infoFont);
         fileSizeLabel.setForeground(infoColor);
 
-        // Limit/info label style: smaller, italic, red, initially hidden
-        Font smallItalic = new Font("Segoe UI", Font.ITALIC, 11);
-        limitInfoLabel.setFont(smallItalic);
-        limitInfoLabel.setForeground(new Color(0xB00020)); // red
-        limitInfoLabel.setVisible(false);
+        yearsScopeLabel = new JLabel("");
+        yearsScopeLabel.setFont(infoFont);
+        yearsScopeLabel.setForeground(infoColor);
 
         // Add components
-        topRow.add(entriesLabel);
-        topRow.add(daysLabel);
-        topRow.add(fileSizeLabel);
-        add(topRow, BorderLayout.NORTH);
-        add(limitInfoLabel, BorderLayout.SOUTH);
+        add(entriesLabel);
+        add(daysLabel);
+        add(fileSizeLabel);
+        add(yearsScopeLabel);
     }
 
     /**
@@ -71,7 +70,14 @@ public class LogInfoPanel extends JPanel {
      */
     public void updateStatistics(LogStatistics stats) {
         if (stats != null) {
-            entriesLabel.setText("Entries: " + stats.getEntryCount());
+            int count = stats.getEntryCount();
+            if (count > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
+                String total = String.format("%,d", count);
+                String cap = String.format("%,d", ResourceLimits.MAX_ENTRIES_TO_RENDER);
+                entriesLabel.setText("Entries: " + total + " (" + cap + ") – limit reached");
+            } else {
+                entriesLabel.setText("Entries: " + stats.getEntryCount());
+            }
             daysLabel.setText("Days: " + stats.getDayCount());
             fileSizeLabel.setText("Size: " + stats.getFormattedFileSize());
         } else {
@@ -80,23 +86,14 @@ public class LogInfoPanel extends JPanel {
     }
 
     /**
-     * Sets the small informational text (e.g., when view is limited).
+     * Updates the year-scope indicator shown in the info panel (e.g. "Tail-only").
      */
-    public void setLimitInfo(String text) {
-        if (text == null || text.isBlank()) {
-            limitInfoLabel.setVisible(false);
-            limitInfoLabel.setText("");
+    public void updateYearScope(String scopeText) {
+        if (scopeText == null || scopeText.isEmpty()) {
+            yearsScopeLabel.setText("");
         } else {
-            limitInfoLabel.setText(text);
-            limitInfoLabel.setVisible(true);
+            yearsScopeLabel.setText("Years: " + scopeText);
         }
-    }
-
-    /**
-     * Clears the limit/info text.
-     */
-    public void clearLimitInfo() {
-        setLimitInfo("");
     }
 
     /**

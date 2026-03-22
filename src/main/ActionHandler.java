@@ -99,15 +99,17 @@ public class ActionHandler {
                 }
                 String newEntry = newEntryHolder[0];
                 if (newEntry != null && !newEntry.isBlank()) {
-                    logFileHandler.saveText(newEntry, listModel);
-                    try {
-                        editor.loadLogEntries();
-                        fullLogPanel.loadFullLog();
-                        SystemTrayMenu.updateRecentLogsMenu();
-                    } catch (Exception ex) {
-                        // Security: Don't expose internal error details
-                        logFileHandler.showErrorDialog("<html><b>🔄 Refresh Failed</b><br><br>Unable to refresh log data after save.<br><br><i>Tip: Try reloading the application.</i></html>");
-                    }
+                    // Save asynchronously so UI remains responsive for large files
+                    logFileHandler.saveTextAsync(newEntry, listModel, () -> {
+                        try {
+                            editor.loadLogEntries();
+                            fullLogPanel.loadFullLog();
+                            SystemTrayMenu.updateRecentLogsMenu();
+                        } catch (Exception ex) {
+                            // Security: Don't expose internal error details
+                            logFileHandler.showErrorDialog("<html><b>🔄 Refresh Failed</b><br><br>Unable to refresh log data after save.<br><br><i>Tip: Try reloading the application.</i></html>");
+                        }
+                    });
                 }
             }
         };
@@ -122,28 +124,28 @@ public class ActionHandler {
         if (selectedItem == null) return;
 
         logFileHandler.updateEntry(selectedItem, logListPanel.getEntryArea().getText());
-        
-        // Flush writes immediately on explicit save
-        logFileHandler.flushPendingWrites();
 
-        // Preserve the selection after reloading by finding the updated item
-        try {
-            editor.loadLogEntries();
-            // Find and reselect the updated item
-            for (int i = 0; i < listModel.getSize(); i++) {
-                if (selectedItem.equals(listModel.getElementAt(i))) {
-                    logList.setSelectedIndex(i);
-                    logList.ensureIndexIsVisible(i);
-                    break;
+        // Flush writes asynchronously to avoid blocking UI on large files
+        logFileHandler.flushPendingWritesAsync(() -> {
+            // Preserve the selection after reloading by finding the updated item
+            try {
+                editor.loadLogEntries();
+                // Find and reselect the updated item
+                for (int i = 0; i < listModel.getSize(); i++) {
+                    if (selectedItem.equals(listModel.getElementAt(i))) {
+                        logList.setSelectedIndex(i);
+                        logList.ensureIndexIsVisible(i);
+                        break;
+                    }
                 }
+            } catch (Exception e) {
+                // Security: Don't expose internal error details
+                logFileHandler.showErrorDialog("<html><b>🔄 Reload Failed</b><br><br>Unable to reload log entries after update.<br><br><i>Tip: The update may have succeeded, but the list couldn't refresh.</i></html>");
             }
-        } catch (Exception e) {
-            // Security: Don't expose internal error details
-            logFileHandler.showErrorDialog("<html><b>🔄 Reload Failed</b><br><br>Unable to reload log entries after update.<br><br><i>Tip: The update may have succeeded, but the list couldn't refresh.</i></html>");
-        }
-        fullLogPanel.loadFullLog();
-        SystemTrayMenu.updateRecentLogsMenu();
-        Toast.showToast(editor, "Entry updated successfully!");
+            fullLogPanel.loadFullLog();
+            SystemTrayMenu.updateRecentLogsMenu();
+            Toast.showToast(editor, "Entry updated successfully!");
+        });
     }
 
     public void saveLogEntry() {
@@ -151,23 +153,16 @@ public class ActionHandler {
             DialogHelper.showFileLocked(editor);
             return;
         }
-        logFileHandler.saveText(editor.getEntryPanel().getTextArea().getText(), listModel);
-        editor.getEntryPanel().getTextArea().setText("");
-        // Update the UI list model immediately on EDT (saveText already appended the timestamp)
-        SwingUtilities.invokeLater(() -> {
-            editor.updateLogListView();
-            SystemTrayMenu.updateRecentLogsMenu();
-            Toast.showToast(editor, "Entry saved successfully!");
-        });
-
-        // Refresh full log view in background (FullLogPanel parses off-EDT internally).
-        LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
-        final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
-        showTimer.setRepeats(false);
-        showTimer.start();
-        fullLogPanel.loadFullLog(() -> {
-            if (showTimer.isRunning()) showTimer.stop();
-            progress.close();
+        // Save asynchronously to avoid UI freeze
+        String textToSave = editor.getEntryPanel().getTextArea().getText();
+        logFileHandler.saveTextAsync(textToSave, listModel, () -> {
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                editor.getEntryPanel().getTextArea().setText("");
+                editor.updateLogListView();
+                fullLogPanel.loadFullLog(); // update full log view after save
+                SystemTrayMenu.updateRecentLogsMenu();
+                Toast.showToast(editor, "Entry saved successfully!");
+            });
         });
     }
 

@@ -269,13 +269,25 @@ public class BackupManager {
             return;
         }
 
+        // If called on the EDT, run the backup in a background thread to avoid blocking UI.
+        if (SwingUtilities.isEventDispatchThread()) {
+            Thread bg = new Thread(() -> performAutomaticBackupImpl(), "loghog-automatic-backup");
+            bg.setDaemon(true);
+            bg.start();
+            return;
+        }
+
+        // Otherwise run synchronously (useful for tests and non-UI callers)
+        performAutomaticBackupImpl();
+    }
+
+    private void performAutomaticBackupImpl() {
         LoadingProgressDialog progressDialog = null;
-        
         try {
             Path backupPath = createBackupPath();
             Path logPath = getLogFilePath();
-            
-            // Show progress dialog for larger files
+
+            // Show progress dialog for larger files (only if parentFrame is set)
             long fileSize = Files.exists(logPath) ? Files.size(logPath) : 0;
             if (fileSize > SHOW_PROGRESS_THRESHOLD && parentFrame != null) {
                 progressDialog = new LoadingProgressDialog(parentFrame, "Automatic Backup");
@@ -289,7 +301,7 @@ public class BackupManager {
 
             // Ensure backup directory exists
             Files.createDirectories(backupPath.getParent());
-            
+
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
                 SwingUtilities.invokeLater(() -> finalDialog.setProgress(25));
@@ -299,7 +311,7 @@ public class BackupManager {
             if (Files.exists(backupPath)) {
                 secureDelete(backupPath);
             }
-            
+
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
                 SwingUtilities.invokeLater(() -> finalDialog.setProgress(50));
@@ -307,23 +319,23 @@ public class BackupManager {
 
             // Copy log file
             Files.copy(logPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
-            
+
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
                 SwingUtilities.invokeLater(() -> finalDialog.setProgress(75));
             }
-            
+
             // Verify backup was created successfully
             if (!verifyBackup(logPath, backupPath)) {
                 // Security: Don't log verification failures to console
                 return;
             }
-            
+
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
                 SwingUtilities.invokeLater(() -> finalDialog.setProgress(100));
             }
-            
+
             // Rotate old backups asynchronously to avoid blocking
             Thread t = new Thread(() -> rotateAutoBackups());
             t.setDaemon(true);
@@ -361,14 +373,23 @@ public class BackupManager {
             if (!Files.exists(logPath)) {
                 return;
             }
-            
+            // Determine if the log file is encrypted by inspecting header magic
+            boolean isEncrypted = false;
+            try (var in = Files.newInputStream(logPath)) {
+                byte[] hdr = new byte[4];
+                int r = in.read(hdr);
+                if (r == 4) {
+                    isEncrypted = hdr[0] == 'L' && hdr[1] == 'O' && hdr[2] == 'G' && hdr[3] == 'H';
+                }
+            } catch (Exception ignored) {}
+
             // Get backup directory
             String backupDir = getAutoBackupDirectory();
             Path backupDirPath = Paths.get(backupDir);
             Files.createDirectories(backupDirPath);
-            
+
             // Create backup file path in the backup directory
-            String bakFilename = logPath.getFileName().toString() + ".bak";
+            String bakFilename = logPath.getFileName().toString() + (isEncrypted ? ".bak.enc" : ".bak");
             Path bakPath = backupDirPath.resolve(bakFilename);
             
             // Rotate existing numbered backups (bak.4 -> delete, bak.3 -> bak.4, etc.)
@@ -387,13 +408,26 @@ public class BackupManager {
                 }
             }
             
-            // Move .bak to .bak.1
+            // Move previous backup to numbered slot (.bak -> .bak.1 or .bak.enc -> .bak.enc.1)
             if (Files.exists(bakPath)) {
                 Files.move(bakPath, Paths.get(bakPath.toString() + ".1"), StandardCopyOption.REPLACE_EXISTING);
             }
             
-            // Create new .bak
+            // Create new backup (encrypted files are copied as .bak.enc)
             Files.copy(logPath, bakPath, StandardCopyOption.REPLACE_EXISTING);
+
+            // If the file is encrypted, attempt to securely delete any legacy plaintext backups
+            if (isEncrypted) {
+                try {
+                    // Look for legacy .bak files and remove them securely
+                    for (int i = 0; i < MAX_NUMBERED_BACKUPS; i++) {
+                        Path legacy = Paths.get(backupDirPath.toString(), logPath.getFileName().toString() + ".bak" + (i == 0 ? "" : "." + i));
+                        if (Files.exists(legacy)) {
+                            secureDelete(legacy);
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
             
         } catch (Exception e) {
             // Don't fail the save operation if backup fails
