@@ -510,12 +510,17 @@ public class LogFileHandler implements LogFileOperations {
         if (!fullText.startsWith(".LOG")) {
             fullText = ".LOG\n\n" + fullText;
         }
-        // Save encrypted to backup first
-        Path backupPath = getBackupPath(filePath.getFileName().toString() + ".bak");
-        Files.write(backupPath, Files.readAllBytes(filePath));
-        // Then encrypt and save
+        // Do NOT write an unencrypted plaintext backup. Instead set up encryption
+        // and write the encrypted file, then create an encrypted backup copy.
         encryptionManager.setEncryption(pwd, this.salt);
         encryptionManager.encryptFile(fullText);
+        // Create an encrypted backup copy to preserve previous state without leaving plaintext on disk
+        try {
+            Path backupPathEnc = getBackupPath(filePath.getFileName().toString() + ".bak.enc");
+            Files.copy(filePath, backupPathEnc, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception ignored) {
+            // Don't fail encryption if backup copy can't be created
+        }
         cache.updateCachedLines(new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1))));
         encrypted = true;
     }
