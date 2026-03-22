@@ -95,3 +95,9 @@ changes_summary.md
 src/development_history.md
 lib/
 jacoco.exec
+
+# SpotBugs artifacts (ignore any local downloads/extracted distributions)
+/spotbugs/
+/spotbugs/**
+/build/tools/spotbugs*
+
