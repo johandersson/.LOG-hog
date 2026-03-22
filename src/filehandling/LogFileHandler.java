@@ -678,8 +678,10 @@ public class LogFileHandler implements LogFileOperations {
 
     public void setEncryption(char[] pwd, byte[] slt) throws Exception {
         // Just set credentials - don't re-encrypt if already encrypted
-        encryptionManager.setEncryption(pwd, slt);
-        this.salt = slt;
+        // Defensive copy: clone the provided salt to avoid retaining caller-owned array
+        byte[] saltClone = slt != null ? slt.clone() : null;
+        encryptionManager.setEncryption(pwd, saltClone);
+        this.salt = saltClone;
         this.encrypted = true;
         // Clear cache to force re-read with new credentials
         cache.clearCachedLines();

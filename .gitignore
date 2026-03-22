@@ -56,6 +56,14 @@ copilot_instructions.md
 
 ### Test and Coverage Files ###
 jacoco.exec
+
+# PMD / static-analysis outputs
+/build/pmd-report/
+/build/tools/pmd/
+/build/tools/pmd-*/
+
+# Local PMD downloads
+/build/tools/pmd-dist/
 coverage/
 lib/*.jar
 
