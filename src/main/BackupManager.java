@@ -377,14 +377,23 @@ public class BackupManager {
             if (!Files.exists(logPath)) {
                 return;
             }
-            
+            // Determine if the log file is encrypted by inspecting header magic
+            boolean isEncrypted = false;
+            try (var in = Files.newInputStream(logPath)) {
+                byte[] hdr = new byte[4];
+                int r = in.read(hdr);
+                if (r == 4) {
+                    isEncrypted = hdr[0] == 'L' && hdr[1] == 'O' && hdr[2] == 'G' && hdr[3] == 'H';
+                }
+            } catch (Exception ignored) {}
+
             // Get backup directory
             String backupDir = getAutoBackupDirectory();
             Path backupDirPath = Paths.get(backupDir);
             Files.createDirectories(backupDirPath);
-            
+
             // Create backup file path in the backup directory
-            String bakFilename = logPath.getFileName().toString() + ".bak";
+            String bakFilename = logPath.getFileName().toString() + (isEncrypted ? ".bak.enc" : ".bak");
             Path bakPath = backupDirPath.resolve(bakFilename);
             
             // Rotate existing numbered backups (bak.4 -> delete, bak.3 -> bak.4, etc.)
@@ -403,13 +412,26 @@ public class BackupManager {
                 }
             }
             
-            // Move .bak to .bak.1
+            // Move previous backup to numbered slot (.bak -> .bak.1 or .bak.enc -> .bak.enc.1)
             if (Files.exists(bakPath)) {
                 Files.move(bakPath, Paths.get(bakPath.toString() + ".1"), StandardCopyOption.REPLACE_EXISTING);
             }
             
-            // Create new .bak
+            // Create new backup (encrypted files are copied as .bak.enc)
             Files.copy(logPath, bakPath, StandardCopyOption.REPLACE_EXISTING);
+
+            // If the file is encrypted, attempt to securely delete any legacy plaintext backups
+            if (isEncrypted) {
+                try {
+                    // Look for legacy .bak files and remove them securely
+                    for (int i = 0; i < MAX_NUMBERED_BACKUPS; i++) {
+                        Path legacy = Paths.get(backupDirPath.toString(), logPath.getFileName().toString() + ".bak" + (i == 0 ? "" : "." + i));
+                        if (Files.exists(legacy)) {
+                            secureDelete(legacy);
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
             
         } catch (Exception e) {
             // Don't fail the save operation if backup fails

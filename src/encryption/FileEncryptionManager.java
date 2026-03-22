@@ -34,12 +34,13 @@ public class FileEncryptionManager {
 
         // Ensure header
         if (lines == null) throw new IllegalArgumentException("Lines cannot be null");
-        if (lines.isEmpty() || !lines.get(0).trim().equalsIgnoreCase(".LOG")) {
+        java.util.List<String> toEncrypt = lines;
+        if (toEncrypt.isEmpty() || !toEncrypt.get(0).trim().equalsIgnoreCase(".LOG")) {
             java.util.List<String> withHeader = new java.util.ArrayList<>();
             withHeader.add(".LOG");
             withHeader.add("");
-            withHeader.addAll(lines);
-            lines = withHeader;
+            withHeader.addAll(toEncrypt);
+            toEncrypt = withHeader;
         }
 
         char[] pwd = password.clone();
@@ -59,7 +60,7 @@ public class FileEncryptionManager {
 
                     // set total bytes estimate by summing lengths (safe and avoids single allocation)
                     long total = 0;
-                    for (String l : lines) total += l.getBytes(java.nio.charset.StandardCharsets.UTF_8).length + LogFileFormat.INTERNAL_LINE_SEPARATOR.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+                    for (String l : toEncrypt) total += l.getBytes(java.nio.charset.StandardCharsets.UTF_8).length + LogFileFormat.INTERNAL_LINE_SEPARATOR.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
                     progressDialog.setTotalBytes(total);
                     progressDialog.show();
 
@@ -198,8 +199,9 @@ public class FileEncryptionManager {
         }
 
         // Ensure .LOG header
-        if (!content.startsWith(".LOG")) {
-            content = ".LOG\n\n" + content;
+        String toEncrypt = content != null ? content : "";
+        if (!toEncrypt.startsWith(".LOG")) {
+            toEncrypt = ".LOG\n\n" + toEncrypt;
         }
 
         // Use password then immediately clear it from memory
@@ -216,7 +218,7 @@ public class FileEncryptionManager {
                     progressDialog = new gui.LoadingProgressDialog(null, "Encrypting");
                     progressDialog.setStatus("Encrypting file...");
                     progressDialog.setIndeterminate(false);
-                    progressDialog.setTotalBytes(content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
+                    progressDialog.setTotalBytes(toEncrypt.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
                     progressDialog.show();
 
                     final gui.LoadingProgressDialog dlg = progressDialog;
@@ -247,7 +249,7 @@ public class FileEncryptionManager {
                 progressDialog.setIndeterminate(true);
                 progressDialog.show();
 
-                var encryptedData = encryptor.encrypt(content, pwd, salt);
+                var encryptedData = encryptor.encrypt(toEncrypt, pwd, salt);
                 Path tmp = Files.createTempFile(filePath.getParent(), filePath.getFileName().toString() + "-", ".tmp");
                 Files.write(tmp, encryptedData);
                 try {
