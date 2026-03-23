@@ -77,12 +77,23 @@ public class SecureClipboardManager implements ClipboardHandler {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 // Clear clipboard on any app termination (normal or crash)
-                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-                clipboard.setContents(new StringSelection(""), null);
+                Clipboard clipboard = getSystemClipboardSafe();
+                if (clipboard != null) {
+                    clipboard.setContents(new StringSelection(""), null);
+                }
             } catch (Exception e) {
                 // Ignore - app is shutting down anyway
             }
         }, "ClipboardClearShutdownHook"));
+    }
+
+    // Defensive getter for system clipboard; returns null if unavailable
+    private static Clipboard getSystemClipboardSafe() {
+        try {
+            return Toolkit.getDefaultToolkit().getSystemClipboard();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public static SecureClipboardManager getInstance() {
@@ -162,9 +173,10 @@ public class SecureClipboardManager implements ClipboardHandler {
 
         // Mark content as secure (no prefix needed - just copy the text directly)
         StringSelection selection = new StringSelection(text);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        Clipboard clipboard = getSystemClipboardSafe();
 
         try {
+            if (clipboard == null) throw new IllegalStateException("Clipboard not available");
             clipboard.setContents(selection, selection);
                 synchronized (LOCK) {
                     try {
@@ -210,7 +222,8 @@ public class SecureClipboardManager implements ClipboardHandler {
      */
     public static void clearSecureClipboard() {
         try {
-            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            Clipboard clipboard = getSystemClipboardSafe();
+            if (clipboard == null) return;
             
                 synchronized (LOCK) {
                     // Clear if we have tracked content (compare hashes instead of storing full text)
@@ -272,7 +285,8 @@ public class SecureClipboardManager implements ClipboardHandler {
         }
         
         try {
-            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            Clipboard clipboard = getSystemClipboardSafe();
+            if (clipboard == null) return false;
             Transferable contents = clipboard.getContents(null);
 
             if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {

@@ -60,6 +60,8 @@ public class LogFileHandler implements LogFileOperations {
     private String backupDirectory = "";
     
     private final FileCache cache = new FileCache();
+    // Listeners for UI components to refresh when file caches change
+    private final java.util.List<Runnable> cacheInvalidationListeners = new java.util.ArrayList<>();
     private EntryLoader entryLoader;
     private EntryEditor entryEditor;
     private final AsyncSaver asyncSaver;
@@ -558,6 +560,53 @@ public class LogFileHandler implements LogFileOperations {
      */
     public void invalidateCaches() {
         invalidateEntryCache();
+    }
+
+    /**
+     * Register a listener that is invoked when parsed/full-log caches should be invalidated.
+     */
+    public void addCacheInvalidationListener(Runnable r) {
+        if (r == null) return;
+        synchronized (cacheInvalidationListeners) {
+            cacheInvalidationListeners.add(r);
+        }
+    }
+
+    /**
+     * Remove a previously registered cache invalidation listener.
+     */
+    public void removeCacheInvalidationListener(Runnable r) {
+        if (r == null) return;
+        synchronized (cacheInvalidationListeners) {
+            cacheInvalidationListeners.remove(r);
+        }
+    }
+
+    /**
+     * Notify registered listeners that caches were invalidated.
+     * Runs listeners on the EDT to keep UI-safe.
+     */
+    private void notifyCacheInvalidationListeners() {
+        java.util.List<Runnable> copy;
+        synchronized (cacheInvalidationListeners) {
+            if (cacheInvalidationListeners.isEmpty()) return;
+            copy = new java.util.ArrayList<>(cacheInvalidationListeners);
+        }
+        for (Runnable r : copy) {
+            try {
+                javax.swing.SwingUtilities.invokeLater(r);
+            } catch (Exception ignore) {}
+        }
+    }
+
+    /**
+     * Lightweight debug logging used during development.
+     */
+    private void writeDebug(String msg) {
+        // Keep this minimal - print to stdout so CI or developer can inspect
+        try {
+            if (msg != null) System.out.println("[LogFileHandler] " + msg);
+        } catch (Exception ignore) {}
     }
 
     public List<List<String>> getParsedEntries() throws Exception {

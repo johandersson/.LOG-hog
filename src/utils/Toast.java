@@ -26,6 +26,12 @@ public class Toast {
     }
 
     public static void showToast(Component parent, String message, int duration) {
+        // Ensure UI work runs on the EDT
+        if (!javax.swing.SwingUtilities.isEventDispatchThread()) {
+            javax.swing.SwingUtilities.invokeLater(() -> showToast(parent, message, duration));
+            return;
+        }
+
         JWindow toast = new JWindow();
         toast.setBackground(new Color(0, 0, 0, 0)); // Transparent background
 
@@ -54,7 +60,15 @@ public class Toast {
 
         // Position at center of the parent component or screen center if parent is null
         Point position = calculateToastPosition(parent, toast);
-        toast.setLocation(position.x, position.y);
+        try {
+            toast.setLocation(position.x, position.y);
+        } catch (Exception ignore) {
+            // Fallback: center on primary screen
+            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+            int cx = (screenSize.width - toast.getWidth()) / 2;
+            int cy = (screenSize.height - toast.getHeight()) / 2;
+            toast.setLocation(Math.max(0, cx), Math.max(0, cy));
+        }
 
         toast.setVisible(true);
 
@@ -80,9 +94,21 @@ public class Toast {
         int x, y;
         if (parent != null) {
             Dimension parentSize = parent.getSize();
-            Point parentLocation = parent.getLocationOnScreen();
-            x = parentLocation.x + (parentSize.width - toast.getWidth()) / 2;
-            y = parentLocation.y + (parentSize.height - toast.getHeight()) / 2;
+            Point parentLocation;
+            try {
+                parentLocation = parent.getLocationOnScreen();
+                x = parentLocation.x + (parentSize.width - toast.getWidth()) / 2;
+                y = parentLocation.y + (parentSize.height - toast.getHeight()) / 2;
+            } catch (IllegalComponentStateException | NullPointerException ex) {
+                // If parent not showing or unavailable, center on screen
+                Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+                x = (screenSize.width - toast.getWidth()) / 2;
+                y = (screenSize.height - toast.getHeight()) / 2;
+            } catch (Exception ex) {
+                Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+                x = (screenSize.width - toast.getWidth()) / 2;
+                y = (screenSize.height - toast.getHeight()) / 2;
+            }
         } else {
             // Center on screen if no parent provided
             Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();

@@ -197,6 +197,24 @@ public class MarkdownRenderer {
 
     private static record Segment(String text, SimpleAttributeSet attrs) {}
 
+    // Document-level cache for rendered documents (help/about, direct renderings)
+    private static final int MAX_DOC_CACHE = 128;
+    private static final java.util.Map<String, java.lang.ref.SoftReference<CacheEntry>> CACHE = new java.util.LinkedHashMap<>() {
+        protected boolean removeEldestEntry(java.util.Map.Entry<String, java.lang.ref.SoftReference<CacheEntry>> eldest) {
+            return size() > MAX_DOC_CACHE;
+        }
+    };
+
+    private static class CacheEntry {
+        final StyledDocument doc;
+        CacheEntry(StyledDocument d) { this.doc = d; }
+    }
+
+    private static String computeHash(List<String> lines) {
+        // Reuse entry-level hashing for a list of lines
+        return computeHashForEntry(lines);
+    }
+
     private static String computeHashForEntry(List<String> entry) {
         try {
             java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
@@ -651,6 +669,17 @@ public class MarkdownRenderer {
                 // Ignore if can't trim
             }
         }
+    }
+
+    private static void renderInfoEntry(List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
+        Style info = styles.get("info");
+        MarkdownRenderingContext ctx = new MarkdownRenderingContext(doc, styles);
+        for (int i = 0; i < entry.size(); i++) {
+            ctx.insertString(entry.get(i), info);
+            if (i < entry.size() - 1) ctx.insertLineSeparator();
+        }
+        // Ensure two separators after info block to match display spacing
+        ctx.insertDoubleLineSeparator();
     }
 
     private static String sanitizeLine(String line) {

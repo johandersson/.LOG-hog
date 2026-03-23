@@ -270,7 +270,7 @@ public class DialogHandler {
     public static boolean showBackupRestoreDialog(Path filePath, Runnable onInvalidateCache) {
         final java.io.File[] selected = new java.io.File[1];
 
-        // Show file chooser on EDT and capture selection
+        // Show file chooser on EDT and capture selection into `selected[0]`
         runOnEDT(() -> {
             javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
             fileChooser.setDialogTitle("Select Backup File to Restore");
@@ -293,10 +293,9 @@ public class DialogHandler {
             }
             return null;
         });
-        
-        int result = fileChooser.showOpenDialog(null);
-        if (result == javax.swing.JFileChooser.APPROVE_OPTION) {
-            java.io.File backupFile = fileChooser.getSelectedFile();
+
+        if (selected[0] != null) {
+            java.io.File backupFile = selected[0];
 
             // Use a modal progress dialog and run the copy on a background thread.
             var progress = new gui.LoadingProgressDialog(null, "Restoring Backup", true);

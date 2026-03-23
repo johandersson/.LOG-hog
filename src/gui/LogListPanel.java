@@ -73,6 +73,7 @@ public class LogListPanel extends JPanel {
     private final HighlightableTextPane previewPane;
     private final JScrollPane previewScrollPane;
     private boolean isPreviewMode = false;
+    private boolean suppressFilterEvents = false;
     private JComboBox<Integer> yearCombo;
     private JComboBox<String> monthCombo;
     private final LogInfoPanel infoPanel;

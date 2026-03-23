@@ -34,8 +34,27 @@ public class WindowDragger {
         comp.addMouseMotionListener(new MouseMotionAdapter() {
             public void mouseDragged(MouseEvent e) {
                 if (start[0] == null) return;
-                Point loc = frame.getLocationOnScreen();
-                frame.setLocation(loc.x + e.getX() - start[0].x, loc.y + e.getY() - start[0].y);
+                // Prefer the mouse event's screen location to avoid an extra native getLocationOnScreen call
+                try {
+                    Point mouseScreen = e.getLocationOnScreen();
+                    int newX = mouseScreen.x - start[0].x;
+                    int newY = mouseScreen.y - start[0].y;
+                    try {
+                        frame.setLocation(newX, newY);
+                    } catch (Exception ignore) {
+                        // Ignore failures to set window location (defensive)
+                    }
+                } catch (IllegalComponentStateException | NullPointerException ex) {
+                    // Component not showing or event has no screen coordinates; fallback to current frame location
+                    try {
+                        Point loc = frame.getLocation();
+                        frame.setLocation(loc.x + e.getX() - start[0].x, loc.y + e.getY() - start[0].y);
+                    } catch (Exception ignore) {
+                        // swallow defensively
+                    }
+                } catch (Exception ex) {
+                    // Any other unexpected exception - swallow to avoid crashing EDT
+                }
             }
         });
     }

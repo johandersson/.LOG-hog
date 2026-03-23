@@ -47,6 +47,19 @@ public class FullLogFileLoader {
         this.logFileHandler = logFileHandler;
         this.textPane = textPane;
     }
+
+    /** Compatibility: invalidate internal caches used by this loader. */
+    public void invalidateCache() {
+        synchronized (cacheLock) {
+            this.cachedParsedData = null;
+            this.cachedLastModified = 0L;
+        }
+    }
+
+    /** Compatibility overload: parse log file and return parsed data while honoring scroll flag. */
+    public ParsedLogData parseLogFile(Path logPath, boolean scrollToBottom) throws Exception {
+        return loadAndProcessLogFileInternal(logPath, scrollToBottom);
+    }
     
     public void fallbackReadRaw(Path chosen) {
         try {

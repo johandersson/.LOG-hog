@@ -820,17 +820,14 @@ public class SettingsPanel extends JPanel {
     }
 
     private boolean showDecryptionWarning() {
-        var confirm = gui.DialogHelper.confirm(editor,
+        // Ask for confirmation using the simplified DialogHelper.confirm API
+        return gui.DialogHelper.confirm(editor,
             "Decrypt Log File - Security Warning",
             "WARNING: Security Risk",
             "This will permanently decrypt your log file and save it as plain text.<br>" +
             "Anyone with access to your computer will be able to read the file.<br><br>" +
             "A backup of the encrypted file will be saved as log.txt.bak.enc<br><br> " +
-            "Are you sure you want to proceed?</html>",
-            "Decrypt Log File - Security Warning",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE);
-        return confirm == JOptionPane.YES_OPTION;
+            "Are you sure you want to proceed?</html>");
     }
 
     private void backupSettingsFile() {

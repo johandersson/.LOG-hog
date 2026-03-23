@@ -21,6 +21,7 @@ public class LogInfoPanel extends JPanel {
     private final JLabel daysLabel;
     private final JLabel fileSizeLabel;
     private final JLabel yearsScopeLabel;
+    private final JLabel limitInfoLabel;
 
     public LogInfoPanel() {
         super(new BorderLayout());
@@ -33,8 +34,7 @@ public class LogInfoPanel extends JPanel {
         daysLabel = new JLabel("Days: --");
         fileSizeLabel = new JLabel("Size: --");
 
-        // Bottom row: small limit/info text
-        limitInfoLabel = new JLabel("");
+        // Bottom row: small limit/info text (initialized later)
 
         // Style the panel
         setOpaque(true);
@@ -58,11 +58,16 @@ public class LogInfoPanel extends JPanel {
         yearsScopeLabel.setFont(infoFont);
         yearsScopeLabel.setForeground(infoColor);
 
+        limitInfoLabel = new JLabel("");
+        limitInfoLabel.setFont(infoFont);
+        limitInfoLabel.setForeground(infoColor);
+
         // Add components
         add(entriesLabel);
         add(daysLabel);
         add(fileSizeLabel);
         add(yearsScopeLabel);
+        add(limitInfoLabel);
     }
 
     /**

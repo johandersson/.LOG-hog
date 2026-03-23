@@ -305,6 +305,16 @@ public class FullLogPanel extends LogPanel {
         });
     }
 
+    /**
+     * Compatibility overload allowing callers to request a load and receive a callback when started.
+     */
+    public void loadFullLog(Runnable onStarted) {
+        loadFullLog();
+        if (onStarted != null) {
+            try { onStarted.run(); } catch (Exception ignore) {}
+        }
+    }
+
     public void loadFullLogNoScroll() {
         loadFullLogNoScroll(null);
     }

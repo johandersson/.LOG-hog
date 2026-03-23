@@ -18,7 +18,9 @@
 package gui;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Toolkit;
 import java.awt.event.MouseEvent;
 import java.util.regex.Pattern;
 
@@ -118,6 +120,19 @@ public class TimestampClickHandler {
         hideTimer = new javax.swing.Timer(3000, e -> hideOverlayButton());
         hideTimer.setRepeats(false);
     }
+
+    // Safe helper to get location on screen without throwing if component not showing
+    private java.awt.Point safeGetLocationOnScreen(java.awt.Component c) {
+        try {
+            return c.getLocationOnScreen();
+        } catch (java.awt.IllegalComponentStateException | NullPointerException ex) {
+            Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+            return new java.awt.Point((screen.width - c.getWidth()) / 2, (screen.height - c.getHeight()) / 2);
+        } catch (Exception ex) {
+            Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+            return new java.awt.Point((screen.width - c.getWidth()) / 2, (screen.height - c.getHeight()) / 2);
+        }
+    }
     
     private void hideOverlayButton() {
         if (overlayWindow != null) {
@@ -177,10 +192,9 @@ public class TimestampClickHandler {
                                     double width = endRect.getX() + endRect.getWidth() - startRect.getX();
                                     double height = Math.max(startRect.getHeight(), endRect.getHeight());
                                     
-                                    // Position overlay window over the timestamp
-                                    java.awt.Point screenPoint = textPane.getLocationOnScreen();
+                                    // Position overlay window over the timestamp (use safe getter)
+                                    java.awt.Point screenPoint = safeGetLocationOnScreen(textPane);
                                     screenPoint.translate((int)x, (int)y);
-                                    
                                     overlayWindow.setLocation(screenPoint);
                                     overlayButton.setText("Edit " + lineText.trim());
                                     
@@ -192,11 +206,11 @@ public class TimestampClickHandler {
                                     buttonVisible = true;
                                     hideTimer.restart();
                                 }
-                            } catch (Exception ex) {
-                                // Fallback positioning
-                                java.awt.Point screenPoint = textPane.getLocationOnScreen();
-                                screenPoint.translate(e.getX(), e.getY());
-                                overlayWindow.setLocation(screenPoint);
+                                } catch (Exception ex) {
+                                    // Fallback positioning (use safe getter)
+                                    java.awt.Point screenPoint = safeGetLocationOnScreen(textPane);
+                                    screenPoint.translate(e.getX(), e.getY());
+                                    overlayWindow.setLocation(screenPoint);
                                 overlayButton.setText("Edit " + lineText.trim());
                                 
                                 // Use button's preferred size for proper text/icon fit
