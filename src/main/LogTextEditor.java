@@ -539,6 +539,10 @@ public class LogTextEditor extends JFrame {
     public void manualLock() {
         synchronized (lockObject) {
             logFileHandler.clearSensitiveData();
+            // Clear secure clipboard state when locking to minimize exposure
+            try {
+                clipboard.SecureClipboardManager.onLock();
+            } catch (Exception ignored) {}
             // Clear UI
             listModel.clear();
             fullLogPanel.loadFullLog(); // This will show empty since locked

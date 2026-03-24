@@ -222,7 +222,7 @@ public class SettingsPanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createTitledBorder("Password Reminder"));
 
-        var reminderLabel = new JLabel("Optional reminder (stored in plain text): ");
+        var reminderLabel = new JLabel("Optional reminder (encrypted in settings): ");
         reminderLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         reminderField = new JTextField(20);
         reminderField.setFont(new Font("Segoe UI", Font.PLAIN, 13));

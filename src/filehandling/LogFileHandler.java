@@ -663,19 +663,25 @@ public class LogFileHandler implements LogFileOperations {
         Files.copy(filePath, backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
         // Decrypt stream-to-temp file to avoid holding full plaintext in heap
-        Path temp = Files.createTempFile("loghog-decrypt-", ".tmp");
-        try (java.io.InputStream encIn = Files.newInputStream(filePath)) {
-            encryptionManager.withDecryptedStream(encIn, encryptionManager.getPassword(), encryptionManager.getSalt(), (decIn) -> {
-                try (java.io.OutputStream out = Files.newOutputStream(temp, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
-                    byte[] buf = new byte[8192];
-                    int r;
-                    while ((r = decIn.read(buf)) != -1) {
-                        out.write(buf, 0, r);
+        Path temp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), "loghog-decrypt-", ".tmp");
+        try {
+            try (java.io.InputStream encIn = Files.newInputStream(filePath)) {
+                encryptionManager.withDecryptedStream(encIn, encryptionManager.getPassword(), encryptionManager.getSalt(), (decIn) -> {
+                    try (java.io.OutputStream out = Files.newOutputStream(temp, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
+                        byte[] buf = new byte[8192];
+                        int r;
+                        while ((r = decIn.read(buf)) != -1) {
+                            out.write(buf, 0, r);
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
                     }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            });
+                });
+            }
+        } catch (Exception e) {
+            // Ensure temp is removed on failure
+            try { Files.deleteIfExists(temp); } catch (Exception ignored) {}
+            throw e;
         }
 
         // Ensure .LOG header is present; if missing, prepend it when moving into place
@@ -688,7 +694,7 @@ public class LogFileHandler implements LogFileOperations {
         if (hasHeader) {
             Files.move(temp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         } else {
-            Path temp2 = Files.createTempFile("loghog-decrypt-final-", ".tmp");
+            Path temp2 = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), "loghog-decrypt-final-", ".tmp");
             try (java.io.BufferedWriter bw = Files.newBufferedWriter(temp2, java.nio.charset.StandardCharsets.UTF_8)) {
                 bw.write(".LOG\n\n");
                 try (java.io.InputStream in2 = Files.newInputStream(temp);
@@ -701,8 +707,12 @@ public class LogFileHandler implements LogFileOperations {
                     }
                 }
             }
-            Files.move(temp2, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            Files.deleteIfExists(temp);
+            try {
+                Files.move(temp2, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } finally {
+                try { Files.deleteIfExists(temp); } catch (Exception ignored) {}
+                try { Files.deleteIfExists(temp2); } catch (Exception ignored) {}
+            }
         }
         
         // Clear encryption state

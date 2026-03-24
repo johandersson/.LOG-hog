@@ -28,13 +28,16 @@ public class LogInfoPanel extends JPanel {
 
         // Top row: entries/days/size
         JPanel topRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
+        // Bottom row: small limit/info text (initialized later)
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
 
         // Initialize labels
         entriesLabel = new JLabel("Entries: --");
         daysLabel = new JLabel("Days: --");
         fileSizeLabel = new JLabel("Size: --");
 
-        // Bottom row: small limit/info text (initialized later)
+        yearsScopeLabel = new JLabel("");
+        limitInfoLabel = new JLabel("");
 
         // Style the panel
         setOpaque(true);
@@ -54,20 +57,25 @@ public class LogInfoPanel extends JPanel {
         fileSizeLabel.setFont(infoFont);
         fileSizeLabel.setForeground(infoColor);
 
-        yearsScopeLabel = new JLabel("");
         yearsScopeLabel.setFont(infoFont);
         yearsScopeLabel.setForeground(infoColor);
 
-        limitInfoLabel = new JLabel("");
         limitInfoLabel.setFont(infoFont);
         limitInfoLabel.setForeground(infoColor);
 
-        // Add components
-        add(entriesLabel);
-        add(daysLabel);
-        add(fileSizeLabel);
-        add(yearsScopeLabel);
-        add(limitInfoLabel);
+        // Add labels to rows
+        topRow.setOpaque(false);
+        topRow.add(entriesLabel);
+        topRow.add(daysLabel);
+        topRow.add(fileSizeLabel);
+
+        bottomRow.setOpaque(false);
+        bottomRow.add(yearsScopeLabel);
+        bottomRow.add(limitInfoLabel);
+
+        // Add rows to this panel using BorderLayout positions
+        add(topRow, BorderLayout.NORTH);
+        add(bottomRow, BorderLayout.SOUTH);
     }
 
     /**

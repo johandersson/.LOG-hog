@@ -199,8 +199,29 @@ public class BackupManager {
             try (var out = new java.io.FileOutputStream(settingsPath.toFile())) {
                 settings.store(out, "LogHog Settings");
             }
+            // Attempt to restrict settings file permissions to the current user only
+            setOwnerOnlyPermissions(settingsPath);
         } catch (Exception e) {
             // Security: Don't log exception details to console
+        }
+    }
+
+    private void setOwnerOnlyPermissions(Path path) {
+        try {
+            try {
+                var perms = java.nio.file.attribute.PosixFilePermissions.fromString("rw-------");
+                Files.setPosixFilePermissions(path, perms);
+                return;
+            } catch (UnsupportedOperationException | SecurityException ignored) {
+                // Not POSIX or not permitted
+            }
+
+            java.io.File f = path.toFile();
+            f.setReadable(true, true);
+            f.setWritable(true, true);
+            f.setExecutable(false, true);
+        } catch (Exception ignored) {
+            // Best-effort only
         }
     }
 

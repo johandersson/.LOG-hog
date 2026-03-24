@@ -273,6 +273,45 @@ public class SecureClipboardManager implements ClipboardHandler {
     }
 
     /**
+     * Called when the application is locking or user is logging out.
+     * Cancels any pending clear tasks and clears the recorded digest to minimize exposure.
+     */
+    public static void onLock() {
+        synchronized (LOCK) {
+            try {
+                if (clearTask != null) {
+                    clearTask.cancel(false);
+                    clearTask = null;
+                }
+                byte[] oldDigest = lastCopiedDigest;
+                lastCopiedDigest = null;
+
+                // Also attempt to clear clipboard contents if they match the previously tracked digest
+                if (oldDigest != null) {
+                    try {
+                        Clipboard clipboard = getSystemClipboardSafe();
+                        if (clipboard != null) {
+                            Transferable contents = clipboard.getContents(null);
+                            if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                                String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
+                                if (data != null) {
+                                    java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+                                    byte[] now = md.digest(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                                    if (java.util.Arrays.equals(now, oldDigest)) {
+                                        clipboard.setContents(new StringSelection(""), new StringSelection(""));
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception ignored) {
+                // best-effort
+            }
+        }
+    }
+
+    /**
      * Check if clipboard contains .LOG-hog secure content.
      *
      * @return true if the clipboard contains content that was copied by this application, false otherwise

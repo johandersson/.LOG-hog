@@ -255,7 +255,18 @@ public class EncryptionHandler {
                         case 3 -> 30000; // 30 seconds
                         default -> 0;
                     };
-                    SwingUtilities.invokeLater(() -> SecurityDelayDialog.showDialog(delay, parentFrame));
+                    // Show the security delay dialog and wait for it to finish
+                    // so the next password prompt only appears after the delay.
+                    if (SwingUtilities.isEventDispatchThread()) {
+                        SecurityDelayDialog.showDialog(delay, parentFrame);
+                    } else {
+                        try {
+                            SwingUtilities.invokeAndWait(() -> SecurityDelayDialog.showDialog(delay, parentFrame));
+                        } catch (Exception ex) {
+                            // If invoking the dialog fails, fall back to scheduling it asynchronously
+                            SwingUtilities.invokeLater(() -> SecurityDelayDialog.showDialog(delay, parentFrame));
+                        }
+                    }
                 } else {
                     // For non-authentication errors, show error and exit/return
                     logFileHandler.showErrorDialog("<html><b>📁 Load Failed</b><br><br>Unable to load log entries due to a file error.<br><br><i>Technical details: " + e.getClass().getSimpleName() + "</i><br><br><i>Tip: The file may be corrupted. Try restoring from a backup.</i></html>");
