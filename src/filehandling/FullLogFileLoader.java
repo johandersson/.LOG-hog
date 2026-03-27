@@ -249,16 +249,11 @@ public class FullLogFileLoader {
         // Filter entries by year and month
         List<List<String>> filteredEntries = filterEntriesByDate(allEntries, year, month);
 
-        // Apply lazy loading if too many entries
+        // Apply lazy loading if too many entries, but do NOT add info panel
         List<List<String>> entriesToRender;
         if (filteredEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
             int start = Math.max(0, filteredEntries.size() - ResourceLimits.MAX_ENTRIES_TO_RENDER);
             entriesToRender = new ArrayList<>(filteredEntries.subList(start, filteredEntries.size()));
-            // Add info message at top
-            List<String> infoEntry = new ArrayList<>();
-            infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + filteredEntries.size() + " total for " + year + "-" + String.format("%02d", month) + ")");
-            infoEntry.add("Use the Log List view with filters to browse older entries.");
-            entriesToRender.add(0, infoEntry);
         } else {
             entriesToRender = filteredEntries;
         }
