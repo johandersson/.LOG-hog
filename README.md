@@ -9,7 +9,7 @@
 - ✅ **Information Disclosure Prevention**: Generic error messages without internal details
 - ✅ **Immutable Static Fields**: Prevented runtime state corruption
 - ✅ **Defensive Copying**: Protected mutable internal state from external modification
-- ✅ **Resource Management**: File size limits (50MB) prevent memory exhaustion attacks
+- ✅ **Resource Management**: File size limits (200MB) and doubled entry render limits (1,200,000 entries, 6,000 for UI) prevent memory exhaustion attacks
 - ✅ **Secure Exception Handling**: All exceptions logged, never swallowed
 - ✅ **Fail-Secure Design**: Empty string on encryption failure, never plaintext fallback
 
@@ -30,7 +30,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - Manual lock/unlock for immediate security
 - System tray integration with quick entry and clipboard security access
 - Markdown rendering in full log view with advanced search (whole word, case sensitivity, match navigation)
-- **Info panel** displaying real-time statistics (total entries, days logged, file size) in the bottom panel
+- **Info panel** displaying real-time statistics (total entries, days logged, file size) in the bottom panel (not shown in filtered log entries view)
 - **Automatic Backup**: Secure automatic backups after encryption/decryption operations with configurable settings
 - Backup and restore with encryption preservation
 - Performance optimizations (efficient memory management)
@@ -124,7 +124,8 @@ java -jar build/loghog.jar
 ```
 
 ## Testing
-.LOG-hog includes comprehensive pure Java testing without external dependencies.
+
+.LOG-hog includes comprehensive tests using JUnit 5 (org.junit.jupiter.api). JUnit jars are required to run the tests.
 
 ### Running Tests
 - **All tests**: Run `run_tests_simple.bat` for quick test execution
@@ -133,19 +134,18 @@ java -jar build/loghog.jar
 ### Test Structure
 - Tests are located in `src/test/java/`
 - Package-based organization (e.g., `filehandling.FileHandlingTest`)
-- Each test class contains a main method that runs all test cases
 - Test results printed to console with PASS/FAIL indicators
 
 ### Test Dependencies
-- No external dependencies required
-- Tests run with standard `java` command
-- All testing logic implemented in pure Java
+- JUnit 5 (org.junit.jupiter.api) is required for test classes
+- Tests run with standard `java` command if JUnit jars are on the classpath
 
 ### Adding New Tests
 1. Create test classes in `src/test/java/` with package declarations
-2. Implement test methods and a main method that calls them
-3. Use System.out.println for test results
-4. Compile and run with standard Java commands
+2. Implement test methods using JUnit 5 annotations
+3. Compile and run with JUnit on the classpath
+- The LICENSE.md is now loaded from the src directory for the about view (required for About/Information panel).
+- The progress dialog always appears above the main window (multi-monitor fix).
 
 ## Documentation
 - [Architecture Documentation](ARCHITECTURE.md) - Comprehensive technical documentation with system diagrams, workflows, and design patterns
