@@ -30,9 +30,10 @@
 - **Backward Compatibility**: Supports legacy PBKDF2 iteration counts
 
 ### Remaining Items (short list)
-- Standardize explicit on-disk file header (magic + version + salt-length + salt + iv + ciphertext) and update encrypt/open-decrypt to write/parse it. Currently code detects salt prefix heuristically for backward compatibility.
-- Replace any remaining APIs that return full plaintext `String` (some callers may still use `decrypt()`/`decryptStream()` that allocate full buffers) — migrate to streaming consumer style where possible.
-- Add unit tests covering v1 header parsing, streaming decryption, and legacy fallback behavior.
+### Remaining Items (short list)
+- The on-disk file header format is standardized to: `MAGIC(4) | VERSION(1) | SALT-LEN(1) | SALT | IV-LEN(1) | IV | CIPHERTEXT` (v1). Current code paths write and parse this header; a limited legacy fallback remains only for compatibility with older files.
+- Continue migrating callers away from APIs that return large plaintext `String` objects; prefer streaming consumers such as `openDecryptedStream(...)` and `decryptFileToLines()` for large files to avoid OOM and reduce plaintext heap lifetime.
+- Add unit tests covering v1 header parsing, streaming decryption, legacy fallback behavior, and corrupted/truncated header handling.
 
 ### Code Example
 ```java
@@ -274,6 +275,8 @@ randomizedDelay = Math.max(1000, randomizedDelay);
 - **Path Validation**: Backup directories validated for safety
 - **Error Handling**: Backup failures don't interrupt user workflow
 
+Note: recent hardening changes ensure encrypted files no longer produce plaintext `.bak` files. When the source file is encrypted, backups are created with the `.bak.enc` suffix and copy the encrypted bytes directly. The `LogFileHandler` and `BackupManager` use same-directory temporary files and atomic moves to avoid leaving partial plaintext files on disk. Legacy plaintext backups are detected and securely deleted when possible.
+
 ### Backup Architecture
 ```java
 // Automatic backup after encryption change
@@ -286,12 +289,12 @@ if (autoBackupEnabled) {
 
 ---
 
-## ⚙️ Settings Encryption: 8.5/10
+## ⚙️ Settings Encryption: 9.0/10 (UPDATED)
 
 ### Separate Encryption Layer
 - **Purpose**: Defense in depth for application settings
-- **Algorithm**: AES-ECB with deterministic key derivation
-- **Key Generation**: SHA-256 hash of `username + "LogHog_Settings_v1"`
+- **Algorithm**: AES-GCM with per-user random salt and PBKDF2-derived key (migrated from earlier ECB approaches)
+- **Key Generation**: PBKDF2WithHmacSHA256 over a per-user random salt; legacy deterministic-key approaches are deprecated
 - **Scope**: Protects sensitive settings regardless of log encryption status
 
 ### Protected Data
@@ -301,17 +304,12 @@ if (autoBackupEnabled) {
 
 ### Security Benefits
 - **Always Active**: Settings encrypted even in unencrypted mode
-- **Deterministic Keys**: Same key across sessions for the same user
-- **Backwards Compatible**: Plain text settings automatically encrypted on first use
-- **Separate from Logs**: Independent encryption from user log passwords
+- **Per-user Salt**: Random salt per user removes deterministic-key weakness
+- **Authenticated Encryption**: AES-GCM provides integrity and confidentiality for stored settings
+- **Backwards Compatible**: Legacy values are detected and ignored or migrated when safe
 
 ### Implementation Details
-```java
-// Deterministic key for settings
-String keySeed = System.getProperty("user.name") + "_LogHog_Settings_v1";
-byte[] keyBytes = SHA256.digest(keySeed.getBytes());
-SecretKey settingsKey = new SecretKeySpec(keyBytes, 0, 16, "AES");
-```
+Current implementation uses PBKDF2 with per-user random salt and AES/GCM for settings encryption. Salts are stored in settings (base64); each encrypted value is stored as `encrypted:<base64(iv + ciphertext)>`. Legacy deterministic/ECB approaches are deprecated and not used for new encryptions.
 
 ---
 
