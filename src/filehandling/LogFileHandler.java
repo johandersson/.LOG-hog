@@ -37,6 +37,8 @@ import main.BackupManager;
 import utils.DateHandler;
 
 public class LogFileHandler implements LogFileOperations {
+        // Listeners for UI components to refresh when file caches change
+        private final java.util.List<Runnable> cacheInvalidationListeners = new java.util.ArrayList<>();
     private static final Path DEFAULT_FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
 
@@ -61,7 +63,6 @@ public class LogFileHandler implements LogFileOperations {
     
     private final FileCache cache = new FileCache();
     // Listeners for UI components to refresh when file caches change
-    private final java.util.List<Runnable> cacheInvalidationListeners = new java.util.ArrayList<>();
     private EntryLoader entryLoader;
     private EntryEditor entryEditor;
     private final AsyncSaver asyncSaver;
@@ -222,21 +223,9 @@ public class LogFileHandler implements LogFileOperations {
             sortListModel(listModel);
             if (onComplete != null) onComplete.run();
         });
-    }
-
-    //sort and normalize file
-    private void sortAndNormalizeFile() throws Exception {
-        if (!Files.exists(filePath)) return;
-
-        List<String> lines;
-        if (encryptionManager.isEncrypted()) {
-            lines = new ArrayList<>(getLines());
-        } else {
-            lines = readAllLinesSafe(filePath);
-        }
-        
-        entryEditor.setBackupManager(backupManager);
-        entryEditor.writeLines(lines, encrypted);
+        // PMD: Avoid unused private methods such as 'sortAndNormalizeFile()'.
+        // Method removed as it is not used.
+        // Removed call to entryEditor.writeLines(lines, encrypted); as 'lines' is undefined here.
     }
 
     public void updateEntry(String timeStamp, String newText) {

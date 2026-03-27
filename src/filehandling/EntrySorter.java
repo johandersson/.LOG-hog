@@ -41,7 +41,7 @@ public class EntrySorter {
      */
     public static List<String> sortEntriesByTimestamp(List<String> lines) {
         // Check if .LOG header exists in the input
-        boolean hasLogHeader = lines.stream().anyMatch(line -> line.trim().equalsIgnoreCase(".LOG"));
+        boolean hasLogHeader = lines.stream().anyMatch(line -> ".LOG".equalsIgnoreCase(line.trim()));
         
         List<List<String>> entries = new ArrayList<>();
         List<String> currentEntry = new ArrayList<>();
@@ -106,8 +106,8 @@ public class EntrySorter {
         for (int i = 0; i < sortedEntries.size(); i++) {
             List<String> entry = sortedEntries.get(i);
             
-            // Remove trailing blank lines from entry
-            while (!entry.isEmpty() && entry.get(entry.size() - 1).trim().isEmpty()) {
+                // Remove trailing blank lines from entry
+            while (!entry.isEmpty() && entry.get(entry.size() - 1).isBlank()) {
                 entry.remove(entry.size() - 1);
             }
             

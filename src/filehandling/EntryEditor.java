@@ -67,31 +67,29 @@ public class EntryEditor {
         if (encrypted) {
             List<String> cachedLines = cache.getCachedLines();
             cachedLines.addAll(Arrays.asList(entry.split("\r?\n", -1)));
-            
-            // Ensure .LOG header is present for encrypted files
+            // Restore fullText assignment for encrypted block
             String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cachedLines);
+            // Ensure .LOG header is present for encrypted files
             if (!fullText.startsWith(".LOG")) {
                 fullText = ".LOG" + LogFileFormat.INTERNAL_LINE_SEPARATOR + LogFileFormat.INTERNAL_LINE_SEPARATOR + fullText;
                 cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1)));
             }
-            
             // Normalize spacing to prevent accumulation of blank lines
             List<String> normalized = LogFileFormat.normalizeSpacing(cachedLines);
             cache.updateCachedLines(normalized);
-            
-            fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cache.getCachedLines());
             encryptionManager.encryptFileFromLines(cache.getCachedLines());
         } else {
             // Normalize content lines: remove trailing blank lines from user-supplied text
             String[] parts = text.split("\r?\n", -1);
-            List<String> contentLines = new ArrayList<>();
-            for (String p : parts) contentLines.add(p);
+            List<String> contentLines = new ArrayList<>(Arrays.asList(parts));
             // Remove trailing blank lines
             while (!contentLines.isEmpty() && contentLines.get(contentLines.size() - 1).trim().isEmpty()) {
                 contentLines.remove(contentLines.size() - 1);
             }
             String normalizedContent = String.join(LogFileFormat.LINE_SEPARATOR, contentLines);
-            String entryToAppend = LogFileFormat.createEntry(uniqueTimeStamp, normalizedContent);
+            StringBuilder entryBuilder = new StringBuilder();
+            entryBuilder.append(LogFileFormat.createEntry(uniqueTimeStamp, normalizedContent));
+            String entryToAppend = entryBuilder.toString();
 
             if (Files.exists(filePath)) {
                 if (backupManager != null) {
@@ -112,12 +110,13 @@ public class EntryEditor {
     public List<String> updateEntry(String timeStamp, String newText, List<String> lines) {
         if (newText.isBlank()) return lines;
 
-        // Enforce maximum entry length on updates as well
+        // Enforce maximum entry length on updates as well (avoid reassigning parameter)
+        String updatedText = newText;
         try {
-            if (newText.length() > InputLimits.ENTRY_MAX_CHARS) {
-                newText = newText.substring(0, InputLimits.ENTRY_MAX_CHARS);
-                if (!newText.endsWith(System.lineSeparator())) newText = newText + System.lineSeparator();
-                newText = newText + "[TRUNCATED]" + System.lineSeparator();
+            if (updatedText.length() > InputLimits.ENTRY_MAX_CHARS) {
+                updatedText = updatedText.substring(0, InputLimits.ENTRY_MAX_CHARS);
+                if (!updatedText.endsWith(System.lineSeparator())) updatedText = updatedText + System.lineSeparator();
+                updatedText = updatedText + "[TRUNCATED]" + System.lineSeparator();
             }
         } catch (Exception ignore) {
         }
@@ -130,7 +129,7 @@ public class EntryEditor {
                     inTargetEntry = true;
                     updatedLines.add(line); // keep the timestamp line
                     // Split the new text into individual lines so the file stores each paragraph line separately
-                    String[] newLines = newText.split("\r?\n", -1);
+                    String[] newLines = updatedText.split("\r?\n", -1);
                     for (String nl : newLines) {
                         updatedLines.add(nl);
                     }
@@ -200,12 +199,10 @@ public class EntryEditor {
      */
     public List<String> changeTimestamp(String oldTimestamp, String newTimestamp, List<String> lines) {
         List<String> updatedLines = new ArrayList<>();
-        boolean foundOld = false;
-
         for (String line : lines) {
             if (line.trim().equals(oldTimestamp.trim())) {
                 updatedLines.add(newTimestamp);
-                foundOld = true;
+                continue;
             } else {
                 updatedLines.add(line);
             }
@@ -229,12 +226,13 @@ public class EntryEditor {
     public String createAndSaveEntry(String text) throws Exception {
         if (text == null || text.isBlank()) return null;
 
-        // Enforce maximum entry length to avoid extremely large entries
+        // Enforce maximum entry length to avoid extremely large entries (avoid reassigning parameter)
+        String inputText = text;
         try {
-            if (text.length() > InputLimits.ENTRY_MAX_CHARS) {
-                text = text.substring(0, InputLimits.ENTRY_MAX_CHARS);
-                if (!text.endsWith(System.lineSeparator())) text = text + System.lineSeparator();
-                text = text + "[TRUNCATED]" + System.lineSeparator();
+            if (inputText.length() > InputLimits.ENTRY_MAX_CHARS) {
+                inputText = inputText.substring(0, InputLimits.ENTRY_MAX_CHARS);
+                if (!inputText.endsWith(System.lineSeparator())) inputText = inputText + System.lineSeparator();
+                inputText = inputText + "[TRUNCATED]" + System.lineSeparator();
             }
         } catch (Exception ignore) {
         }
@@ -263,7 +261,7 @@ public class EntryEditor {
         }
 
         String unique = createUniqueTimestamp(count);
-        saveEntry(text, unique, encryptionManager.isEncrypted());
+        saveEntry(inputText, unique, encryptionManager.isEncrypted());
         return unique;
     }
     

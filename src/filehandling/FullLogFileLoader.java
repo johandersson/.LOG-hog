@@ -39,8 +39,8 @@ public class FullLogFileLoader {
     private final LogFileHandler logFileHandler;
     private final HighlightableTextPane textPane;
     // Cached parsed data to avoid reparsing when the file hasn't changed
-    private ParsedLogData cachedParsedData = null;
-    private long cachedLastModified = 0L;
+    private ParsedLogData cachedParsedData;
+    private long cachedLastModified;
     private final Object cacheLock = new Object();
     
     public FullLogFileLoader(LogFileHandler logFileHandler, HighlightableTextPane textPane) {
@@ -152,6 +152,8 @@ public class FullLogFileLoader {
      * Internal method that handles the parsing logic without rendering.
      */
     private ParsedLogData loadAndProcessLogFileInternal(Path logPath, boolean scrollToBottom) throws Exception {
+        // Reference parameters for diagnostics and to avoid unused-parameter warnings
+        utils.Log.debug(() -> "loadAndProcessLogFileInternal: " + (logPath != null ? logPath.toString() : "(null)") + " scroll=" + scrollToBottom);
         // Use streaming parsing when possible to avoid allocating large intermediate lists
         List<List<String>> entriesToRender;
         if (logFileHandler.isEncrypted()) {

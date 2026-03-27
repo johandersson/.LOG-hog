@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 /**
@@ -53,7 +52,6 @@ public class LogFileFormatter {
     }
     
     // Security: use centralized resource limits
-    private static final long MAX_FILE_SIZE = ResourceLimits.MAX_FILE_SIZE;
     private static final int MAX_COLLECTION_SIZE = ResourceLimits.MAX_COLLECTION_SIZE;
     
     /**
@@ -66,7 +64,7 @@ public class LogFileFormatter {
         }
         
         // Check if .LOG header exists in the input
-        boolean hasLogHeader = lines.stream().anyMatch(line -> line.trim().equalsIgnoreCase(".LOG"));
+        boolean hasLogHeader = lines.stream().anyMatch(line -> ".LOG".equalsIgnoreCase(line.trim()));
         
         List<List<String>> entries = new ArrayList<>();
         List<String> currentEntry = new ArrayList<>();
@@ -74,7 +72,7 @@ public class LogFileFormatter {
 
         for (String line : lines) {
             String trimmed = line.trim();
-            if (trimmed.equalsIgnoreCase(".LOG")) continue; // Skip .LOG during processing
+            if (".LOG".equalsIgnoreCase(trimmed)) continue; // Skip .LOG during processing
             if (tsPattern.matcher(trimmed).matches()) {
                 if (!currentEntry.isEmpty()) {
                     entries.add(new ArrayList<>(currentEntry));
@@ -82,7 +80,7 @@ public class LogFileFormatter {
                 }
                 currentEntry.add(line);
             } else {
-                if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
+                if (!currentEntry.isEmpty() || !trimmed.isBlank()) {
                     currentEntry.add(line);
                 }
             }
@@ -140,25 +138,21 @@ public class LogFileFormatter {
             sortedLines.add(""); // Blank line after header
         }
         
-        for (int i = 0; i < sortedEntries.size(); i++) {
-            List<String> entry = sortedEntries.get(i);
-            
+        for (List<String> entry : sortedEntries) {
             // Single-pass entry cleaning: remove excessive blanks and trailing blanks in one go
             int consecutiveBlanks = 0;
             int lastNonBlankIndex = -1;
-            
             // First pass: identify last non-blank line
             for (int j = entry.size() - 1; j >= 0; j--) {
-                if (!entry.get(j).trim().isEmpty()) {
+                if (!entry.get(j).isBlank()) {
                     lastNonBlankIndex = j;
                     break;
                 }
             }
-            
             // Second pass: add lines up to last non-blank, limiting consecutive blanks
             for (int j = 0; j <= lastNonBlankIndex && j < entry.size(); j++) {
                 String line = entry.get(j);
-                if (line.trim().isEmpty()) {
+                if (line.isBlank()) {
                     consecutiveBlanks++;
                     // Allow up to 1 blank line within entries (for paragraph breaks)
                     if (consecutiveBlanks <= 1) {

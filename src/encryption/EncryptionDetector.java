@@ -84,7 +84,6 @@ public class EncryptionDetector {
 
         // Check for very low entropy (repeated patterns) which might indicate plain text
         // or very high entropy which indicates encryption
-        int uniqueBytes = countUniqueBytes(data, Math.min(256, data.length));
         double entropy = calculateEntropy(data, Math.min(256, data.length));
 
         // High entropy suggests encryption, low entropy suggests plain text
@@ -92,18 +91,6 @@ public class EncryptionDetector {
         return entropy > 7.0;
     }
 
-    private static int countUniqueBytes(byte[] data, int sampleSize) {
-        boolean[] seen = new boolean[256];
-        int unique = 0;
-        for (int i = 0; i < sampleSize && i < data.length; i++) {
-            int b = data[i] & 0xFF;
-            if (!seen[b]) {
-                seen[b] = true;
-                unique++;
-            }
-        }
-        return unique;
-    }
 
     private static double calculateEntropy(byte[] data, int sampleSize) {
         int[] counts = new int[256];

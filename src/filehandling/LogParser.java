@@ -21,7 +21,7 @@ public class LogParser {
         var currentEntry = new ArrayList<String>();
         for (String line : lines) {
             var trimmed = line.trim();
-            if (trimmed.equalsIgnoreCase(".LOG")) continue;
+            if (".LOG".equalsIgnoreCase(trimmed)) continue;
             if (TS_PATTERN.matcher(trimmed).matches()) {
                 if (!currentEntry.isEmpty()) {
                     entries.add(new ArrayList<>(currentEntry));
@@ -79,7 +79,7 @@ public class LogParser {
         
         for (String line : lines) {
             var trimmed = line.trim();
-            if (trimmed.equalsIgnoreCase(".LOG")) continue;
+            if (".LOG".equalsIgnoreCase(trimmed)) continue;
             if (TS_PATTERN.matcher(trimmed).matches()) {
                 if (!currentEntry.isEmpty()) {
                     if (entries.size() >= MAX_COLLECTION_SIZE) {

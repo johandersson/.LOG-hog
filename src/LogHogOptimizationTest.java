@@ -30,7 +30,7 @@ public class LogHogOptimizationTest {
     }
 
     public static void main(String[] args) {
-        utils.Log.info("=== LogHog Optimization Test ===\n");
+        utils.Log.info(() -> "=== LogHog Optimization Test ===\n");
 
         try {
             // Clean up
@@ -40,30 +40,30 @@ public class LogHogOptimizationTest {
             Files.deleteIfExists(TEST_FILE_SORT);
 
             // Test 1: Basic file operations
-            utils.Log.info("Test 1: Basic file operations");
+            utils.Log.info(() -> "Test 1: Basic file operations");
             testBasicOperations();
 
             // Test 2: Encryption operations
-            utils.Log.info("\nTest 2: Encryption operations");
+            utils.Log.info(() -> "\nTest 2: Encryption operations");
             testEncryption();
 
             // Test 3: Caching system
-            utils.Log.info("\nTest 3: Caching system");
+            utils.Log.info(() -> "\nTest 3: Caching system");
             testCaching();
 
             // Test 4: Lazy sorting
-            utils.Log.info("\nTest 4: Lazy sorting");
+            utils.Log.info(() -> "\nTest 4: Lazy sorting");
             testLazySorting();
 
-            utils.Log.info("\n=== All tests passed! ===");
+            utils.Log.info(() -> "\n=== All tests passed! ===");
 
         } catch (Exception e) {
-            utils.Log.error("Test failed: " + e.getMessage(), e);
+            utils.Log.error(() -> "Test failed: " + e.getMessage(), e);
         } finally {
             try {
                 Files.deleteIfExists(TEST_FILE_BASIC);
             } catch (Exception e) {
-                utils.Log.error("Cleanup failed: " + e.getMessage(), e);
+                utils.Log.error(() -> "Cleanup failed: " + e.getMessage(), e);
             }
         }
     }
@@ -73,9 +73,10 @@ public class LogHogOptimizationTest {
         LogFileHandler handler = new LogFileHandler();
 
         // Test saving
-        utils.Log.info("  - Testing save operations...");
-        handler.saveText("First entry", new javax.swing.DefaultListModel<>());
-        handler.saveText("Second entry", new javax.swing.DefaultListModel<>());
+        utils.Log.info(() -> "  - Testing save operations...");
+        javax.swing.DefaultListModel<String> tmpModel = new javax.swing.DefaultListModel<>();
+        handler.saveText("First entry", tmpModel);
+        handler.saveText("Second entry", tmpModel);
 
         List<String> lines = handler.getLines();
         utils.Log.info(() -> "    Saved " + lines.size() + " lines");
@@ -84,7 +85,7 @@ public class LogHogOptimizationTest {
             throw new RuntimeException("Should have saved lines");
         }
 
-        utils.Log.info("  ✓ Basic operations passed");
+        utils.Log.info(() -> "  ✓ Basic operations passed");
         
         // Cleanup
         Files.deleteIfExists(TEST_FILE_BASIC);
@@ -99,7 +100,8 @@ public class LogHogOptimizationTest {
             java.nio.file.Files.createFile(TEST_FILE_ENCRYPT);
         }
 
-        handler.saveText("Initial entry", new javax.swing.DefaultListModel<>());
+        javax.swing.DefaultListModel<String> encModel = new javax.swing.DefaultListModel<>();
+        handler.saveText("Initial entry", encModel);
 
         // Test encryption/decryption
         String testData = "Test data for encryption";
@@ -117,7 +119,7 @@ public class LogHogOptimizationTest {
             throw new RuntimeException("Should be encrypted");
         }
 
-        handler.saveText("Encrypted entry", new javax.swing.DefaultListModel<>());
+        handler.saveText("Encrypted entry", encModel);
         List<String> lines = handler.getLines();
         if (lines.isEmpty()) {
             throw new RuntimeException("Should have encrypted lines");
@@ -128,7 +130,7 @@ public class LogHogOptimizationTest {
             throw new RuntimeException("Should not be encrypted");
         }
 
-        utils.Log.info("  ✓ Encryption operations passed");
+        utils.Log.info(() -> "  ✓ Encryption operations passed");
         
         // Cleanup
         Files.deleteIfExists(TEST_FILE_ENCRYPT);
@@ -142,13 +144,14 @@ public class LogHogOptimizationTest {
         if (!java.nio.file.Files.exists(TEST_FILE_CACHE)) {
             java.nio.file.Files.createFile(TEST_FILE_CACHE);
         }
-        handler.saveText("Initial entry", new javax.swing.DefaultListModel<>());
+        javax.swing.DefaultListModel<String> cacheModel = new javax.swing.DefaultListModel<>();
+        handler.saveText("Initial entry", cacheModel);
         char[] cachePassword = generateTestPassword();
         handler.enableEncryption(cachePassword);
 
         // Add entries
         for (int i = 0; i < 3; i++) {
-            handler.saveText("Cache entry " + i, new javax.swing.DefaultListModel<>());
+            handler.saveText("Cache entry " + i, cacheModel);
         }
 
         // Test caching - multiple calls should return same object
@@ -160,14 +163,14 @@ public class LogHogOptimizationTest {
         }
 
         // Test cache invalidation
-        handler.saveText("New entry", new javax.swing.DefaultListModel<>());
+        handler.saveText("New entry", cacheModel);
         List<List<String>> entries3 = handler.getParsedEntries();
 
         if (entries1 == entries3) {
             throw new RuntimeException("Cache should be invalidated");
         }
 
-        utils.Log.info("  ✓ Caching system passed");
+        utils.Log.info(() -> "  ✓ Caching system passed");
         
         // Cleanup
         Files.deleteIfExists(TEST_FILE_CACHE);
@@ -188,7 +191,7 @@ public class LogHogOptimizationTest {
 
         // First read should trigger sorting
         List<String> lines = handler.getLines();
-        utils.Log.info("  - First read, checking if sorted...");
+        utils.Log.info(() -> "  - First read, checking if sorted...");
 
         // Check if sorted (should contain "01:00" first after sorting)
         boolean isSorted = lines.stream().anyMatch(line -> line.contains("01:00"));
@@ -196,7 +199,7 @@ public class LogHogOptimizationTest {
             throw new RuntimeException("Lines should be sorted");
         }
 
-        utils.Log.info("  ✓ Lazy sorting passed");
+        utils.Log.info(() -> "  ✓ Lazy sorting passed");
         
         // Cleanup
         Files.deleteIfExists(TEST_FILE_SORT);

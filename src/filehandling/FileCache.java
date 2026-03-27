@@ -27,13 +27,13 @@ import java.util.List;
 public class FileCache {
     // Cache management for encrypted files
     private List<String> cachedLines = new ArrayList<>();
-    private List<List<String>> cachedEntries = null;
-    private long cachedEntriesLastModified = 0;
+    private List<List<String>> cachedEntries;
+    private long cachedEntriesLastModified;
     
     // Write-back cache for performance
-    private boolean isDirty = false;
-    private List<String> pendingLines = null;
-    private long lastWriteTime = 0;
+    private boolean isDirty;
+    private List<String> pendingLines;
+    private long lastWriteTime;
     private static final long WRITE_DELAY_MS = 2000; // 2 second delay before auto-flush
     
     /**

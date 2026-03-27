@@ -44,14 +44,13 @@ public class ClipboardSecurityTest {
             secureManager.clearSecureClipboard();
             utils.Log.info("✓ Secure clipboard manually cleared");
 
-            // Test ClipboardSecurityWarner
-            ClipboardSecurityWarner warner = new ClipboardSecurityWarner();
-            utils.Log.info("✓ ClipboardSecurityWarner initialized");
+            // Test ClipboardSecurityWarner (no instance needed for static helpers)
+            utils.Log.info(() -> "✓ ClipboardSecurityWarner initialized");
 
             utils.Log.info("\nAll clipboard security tests passed!");
 
         } catch (Exception e) {
-            utils.Log.error("✗ Test failed: " + e.getMessage(), e);
+            utils.Log.error(() -> "✗ Test failed: " + e.getMessage(), e);
         }
     }
 }

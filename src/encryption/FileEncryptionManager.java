@@ -35,7 +35,7 @@ public class FileEncryptionManager {
         // Ensure header
         if (lines == null) throw new IllegalArgumentException("Lines cannot be null");
         java.util.List<String> toEncrypt = lines;
-        if (toEncrypt.isEmpty() || !toEncrypt.get(0).trim().equalsIgnoreCase(".LOG")) {
+        if (toEncrypt.isEmpty() || !".LOG".equalsIgnoreCase(toEncrypt.get(0).trim())) {
             java.util.List<String> withHeader = new java.util.ArrayList<>();
             withHeader.add(".LOG");
             withHeader.add("");

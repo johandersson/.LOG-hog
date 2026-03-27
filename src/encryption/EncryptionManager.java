@@ -90,7 +90,6 @@ public class EncryptionManager implements StreamEncryptor {
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
     private static final int PBKDF2_ITERATIONS = 600000;
-    private static final int PBKDF2_ITERATIONS_LEGACY = 65536; // For backward compatibility
     private static final int AES_KEY_LENGTH = 256; // bits
 
     private static final EncryptionManager INSTANCE = new EncryptionManager();
@@ -228,8 +227,8 @@ public class EncryptionManager implements StreamEncryptor {
             out.write(iv);
 
             // Wrap output in CipherOutputStream
-            try (var cos = new javax.crypto.CipherOutputStream(out, cipher);
-                 var bin = new java.io.BufferedInputStream(in)) {
+            java.io.BufferedInputStream bin = new java.io.BufferedInputStream(in);
+            try (var cos = new javax.crypto.CipherOutputStream(out, cipher)) {
 
                 byte[] buf = new byte[8192];
                 int n;
@@ -301,10 +300,10 @@ public class EncryptionManager implements StreamEncryptor {
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
 
             // Read initial bytes to check for salt prefix
-            in = new java.io.BufferedInputStream(in);
-            in.mark(16);
+            java.io.BufferedInputStream bin = new java.io.BufferedInputStream(in);
+            bin.mark(16);
             byte[] prefix = new byte[16];
-            int read = in.read(prefix);
+            int read = bin.read(prefix);
             boolean startsWithSalt = false;
             if (read == 16 && salt != null && salt.length == 16) {
                 startsWithSalt = true;
@@ -317,7 +316,7 @@ public class EncryptionManager implements StreamEncryptor {
             }
             if (!startsWithSalt) {
                 // Reset to stream start
-                in.reset();
+                bin.reset();
             }
 
             // If startsWithSalt is true, we've already consumed the salt bytes; the stream
@@ -328,14 +327,14 @@ public class EncryptionManager implements StreamEncryptor {
             var cipher = Cipher.getInstance(ALGORITHM);
             // Need to read IV from stream: IV length is GCM_IV_LENGTH
             byte[] iv = new byte[GCM_IV_LENGTH];
-            int got = in.read(iv);
+            int got = bin.read(iv);
             if (got != GCM_IV_LENGTH) {
                 throw new EncryptionException("Encrypted data missing IV or is corrupted.");
             }
             var spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
             cipher.init(Cipher.DECRYPT_MODE, key, spec);
 
-            try (var cis = new javax.crypto.CipherInputStream(in, cipher)) {
+            try (var cis = new javax.crypto.CipherInputStream(bin, cipher)) {
                 byte[] buf = new byte[8192];
                 int n;
                 while ((n = cis.read(buf)) != -1) {
@@ -363,7 +362,6 @@ public class EncryptionManager implements StreamEncryptor {
         if (password == null) throw new EncryptionException("Password cannot be null");
 
         try {
-            java.io.BufferedInputStream in = new java.io.BufferedInputStream(encryptedIn);
             java.io.BufferedInputStream bin = new java.io.BufferedInputStream(encryptedIn);
             bin.mark(64);
             byte[] hdr = new byte[FILE_MAGIC.length];
@@ -379,6 +377,7 @@ public class EncryptionManager implements StreamEncryptor {
             if (hasHeader) {
                 // Read version
                 int version = bin.read();
+                utils.Log.debug(() -> "Encryption header version: " + version);
                 int saltLen = bin.read();
                 if (saltLen < 0) throw new EncryptionException("Truncated header: missing salt length");
                 byte[] saltBytes = new byte[saltLen];
@@ -500,11 +499,14 @@ public class EncryptionManager implements StreamEncryptor {
 
             if (hasHeader) {
                 pos += FILE_MAGIC.length;
-                byte version = data[pos++];
+                int version = data[pos++] & 0xFF;
+                utils.Log.debug(() -> "Decrypting data with header version: " + version);
                 int saltLen = data[pos++] & 0xFF;
+                if (saltLen < 0 || pos + saltLen > data.length) throw new EncryptionException("Truncated header: missing salt");
                 byte[] salt = new byte[saltLen];
                 System.arraycopy(data, pos, salt, 0, saltLen); pos += saltLen;
                 int ivLen = data[pos++] & 0xFF;
+                if (ivLen != GCM_IV_LENGTH) throw new EncryptionException("Unexpected IV length in header");
                 byte[] encrypted = new byte[(data.length - pos)];
                 System.arraycopy(data, pos, encrypted, 0, encrypted.length);
                 SecretKey key = deriveKey(password, salt);
@@ -528,27 +530,7 @@ public class EncryptionManager implements StreamEncryptor {
         }
     }
 
-    private String decryptLegacy(byte[] encryptedData, SecretKey key) throws EncryptionException {
-        validateEncryptedData(encryptedData);
-
-        try {
-            return performDecryption(encryptedData, key);
-        } catch (EncryptionException e) {
-            throw e;
-        } catch (javax.crypto.AEADBadTagException e) {
-            throw new EncryptionException("Unable to open your file. This usually means:\n• Your password might be incorrect\n• The file may have been damaged during transfer or storage\n• You might be trying to open a file created with an older version of LogHog\n\nIf you're sure your password is correct, the file may be corrupted and you should restore from a backup.", e);
-        } catch (javax.crypto.BadPaddingException e) {
-            throw new EncryptionException("Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.", e);
-        } catch (javax.crypto.IllegalBlockSizeException e) {
-            throw new EncryptionException("Unable to open this file. It may be corrupted or use an incompatible format. Please check if this is the correct file or try restoring from a backup.", e);
-        } catch (java.security.InvalidKeyException e) {
-            throw new EncryptionException("Unable to process the encryption key. This may be a system compatibility issue.", e);
-        } catch (java.security.InvalidAlgorithmParameterException e) {
-            throw new EncryptionException("Unable to initialize encryption parameters. This may be a system compatibility issue.", e);
-        } catch (Exception e) {
-            throw new EncryptionException("Unable to open this file due to an unexpected error. Please try again or contact support.", e);
-        }
-    }
+    
 
     private String performDecryption(byte[] encryptedData, SecretKey key) throws Exception {
         var cipher = Cipher.getInstance(ALGORITHM);

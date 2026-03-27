@@ -41,7 +41,7 @@ public final class StreamProcessor {
         while (it.hasNext()) {
             String line = it.next();
             String trimmed = line.trim();
-            if (trimmed.equalsIgnoreCase(".LOG")) continue;
+            if (".LOG".equalsIgnoreCase(trimmed)) continue;
             boolean isHeader = TS_PATTERN.matcher(trimmed).matches();
             if (isHeader) {
                 if (!currentEntry.isEmpty()) {

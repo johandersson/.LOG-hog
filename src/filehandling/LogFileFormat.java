@@ -72,7 +72,7 @@ public class LogFileFormat {
      * @param entry List of lines in the entry
      */
     public static void removeTrailingBlanks(List<String> entry) {
-        while (!entry.isEmpty() && entry.get(entry.size() - 1).trim().isEmpty()) {
+        while (!entry.isEmpty() && entry.get(entry.size() - 1).isBlank()) {
             entry.remove(entry.size() - 1);
         }
     }
@@ -88,7 +88,7 @@ public class LogFileFormat {
         int consecutiveBlanks = 0;
         
         for (String line : lines) {
-            boolean isBlank = line.trim().isEmpty();
+            boolean isBlank = line.isBlank();
             if (isBlank) {
                 consecutiveBlanks++;
                 // Allow up to MAX_CONSECUTIVE_BLANKS consecutive blank lines
@@ -142,8 +142,7 @@ public class LogFileFormat {
      * @return true if the line should be included
      */
     public static boolean shouldIncludeInEntry(String line, boolean isInEntry) {
-        String trimmed = line.trim();
         // Only include non-blank lines when inside an entry
-        return isInEntry && !trimmed.isEmpty();
+        return isInEntry && !line.isBlank();
     }
 }

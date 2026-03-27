@@ -167,9 +167,7 @@ public class SecureClipboardManager implements ClipboardHandler {
             DialogHelper.showWarning(parent, "Copy Failed", "Text is empty.");
             return;
         }
-        if (successMessage == null) {
-            successMessage = "Text copied to clipboard securely.";
-        }
+        final String successMsg = (successMessage == null) ? "Text copied to clipboard securely." : successMessage;
 
         // Mark content as secure (no prefix needed - just copy the text directly)
         StringSelection selection = new StringSelection(text);
@@ -195,9 +193,9 @@ public class SecureClipboardManager implements ClipboardHandler {
             }
                 synchronized (LOCK) {
                     if (autoClearEnabled) {
-                        Toast.showToast(toastParent, successMessage + " (Auto-clear in " + timeoutSeconds + "s)");
+                        Toast.showToast(toastParent, successMsg + " (Auto-clear in " + timeoutSeconds + "s)");
                     } else {
-                        Toast.showToast(toastParent, successMessage);
+                        Toast.showToast(toastParent, successMsg);
                     }
                 }
 

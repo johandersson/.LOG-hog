@@ -156,7 +156,7 @@ public class DialogHandler {
             fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
                 @Override
                 public boolean accept(java.io.File f) {
-                    return f.isDirectory() || f.getName().equalsIgnoreCase("log.txt");
+                    return f.isDirectory() || "log.txt".equalsIgnoreCase(f.getName());
                 }
                 @Override
                 public String getDescription() {
@@ -166,7 +166,7 @@ public class DialogHandler {
             int result = fileChooser.showOpenDialog(null);
             if (result == javax.swing.JFileChooser.APPROVE_OPTION) {
                 java.io.File selectedFile = fileChooser.getSelectedFile();
-                if (!selectedFile.getName().equalsIgnoreCase("log.txt")) {
+                if (!"log.txt".equalsIgnoreCase(selectedFile.getName())) {
                     showErrorDialog("<html><b>Invalid File</b><br><br>Please select a file named log.txt.</html>");
                     return false;
                 }
