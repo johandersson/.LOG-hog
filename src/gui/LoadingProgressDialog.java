@@ -40,8 +40,8 @@ public class LoadingProgressDialog extends ProgressDialogBase {
     public LoadingProgressDialog(Frame parent, String title) {
         super(parent, title, false); // Non-modal so UI stays responsive
         messageLabel.setText("Loading file...");
-        // Center on screen (parent may not be visible yet) and stay on top
-        dialog.setLocationRelativeTo(null);
+        // Center on parent window to ensure it appears on the same screen
+        dialog.setLocationRelativeTo(parent);
         dialog.setAlwaysOnTop(true);
         progressBar.setIndeterminate(true);
     }

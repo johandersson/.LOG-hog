@@ -120,22 +120,8 @@ public class LogListPanel extends JPanel {
         var split = createLogSplitPane();
         add(split, BorderLayout.CENTER);
 
-        // Bottom: info panel (reuse same LogInfoPanel used in FullLog view)
-        var bottom = new JPanel(new BorderLayout());
-        bottom.setOpaque(false);
-        var infoWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        infoWrapper.setOpaque(false);
-        infoWrapper.add(infoPanel);
-        bottom.add(infoWrapper, BorderLayout.WEST);
-        add(bottom, BorderLayout.SOUTH);
-
+        // Do not add the info panel or year scope in the Log List view
         setupListeners(split);
-
-        // Populate initial info from the current listModel (most recent view)
-        updateInfoFromListModel();
-
-        // Indicate scope in the info panel
-        infoPanel.updateYearScope("Most recent (from list view)");
     }
 
     private JPanel createFilterPanel() {
