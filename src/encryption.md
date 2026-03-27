@@ -30,7 +30,6 @@
 - **Backward Compatibility**: Supports legacy PBKDF2 iteration counts
 
 ### Remaining Items (short list)
-### Remaining Items (short list)
 - The on-disk file header format is standardized to: `MAGIC(4) | VERSION(1) | SALT-LEN(1) | SALT | IV-LEN(1) | IV | CIPHERTEXT` (v1). Current code paths write and parse this header; a limited legacy fallback remains only for compatibility with older files.
 - Continue migrating callers away from APIs that return large plaintext `String` objects; prefer streaming consumers such as `openDecryptedStream(...)` and `decryptFileToLines()` for large files to avoid OOM and reduce plaintext heap lifetime.
 - Add unit tests covering v1 header parsing, streaming decryption, legacy fallback behavior, and corrupted/truncated header handling.
