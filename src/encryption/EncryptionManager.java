@@ -347,7 +347,7 @@ public class EncryptionManager implements StreamEncryptor {
                 String result = new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
                 return result;
             } finally {
-                Arrays.fill(decrypted, (byte)0);
+                encryption.CryptoUtils.zeroize(decrypted);
             }
         } catch (EncryptionException e) {
             throw e;
@@ -545,6 +545,8 @@ public class EncryptionManager implements StreamEncryptor {
             return new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new EncryptionException("The decrypted data contains invalid characters. This usually means the file is corrupted or you're using the wrong password.", e);
+        } finally {
+            encryption.CryptoUtils.zeroize(decrypted);
         }
     }
 

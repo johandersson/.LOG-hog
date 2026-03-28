@@ -374,4 +374,41 @@ public class FileEncryptionManager {
             this.salt = null;
         }
     }
+
+    /**
+     * Decrypts the encrypted file to the specified output file, setting secure permissions on the output.
+     * Uses streaming APIs if available.
+     */
+    public void decryptFileTo(Path outputPath) throws Exception {
+        if (!encrypted || password == null) {
+            throw new IllegalStateException("Encryption not set up");
+        }
+        char[] pwd = password.clone();
+        try {
+            if (encryptor instanceof StreamEncryptor) {
+                try (var in = Files.newInputStream(filePath);
+                     var out = Files.newOutputStream(outputPath)) {
+                    // Use openDecryptedStream to get decrypted InputStream, then copy to out
+                    try (var dec = ((StreamEncryptor) encryptor).openDecryptedStream(in, pwd, salt, null)) {
+                        byte[] buf = new byte[8192];
+                        int r;
+                        while ((r = dec.read(buf)) != -1) {
+                            out.write(buf, 0, r);
+                        }
+                    }
+                }
+            } else {
+                byte[] encryptedBytes = Files.readAllBytes(filePath);
+                String decrypted = encryptor.decrypt(encryptedBytes, pwd);
+                byte[] decryptedBytes = decrypted.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                Files.write(outputPath, decryptedBytes);
+                // Zeroize decryptedBytes
+                encryption.CryptoUtils.zeroize(decryptedBytes);
+            }
+            // Set secure permissions on the output file
+            encryption.CryptoUtils.setOwnerOnlyPermissions(outputPath);
+        } finally {
+            Arrays.fill(pwd, '\0');
+        }
+    }
 }
