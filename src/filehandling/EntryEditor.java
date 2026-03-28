@@ -115,8 +115,8 @@ public class EntryEditor {
         try {
             if (updatedText.length() > InputLimits.ENTRY_MAX_CHARS) {
                 updatedText = updatedText.substring(0, InputLimits.ENTRY_MAX_CHARS);
-                if (!updatedText.endsWith(System.lineSeparator())) updatedText = updatedText + System.lineSeparator();
-                updatedText = updatedText + "[TRUNCATED]" + System.lineSeparator();
+                if (!updatedText.endsWith(System.lineSeparator())) updatedText = updatedText.concat(System.lineSeparator());
+                updatedText = updatedText.concat("[TRUNCATED]").concat(System.lineSeparator());
             }
         } catch (Exception ignore) {
         }
@@ -149,6 +149,7 @@ public class EntryEditor {
         }
         
         return updatedLines;
+        // (Fixed: Only one implementation should exist. The above block is the correct one, so remove the duplicate below.)
     }
     
     /**

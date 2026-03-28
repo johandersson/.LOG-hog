@@ -770,7 +770,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private void saveSettings() {
-        try (var fos = new FileOutputStream(settingsPath.toFile())) {
+        try (var fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
         } catch (Exception e) {
             gui.DialogHelper.showError(editor, "Error", "Error saving settings. Please check file permissions and try again.");

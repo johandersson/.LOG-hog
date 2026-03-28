@@ -182,32 +182,37 @@ public class PasswordDialog extends JDialog {
     }
 
     public char[] getPassword() {
-        return password;
+        // Return a copy to avoid exposing internal array
+        return password == null ? null : java.util.Arrays.copyOf(password, password.length);
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder) {
         var dialog = new PasswordDialog(parent, title, reminder, null, false);
         dialog.setVisible(true);
-        return new PasswordResult(dialog.getPassword());
+        char[] pw = dialog.getPassword();
+        return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, String customMessage) {
         var dialog = new PasswordDialog(parent, title, reminder, customMessage, false);
         dialog.setVisible(true);
-        return new PasswordResult(dialog.getPassword());
+        char[] pw = dialog.getPassword();
+        return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, String customMessage, boolean showStrength) {
         var dialog = new PasswordDialog(parent, title, reminder, customMessage, showStrength);
         dialog.setVisible(true);
-        return new PasswordResult(dialog.getPassword());
+        char[] pw = dialog.getPassword();
+        return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
     }
 
     public static class PasswordResult {
         public final char[] password;
 
         public PasswordResult(char[] password) {
-            this.password = password;
+            // Always store a copy to avoid exposing mutable array
+            this.password = password == null ? null : java.util.Arrays.copyOf(password, password.length);
         }
     }
 }

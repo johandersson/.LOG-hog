@@ -196,7 +196,7 @@ public class BackupManager {
         try {
             Path settingsPath = Paths.get(System.getProperty("user.home"), ".loghog", "settings.properties");
             Files.createDirectories(settingsPath.getParent());
-            try (var out = new java.io.FileOutputStream(settingsPath.toFile())) {
+            try (java.io.OutputStream out = java.nio.file.Files.newOutputStream(settingsPath)) {
                 settings.store(out, "LogHog Settings");
             }
             // Attempt to restrict settings file permissions to the current user only
@@ -209,7 +209,7 @@ public class BackupManager {
     private void setOwnerOnlyPermissions(Path path) {
         try {
             try {
-                var perms = java.nio.file.attribute.PosixFilePermissions.fromString("rw-------");
+                java.util.Set<java.nio.file.attribute.PosixFilePermission> perms = java.nio.file.attribute.PosixFilePermissions.fromString("rw-------");
                 Files.setPosixFilePermissions(path, perms);
                 return;
             } catch (UnsupportedOperationException | SecurityException ignored) {
@@ -396,7 +396,7 @@ public class BackupManager {
             }
             // Determine if the log file is encrypted by inspecting header magic
             boolean isEncrypted = false;
-            try (var in = Files.newInputStream(logPath)) {
+            try (java.io.InputStream in = Files.newInputStream(logPath)) {
                 byte[] hdr = new byte[4];
                 int r = in.read(hdr);
                 if (r == 4) {
@@ -581,7 +581,7 @@ public class BackupManager {
 
         // Overwrite file multiple times with random data
         for (int pass = 0; pass < 3; pass++) {
-            try (var raf = new java.io.RandomAccessFile(filePath.toFile(), "rw")) {
+            try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(filePath.toFile(), "rw")) {
                 byte[] buffer = new byte[8192];
                 long remaining = fileSize;
                 while (remaining > 0) {

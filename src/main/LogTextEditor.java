@@ -34,7 +34,6 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
-import gui.DialogHelper;
 import javax.swing.JRootPane;
 import javax.swing.JTabbedPane;
 import javax.swing.KeyStroke;
@@ -48,7 +47,6 @@ import gui.EntryPanel;
 import gui.FullLogPanel;
 import gui.LogListPanel;
 import gui.NavItem;
-import gui.LoadingProgressDialog;
 import gui.SettingsPanel;
 import gui.SystemTrayMenu;
 import gui.LoadingProgressDialog;
@@ -156,7 +154,7 @@ public class LogTextEditor extends JFrame {
 
         // Load settings file FIRST so SecureSettings can use existing salt
         if (java.nio.file.Files.exists(settingsPath)) {
-            try (var fis = new java.io.FileInputStream(settingsPath.toFile())) {
+            try (java.io.InputStream fis = java.nio.file.Files.newInputStream(settingsPath)) {
                 settings.load(fis);
             } catch (Exception e) {
                 // Settings will use defaults if load fails
@@ -373,7 +371,7 @@ public class LogTextEditor extends JFrame {
                 }
             } else {
                 // Windows or other - use Windows L&F if available
-                for (var info : UIManager.getInstalledLookAndFeels()) {
+                for (javax.swing.UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
                     if ("Windows".equals(info.getName())) {
                         UIManager.setLookAndFeel(info.getClassName());
                         break;
@@ -411,11 +409,11 @@ public class LogTextEditor extends JFrame {
     public void updateRecentLogsMenu(Menu recentLogsMenu) {
         //return 5 most recent log entries as menu items
         recentLogsMenu.removeAll();
-        var recentLogs = logFileHandler.getRecentLogEntries(10);
+        java.util.List<String> recentLogs = logFileHandler.getRecentLogEntries(10);
         checkIfWindowIsVisible();
 
-        for (var logEntry : recentLogs) {
-            var logItem = new MenuItem(logEntry);
+        for (String logEntry : recentLogs) {
+            MenuItem logItem = new MenuItem(logEntry);
             logItem.addActionListener(e -> {
                 loadAndDisplayEntry(logEntry);
                 tabPane.setSelectedIndex(1); // switch to Log Entries tab
@@ -427,7 +425,7 @@ public class LogTextEditor extends JFrame {
 
     private void checkIfWindowIsVisible() {
         //if LogTextEditor is not visible, make it visible when a recent log is clicked
-        var isMinimized = (this.getExtendedState() & JFrame.ICONIFIED) == JFrame.ICONIFIED;
+        boolean isMinimized = (this.getExtendedState() & JFrame.ICONIFIED) == JFrame.ICONIFIED;
         if (!this.isVisible() || isMinimized) {
             this.setVisible(true);
             this.setExtendedState(JFrame.NORMAL);
@@ -441,9 +439,9 @@ public class LogTextEditor extends JFrame {
         listenerThread = new Thread(() -> {
             try {
                 while (true) {
-                    var clientSocket = SingleInstanceManager.getServerSocket().accept();
-                    var in = new java.io.BufferedReader(new java.io.InputStreamReader(clientSocket.getInputStream()));
-                    var message = in.readLine();
+                    java.net.Socket clientSocket = SingleInstanceManager.getServerSocket().accept();
+                    java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(clientSocket.getInputStream()));
+                    String message = in.readLine();
                     if ("BRING_TO_FRONT".equals(message)) {
                         SwingUtilities.invokeLater(() -> {
                             checkIfWindowIsVisible();
@@ -465,18 +463,18 @@ public class LogTextEditor extends JFrame {
 
     private void loadSettings() {
         if (java.nio.file.Files.exists(settingsPath)) {
-            try (var fis = new java.io.FileInputStream(settingsPath.toFile())) {
+            try (java.io.InputStream fis = java.nio.file.Files.newInputStream(settingsPath)) {
                 settings.load(fis);
                 settingsPanel.loadCurrentSettings();
                 // Show splash screen on startup if enabled
                 if ("true".equals(settings.getProperty("showSplashOnStartup", "true"))) {
                     new gui.SplashScreen().setVisible(true);
                 }
-                var backupDir = settings.getProperty("backupDirectory", "");
+                String backupDir = settings.getProperty("backupDirectory", "");
                 logFileHandler.setBackupDirectory(backupDir);
-                var enc = settings.getProperty("encrypted");
+                String enc = settings.getProperty("encrypted");
                 passwordReminder = secureSettings.getDecryptedProperty(settings, "passwordReminder", "");
-                var dataLoaded = false;
+                boolean dataLoaded = false;
                 if ("true".equals(enc)) {
                     dataLoaded = encryptionHandler.handleEncryptionSetup();
                 }
@@ -528,7 +526,7 @@ public class LogTextEditor extends JFrame {
     }
 
     private void saveSettings() {
-        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(settingsPath.toFile())) {
+        try (java.io.OutputStream fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
         } catch (Exception e) {
             // Security: Don't expose exception details (Guideline 2-1)
