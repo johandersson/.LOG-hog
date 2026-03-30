@@ -694,7 +694,9 @@ public class SettingsPanel extends JPanel {
                         try {
                             SecureDeletionUtils.wipeFile(backup);
                         } catch (Exception e) {
-                            Log.error("Failed to securely delete backup: " + backup, e);
+                            if (Log.isErrorEnabled()) {
+                                Log.error("Failed to securely delete backup: " + backup, e);
+                            }
                         }
                     }
 

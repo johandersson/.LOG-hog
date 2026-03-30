@@ -110,11 +110,11 @@ public class MarkdownEntryProcessor {
 
     private boolean handleCodeBlockMarker(boolean inCodeBlock) throws BadLocationException {
         boolean wasInCodeBlock = inCodeBlock;
-        inCodeBlock = !inCodeBlock;
-        if (wasInCodeBlock && !inCodeBlock) {
+        boolean nowInCodeBlock = !inCodeBlock;
+        if (wasInCodeBlock && !nowInCodeBlock) {
             context.insertDoubleLineSeparator();
         }
-        return inCodeBlock;
+        return nowInCodeBlock;
     }
 
     private void renderTimestamp(String line) throws BadLocationException {

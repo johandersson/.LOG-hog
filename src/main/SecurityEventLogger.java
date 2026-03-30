@@ -11,8 +11,8 @@ public class SecurityEventLogger {
     public static void log(String event, String details) {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String entry = String.format("[%s] %s: %s\n", timestamp, event, details);
-        try (FileWriter fw = new FileWriter(LOG_FILE, true)) {
-            fw.write(entry);
+        try (java.io.BufferedWriter bw = new java.io.BufferedWriter(new FileWriter(LOG_FILE, true))) {
+            bw.write(entry);
         } catch (IOException e) {
             // Silent fail
         }

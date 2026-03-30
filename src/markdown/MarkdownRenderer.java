@@ -687,18 +687,18 @@ public class MarkdownRenderer {
         // Remove nulls and most control characters but keep tab and newline semantics handled elsewhere
         try {
             // Remove ASCII control chars except tab (\t)
-            line = line.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
+            String sanitized = line.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
             // Neutralize any <script occurrences (case-insensitive)
-            line = line.replaceAll("(?i)<script", "&lt;script");
+            sanitized = sanitized.replaceAll("(?i)<script", "&lt;script");
         } catch (Exception e) {
             // On any regex issues, fall back to a safe plain string
             StringBuilder sb = new StringBuilder();
             for (char c : line.toCharArray()) {
                 if (c >= 0x20 || c == '\t') sb.append(c);
             }
-            line = sb.toString();
+            sanitized = sb.toString();
         }
-        return line;
+        return sanitized;
     }
     private static boolean isHeadingLine(String line) {
         return line.startsWith("# ") || line.startsWith("## ") || line.startsWith("### ");
