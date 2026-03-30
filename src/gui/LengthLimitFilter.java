@@ -16,8 +16,8 @@ public class LengthLimitFilter extends DocumentFilter {
         if (string == null) return;
         int allowed = max - fb.getDocument().getLength();
         if (allowed <= 0) return;
-        if (string.length() > allowed) string = string.substring(0, allowed);
-        super.insertString(fb, offset, string, attr);
+        String toInsert = string.length() > allowed ? string.substring(0, allowed) : string;
+        super.insertString(fb, offset, toInsert, attr);
     }
 
     @Override
@@ -26,7 +26,7 @@ public class LengthLimitFilter extends DocumentFilter {
         int currentLen = fb.getDocument().getLength();
         int allowed = max - (currentLen - length);
         if (allowed <= 0) return;
-        if (text.length() > allowed) text = text.substring(0, allowed);
-        super.replace(fb, offset, length, text, attrs);
+        String toReplace = text.length() > allowed ? text.substring(0, allowed) : text;
+        super.replace(fb, offset, length, toReplace, attrs);
     }
 }

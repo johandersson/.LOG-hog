@@ -55,13 +55,13 @@ public class PenIcon implements Icon {
             if (resourceUrl != null) {
                 ImageIcon icon = new ImageIcon(resourceUrl);
                 image = icon.getImage();
-                System.out.println("PenIcon: Loaded image from " + resourceUrl + ", size: " + image.getWidth(null) + "x" + image.getHeight(null));
+                // System.out.println("PenIcon: Loaded image from " + resourceUrl + ", size: " + image.getWidth(null) + "x" + image.getHeight(null));
             } else {
-                System.out.println("PenIcon: Could not find resource /pencil-line.png or /resources/pencil-line.png");
+                // System.out.println("PenIcon: Could not find resource /pencil-line.png or /resources/pencil-line.png");
                 image = null;
             }
         } catch (Exception e) {
-            System.out.println("PenIcon: Exception loading image: " + e.getMessage());
+            // System.out.println("PenIcon: Exception loading image: " + e.getMessage());
             image = null;
         }
     }

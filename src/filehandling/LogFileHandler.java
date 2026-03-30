@@ -593,9 +593,8 @@ public class LogFileHandler implements LogFileOperations {
      */
     private void writeDebug(String msg) {
         // Keep this minimal - print to stdout so CI or developer can inspect
-        try {
-            if (msg != null) System.out.println("[LogFileHandler] " + msg);
-        } catch (Exception ignore) {}
+        // Use a logger or comment out for production. For now, do nothing or log as needed.
+        // if (msg != null) Logger.debug("[LogFileHandler] " + msg);
     }
 
     public List<List<String>> getParsedEntries() throws Exception {
