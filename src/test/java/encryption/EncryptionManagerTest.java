@@ -156,15 +156,5 @@ public class EncryptionManagerTest {
         });
     }
 
-    @Test
-    void testLegacyKeyDerivation() {
-        System.out.println("🧪 Testing legacy key derivation compatibility...");
-
-        assertDoesNotThrow(() -> {
-            var legacyKey = encryptionManager.deriveKeyLegacy(testPassword, testSalt);
-            assertNotNull(legacyKey, "Legacy key should not be null");
-
-            System.out.println("✅ Legacy key derivation works for backward compatibility");
-        });
-    }
+    // Legacy key derivation test removed: no legacy support.
 }

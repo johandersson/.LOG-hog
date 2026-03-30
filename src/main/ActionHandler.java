@@ -180,10 +180,9 @@ public class ActionHandler {
             "Are you sure you want to delete this entry?" :
             "Are you sure you want to delete these " + numEntries + " entries?";
 
-        // Build preview for all selected entries
-        StringBuilder previewBuilder = new StringBuilder();
-        for (int i = 0; i < selectedItems.size(); i++) {
-            String selectedItem = selectedItems.get(i);
+        // Build preview entries: each is a List<String> with timestamp and trimmed text
+        java.util.List<java.util.List<String>> previewEntries = new java.util.ArrayList<>();
+        for (String selectedItem : selectedItems) {
             var rawTs = logFileHandler.getRawTimestamp(selectedItem);
             String entryText = logFileHandler.loadEntry(rawTs);
             String previewBody;
@@ -193,26 +192,33 @@ public class ActionHandler {
                 String trimmed = entryText.length() > 200 ? entryText.substring(0, 200) + "..." : entryText;
                 previewBody = trimmed;
             }
-
-            if (i > 0) previewBuilder.append("\n\n---\n\n");
-            previewBuilder.append(selectedItem).append("\n\n").append(previewBody);
+            java.util.List<String> entryPreview = new java.util.ArrayList<>();
+            entryPreview.add(selectedItem); // timestamp
+            entryPreview.add(previewBody);  // trimmed text
+            previewEntries.add(entryPreview);
         }
 
-        JTextArea previewArea = PreviewDialog.createPreviewArea(previewBuilder.toString());
+        // Use a JTextPane and MarkdownRenderer for consistent preview styling
+        gui.HighlightableTextPane previewPane = new gui.HighlightableTextPane();
+        previewPane.setEditable(false);
+        previewPane.setBackground(javax.swing.UIManager.getColor("Panel.background"));
+        markdown.MarkdownRenderer.renderMarkdownFromEntries(previewPane, previewEntries, false);
 
-        // Compose dialog content: question label above preview
-        JPanel panel = new JPanel(new BorderLayout(6, 6));
-        JLabel question = new JLabel(questionText);
-        panel.add(question, BorderLayout.NORTH);
-        JScrollPane scrollPane = new JScrollPane(previewArea,
+        JScrollPane scrollPane = new JScrollPane(previewPane,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setPreferredSize(new Dimension(600, Math.min(400, 200 + numEntries * 50))); // Adjust height based on number of entries
-        panel.add(scrollPane, BorderLayout.CENTER);
+        scrollPane.setPreferredSize(new java.awt.Dimension(600, Math.min(400, 200 + numEntries * 50)));
 
-        boolean confirm = gui.DialogHelper.confirm(editor, title, questionText);
+        // Compose dialog content: question label above preview
+        JPanel panel = new JPanel(new java.awt.BorderLayout(6, 6));
+        JLabel question = new JLabel("<html><b>" + questionText + "</b></html>");
+        panel.add(question, java.awt.BorderLayout.NORTH);
+        panel.add(scrollPane, java.awt.BorderLayout.CENTER);
 
-        if (confirm) {
+        int result = javax.swing.JOptionPane.showConfirmDialog(editor, panel, title,
+                javax.swing.JOptionPane.YES_NO_OPTION, javax.swing.JOptionPane.WARNING_MESSAGE);
+
+        if (result == javax.swing.JOptionPane.YES_OPTION) {
             // Use batch delete for efficiency (single file I/O instead of N operations)
             logFileHandler.deleteLogEntries(selectedItems, listModel);
             editor.updateLogListView();

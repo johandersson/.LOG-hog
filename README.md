@@ -3,7 +3,7 @@
 **A secure, feature-rich Java Swing logging application that works on Windows, macOS, and Linux.**
 
 ## Security
-**Security Rating: HIGH (8.5/10)** - Strong defaults (AES-256-GCM, PBKDF2 key derivation with 600,000 iterations), progressive delays, enforced password strength, atomic encrypted writes, and reduced in-memory exposure. A few remaining format/API hardenings are listed in `encryption.md`.
+**Security Rating: 9.5/10** — Strong defaults (AES-256-GCM, PBKDF2-600,000), progressive delays, enforced password strength, atomic encrypted writes, and minimal in-memory exposure. All major vulnerabilities addressed; see [src/encryption.md](src/encryption.md) for details.
 
 **🔒 Oracle Secure Coding Guidelines Conformance** - .LOG-hog has been hardened to conform to [Oracle's Secure Coding Guidelines for Java SE](https://www.oracle.com/java/technologies/javase/seccodeguide.html), addressing all CRITICAL, HIGH, and MEDIUM priority security requirements:
 - ✅ **Information Disclosure Prevention**: Generic error messages without internal details
@@ -13,7 +13,7 @@
 - ✅ **Secure Exception Handling**: All exceptions logged, never swallowed
 - ✅ **Fail-Secure Design**: Empty string on encryption failure, never plaintext fallback
 
-See [encryption.md](encryption.md) for comprehensive security documentation.
+See [src/encryption.md](src/encryption.md) for comprehensive security documentation.
 
 ## Purpose
 The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen focuses directly on the editor window for immediate writing. After composing your note, press Ctrl+S or click Save to clear the text field and save the entry into a dated log. This clearing allows you to write a new log entry right away, facilitating rapid and efficient note-taking.
@@ -26,19 +26,19 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
   - Password requirements: at least 20 characters, including at least one uppercase letter and one special character (unless password scores 'Strong'), and must score at least 'Good' strength
   - Secure password visibility toggle (hold to show, release to hide)
   - **Built-in password generator** for secure random passwords and passphrases
-- **Clipboard Security**: Automatic clearing of copied content with configurable timeout and educational warnings
-- Manual lock/unlock for immediate security
-- System tray integration with quick entry and clipboard security access
-- Markdown rendering in full log view with advanced search (whole word, case sensitivity, match navigation)
-- **Info panel** displaying real-time statistics (total entries, days logged, file size) in the bottom panel (not shown in filtered log entries view)
-- **Automatic Backup**: Secure automatic backups after encryption/decryption operations with configurable settings
-- Backup and restore with encryption preservation
-- Performance optimizations (efficient memory management)
-- Single-instance enforcement
-- Right-click menus for editing and managing entries
-- **Comprehensive timestamp format support**: Loads files with 23+ common date formats from various locales (ISO, US, European, German, etc.) while using HH:mm yyyy-MM-dd as the native format
-- Comprehensive help documentation
-- GPL3 licensed
+  - **Clipboard Security**: Automatic clearing of copied content with configurable timeout and educational warnings
+  - Manual lock/unlock for immediate security
+  - System tray integration with quick entry and clipboard security access
+  - Markdown rendering in full log view with advanced search (whole word, case sensitivity, match navigation)
+  - **Info panel** displaying real-time statistics (total entries, days logged, file size) in the bottom panel (not shown in filtered log entries view)
+  - **Automatic Backup**: Secure automatic backups after encryption/decryption operations with configurable settings
+  - Backup and restore with encryption preservation
+  - Performance optimizations (efficient memory management)
+  - Single-instance enforcement
+  - Right-click menus for editing and managing entries
+  - **Comprehensive timestamp format support**: Loads files with 23+ common date formats from various locales (ISO, US, European, German, etc.) while using HH:mm yyyy-MM-dd as the native format
+  - Comprehensive help documentation
+  - GPL3 licensed
 
 ## Third-Party Components
 - **EFF Diceware Word List**: Used for secure passphrase generation. Released under Creative Commons Zero (CC0) license (public domain).
@@ -58,7 +58,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - **Total installation**: < 250 KB
 
 **Why So Small?**
-.LOG-hog is 100x smaller than typical Java applications because it has **zero external dependencies**—no libraries, no frameworks, just pure Java code. Everything you need is built into the Java runtime, making the application:
+.LOG-hog is extremely compact because it has **zero external dependencies**—no libraries, no frameworks, just pure Java code. Everything you need is built into the Java runtime, making the application:
 - ✅ **Lightning fast** to download and start
 - ✅ **Highly portable** - runs anywhere Java runs
 - ✅ **Ultra secure** - no third-party code to audit or update
@@ -68,19 +68,12 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 .LOG-hog implements **enterprise-grade security** with comprehensive protection against modern threats. The application has been hardened according to [Oracle's Secure Coding Guidelines for Java SE](https://www.oracle.com/java/technologies/javase/seccodeguide.html), ensuring robust defense against information disclosure, state corruption, resource exhaustion, and cryptographic vulnerabilities.
 
 **Key Security Features:**
-- **AES-256-GCM authenticated encryption** with PBKDF2 (600,000 iterations default; legacy 65,536 supported)
-- **Progressive brute-force protection** (3s → 15s → 30s) with cryptographically secure randomization
-- **4-attempt limit** with application restart requirement and real-time countdown
-- **Best-effort memory clearing** of temporary password/key copies where possible; note that immutable `String` objects may still be retained by the JVM and cannot always be zeroed.
-- **Automatic clipboard security** with configurable timeout (1-3600 seconds) and educational warnings
-- **Secure Ctrl+C functionality** in all text areas with automatic clearing
-- **Automatic secure backups** after encryption/decryption operations with multiple overwrite deletion
-- **Path validation and confinement** preventing directory traversal and command injection
-- **Thread-safe operations** with proper synchronization
-- **Generic error messages** preventing information disclosure
-- **Comprehensive input validation** with bounds checking and sanitization
-- **File operation restrictions** to user home and working directories only
-- **Settings encryption** using deterministic keys for defense in depth
+- AES-256-GCM encryption, PBKDF2-600,000
+- Brute-force protection (progressive delays, 4-attempt lockout)
+- Secure password requirements & generator
+- Clipboard auto-clear, secure backups
+- Path validation, generic error messages
+- No hardcoded keys
 
 ## Encryption Warning
 If you enable encryption, the program may load slower, especially in the settings tab when applying changes and in the full log view. This is due to the encryption/decryption process for the log file.

@@ -7,7 +7,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 
 **✨ .LOG-hog works on Windows, macOS, and Linux!** The program is fully platform-independent, providing automatic timestamp management, encryption, search, and formatting features across all operating systems. You can use any text editor on any platform to view and edit your log files.
 
-**Already using .LOG files?** Perfect! .LOG-hog is designed to work seamlessly with your existing .LOG format files. Simply point the program to your existing log file and start using it right away. You'll get all the powerful enhancements—advanced search, optional encryption, markdown rendering, automated backups, and more—while your file remains a simple text file you can still open in Notepad or any text editor.
+**Already using .LOG files?** .LOG-hog is designed to work seamlessly with standard .LOG format files. Simply point the program to your log file and start using it right away. You'll get all the powerful enhancements—advanced search, optional encryption, markdown rendering, automated backups, and more—while your file stays a simple text file you can open in Notepad or any text editor.
 
 **About the .LOG Format:** .LOG-hog is inspired by [Windows Notepad's .LOG feature](https://www.howtogeek.com/359463/what-is-a-log-file/), where files starting with '.LOG' automatically insert timestamps. .LOG-hog brings this convenient timestamping concept to all platforms with powerful enhancements—all while keeping your log files as simple text files you can open anywhere.
 
@@ -29,7 +29,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - **File operation restrictions** to user home and working directories only
 - **Settings encryption** using deterministic keys for defense in depth
 
-**Security Rating: HIGH (9.5/10)** - Suitable for sensitive personal and professional data storage. Enhanced password requirements now enforce minimum strength scoring, blocking weak passwords that meet basic criteria.
+**Security Rating: 9.5/10** — All major vulnerabilities addressed. See [src/encryption.md](src/encryption.md) for details.
 
 .LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager.
 

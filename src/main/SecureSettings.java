@@ -34,15 +34,14 @@ import utils.Log;
 /**
  * Secure settings storage for sensitive configuration data.
  * Uses PBKDF2 for key derivation with per-user random salt.
- * Updated to use AES/GCM instead of insecure AES/ECB mode.
- * Maintains backwards compatibility with static salt (v2) and SHA-256 (v1) encrypted values.
+ * Uses AES/GCM only. No legacy or fallback decryption is supported.
  *
  * <h2>Security Properties</h2>
  * <ul>
  *   <li><b>Encryption Algorithm:</b> AES/GCM with 128-bit key and 128-bit authentication tag</li>
  *   <li><b>Key Derivation:</b> PBKDF2 with 100,000 iterations and random salt per user</li>
  *   <li><b>IV Generation:</b> Cryptographically secure random IV for each encryption operation</li>
- *   <li><b>Backwards Compatibility:</b> Supports decryption of legacy encrypted values</li>
+ *   <li><b>Backwards Compatibility:</b> No legacy fallback. Only current format supported.</li>
  *   <li><b>Integer Overflow Protection:</b> Uses Math.addExact() for array size calculations</li>
  * </ul>
  *
@@ -145,8 +144,7 @@ public class SecureSettings {
     }
 
     /**
-     * Decrypt a value from settings, handling GCM and legacy ECB/SHA-256 encrypted values.
-     * Tries decryption in order: new random salt → v2 static salt → v1 SHA-256
+     * Decrypt a value from settings. Only supports AES/GCM-encrypted values.
      */
     public String decryptValue(String storedValue) {
         if (storedValue == null) {
@@ -158,25 +156,17 @@ public class SecureSettings {
             try {
                 String encryptedData = storedValue.substring(ENCRYPTED_PREFIX.length());
                 byte[] encryptedBytes = Base64.getDecoder().decode(encryptedData);
-                
-                // Only support AES/GCM (authenticated) encrypted settings.
                 if (encryptedBytes.length >= GCM_IV_LENGTH + GCM_TAG_LENGTH) {
-                    try {
-                        byte[] iv = new byte[GCM_IV_LENGTH];
-                        System.arraycopy(encryptedBytes, 0, iv, 0, GCM_IV_LENGTH);
-                        byte[] encrypted = new byte[encryptedBytes.length - GCM_IV_LENGTH];
-                        System.arraycopy(encryptedBytes, GCM_IV_LENGTH, encrypted, 0, encrypted.length);
+                    byte[] iv = new byte[GCM_IV_LENGTH];
+                    System.arraycopy(encryptedBytes, 0, iv, 0, GCM_IV_LENGTH);
+                    byte[] encrypted = new byte[encryptedBytes.length - GCM_IV_LENGTH];
+                    System.arraycopy(encryptedBytes, GCM_IV_LENGTH, encrypted, 0, encrypted.length);
 
-                        Cipher cipher = Cipher.getInstance(ALGORITHM);
-                        GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
-                        cipher.init(Cipher.DECRYPT_MODE, settingsKey, spec);
-                        byte[] decrypted = cipher.doFinal(encrypted);
-                        return new String(decrypted, StandardCharsets.UTF_8);
-                    } catch (Exception gcmException) {
-                        // Failed to decrypt with GCM — do not attempt insecure fallbacks.
-                        Log.warn("Failed to decrypt settings value with AES/GCM; legacy fallbacks are disabled.");
-                        return "";
-                    }
+                    Cipher cipher = Cipher.getInstance(ALGORITHM);
+                    GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+                    cipher.init(Cipher.DECRYPT_MODE, settingsKey, spec);
+                    byte[] decrypted = cipher.doFinal(encrypted);
+                    return new String(decrypted, StandardCharsets.UTF_8);
                 }
                 Log.warn("Encrypted settings value too short to contain IV/tag; ignoring.");
                 return "";
@@ -186,7 +176,7 @@ public class SecureSettings {
                 return "";
             }
         } else {
-            // Plain text value (backwards compatibility)
+            // Only plaintext supported for non-encrypted values
             return storedValue;
         }
     }

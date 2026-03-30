@@ -542,7 +542,14 @@ public class LogListPanel extends JPanel {
         logList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 var selectedItem = logList.getSelectedValue();
-                loadAndDisplayEntry(selectedItem);
+                // Only load if the selected item is still in the model
+                if (selectedItem != null && listModel.contains(selectedItem)) {
+                    loadAndDisplayEntry(selectedItem);
+                } else {
+                    // Clear entry area if selection is invalid (e.g., after deletion)
+                    entryArea.setText("");
+                    if (isPreviewMode) renderPreview();
+                }
             }
         });
 
@@ -580,6 +587,7 @@ public class LogListPanel extends JPanel {
         } else {
             logList.clearSelection();
             entryArea.setText("");
+            if (isPreviewMode) renderPreview();
         }
     }
 

@@ -150,22 +150,7 @@ public class EncryptionManager implements StreamEncryptor {
         }
     }
 
-    // Legacy PBKDF2 derive method removed in favor of a single secure deriveKey implementation.
-
-    public byte[] encryptLegacy(String data, SecretKey key) throws EncryptionException {
-        if (data == null) {
-            throw new EncryptionException("Data to encrypt cannot be null.");
-        }
-        if (key == null) {
-            throw new EncryptionException("Encryption key cannot be null.");
-        }
-
-        try {
-            return performEncryption(data, key);
-        } catch (Exception e) {
-            throw new EncryptionException("Unable to encrypt your data. Please try again or contact support if the problem persists.", e);
-        }
-    }
+    // ...existing code...
     @Override
     public byte[] encrypt(String data, char[] password, byte[] salt) throws EncryptionException {
         if (data == null) {
@@ -487,7 +472,7 @@ public class EncryptionManager implements StreamEncryptor {
         }
 
         try {
-            // If data uses new header format, parse header. Otherwise fallback to legacy salt-prefix format.
+            // Only support new header format
             int pos = 0;
             boolean hasHeader = false;
             if (data.length >= FILE_MAGIC.length + 1) {
@@ -512,16 +497,7 @@ public class EncryptionManager implements StreamEncryptor {
                 SecretKey key = deriveKey(password, salt);
                 return performDecryption(encrypted, key);
             } else {
-                // Legacy format: salt prefix (16) + iv + ciphertext
-                if (data.length < 16) {
-                    throw new EncryptionException("Encrypted data is too short.");
-                }
-                byte[] salt = new byte[16];
-                System.arraycopy(data, 0, salt, 0, 16);
-                byte[] encrypted = new byte[data.length - 16];
-                System.arraycopy(data, 16, encrypted, 0, encrypted.length);
-                SecretKey key = deriveKey(password, salt);
-                return performDecryption(encrypted, key);
+                throw new EncryptionException("Unsupported or legacy encrypted data format. Only current format is supported.");
             }
         } catch (EncryptionException e) {
             throw e;
@@ -550,42 +526,6 @@ public class EncryptionManager implements StreamEncryptor {
         }
     }
 
-    @Override
-    public String decryptWithFallback(byte[] encryptedData, char[] password, byte[] salt) throws EncryptionException {
-        validateEncryptedDataForFallback(encryptedData);
-        try {
-            byte[] dataToDecrypt = stripSaltPrefixIfPresent(encryptedData, salt);
-            SecretKey key = deriveKey(password, salt);
-            return decrypt(dataToDecrypt, key);
-        } catch (Exception e) {
-            throw new EncryptionException("Decryption failed: invalid password or corrupted file", e);
-        }
-    }
-
-    private byte[] stripSaltPrefixIfPresent(byte[] encryptedData, byte[] salt) {
-        if (salt == null || salt.length != 16 || encryptedData == null || encryptedData.length <= 16) {
-            return encryptedData;
-        }
-        boolean startsWithSalt = true;
-        for (int i = 0; i < 16; i++) {
-            if (encryptedData[i] != salt[i]) {
-                startsWithSalt = false;
-                break;
-            }
-        }
-        if (startsWithSalt) {
-            return Arrays.copyOfRange(encryptedData, 16, encryptedData.length);
-        }
-        return encryptedData;
-    }
-
-    private void validateEncryptedDataForFallback(byte[] encryptedData) throws EncryptionException {
-        if (encryptedData == null || encryptedData.length == 0) {
-            throw new EncryptionException("Cannot open an empty file. Please check if your log file contains any data.");
-        }
-        if (encryptedData.length < GCM_IV_LENGTH + GCM_TAG_LENGTH) {
-            throw new EncryptionException("This file appears to be damaged or uses an incompatible format. It doesn't contain enough data to be a valid LogHog file. Please check if this is the correct file or try restoring from a backup.");
-        }
-    }
+    // ...existing code...
 }
 

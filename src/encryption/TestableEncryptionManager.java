@@ -36,11 +36,5 @@ public class TestableEncryptionManager implements Encryptor {
         return delegate.decryptStream(in, password, salt);
     }
 
-    public javax.crypto.SecretKey deriveKeyLegacy(char[] password, byte[] salt) throws EncryptionException {
-        throw new UnsupportedOperationException("Legacy key derivation removed");
-    }
-
-    public byte[] encryptLegacy(String data, javax.crypto.SecretKey key) throws EncryptionException {
-        throw new UnsupportedOperationException("Legacy encrypt removed");
-    }
+    // Legacy methods removed: no legacy support.
 }

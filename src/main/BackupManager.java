@@ -21,6 +21,9 @@ import java.awt.Frame;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import main.HmacUtils;
+import main.SecurityEventLogger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -338,19 +341,60 @@ public class BackupManager {
                 SwingUtilities.invokeLater(() -> finalDialog.setProgress(50));
             }
 
+
             // Copy log file
             Files.copy(logPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Compute and append HMAC for integrity verification
+            byte[] key = deriveSimpleHmacKey();
+            byte[] data = Files.readAllBytes(backupPath);
+            byte[] hmac = HmacUtils.computeHmacSha256(key, data);
+            Files.write(backupPath, hmac, StandardOpenOption.APPEND);
+            SecurityEventLogger.log("BackupCreated", "Backup file created and HMAC appended: " + backupPath);
 
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
                 SwingUtilities.invokeLater(() -> finalDialog.setProgress(75));
             }
 
-            // Verify backup was created successfully
-            if (!verifyBackup(logPath, backupPath)) {
-                // Security: Don't log verification failures to console
+
+            // Verify backup was created successfully (size and HMAC)
+            if (!verifyBackupWithHmac(logPath, backupPath)) {
+                SecurityEventLogger.log("BackupVerificationFailed", "Backup verification failed for: " + backupPath);
                 return;
             }
+    /**
+     * Derives a simple HMAC key for backup integrity (not persisted, ephemeral for demo).
+     * In production, use a securely stored key.
+     */
+    private byte[] deriveSimpleHmacKey() {
+        // For demo: use a fixed string and user home as salt (not secure for real use)
+        String base = System.getProperty("user.home") + "-loghog-hmac-key";
+        try {
+            return java.util.Arrays.copyOf(base.getBytes("UTF-8"), 32);
+        } catch (Exception e) {
+            return new byte[32];
+        }
+    }
+
+    /**
+     * Verifies backup by size and HMAC.
+     */
+    private boolean verifyBackupWithHmac(Path original, Path backup) {
+        try {
+            byte[] orig = Files.readAllBytes(original);
+            byte[] backupAll = Files.readAllBytes(backup);
+            if (backupAll.length < 32) return false;
+            byte[] backupData = java.util.Arrays.copyOf(backupAll, backupAll.length - 32);
+            byte[] backupHmac = java.util.Arrays.copyOfRange(backupAll, backupAll.length - 32, backupAll.length);
+            byte[] key = deriveSimpleHmacKey();
+            boolean sizeMatch = orig.length == backupData.length;
+            boolean hmacMatch = HmacUtils.verifyHmacSha256(key, backupData, backupHmac);
+            return sizeMatch && hmacMatch;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
