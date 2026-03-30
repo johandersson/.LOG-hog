@@ -14,7 +14,8 @@ public class KeyRotationManager {
 
     public void rotateKey(Path file, char[] oldPassword, char[] newPassword, byte[] salt) throws Exception {
         byte[] encrypted = Files.readAllBytes(file);
-        String plaintext = encryptionManager.decrypt(encrypted, oldPassword, salt);
+        // Use decryptWithFallback to support both new and legacy formats
+        String plaintext = encryptionManager.decryptWithFallback(encrypted, oldPassword, salt);
         byte[] newEncrypted = encryptionManager.encrypt(plaintext, newPassword, salt);
         Files.write(file, newEncrypted, StandardOpenOption.TRUNCATE_EXISTING);
     }

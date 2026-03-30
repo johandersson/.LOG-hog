@@ -1,5 +1,7 @@
-
 package encryption;
+
+import encryption.StreamEncryptor;
+import utils.ProgressCallback;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -85,7 +87,7 @@ import javax.crypto.spec.SecretKeySpec;
  * <h2>Thread Safety</h2>
  * <p>This class is thread-safe. The singleton instance can be safely used from multiple threads.</p>
  */
-public class EncryptionManager implements StreamEncryptor {
+public class EncryptionManager implements encryption.StreamEncryptor {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
@@ -506,7 +508,28 @@ public class EncryptionManager implements StreamEncryptor {
         }
     }
 
-    
+    /**
+     * Implements fallback decryption: tries decrypt(byte[], char[]), then tries with salt if needed.
+     */
+    public String decryptWithFallback(byte[] data, char[] password, byte[] salt) throws EncryptionException {
+        try {
+            // Try normal decryption
+            return decrypt(data, password);
+        } catch (EncryptionException e) {
+            // If salt is provided, try legacy/alternate salt-based decryption
+            if (salt != null && salt.length == 16) {
+                try {
+                    javax.crypto.SecretKey key = deriveKey(password, salt);
+                    return performDecryption(data, key);
+                } catch (Exception ex) {
+                    // If still fails, throw original exception
+                    throw e;
+                }
+            } else {
+                throw e;
+            }
+        }
+    }
 
     private String performDecryption(byte[] encryptedData, SecretKey key) throws Exception {
         var cipher = Cipher.getInstance(ALGORITHM);

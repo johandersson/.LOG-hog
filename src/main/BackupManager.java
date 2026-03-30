@@ -108,59 +108,55 @@ public class BackupManager {
         int choice = DialogHelper.showOptions(
             parentFrame,
             "Backup Directory Setup",
-            "Backup Directory Setup",
+            "Please configure your backup directory.",
             message,
             JOptionPane.QUESTION_MESSAGE,
             options,
-            // secureDelete method removed; use SecureDeletionUtils.wipeFile instead.
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        fileChooser.setDialogTitle("Select Backup Directory");
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-        
-        int result = fileChooser.showDialog(parentFrame, "Select");
-        
-        if (result == JFileChooser.APPROVE_OPTION) {
-            File selectedDir = fileChooser.getSelectedFile();
-            String dirPath = selectedDir.getAbsolutePath();
-            
-            // Verify directory is writable
-            if (!selectedDir.canWrite()) {
-                DialogHelper.showError(
-                    parentFrame,
-                    "Error",
-                    "Permission Denied",
-                    "Cannot write to selected directory.<br>" +
-                    "Please choose a different location."
-                );
-                // Try again
-                configureCustomBackupDirectory();
-                return;
-            }
-            
-            settings.setProperty("backupDirectory", dirPath);
-            settings.setProperty("backupDirectoryConfigured", "true");
-            saveSettings();
-            
-            DialogHelper.showInfo(
-                parentFrame,
-                "Backup Directory Set",
-                "Backup Directory Set",
-                "Backups will be saved to:<br><b>" + dirPath + "</b><br><br>" +
-                "You can change this later in Settings."
-            );
-        } else {
-            // User cancelled - ask if they want to use home directory instead
-            String homeDir = System.getProperty("user.home");
-            boolean fallback = gui.DialogHelper.confirm(parentFrame, "Use Default?",
-                "No directory selected.",
-                "Use home directory (<b>" + homeDir + "</b>) instead?");
+            options[0]
+        );
 
-            if (fallback) {
-                settings.setProperty("backupDirectory", homeDir);
+        if (choice == 0) { // Configure Directory
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            fileChooser.setDialogTitle("Select Backup Directory");
+            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+
+            int result = fileChooser.showDialog(parentFrame, "Select");
+
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File selectedDir = fileChooser.getSelectedFile();
+                String dirPath = selectedDir.getAbsolutePath();
+
+                // Verify directory is writable
+                if (!selectedDir.canWrite()) {
+                    DialogHelper.showError(
+                        parentFrame,
+                        "Error",
+                        "Permission Denied",
+                        "Cannot write to selected directory.<br>" +
+                        "Please choose a different location."
+                    );
+                    // Try again
+                    showBackupDirectorySetupDialog();
+                    return;
+                }
+
+                settings.setProperty("backupDirectory", dirPath);
                 settings.setProperty("backupDirectoryConfigured", "true");
                 saveSettings();
+
+                DialogHelper.showInfo(
+                    parentFrame,
+                    "Backup Directory Set",
+                    "Backup Directory Set",
+                    "Backups will be saved to:<br><b>" + dirPath + "</b><br><br>" +
+                    "You can change this later in Settings."
+                );
             }
+        } else if (choice == 1) { // Use Home Directory
+            settings.setProperty("backupDirectory", homeDir);
+            settings.setProperty("backupDirectoryConfigured", "true");
+            saveSettings();
         }
     }
     
@@ -352,6 +348,38 @@ public class BackupManager {
                 SecurityEventLogger.log("BackupVerificationFailed", "Backup verification failed for: " + backupPath);
                 return;
             }
+
+            if (progressDialog != null) {
+                LoadingProgressDialog finalDialog = progressDialog;
+                SwingUtilities.invokeLater(() -> finalDialog.setProgress(100));
+            }
+
+            // Rotate old backups asynchronously to avoid blocking
+            Thread t = new Thread(() -> rotateAutoBackups());
+            t.setDaemon(true);
+            t.start();
+
+        } catch (Exception e) {
+            // Security: Don't log exception details to console
+            // Don't show UI errors for automatic backups
+        } finally {
+            // Close progress dialog after a brief delay to show completion
+            if (progressDialog != null) {
+                LoadingProgressDialog finalDialog = progressDialog;
+                Thread t2 = new Thread(() -> {
+                    try {
+                        Thread.sleep(500); // Show completion briefly
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    finalDialog.close();
+                });
+                t2.setDaemon(true);
+                t2.start();
+            }
+        }
+    }
+
     /**
      * Derives a simple HMAC key for backup integrity (not persisted, ephemeral for demo).
      * In production, use a securely stored key.
@@ -382,37 +410,6 @@ public class BackupManager {
             return sizeMatch && hmacMatch;
         } catch (Exception e) {
             return false;
-        }
-    }
-
-            if (progressDialog != null) {
-                LoadingProgressDialog finalDialog = progressDialog;
-                SwingUtilities.invokeLater(() -> finalDialog.setProgress(100));
-            }
-
-            // Rotate old backups asynchronously to avoid blocking
-            Thread t = new Thread(() -> rotateAutoBackups());
-            t.setDaemon(true);
-            t.start();
-
-        } catch (Exception e) {
-            // Security: Don't log exception details to console
-            // Don't show UI errors for automatic backups
-        } finally {
-            // Close progress dialog after a brief delay to show completion
-            if (progressDialog != null) {
-                LoadingProgressDialog finalDialog = progressDialog;
-                Thread t2 = new Thread(() -> {
-                    try {
-                        Thread.sleep(500); // Show completion briefly
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    finalDialog.close();
-                });
-                t2.setDaemon(true);
-                t2.start();
-            }
         }
     }
 
@@ -452,7 +449,7 @@ public class BackupManager {
                 if (i == MAX_NUMBERED_BACKUPS - 1) {
                     // Securely delete oldest backup to prevent recovery
                     if (Files.exists(oldBackup)) {
-                        secureDelete(oldBackup);
+                        SecureDeletionUtils.wipeFile(oldBackup);
                     }
                 } else {
                     Path newBackup = Paths.get(bakPath.toString() + "." + (i + 1));
@@ -477,7 +474,7 @@ public class BackupManager {
                     for (int i = 0; i < MAX_NUMBERED_BACKUPS; i++) {
                         Path legacy = Paths.get(backupDirPath.toString(), logPath.getFileName().toString() + ".bak" + (i == 0 ? "" : "." + i));
                         if (Files.exists(legacy)) {
-                            secureDelete(legacy);
+                            SecureDeletionUtils.wipeFile(legacy);
                         }
                     }
                 } catch (Exception ignored) {}
@@ -534,7 +531,7 @@ public class BackupManager {
             while (backups.size() > MAX_AUTO_BACKUPS) {
                 Path oldest = backups.remove(0);
                 try {
-                    secureDelete(oldest);
+                    SecureDeletionUtils.wipeFile(oldest);
                 } catch (Exception e) {
                     // If secure delete fails, log the error but don't crash
                     // Security: Don't expose details to console

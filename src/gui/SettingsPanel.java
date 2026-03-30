@@ -1,14 +1,3 @@
-import main.KeyRotationManager;
-    private void rotateEncryptionKey(char[] oldPassword, char[] newPassword, byte[] salt) {
-        try {
-            KeyRotationManager keyRotationManager = new KeyRotationManager(new encryption.EncryptionManager());
-            java.nio.file.Path logPath = logFileHandler.getFilePath();
-            keyRotationManager.rotateKey(logPath, oldPassword, newPassword, salt);
-            Toast.showToast(editor, "Encryption key rotated successfully!");
-        } catch (Exception e) {
-            gui.DialogHelper.showError(editor, "Key Rotation Failed", "Failed to rotate encryption key: " + e.getMessage());
-        }
-    }
 /*
  * Copyright (C) 2025 Johan Andersson
  *
@@ -62,8 +51,26 @@ import main.BackupManager;
 import main.LogTextEditor;
 import main.SecureSettings;
 import utils.Toast;
+import main.KeyRotationManager;
+import main.SecureDeletionUtils;
 
 public class SettingsPanel extends JPanel {
+    /**
+     * Rotates the encryption key for the log file.
+     * @param oldPassword The current password.
+     * @param newPassword The new password.
+         * @param salt The salt used for key derivation.
+         */
+        private void rotateEncryptionKey(char[] oldPassword, char[] newPassword, byte[] salt) {
+            try {
+                KeyRotationManager keyRotationManager = new KeyRotationManager(new encryption.EncryptionManager());
+                java.nio.file.Path logPath = logFileHandler.getFilePath();
+                keyRotationManager.rotateKey(logPath, oldPassword, newPassword, salt);
+                Toast.showToast(editor, "Encryption key rotated successfully!");
+            } catch (Exception e) {
+                gui.DialogHelper.showError(editor, "Key Rotation Failed", "Failed to rotate encryption key: " + e.getMessage());
+            }
+        }
     private final LogTextEditor editor;
     private final Properties settings;
     private final Path settingsPath;
@@ -685,7 +692,7 @@ public class SettingsPanel extends JPanel {
                 UiTaskRunner.runModalBackgroundTask(editor, "Cleaning Old Backups", "Deleting old backups...", () -> {
                     for (Path backup : unencryptedBackups) {
                         try {
-                            main.BackupManager.secureDelete(backup);
+                            SecureDeletionUtils.wipeFile(backup);
                         } catch (Exception e) {
                             Log.error("Failed to securely delete backup: " + backup, e);
                         }
@@ -758,7 +765,7 @@ public class SettingsPanel extends JPanel {
             UiTaskRunner.runModalBackgroundTask(editor, "Manual Backup", "Saving backup...", () -> {
                 try {
                     if (Files.exists(backupPath)) {
-                        main.BackupManager.secureDelete(backupPath);
+                        SecureDeletionUtils.wipeFile(backupPath);
                     }
                     Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
@@ -766,7 +773,7 @@ public class SettingsPanel extends JPanel {
                     if (Files.exists(settingsSource)) {
                         var settingsBackupPath = selectedDir.resolve("settings.ini");
                         if (Files.exists(settingsBackupPath)) {
-                            main.BackupManager.secureDelete(settingsBackupPath);
+                            SecureDeletionUtils.wipeFile(settingsBackupPath);
                         }
                         Files.copy(settingsSource, settingsBackupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                         javax.swing.SwingUtilities.invokeLater(() -> statusLabel.setText("Backup saved to: " + selectedDir.toString()));

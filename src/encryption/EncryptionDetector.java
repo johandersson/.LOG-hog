@@ -111,15 +111,4 @@ public class EncryptionDetector {
         return entropy;
     }
 
-    /**
-     * Securely deletes a file by overwriting it before deletion.
-     * This helps prevent recovery of sensitive data.
-     * Delegates to BackupManager for consistent secure deletion.
-     *
-     * @param filePath Path to the file to delete
-     * @throws IOException if deletion fails
-     */
-    public static void secureDelete(Path filePath) throws IOException {
-        main.BackupManager.secureDelete(filePath);
-    }
 }

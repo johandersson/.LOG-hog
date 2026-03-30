@@ -217,7 +217,7 @@ The encryption system is highly modular and well-encapsulated, making it suitabl
 - **Banking Security**: Superior to most consumer banking (no network exposure)
 
 ### Password Protection
-- **Better than**: Evernote, OneNote, Google Keep (most don't encrypt locally)
+
 - **Comparable to**: Professional password managers
 - **Advanced Features**: Progressive delays with randomization
 
