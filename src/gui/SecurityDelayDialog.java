@@ -19,6 +19,7 @@ package gui;
 
 import java.awt.Frame;
 import java.security.SecureRandom;
+import main.RandomizationUtils;
 
 import javax.swing.Timer;
 
@@ -32,9 +33,8 @@ public class SecurityDelayDialog extends ProgressDialogBase {
     public static void showDialog(long delayMillis, Frame parent, String message) {
         if (delayMillis <= 0) return;
         
-        // Add ±20% randomization to prevent timing attacks
-        long randomizedDelay = delayMillis + (long)(delayMillis * 0.2 * (secureRandom.nextDouble() - 0.5));
-        // Ensure minimum 1 second delay
+        // Use RandomizationUtils for advanced randomization
+        long randomizedDelay = RandomizationUtils.randomizeDelay(delayMillis);
         randomizedDelay = Math.max(1000, randomizedDelay);
         
         var securityDialog = new SecurityDelayDialog(parent, "Security Delay", message);

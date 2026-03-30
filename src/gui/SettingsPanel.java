@@ -1,3 +1,14 @@
+import main.KeyRotationManager;
+    private void rotateEncryptionKey(char[] oldPassword, char[] newPassword, byte[] salt) {
+        try {
+            KeyRotationManager keyRotationManager = new KeyRotationManager(new encryption.EncryptionManager());
+            java.nio.file.Path logPath = logFileHandler.getFilePath();
+            keyRotationManager.rotateKey(logPath, oldPassword, newPassword, salt);
+            Toast.showToast(editor, "Encryption key rotated successfully!");
+        } catch (Exception e) {
+            gui.DialogHelper.showError(editor, "Key Rotation Failed", "Failed to rotate encryption key: " + e.getMessage());
+        }
+    }
 /*
  * Copyright (C) 2025 Johan Andersson
  *

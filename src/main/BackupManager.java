@@ -24,6 +24,8 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import main.HmacUtils;
 import main.SecurityEventLogger;
+import main.TamperDetector;
+import main.SecureDeletionUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -110,37 +112,7 @@ public class BackupManager {
             message,
             JOptionPane.QUESTION_MESSAGE,
             options,
-            options[0]
-        );
-        
-        if (choice == 0) {
-            // Configure custom directory
-            configureCustomBackupDirectory();
-        } else if (choice == 1) {
-            // Use home directory
-            settings.setProperty("backupDirectory", homeDir);
-            settings.setProperty("backupDirectoryConfigured", "true");
-            saveSettings();
-            
-            DialogHelper.showInfo(
-                parentFrame,
-                "Backup Directory Set",
-                "Backup Directory Set",
-                "Backups will be saved to:<br><b>" + homeDir + "</b><br><br>" +
-                "You can change this later in Settings."
-            );
-        } else {
-            // User closed dialog - use home directory as default
-            settings.setProperty("backupDirectory", homeDir);
-            settings.setProperty("backupDirectoryConfigured", "true");
-            saveSettings();
-        }
-    }
-    
-    /**
-     * Opens file chooser for user to select custom backup directory.
-     */
-    private void configureCustomBackupDirectory() {
+            // secureDelete method removed; use SecureDeletionUtils.wipeFile instead.
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         fileChooser.setDialogTitle("Select Backup Directory");
@@ -333,7 +305,7 @@ public class BackupManager {
 
             // Securely delete existing file if it exists
             if (Files.exists(backupPath)) {
-                secureDelete(backupPath);
+                SecureDeletionUtils.wipeFile(backupPath);
             }
 
             if (progressDialog != null) {
@@ -342,8 +314,25 @@ public class BackupManager {
             }
 
 
-            // Copy log file
+
+            // Tamper detection: check if log file has been externally modified
+            TamperDetector tamperDetector = new TamperDetector();
+            try {
+                tamperDetector.recordBaseline(logPath);
+            } catch (Exception e) {
+                // Silent fail, continue
+            }
+
             Files.copy(logPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
+
+            // After copy, check for tampering
+            try {
+                if (tamperDetector.isTampered(logPath)) {
+                    SecurityEventLogger.log("TamperDetected", "Log file was modified during backup: " + logPath);
+                }
+            } catch (Exception e) {
+                // Silent fail
+            }
 
             // Compute and append HMAC for integrity verification
             byte[] key = deriveSimpleHmacKey();
@@ -615,30 +604,5 @@ public class BackupManager {
      * This method is public static so it can be used throughout the application
      * for consistent secure deletion of sensitive backup files.
      */
-    public static void secureDelete(Path filePath) throws IOException {
-        if (!Files.exists(filePath)) {
-            return;
-        }
-
-        long fileSize = Files.size(filePath);
-        SecureRandom random = new SecureRandom();
-
-        // Overwrite file multiple times with random data
-        for (int pass = 0; pass < 3; pass++) {
-            try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(filePath.toFile(), "rw")) {
-                byte[] buffer = new byte[8192];
-                long remaining = fileSize;
-                while (remaining > 0) {
-                    int toWrite = (int) Math.min(buffer.length, remaining);
-                    random.nextBytes(buffer);
-                    raf.write(buffer, 0, toWrite);
-                    remaining -= toWrite;
-                }
-                raf.getFD().sync(); // Force write to disk
-            }
-        }
-
-        // Finally delete the file
-        Files.delete(filePath);
-    }
+    // Secure deletion now uses SecureDeletionUtils.wipeFile
 }
