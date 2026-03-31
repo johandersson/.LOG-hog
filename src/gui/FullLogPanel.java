@@ -48,7 +48,6 @@ import filehandling.FullLogFileLoader;
 import filehandling.LogFileFormatter;
 import filehandling.LogFileHandler;
 import filehandling.ParsedLogData;
-import markdown.MarkdownRenderer;
 import main.LogTextEditor;
 import notepad.NotepadOpener;
 
@@ -67,7 +66,7 @@ public class FullLogPanel extends LogPanel {
     private SearchDialog searchDialog;
     private boolean suppressAutoLoad; // default false, no initializer needed
     private TimestampClickHandler timestampClickHandler;
-    private SwingWorker<StyledDocument, Integer> currentLoadWorker;
+    // private SwingWorker<StyledDocument, Integer> currentLoadWorker; // No longer used
 
     public void setSuppressAutoLoad(boolean suppress) {
         this.suppressAutoLoad = suppress;
@@ -101,19 +100,19 @@ public class FullLogPanel extends LogPanel {
         this.fullLogPathLabel = new JLabel("Log file: (not loaded)");
         this.lockFileButton = new AccentButton(editor.isLocked() ? "Unlock File" : "Lock File");
         this.copyFullLogButton = new AccentButton("Copy Full Log to Clipboard");
-        
+
         // Platform-specific button label
         String os = System.getProperty("os.name").toLowerCase();
         String buttonLabel = os.contains("windows") ? "Open in Notepad" : "Open in Text Editor";
         this.openInNotepadButton = new AccentButton(buttonLabel);
-        
+
         this.searchButton = new AccentButton("Search");
         this.formatButton = new AccentButton("Fix Linebreak Formatting");
-        
+
         // Initialize info panel component
         this.infoPanel = new LogInfoPanel();
         this.fullLoadProgress = new JProgressBar();
-        
+
         initPanel();
         updateLockButton(); // Ensure buttons are in correct state based on lock status
     }
@@ -147,13 +146,13 @@ public class FullLogPanel extends LogPanel {
         // Add click on timestamp to edit entry (registered once)
         timestampClickHandler = new TimestampClickHandler(fullLogPane, this::openEntryForEditing);
 
-        var scroll = new JScrollPane(fullLogPane);
+        JScrollPane scroll = new JScrollPane(fullLogPane);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         add(scroll, BorderLayout.CENTER);
 
         timestampClickHandler.addScrollListeners();
 
-        var pathPanel = new JPanel(new BorderLayout());
+        JPanel pathPanel = new JPanel(new BorderLayout());
         pathPanel.setOpaque(false);
         fullLogPathLabel.setForeground(new Color(0x3A4A52));
         pathPanel.add(fullLogPathLabel, BorderLayout.WEST);
@@ -163,17 +162,17 @@ public class FullLogPanel extends LogPanel {
         pathPanel.add(fullLoadProgress, BorderLayout.EAST);
         add(pathPanel, BorderLayout.NORTH);
 
-        var bottom = new JPanel(new BorderLayout(10, 0));
+        JPanel bottom = new JPanel(new BorderLayout(10, 0));
         bottom.setOpaque(false);
-        
+
         // Left side: info panel in a wrapper to control sizing
-        var infoWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        JPanel infoWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         infoWrapper.setOpaque(false);
         infoWrapper.add(infoPanel);
         bottom.add(infoWrapper, BorderLayout.WEST);
-        
+
         // Right side: buttons
-        var buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         buttonPanel.setOpaque(false);
         copyFullLogButton.addActionListener(e -> copyFullLogToClipboard());
         buttonPanel.add(copyFullLogButton);
@@ -188,20 +187,20 @@ public class FullLogPanel extends LogPanel {
         });
         buttonPanel.add(lockFileButton);
 
-        var rightBottomPanel = getRightBottomPanel();
+        JPanel rightBottomPanel = getRightBottomPanel();
         buttonPanel.add(rightBottomPanel, 0);
         bottom.add(buttonPanel, BorderLayout.EAST);
-        
+
         add(bottom, BorderLayout.SOUTH);
     }
 
     private JPanel getRightBottomPanel() {
-        var rightBottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel rightBottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         rightBottomPanel.setOpaque(false);
 
         searchButton.addActionListener(e -> openSearchDialog());
         rightBottomPanel.add(searchButton);
-        
+
         formatButton.addActionListener(e -> fixLinebreakFormatting());
         rightBottomPanel.add(formatButton);
 
@@ -238,7 +237,7 @@ public class FullLogPanel extends LogPanel {
 
 
     private void copyFullLogToClipboard() {
-        var text = fullLogPane.getText();
+        String text = fullLogPane.getText();
         if (text == null || text.isEmpty()) {
             Toolkit.getDefaultToolkit().beep();
             DialogHelper.showWarning(this, "Copy Failed", "Log is empty or not loaded.");
@@ -262,17 +261,17 @@ public class FullLogPanel extends LogPanel {
                 return;
             }
             updateButtonStates(false);
-            var logPath = Path.of(System.getProperty("user.home"), "log.txt");
+            java.nio.file.Path logPath = java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt");
             if (!Files.exists(logPath)) {
                 showLogNotFound();
                 return;
             }
             clearEditorForNewLoad(logPath);
-            
+
             // Show loading feedback for large files
             setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             fullLoadProgress.setVisible(true);
-            
+
             // Use SwingWorker to keep UI responsive during large file loads
             new SwingWorker<ParsedLogData, Void>() {
                 @Override
@@ -280,7 +279,7 @@ public class FullLogPanel extends LogPanel {
                     // Parse in background thread
                     return fileLoader.parseLogFile(logPath);
                 }
-                
+
                 @Override
                 protected void done() {
                     setCursor(Cursor.getDefaultCursor());
@@ -323,18 +322,18 @@ public class FullLogPanel extends LogPanel {
                 return;
             }
             updateButtonStates(false);
-            var logPath = Path.of(System.getProperty("user.home"), "log.txt");
+            java.nio.file.Path logPath = java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt");
             if (!Files.exists(logPath)) {
                 showLogNotFound();
                 return;
             }
             clearEditorForNewLoad(logPath);
-            
+
             // Show loading feedback for large files
             setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             fullLoadProgress.setVisible(true);
             fullLogPane.setText("");
-            
+
             // Use SwingWorker to keep UI responsive during large file loads
             new SwingWorker<ParsedLogData, Void>() {
                 @Override
@@ -342,7 +341,7 @@ public class FullLogPanel extends LogPanel {
                     // Parse in background thread
                     return fileLoader.parseLogFile(logPath);
                 }
-                
+
                 @Override
                 protected void done() {
                     setCursor(Cursor.getDefaultCursor());
@@ -383,90 +382,6 @@ public class FullLogPanel extends LogPanel {
         resetLogStatistics();
     }
 
-        if (currentLoadWorker != null && !currentLoadWorker.isDone()) {
-            currentLoadWorker.cancel(true);
-        }
-
-        // Only show LoadingProgressDialog if the loader cache is not fresh
-        final LoadingProgressDialog[] progressHolder = new LoadingProgressDialog[1];
-        final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> {
-            if (progressHolder[0] != null) progressHolder[0].show();
-        });
-        showTimer.setRepeats(false);
-        try {
-            // Use optimized loading that returns parsed data for statistics
-            ParsedLogData parsedData = fileLoader.loadAndProcessLogFileWithData(logPath, scrollToBottom);
-            
-            // Calculate statistics from already parsed data (O(1) additional work)
-            LogStatistics stats = new LogStatistics(parsedData.getTotalEntryCount(), parsedData.entriesToRender, logPath);
-            infoPanel.updateStatistics(stats);
-        } catch (Exception ex) {
-            handleLoadException(ex, logPath);
-        }
-
-        SwingWorker<StyledDocument, Integer> worker = new SwingWorker<>() {
-            private ParsedLogData parsedData;
-
-            @Override
-            protected StyledDocument doInBackground() throws Exception {
-                // Parse (may be cached inside FileLoader) — use parse-only to avoid accidental off-EDT rendering
-                parsedData = fileLoader.parseLogFile(logPath, scrollToBottom);
-                // Build document with progress callbacks using setProgress to report
-                StyledDocument doc = MarkdownRenderer.buildDocumentFromEntries(parsedData.entriesToRender, pct -> setProgress(pct));
-                return doc;
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    if (isCancelled()) return;
-                    StyledDocument doc = get();
-                    fullLogPane.setDocument(doc);
-                    // Update statistics on EDT
-                    LogStatistics stats = new LogStatistics(parsedData.allEntries, logPath);
-                    infoPanel.updateStatistics(stats);
-                    // If requested, scroll to the end of the document so newest entries are visible
-                    if (scrollToBottom) {
-                        try {
-                            int len = fullLogPane.getDocument().getLength();
-                            fullLogPane.setCaretPosition(len);
-                            fullLogPane.requestFocusInWindow();
-                            try {
-                                var rect = fullLogPane.modelToView(fullLogPane.getCaretPosition());
-                                if (rect != null) fullLogPane.scrollRectToVisible(rect);
-                            } catch (javax.swing.text.BadLocationException ignored) {
-                                // best-effort scroll; ignore if location not available
-                            }
-                        } catch (Exception ignored) {}
-                    }
-
-                    if (onComplete != null) onComplete.run();
-                } catch (InterruptedException | java.util.concurrent.CancellationException ex) {
-                    // cancelled - ignore
-                } catch (Exception ex) {
-                    handleLoadException(ex, logPath);
-                } finally {
-                    if (showTimer.isRunning()) showTimer.stop();
-                    if (progressHolder[0] != null) progressHolder[0].close();
-                }
-            }
-        };
-
-        // Update progress bar when worker reports progress
-        worker.addPropertyChangeListener(evt -> {
-            if ("progress".equals(evt.getPropertyName())) {
-                Object val = evt.getNewValue();
-                    if (val instanceof Integer) {
-                    int v = (Integer) val;
-                    if (progressHolder[0] != null) progressHolder[0].setProgress(v);
-                }
-            }
-        });
-
-        currentLoadWorker = worker;
-        worker.execute();
-    }
-
     private void handleLoadException(Exception ex, Path logPath) {
         String errorMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
         if (errorMsg.contains("tag mismatch") || errorMsg.contains("decryption failed")) {
@@ -492,11 +407,11 @@ public class FullLogPanel extends LogPanel {
     }
 
     private void showLogNotFound() {
-        var userHome = System.getProperty("user.home");
+        String userHome = System.getProperty("user.home");
         fullLogPane.setText("log.txt not found in user home or current working directory.\n"
-                + "Checked paths:\n"
-                + Path.of(userHome, "log.txt") + "\n"
-                + Path.of(System.getProperty("user.dir"), "log.txt"));
+            + "Checked paths:\n"
+            + java.nio.file.Paths.get(userHome, "log.txt") + "\n"
+            + java.nio.file.Paths.get(System.getProperty("user.dir"), "log.txt"));
         fullLogPathLabel.setText("Log file: not found");
         fullLogPane.clearHighlights();
         resetLogStatistics();
