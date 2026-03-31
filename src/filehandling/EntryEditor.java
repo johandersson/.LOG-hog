@@ -59,7 +59,7 @@ public class EntryEditor {
      * Saves a new log entry with timestamp.
      */
     public void saveEntry(String text, String uniqueTimeStamp, boolean encrypted) throws Exception {
-        if (text == null || text.isBlank()) return;
+        if (text == null || text.trim().isEmpty()) return;
         
         String ls = System.lineSeparator();
         String entry = LogFileFormat.createEntry(uniqueTimeStamp, text);
@@ -68,7 +68,11 @@ public class EntryEditor {
             List<String> cachedLines = cache.getCachedLines();
             cachedLines.addAll(Arrays.asList(entry.split("\r?\n", -1)));
             // Restore fullText assignment for encrypted block
-            String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cachedLines);
+            StringBuilder fullTextBuilder = new StringBuilder();
+            for (String line : cachedLines) {
+                fullTextBuilder.append(line).append(LogFileFormat.INTERNAL_LINE_SEPARATOR);
+            }
+            String fullText = fullTextBuilder.toString();
             // Ensure .LOG header is present for encrypted files
             if (!fullText.startsWith(".LOG")) {
                 fullText = ".LOG" + LogFileFormat.INTERNAL_LINE_SEPARATOR + LogFileFormat.INTERNAL_LINE_SEPARATOR + fullText;
@@ -80,26 +84,23 @@ public class EntryEditor {
             encryptionManager.encryptFileFromLines(cache.getCachedLines());
         } else {
             // Normalize content lines: remove trailing blank lines from user-supplied text
-            String[] parts = text.split("\r?\n", -1);
-            List<String> contentLines = new ArrayList<>(Arrays.asList(parts));
+            List<String> contentLines = Arrays.asList(text.split("\r?\n", -1));
             // Remove trailing blank lines
             while (!contentLines.isEmpty() && contentLines.get(contentLines.size() - 1).trim().isEmpty()) {
-                contentLines.remove(contentLines.size() - 1);
+                contentLines = contentLines.subList(0, contentLines.size() - 1);
             }
             String normalizedContent = String.join(LogFileFormat.LINE_SEPARATOR, contentLines);
-            StringBuilder entryBuilder = new StringBuilder();
-            entryBuilder.append(LogFileFormat.createEntry(uniqueTimeStamp, normalizedContent));
-            String entryToAppend = entryBuilder.toString();
+            String entryToAppend = LogFileFormat.createEntry(uniqueTimeStamp, normalizedContent);
 
             if (Files.exists(filePath)) {
                 if (backupManager != null) {
                     backupManager.createNumberedBackup();
                 }
-                Files.writeString(filePath, entryToAppend, java.nio.file.StandardOpenOption.APPEND);
+                java.nio.file.Files.write(filePath, entryToAppend.getBytes(java.nio.charset.StandardCharsets.UTF_8), java.nio.file.StandardOpenOption.APPEND);
             } else {
                 // For new files, ensure .LOG header exists for Notepad compatibility
                 String contentWithHeader = ".LOG" + ls + ls + entryToAppend;
-                Files.writeString(filePath, contentWithHeader, java.nio.file.StandardOpenOption.CREATE);
+                java.nio.file.Files.write(filePath, contentWithHeader.getBytes(java.nio.charset.StandardCharsets.UTF_8), java.nio.file.StandardOpenOption.CREATE);
             }
         }
     }
@@ -108,7 +109,7 @@ public class EntryEditor {
      * Updates an existing log entry.
      */
     public List<String> updateEntry(String timeStamp, String newText, List<String> lines) {
-        if (newText.isBlank()) return lines;
+        if (newText == null || newText.trim().isEmpty()) return lines;
 
         // Enforce maximum entry length on updates as well (avoid reassigning parameter)
         String updatedText = newText;
@@ -126,13 +127,10 @@ public class EntryEditor {
 
         for (String line : lines) {
             if (line.trim().equals(timeStamp.trim())) {
-                    inTargetEntry = true;
-                    updatedLines.add(line); // keep the timestamp line
-                    // Split the new text into individual lines so the file stores each paragraph line separately
-                    String[] newLines = updatedText.split("\r?\n", -1);
-                    for (String nl : newLines) {
-                        updatedLines.add(nl);
-                    }
+                inTargetEntry = true;
+                updatedLines.add(line); // keep the timestamp line
+                // Use Arrays.asList instead of tight loop
+                updatedLines.addAll(Arrays.asList(updatedText.split("\r?\n", -1)));
                 continue;
             }
 
@@ -147,7 +145,7 @@ public class EntryEditor {
                 updatedLines.add(line);
             }
         }
-        
+
         return updatedLines;
         // (Fixed: Only one implementation should exist. The above block is the correct one, so remove the duplicate below.)
     }
@@ -225,7 +223,7 @@ public class EntryEditor {
      * Returns the generated unique timestamp or null on failure.
      */
     public String createAndSaveEntry(String text) throws Exception {
-        if (text == null || text.isBlank()) return null;
+        if (text == null || text.trim().isEmpty()) return null;
 
         // Enforce maximum entry length to avoid extremely large entries (avoid reassigning parameter)
         String inputText = text;
@@ -242,26 +240,15 @@ public class EntryEditor {
         int count = 0;
 
         // Determine duplicate count using cache or file read
-        List<String> existingLines = null;
         if (Files.exists(filePath)) {
-            if (encryptionManager.isEncrypted()) {
-                existingLines = cache.getCachedLines();
-                if (existingLines == null || existingLines.isEmpty()) {
-                    // Use streaming API that avoids allocating a full String for large files
-                    existingLines = encryptionManager.decryptFileToLines();
-                    cache.updateCachedLines(existingLines);
-                }
-            } else {
-                existingLines = Files.readAllLines(filePath);
-            }
+            List<String> existingLines = encryptionManager.isEncrypted() ? cache.getCachedLines() : Files.readAllLines(filePath);
             if (existingLines != null) {
-                for (String line : existingLines) {
-                    if (line.trim().startsWith(timeStamp)) count++;
-                }
+                count = (int) existingLines.stream().filter(line -> line.trim().startsWith(timeStamp)).count();
             }
         }
 
         String unique = createUniqueTimestamp(count);
+        // Use StringBuilder for string appends if needed in future logic
         saveEntry(inputText, unique, encryptionManager.isEncrypted());
         return unique;
     }
@@ -276,7 +263,6 @@ public class EntryEditor {
 
         if (encrypted) {
             cache.updateCachedLines(normalized);
-            String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, cache.getCachedLines());
             if (backupManager != null) {
                 backupManager.createNumberedBackup();
             }

@@ -42,7 +42,7 @@ public class PasswordStrengthIndicator extends JPanel {
         add(strengthBar, BorderLayout.CENTER);
     }
 
-    public void updateStrength(char[] password) {
+    public void updateStrength(char... password) {
         int score = calculateStrength(password);
         strengthBar.setValue(score);
 
@@ -69,7 +69,7 @@ public class PasswordStrengthIndicator extends JPanel {
         strengthLabel.setText("Password Strength: " + level);
     }
 
-    public static int calculateStrength(char[] password) {
+    public static int calculateStrength(char... password) {
         int score = 0;
         int length = password.length;
         boolean hasLower = false, hasUpper = false, hasDigit = false, hasSpecial = false;

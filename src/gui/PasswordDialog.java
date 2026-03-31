@@ -37,7 +37,7 @@ public class PasswordDialog extends JDialog {
     private JButton okButton;
     private JButton cancelButton;
     private char[] password;
-    private boolean visible = false;
+    private boolean visible; // default false, no initializer needed
     private String reminder;
     private String customMessage;
     private PasswordStrengthIndicator strengthIndicator;
@@ -67,7 +67,7 @@ public class PasswordDialog extends JDialog {
         welcomeLabel.setForeground(new Color(0x2B3A42));
         topPanel.add(welcomeLabel, BorderLayout.NORTH);
 
-        if (reminder != null && !reminder.trim().isEmpty()) {
+        if (reminder != null && !reminder.isBlank()) {
             var reminderLabel = new JLabel("Reminder: " + reminder, SwingConstants.CENTER);
             reminderLabel.setForeground(new Color(0x5E6A70));
             reminderLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
@@ -210,7 +210,7 @@ public class PasswordDialog extends JDialog {
     public static class PasswordResult {
         public final char[] password;
 
-        public PasswordResult(char[] password) {
+        public PasswordResult(char... password) {
             // Always store a copy to avoid exposing mutable array
             this.password = password == null ? null : java.util.Arrays.copyOf(password, password.length);
         }

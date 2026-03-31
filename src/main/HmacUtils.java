@@ -1,7 +1,7 @@
 package main;
 
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+// Unused import removed for PMD compliance
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 

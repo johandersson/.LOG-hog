@@ -2,7 +2,7 @@ import javax.swing.*;
 import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+// Unused import removed for PMD compliance
 
 import filehandling.LogFileHandler;
 import filehandling.EntryLoader;

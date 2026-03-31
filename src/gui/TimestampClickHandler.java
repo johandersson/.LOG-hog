@@ -39,8 +39,8 @@ public class TimestampClickHandler {
     private final JTextPane textPane;
     private final TimestampClickListener clickListener;
     
-    private boolean isHoveringTimestamp = false;
-    private boolean buttonVisible = false;
+    private boolean isHoveringTimestamp;
+    private boolean buttonVisible;
     private JWindow overlayWindow;
     private StandardButton overlayButton;
     private PenIcon penIcon;

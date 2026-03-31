@@ -51,8 +51,6 @@ public class LogFileFormatter {
         }
     }
     
-    // Security: use centralized resource limits
-    private static final int MAX_COLLECTION_SIZE = ResourceLimits.MAX_COLLECTION_SIZE;
     
     /**
      * Sorts entries by timestamp and ensures consistent spacing.

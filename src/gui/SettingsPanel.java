@@ -23,7 +23,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.io.FileOutputStream;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -55,22 +55,7 @@ import main.KeyRotationManager;
 import main.SecureDeletionUtils;
 
 public class SettingsPanel extends JPanel {
-    /**
-     * Rotates the encryption key for the log file.
-     * @param oldPassword The current password.
-     * @param newPassword The new password.
-         * @param salt The salt used for key derivation.
-         */
-        private void rotateEncryptionKey(char[] oldPassword, char[] newPassword, byte[] salt) {
-            try {
-                KeyRotationManager keyRotationManager = new KeyRotationManager(new encryption.EncryptionManager());
-                java.nio.file.Path logPath = logFileHandler.getFilePath();
-                keyRotationManager.rotateKey(logPath, oldPassword, newPassword, salt);
-                Toast.showToast(editor, "Encryption key rotated successfully!");
-            } catch (Exception e) {
-                gui.DialogHelper.showError(editor, "Key Rotation Failed", "Failed to rotate encryption key: " + e.getMessage());
-            }
-        }
+    // Removed unused private method rotateEncryptionKey (PMD)
     private final LogTextEditor editor;
     private final Properties settings;
     private final Path settingsPath;
@@ -83,7 +68,7 @@ public class SettingsPanel extends JPanel {
     private JTextField reminderField;
     private JLabel statusLabel;
     private JTextField backupDirField;
-    private JButton browseBackupButton;
+    // Removed unused private field browseBackupButton (PMD)
     private JCheckBox splashOnStartupCheckBox;
     private JCheckBox clipboardAutoClearCheckBox;
     private JTextField clipboardTimeoutField;
@@ -674,11 +659,11 @@ public class SettingsPanel extends JPanel {
                 message.append("• ").append(backup.getFileName().toString()).append("<br>");
             }
 
-            message.append("<br><b>Security Risk:</b> These backups contain your log data in plain text.<br>");
-            message.append("Anyone with access to your backup location can read them.<br><br>");
-            message.append("<b>Recommendation:</b> Delete these old backups to prevent data exposure.<br>");
-            message.append("You can keep them if you need them for recovery purposes.<br><br>");
-            message.append("What would you like to do?</html>");
+            message.append("<br><b>Security Risk:</b> These backups contain your log data in plain text.<br>"
+                + "Anyone with access to your backup location can read them.<br><br>"
+                + "<b>Recommendation:</b> Delete these old backups to prevent data exposure.<br>"
+                + "You can keep them if you need them for recovery purposes.<br><br>"
+                + "What would you like to do?</html>");
 
             int choice = gui.DialogHelper.showOptions(editor,
                 "Clean Up Old Backups",
@@ -694,9 +679,7 @@ public class SettingsPanel extends JPanel {
                         try {
                             SecureDeletionUtils.wipeFile(backup);
                         } catch (Exception e) {
-                            if (Log.isErrorEnabled()) {
-                                Log.error("Failed to securely delete backup: " + backup, e);
-                            }
+                            Log.error("Failed to securely delete backup: " + backup, e);
                         }
                     }
 
@@ -905,7 +888,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private boolean isValidClipboardTimeout(String timeoutStr) {
-        if (timeoutStr == null || timeoutStr.trim().isEmpty()) {
+        if (timeoutStr == null || timeoutStr.isBlank()) {
             return false;
         }
 
@@ -919,17 +902,8 @@ public class SettingsPanel extends JPanel {
     }
 
     private boolean isValidAutoLockTimeout(String timeoutStr) {
-        if (timeoutStr == null || timeoutStr.trim().isEmpty()) {
-            return false;
-        }
-
-        try {
-            int timeout = Integer.parseInt(timeoutStr.trim());
-            // Timeout must be between 10 seconds and 24 hours (86400 seconds)
-            return timeout >= 10 && timeout <= 86400;
-        } catch (NumberFormatException e) {
-            return false;
-        }
+        // Method unused, removed for PMD compliance
+        return false;
     }
 
     private boolean isValidReminder(String reminder) {
@@ -949,7 +923,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private boolean isValidBackupDirectory(String path) {
-        if (path == null || path.trim().isEmpty()) {
+        if (path == null || path.isBlank()) {
             return true; // Empty path is allowed (will use default)
         }
         try {

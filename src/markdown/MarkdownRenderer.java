@@ -684,10 +684,10 @@ public class MarkdownRenderer {
 
     private static String sanitizeLine(String line) {
         if (line == null) return "";
-        // Remove nulls and most control characters but keep tab and newline semantics handled elsewhere
+        String sanitized;
         try {
             // Remove ASCII control chars except tab (\t)
-            String sanitized = line.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
+            sanitized = line.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
             // Neutralize any <script occurrences (case-insensitive)
             sanitized = sanitized.replaceAll("(?i)<script", "&lt;script");
         } catch (Exception e) {

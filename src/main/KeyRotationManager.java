@@ -1,8 +1,7 @@
 package main;
 
 import java.nio.file.*;
-import java.util.List;
-import javax.crypto.SecretKey;
+// Unused imports removed for PMD compliance
 import encryption.EncryptionManager;
 
 public class KeyRotationManager {

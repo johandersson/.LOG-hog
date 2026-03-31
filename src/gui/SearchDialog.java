@@ -47,10 +47,10 @@ public class SearchDialog extends JDialog {
     private final JButton closeBtn;
 
     // Track last search to enable Enter navigation
-    private String lastQuery = "";
-    private boolean lastWholeWord = false;
-    private boolean lastCaseSensitive = false;
-    private int lastMatchCount = 0;
+    private String lastQuery; // default null
+    private boolean lastWholeWord; // default false
+    private boolean lastCaseSensitive; // default false
+    private int lastMatchCount; // default 0
 
     public SearchDialog(Frame parent, HighlightableTextPane textPane) {
         super(parent, "Find in Log", true); // Modal dialog

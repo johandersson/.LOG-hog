@@ -27,7 +27,7 @@ import java.util.List;
 
 public class PasswordGenerator {
     private static final SecureRandom random = new SecureRandom();
-    private static List<String> wordList = null;
+    private static List<String> wordList; // default null, no initializer needed
 
     private static void loadWordList() {
         if (wordList != null) return;
@@ -82,7 +82,7 @@ public class PasswordGenerator {
         loadWordList();
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < wordCount; i++) {
-            if (i > 0) sb.append(" ");
+            if (i > 0) sb.append(' ');
             sb.append(wordList.get(random.nextInt(wordList.size())));
         }
         return sb.toString();

@@ -21,7 +21,7 @@ import java.awt.Toolkit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.swing.JOptionPane;
+
 import gui.DialogHelper;
 import javax.swing.JTextPane;
 import javax.swing.text.BadLocationException;
@@ -74,15 +74,11 @@ public class HighlightableTextPane extends JTextPane {
 
     private int performSearch(String text, String query, boolean wholeWord, boolean caseSensitive, Highlighter highlighter) {
         final int MAX_HIGHLIGHTS = 10000;
-        int matchCount = 0;
-
         if (!wholeWord) {
-            matchCount = performSimpleSearch(text, query, caseSensitive, highlighter, MAX_HIGHLIGHTS);
+            return performSimpleSearch(text, query, caseSensitive, highlighter, MAX_HIGHLIGHTS);
         } else {
-            matchCount = performRegexSearch(text, query, caseSensitive, highlighter, MAX_HIGHLIGHTS);
+            return performRegexSearch(text, query, caseSensitive, highlighter, MAX_HIGHLIGHTS);
         }
-
-        return matchCount;
     }
 
     private int performSimpleSearch(String text, String query, boolean caseSensitive, Highlighter highlighter, int maxHighlights) {

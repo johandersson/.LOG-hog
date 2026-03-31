@@ -21,7 +21,7 @@ import java.awt.Desktop;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import javax.swing.JOptionPane;
+// Unused import removed for PMD compliance
 
 import gui.DialogHelper;
 

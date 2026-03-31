@@ -13,7 +13,7 @@ public interface LogFileOperations {
     void saveText(String text, DefaultListModel<String> listModel) throws Exception;
     void loadLogEntries(DefaultListModel<String> listModel) throws Exception;
     String loadEntry(String timestamp) throws Exception;
-    void enableEncryption(char[] password) throws Exception;
+    void enableEncryption(char... password) throws Exception;
     void disableEncryption() throws Exception;
     boolean isEncrypted();
     char[] getPassword();

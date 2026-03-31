@@ -1,9 +1,9 @@
 package encryption;
 
-import org.junit.jupiter.api.*;
+// Unused import removed for PMD compliance
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.nio.charset.StandardCharsets;
+// Unused import removed for PMD compliance
 
 /**
  * Comprehensive edge case tests for encryption functionality

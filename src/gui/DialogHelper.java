@@ -35,12 +35,12 @@ public class DialogHelper {
      * @param details Additional details (optional, can be null)
      */
     public static void showError(Component parent, String title, String message, String details) {
-        String html = "<html><b>" + message + "</b>";
+        StringBuilder htmlBuilder = new StringBuilder("<html><b>").append(message).append("</b>");
         if (details != null && !details.isEmpty()) {
-            html += "<br><br>" + details;
+            htmlBuilder.append("<br><br>").append(details);
         }
-        html += "</html>";
-        final String htmlFinal = html;
+        htmlBuilder.append("</html>");
+        final String htmlFinal = htmlBuilder.toString();
         if (SwingUtilities.isEventDispatchThread()) {
             JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.ERROR_MESSAGE);
         } else {
@@ -59,12 +59,12 @@ public class DialogHelper {
      * Shows a warning dialog with formatted HTML message.
      */
     public static void showWarning(Component parent, String title, String message, String details) {
-        String html = "<html><b>" + message + "</b>";
+        StringBuilder htmlBuilder = new StringBuilder("<html><b>").append(message).append("</b>");
         if (details != null && !details.isEmpty()) {
-            html += "<br><br>" + details;
+            htmlBuilder.append("<br><br>").append(details);
         }
-        html += "</html>";
-        final String htmlFinal = html;
+        htmlBuilder.append("</html>");
+        final String htmlFinal = htmlBuilder.toString();
         if (SwingUtilities.isEventDispatchThread()) {
             JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.WARNING_MESSAGE);
         } else {
@@ -83,12 +83,12 @@ public class DialogHelper {
      * Shows an information dialog with formatted HTML message.
      */
     public static void showInfo(Component parent, String title, String message, String details) {
-        String html = "<html><b>" + message + "</b>";
+        StringBuilder htmlBuilder = new StringBuilder("<html><b>").append(message).append("</b>");
         if (details != null && !details.isEmpty()) {
-            html += "<br><br>" + details;
+            htmlBuilder.append("<br><br>").append(details);
         }
-        html += "</html>";
-        final String htmlFinal = html;
+        htmlBuilder.append("</html>");
+        final String htmlFinal = htmlBuilder.toString();
         if (SwingUtilities.isEventDispatchThread()) {
             JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.INFORMATION_MESSAGE);
         } else {
@@ -107,12 +107,12 @@ public class DialogHelper {
      * Shows a success dialog (using information icon with checkmark).
      */
     public static void showSuccess(Component parent, String title, String message, String details) {
-        String html = "<html><b>✓ " + message + "</b>";
+        StringBuilder htmlBuilder = new StringBuilder("<html><b>✓ ").append(message).append("</b>");
         if (details != null && !details.isEmpty()) {
-            html += "<br><br>" + details;
+            htmlBuilder.append("<br><br>").append(details);
         }
-        html += "</html>";
-        final String htmlFinal = html;
+        htmlBuilder.append("</html>");
+        final String htmlFinal = htmlBuilder.toString();
         if (SwingUtilities.isEventDispatchThread()) {
             JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.INFORMATION_MESSAGE);
         } else {
@@ -132,12 +132,12 @@ public class DialogHelper {
      * @return true if user clicked Yes, false otherwise
      */
     public static boolean confirm(Component parent, String title, String message, String details) {
-        String html = "<html><b>" + message + "</b>";
+        StringBuilder htmlBuilder = new StringBuilder("<html><b>").append(message).append("</b>");
         if (details != null && !details.isEmpty()) {
-            html += "<br><br>" + details;
+            htmlBuilder.append("<br><br>").append(details);
         }
-        html += "</html>";
-        final String htmlFinal = html;
+        htmlBuilder.append("</html>");
+        final String htmlFinal = htmlBuilder.toString();
         if (SwingUtilities.isEventDispatchThread()) {
             int result = JOptionPane.showConfirmDialog(parent, htmlFinal, title,
                 JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
@@ -169,12 +169,12 @@ public class DialogHelper {
      */
     public static int showOptions(Component parent, String title, String message, String details,
                                    int messageType, Object[] options, Object defaultOption) {
-        String html = "<html><b>" + message + "</b>";
+        StringBuilder htmlBuilder = new StringBuilder("<html><b>").append(message).append("</b>");
         if (details != null && !details.isEmpty()) {
-            html += "<br><br>" + details;
+            htmlBuilder.append("<br><br>").append(details);
         }
-        html += "</html>";
-        final String htmlFinal = html;
+        htmlBuilder.append("</html>");
+        final String htmlFinal = htmlBuilder.toString();
         if (SwingUtilities.isEventDispatchThread()) {
             return JOptionPane.showOptionDialog(parent, htmlFinal, title,
                 JOptionPane.YES_NO_OPTION, messageType, null, options, defaultOption);

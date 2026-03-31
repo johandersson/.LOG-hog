@@ -11,8 +11,8 @@ import utils.Log;
  * Stays visible at 100% and adds an OK button when the operation completes.
  */
 public class EncryptionProgressDialog extends LoadingProgressDialog {
-    private boolean completionShown = false;
-    private Runnable onOkCallback = null;
+    private boolean completionShown; // default false, no initializer needed
+    private Runnable onOkCallback;   // default null, no initializer needed
 
     public EncryptionProgressDialog(Frame parent, String title) {
         super(parent, title);

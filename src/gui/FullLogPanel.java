@@ -48,7 +48,6 @@ import filehandling.FullLogFileLoader;
 import filehandling.LogFileFormatter;
 import filehandling.LogFileHandler;
 import filehandling.ParsedLogData;
-import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 import main.LogTextEditor;
 import notepad.NotepadOpener;
@@ -66,7 +65,7 @@ public class FullLogPanel extends LogPanel {
     private final LogInfoPanel infoPanel;
     private final JProgressBar fullLoadProgress;
     private SearchDialog searchDialog;
-    private boolean suppressAutoLoad = false;
+    private boolean suppressAutoLoad; // default false, no initializer needed
     private TimestampClickHandler timestampClickHandler;
     private SwingWorker<StyledDocument, Integer> currentLoadWorker;
 
@@ -237,9 +236,6 @@ public class FullLogPanel extends LogPanel {
         openSearchDialog();
     }
 
-    private void navigateToHighlight(boolean next) {
-        fullLogPane.navigateHighlights(next);
-    }
 
     private void copyFullLogToClipboard() {
         var text = fullLogPane.getText();
@@ -387,17 +383,6 @@ public class FullLogPanel extends LogPanel {
         resetLogStatistics();
     }
 
-    private void loadAndProcessLogFile(Path logPath) {
-        // Ensure cache is invalidated to reflect latest file/encryption state
-        fileLoader.invalidateCache();
-        loadAndProcessLogFile(logPath, true, null);
-    }
-
-    private void loadAndProcessLogFile(Path logPath, boolean scrollToBottom, Runnable onComplete) {
-        // Ensure cache is invalidated before starting
-        fileLoader.invalidateCache();
-
-        // Cancel any previous load worker
         if (currentLoadWorker != null && !currentLoadWorker.isDone()) {
             currentLoadWorker.cancel(true);
         }

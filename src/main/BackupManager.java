@@ -54,8 +54,8 @@ public class BackupManager {
     private static final int MAX_NUMBERED_BACKUPS = 5;
     private static final int MAX_AUTO_BACKUPS = 10;
     private static final long SHOW_PROGRESS_THRESHOLD = 1024 * 1024; // Show progress for files > 1MB
-    private long lastBackupTime = 0;
-    private long lastFileModified = 0;
+    private long lastBackupTime;
+    private long lastFileModified;
     private Frame parentFrame;
 
     public BackupManager(Properties settings) {

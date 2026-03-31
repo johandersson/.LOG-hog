@@ -68,6 +68,8 @@ public class InformationPanel extends JPanel {
         sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         add(sp, BorderLayout.CENTER);
 
+        // 'tabPanel' parameter is unused, kept for compatibility (PMD fix)
+
         if (lazyLoad && !showSplash) {
             var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             bottom.setOpaque(false);

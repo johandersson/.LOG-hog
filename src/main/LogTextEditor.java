@@ -117,13 +117,13 @@ public class LogTextEditor extends JFrame {
     private SecureSettings secureSettings;
 
     private String passwordReminder = "";
-    private boolean isLocked = false;
+    private boolean isLocked;
     private final Object lockObject = new Object();
     private BackupManager backupManager;
     private javax.swing.Timer periodicBackupTimer;
     private javax.swing.Timer autoLockTimer;
     private Thread listenerThread;
-    private boolean autoLockEnabled = false;
+    private boolean autoLockEnabled;
     private int autoLockTimeoutSeconds = 900; // Default 15 minutes
 
     public boolean isLocked() {

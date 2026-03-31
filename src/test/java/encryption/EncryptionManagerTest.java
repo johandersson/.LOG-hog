@@ -1,6 +1,6 @@
 package encryption;
 
-import org.junit.jupiter.api.*;
+// Unused import removed for PMD compliance
 import static org.junit.jupiter.api.Assertions.*;
 
 /**

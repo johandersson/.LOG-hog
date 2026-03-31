@@ -34,12 +34,12 @@ import javax.swing.JPanel;
 import utils.WindowShakeAnimation;
 
 public class SplashScreen extends JDialog {
-    private int animationFrame = 0;
+    private int animationFrame; // default 0
     private javax.swing.Timer animationTimer;
     private StandardButton okButton;
     private java.util.List<String> entriesList;
     private Point initialClick;
-    private boolean okPressed = false;
+    private boolean okPressed; // default false
 
     public SplashScreen() {
         super((Frame) null, "Splash", true); // modal dialog
@@ -139,9 +139,9 @@ public class SplashScreen extends JDialog {
 
     private void drawMan(Graphics2D g2d, int manX, int manY) {
         g2d.setStroke(new BasicStroke(2));
-        var skin = new Color(255, 218, 185);
-        var shirt = Color.RED; // red shirt
-        var pants = Color.BLUE;
+        final Color skin = new Color(255, 218, 185);
+        final Color shirt = Color.RED; // red shirt
+        final Color pants = Color.BLUE;
 
         drawHead(g2d, manX, manY, skin);
         drawHair(g2d, manX, manY);

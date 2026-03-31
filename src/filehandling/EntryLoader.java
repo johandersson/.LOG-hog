@@ -240,14 +240,13 @@ public class EntryLoader {
                 // For the list view, show only the timestamp line (or first line for non-timestamp entries)
                 if (!entry.isEmpty()) {
                     String rawTs = entry.get(0).trim();
-                    
-                    // Cache entry content for fast retrieval
+                    // PMD: Suppress warning - StringBuilder is required per entry
+                    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
                     StringBuilder content = new StringBuilder();
                     for (int i = 1; i < entry.size(); i++) {
                         content.append(entry.get(i)).append('\n');
                     }
                     entryContentCache.put(rawTs, content.toString().trim());
-                    
                     if (tsPattern.matcher(rawTs).matches()) {
                         // Keep the suffix to distinguish duplicate entries
                         elementsToAdd.add(rawTs);
@@ -424,7 +423,7 @@ public class EntryLoader {
         
         for (String line : lines) {
             String trimmed = line.trim();
-            if (trimmed.equalsIgnoreCase(".LOG")) continue;
+            if (".LOG".equalsIgnoreCase(trimmed)) continue;
             if (tsPattern.matcher(trimmed).matches()) {
                 if (!currentEntry.isEmpty()) {
                     entries.add(new ArrayList<>(currentEntry));
@@ -525,6 +524,8 @@ public class EntryLoader {
             for (List<String> entry : allEntries) {
                 if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
                     String entryTs = entry.get(0).trim();
+                    // PMD: Suppress warning - StringBuilder is required per entry
+                    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
                     StringBuilder content = new StringBuilder();
                     for (int i = 1; i < entry.size(); i++) {
                         content.append(entry.get(i)).append('\n');

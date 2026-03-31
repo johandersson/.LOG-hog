@@ -17,7 +17,7 @@
 
 package markdown;
 
-import java.awt.Color;
+// Unused import removed for PMD compliance
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

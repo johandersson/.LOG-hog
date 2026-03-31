@@ -1,10 +1,9 @@
 package encryption;
 
-import encryption.StreamEncryptor;
-import utils.ProgressCallback;
+
 
 import java.security.SecureRandom;
-import java.util.Arrays;
+
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -138,7 +137,7 @@ public class EncryptionManager implements encryption.StreamEncryptor {
             try {
                 return new SecretKeySpec(raw, "AES");
             } finally {
-                if (raw != null) Arrays.fill(raw, (byte)0);
+                if (raw != null) java.util.Arrays.fill(raw, (byte)0);
             }
         } catch (Exception e) {
             throw new EncryptionException("Unable to process your password. Please check your password and try again.", e);

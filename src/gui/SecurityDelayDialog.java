@@ -24,7 +24,6 @@ import main.RandomizationUtils;
 import javax.swing.Timer;
 
 public class SecurityDelayDialog extends ProgressDialogBase {
-    private static final SecureRandom secureRandom = new SecureRandom();
 
     public static void showDialog(long delayMillis, Frame parent) {
         showDialog(delayMillis, parent, "Security delay after failed password attempt...");

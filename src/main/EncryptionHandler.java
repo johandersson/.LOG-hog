@@ -21,7 +21,7 @@ import java.util.Base64;
 import java.util.Properties;
 
 import javax.swing.JFrame;
-import javax.swing.JOptionPane;
+// Unused import removed for PMD compliance
 import javax.swing.SwingUtilities;
 
 import filehandling.LogFileHandler;

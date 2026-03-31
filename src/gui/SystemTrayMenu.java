@@ -31,7 +31,7 @@ import javax.swing.JFrame;
 import main.LogTextEditor;
 
 public class SystemTrayMenu {
-    private static SystemTrayMenu instance = null;
+    private static SystemTrayMenu instance;
     public static LogTextEditor logTextEditor;
     public static Menu recentLogsMenu;
     public static PopupMenu popup;

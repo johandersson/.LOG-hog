@@ -48,7 +48,7 @@ public class EntrySorter {
 
         for (String line : lines) {
             String trimmed = line.trim();
-            if (trimmed.equalsIgnoreCase(".LOG")) continue; // Skip .LOG during processing
+            if (".LOG".equalsIgnoreCase(trimmed)) continue; // Skip .LOG during processing
             if (TIMESTAMP_PATTERN.matcher(trimmed).matches()) {
                 if (!currentEntry.isEmpty()) {
                     entries.add(new ArrayList<>(currentEntry));
@@ -83,6 +83,10 @@ public class EntrySorter {
             try {
                 LocalDateTime dateA = parseDateForSorting(a.get(0));
                 LocalDateTime dateB = parseDateForSorting(b.get(0));
+                // PMD: Position literals first in String comparisons
+                if (dateA == null && dateB == null) return 0;
+                if (dateA == null) return 1;
+                if (dateB == null) return -1;
                 return dateA.compareTo(dateB);
             } catch (Exception e) {
                 return 0; // keep original order if parsing fails

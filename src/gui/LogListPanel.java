@@ -63,109 +63,6 @@ import utils.UndoRedoTextArea;
 
 public class LogListPanel extends JPanel {
     private final JList<String> logList;
-    private final DefaultListModel<String> listModel;
-    private final JTextArea entryArea;
-    private final LogFileHandler logFileHandler;
-    private final LogTextEditor editor;
-    private final JScrollPane entryScroll;
-    private final JLabel lockLabel;
-    private final JPanel entryContainer;
-    private final HighlightableTextPane previewPane;
-    private final JScrollPane previewScrollPane;
-    private boolean isPreviewMode = false;
-    private boolean suppressFilterEvents = false;
-    private JComboBox<Integer> yearCombo;
-    private JComboBox<String> monthCombo;
-    private final LogInfoPanel infoPanel;
-    private final JProgressBar filterProgressBar;
-    private final JProgressBar entryProgressBar;
-
-    public LogListPanel(LogTextEditor editor, LogFileHandler logFileHandler, DefaultListModel<String> listModel, JList<String> logList) {
-        this.editor = editor;
-        this.logFileHandler = logFileHandler;
-        this.listModel = listModel;
-        this.logList = logList;
-        this.entryArea = new UndoRedoTextArea();
-        this.entryScroll = new JScrollPane(entryArea);
-        this.lockLabel = new JLabel("File locked. Press Unlock file in Full log view to unlock it again.", SwingConstants.CENTER);
-        this.entryContainer = new JPanel(new BorderLayout());
-        this.previewPane = new HighlightableTextPane();
-        this.previewScrollPane = new JScrollPane(previewPane);
-        this.infoPanel = new LogInfoPanel();
-        this.filterProgressBar = new JProgressBar();
-        this.entryProgressBar = new JProgressBar();
-        initPanel();
-    }
-
-    private void updateCharCountLabel(javax.swing.JLabel label, String text) {
-        int len = text == null ? 0 : text.length();
-        int left = Math.max(0, InputLimits.ENTRY_MAX_CHARS - len);
-        label.setText("Chars left: " + left);
-        if (left <= 100) {
-            label.setForeground(new java.awt.Color(0xA00000));
-        } else {
-            label.setForeground(java.awt.Color.GRAY);
-        }
-    }
-
-    private void initPanel() {
-        setLayout(new BorderLayout(8, 8));
-        setBackground(Color.WHITE);
-
-        // Top: filter controls
-        var filterPanel = createFilterPanel();
-        add(filterPanel, BorderLayout.NORTH);
-
-        // Center: list and editor pane in a split
-        var split = createLogSplitPane();
-        add(split, BorderLayout.CENTER);
-
-        // Do not add the info panel or year scope in the Log List view
-        setupListeners(split);
-    }
-
-    private JPanel createFilterPanel() {
-        var filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 6));
-        filterPanel.setOpaque(false);
-        var filterLabel = new JLabel("Filter on date");
-        filterLabel.setFont(filterLabel.getFont().deriveFont(Font.BOLD));
-        filterPanel.add(filterLabel);
-
-        // Populate year combo from the currently displayed entries in the list (most recent view)
-        java.util.Set<Integer> yearsSet = new java.util.LinkedHashSet<>();
-        for (int i = 0; i < listModel.getSize(); i++) {
-            try {
-                String ts = listModel.getElementAt(i);
-                java.time.LocalDateTime dt = utils.DateHandler.parseTimestamp(ts);
-                yearsSet.add(dt.getYear());
-            } catch (Exception ignored) {
-            }
-        }
-        Integer[] yearsArr;
-        if (!yearsSet.isEmpty()) {
-            yearsArr = yearsSet.toArray(new Integer[0]);
-        } else {
-            var currentYear = Year.now().getValue();
-            yearsArr = IntStream.rangeClosed(currentYear, currentYear).boxed().toArray(Integer[]::new);
-        }
-        yearCombo = new JComboBox<>(yearsArr);
-        // Select the most recent year by default if present
-        if (yearsArr.length > 0) yearCombo.setSelectedItem(yearsArr[0]);
-        filterPanel.add(yearCombo);
-
-        var months = new String[]{
-                "All Months",
-                "01 - Jan", "02 - Feb", "03 - Mar", "04 - Apr",
-                "05 - May", "06 - Jun", "07 - Jul", "08 - Aug",
-                "09 - Sep", "10 - Oct", "11 - Nov", "12 - Dec"
-        };
-        monthCombo = new JComboBox<>(months);
-        monthCombo.setSelectedIndex(LocalDate.now().getMonthValue()); // Offset by 1 due to "All Months" at index 0
-        filterPanel.add(monthCombo);
-
-        // Lightweight non-blocking progress indicator for filters
-        filterProgressBar.setIndeterminate(true);
-        filterProgressBar.setVisible(false);
         filterProgressBar.setPreferredSize(new Dimension(120, 16));
         filterPanel.add(filterProgressBar);
 
@@ -476,7 +373,7 @@ public class LogListPanel extends JPanel {
     }
 
     private void loadAndDisplayEntry(String timestamp) {
-        if (timestamp == null || timestamp.trim().isEmpty()) {
+        if (timestamp == null || timestamp.isBlank()) {
             entryArea.setText("");
             if (isPreviewMode) renderPreview();
             return;
@@ -603,16 +500,10 @@ public class LogListPanel extends JPanel {
         return entryArea;
     }
 
-    private void updateInfoFromListModel() {
-        try {
-            var stats = new LogStatistics(listModel.getSize(), new java.util.ArrayList<>(), logFileHandler.getFilePath());
-            infoPanel.updateStatistics(stats);
-        } catch (Exception ex) {
-            infoPanel.resetStatistics();
-        }
-    }
+    // Removed unused private method updateInfoFromListModel (PMD)
 
-    private void togglePreview(javax.swing.JButton toggleBtn) {
+    @Override
+    protected void togglePreview(javax.swing.JButton toggleBtn) {
         if (isPreviewMode) {
             // Switch to edit mode
             entryContainer.remove(previewScrollPane);
@@ -639,15 +530,11 @@ public class LogListPanel extends JPanel {
             return;
         }
 
-        // Parse content into lines (single entry)
-        String[] lines = content.split("\n");
-        List<String> entryLines = new ArrayList<>();
-        for (String line : lines) {
-            entryLines.add(line);
-        }
+        // Use Arrays.asList instead of tight loop
+        java.util.List<String> entryLines = java.util.Arrays.asList(content.split("\n"));
 
         // Wrap in a list of entries (single entry)
-        List<List<String>> entries = new ArrayList<>();
+        java.util.List<java.util.List<String>> entries = new java.util.ArrayList<>();
         entries.add(entryLines);
 
         // Render using MarkdownRenderer

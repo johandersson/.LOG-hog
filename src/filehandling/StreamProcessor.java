@@ -96,7 +96,7 @@ public final class StreamProcessor {
         while (it.hasNext()) {
             String line = it.next();
             var trimmed = line.trim();
-            if (trimmed.equalsIgnoreCase(".LOG")) continue;
+                if (".LOG".equalsIgnoreCase(trimmed)) continue;
             if (TS_PATTERN.matcher(trimmed).matches()) {
                 if (!currentEntry.isEmpty()) {
                     if (entries.size() >= MAX_COLLECTION_SIZE) {

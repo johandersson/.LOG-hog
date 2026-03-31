@@ -91,7 +91,6 @@ public class LinkDialog {
                     targetComponent.replaceSelection(link);
                 } else {
                     // Insert at cursor
-                    var pos = targetComponent.getCaretPosition();
                     targetComponent.replaceSelection(link);
                 }
                 targetComponent.requestFocus();

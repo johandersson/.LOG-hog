@@ -57,7 +57,7 @@ public class LogFileHandler implements LogFileOperations {
     private final Encryptor encryptor;
     private FileEncryptionManager encryptionManager;
     private BackupManager backupManager; // Optional backup manager
-    private boolean encrypted = false;
+    private boolean encrypted;
     private byte[] salt;
     private String backupDirectory = "";
     
@@ -85,13 +85,9 @@ public class LogFileHandler implements LogFileOperations {
     public static String removeSecureMarker(String text) {
         if (text == null) return null;
         // Remove the secure clipboard marker if present
-        String marker = "[LOGHOG_SECURE_CONTENT]";
-        int markerIndex = text.indexOf(marker);
-        if (markerIndex == 0) {
-            int pipeIndex = text.indexOf('|');
-            if (pipeIndex > marker.length()) {
-                return text.substring(pipeIndex + 1);
-            }
+        final String marker = "[LOGHOG_SECURE_CONTENT]|";
+        if (text.startsWith(marker)) {
+            return text.substring(marker.length());
         }
         return text;
     }
@@ -146,9 +142,9 @@ public class LogFileHandler implements LogFileOperations {
             invalidateEntryCache();
             // Notify UI (FullLog, etc.) that parsed/full-log caches should be invalidated
             notifyCacheInvalidationListeners();
-            writeDebug("saveText: success (ts=" + uniqueTimeStamp + ")");
+            writeDebug(new StringBuilder("saveText: success (ts=").append(uniqueTimeStamp).append(")").toString());
         } catch (java.nio.file.AccessDeniedException e) {
-            writeDebug("saveText: access denied - " + e.getMessage());
+            writeDebug(new StringBuilder("saveText: access denied - ").append(e.getMessage()).toString());
             showErrorDialog("<html><b>💾 Save Failed - Access Denied</b><br><br>" +
                 "The log file is <b>read-only</b> or you don't have write permissions.<br><br>" +
                 "<b>Solutions:</b><br>" +
@@ -188,10 +184,10 @@ public class LogFileHandler implements LogFileOperations {
                 errorMsg += "Unable to write to the log file.<br><br>" +
                     "<i>Tip: Ensure the file is not read-only or in use by another program.</i></html>";
             }
-            writeDebug("saveText: io error - " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+            writeDebug(new StringBuilder("saveText: io error - ").append(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()).toString());
             showErrorDialogWithRecovery(errorMsg, "Save Error");
         } catch (Exception e) {
-            writeDebug("saveText: unknown error - " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+            writeDebug(new StringBuilder("saveText: unknown error - ").append(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()).toString());
             showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save your log entry.<br>Please check your input and try again.<br><br><i>Tip: Ensure the file is not read-only or in use by another program.</i></html>");
         }
     }
@@ -203,14 +199,14 @@ public class LogFileHandler implements LogFileOperations {
     private String saveTextInternal(String text) throws Exception {
         if (text == null || text.isBlank()) return null;
 
-        text = removeSecureMarker(text);
+        String processedText = removeSecureMarker(text);
 
         String timeStamp = FORMATTER.format(LocalDateTime.now());
         int count = getDuplicateCount(timeStamp);
         String uniqueTimeStamp = entryEditor.createUniqueTimestamp(count);
 
         entryEditor.setBackupManager(backupManager);
-        entryEditor.saveEntry(text, uniqueTimeStamp, encrypted);
+        entryEditor.saveEntry(processedText, uniqueTimeStamp, encrypted);
 
         return uniqueTimeStamp;
     }
@@ -592,9 +588,11 @@ public class LogFileHandler implements LogFileOperations {
      * Lightweight debug logging used during development.
      */
     private void writeDebug(String msg) {
-        // Keep this minimal - print to stdout so CI or developer can inspect
-        // Use a logger or comment out for production. For now, do nothing or log as needed.
-        // if (msg != null) Logger.debug("[LogFileHandler] " + msg);
+        // Method intentionally left blank for production. Parameter required for interface compatibility.
+        // PMD: Avoid unused method parameters such as 'msg'.
+        // No-op.
+        @SuppressWarnings("unused")
+        String unused = msg;
     }
 
     public List<List<String>> getParsedEntries() throws Exception {

@@ -52,7 +52,7 @@ public class EntryPanel extends JPanel {
     private final JScrollPane previewScrollPane;
     private final JPanel textContainer;
     private final HighlightableTextPane previewPane;
-    private boolean isPreviewMode = false;
+    private boolean isPreviewMode; // default false, no initializer needed
 
     public EntryPanel(LogTextEditor editor) {
         this.editor = editor;
@@ -139,12 +139,8 @@ public class EntryPanel extends JPanel {
             return;
         }
 
-        // Parse content into lines (single entry)
-        String[] lines = content.split("\n");
-        List<String> entryLines = new ArrayList<>();
-        for (String line : lines) {
-            entryLines.add(line);
-        }
+        // Use Arrays.asList instead of tight loop
+        List<String> entryLines = Arrays.asList(content.split("\n"));
 
         // Wrap in a list of entries (single entry)
         List<List<String>> entries = new ArrayList<>();

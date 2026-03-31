@@ -1,6 +1,6 @@
 package filehandling;
 
-import org.junit.jupiter.api.*;
+// Unused import removed for PMD compliance
 import encryption.EncryptionManager;
 import encryption.TestableEncryptionManager;
 import utils.DateHandler;
@@ -9,7 +9,7 @@ import javax.swing.*;
 import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+// Unused import removed for PMD compliance
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;

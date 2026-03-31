@@ -1,6 +1,10 @@
 package main;
+import services.ServiceFactory;
+import services.FileService;
+import services.EncryptionService;
+import services.LogEntryService;
 
-import services.*;
+// Unused import removed for PMD compliance
 import filehandling.LogFileOperations;
 
 import java.nio.file.Path;
