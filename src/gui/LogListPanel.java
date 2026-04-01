@@ -197,6 +197,13 @@ public class LogListPanel extends JPanel {
         
         searchField = new JTextField(15);
         searchField.setToolTipText("Search in entry timestamps and content (Ctrl+F)");
+        // Limit search query length for safety
+        try {
+            if (searchField.getDocument() instanceof AbstractDocument) {
+                ((AbstractDocument) searchField.getDocument()).setDocumentFilter(new LengthLimitFilter(InputLimits.FIELD_MAX_CHARS));
+            }
+        } catch (Exception ignore) {
+        }
         searchPanel.add(searchField);
         
         wholeWordCheck = new JCheckBox("Whole word");
