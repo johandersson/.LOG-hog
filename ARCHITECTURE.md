@@ -820,7 +820,6 @@ package "Backup Security" {
 3. **Real-time Countdown**: Visual feedback with cryptographically secure randomization
 4. **Memory Clearing**: All passwords zeroed immediately after use via CryptoUtils.zeroize()
 5. **Secure Cache Clearing**: On lock, all cached data overwritten before clearing to prevent memory forensics
-6. **Machine-Specific Settings Entropy**: Settings encryption uses machine fingerprint in addition to username
 
 #### Input Validation
 - **Path Validation**: Blocks directory traversal, shell metacharacters

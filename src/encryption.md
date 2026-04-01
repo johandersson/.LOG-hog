@@ -170,7 +170,6 @@ The encryption system is highly modular and well-encapsulated, making it suitabl
 - **Settings Integration**: User-configurable timeout and behavior
 - **Error Handling**: Comprehensive exception handling for clipboard access failures
 - **Secure Cache Clearing**: On lock, all cached data is overwritten before clearing to prevent memory forensics
-- **Machine-Specific Key Entropy**: Settings encryption uses machine fingerprint in addition to username
 
 ### Security Benefits
 - **Data Exposure Prevention**: Eliminates indefinite clipboard access

@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security (April 2026)
 - **Clipboard default timeout reduced** from 30s to 15s for tighter security
 - **Secure cache clearing on lock** - all cached data overwritten before clearing to prevent memory forensics
-- **Machine-specific settings entropy** - settings encryption now uses OS/architecture fingerprint in addition to username
 - **Password char[] zeroization helper** - CryptoUtils.zeroize(char[]) for consistent password cleanup
 
 ### Added (January 2026)
