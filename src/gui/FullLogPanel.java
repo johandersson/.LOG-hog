@@ -41,8 +41,12 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.ToolTipManager;
+import javax.swing.event.ListDataEvent;
+import javax.swing.event.ListDataListener;
 import javax.swing.text.StyledDocument;
 import javax.swing.JProgressBar;
+
+import java.time.LocalDateTime;
 
 import filehandling.FullLogFileLoader;
 import filehandling.LogFileFormatter;
@@ -491,73 +495,105 @@ public class FullLogPanel extends LogPanel {
         // Switch to Log List tab (index 1)
         editor.getTabPane().setSelectedIndex(1);
         
-        // Find and select the entry in the log list. If the list hasn't been loaded yet,
-        // trigger a load and wait for it to complete (showing a delayed progress dialog).
         LogListPanel logListPanel = editor.getLogListPanel();
         DefaultListModel<String> listModel = logListPanel.getListModel();
         JList<String> logList = logListPanel.getLogList();
 
-        final boolean[] attemptedFullReload = {false};
-        Runnable selectIfPresent = () -> {
-            for (int i = 0; i < listModel.getSize(); i++) {
-                String entry = listModel.getElementAt(i);
-                if (entry != null && entry.startsWith(timestamp)) {
-                    logList.setSelectedIndex(i);
-                    logList.ensureIndexIsVisible(i);
-                    SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
-                    return;
-                }
-            }
-
-            // If not found and we haven't yet tried a full reload (unfiltered), do that now.
-            if (!attemptedFullReload[0]) {
-                attemptedFullReload[0] = true;
-
-                LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
-                final javax.swing.Timer showTimer2 = new javax.swing.Timer(150, ev -> progress.show());
-                showTimer2.setRepeats(false);
-                showTimer2.start();
-
-                Thread fullReload = new Thread(() -> {
-                    try {
-                        // Load the complete list (unfiltered)
-                        editor.loadLogEntries();
-                        SwingUtilities.invokeLater(() -> {
-                            // Update the view and try selection again
-                            editor.updateLogListView();
-                            for (int j = 0; j < listModel.getSize(); j++) {
-                                String e = listModel.getElementAt(j);
-                                if (e != null && e.startsWith(timestamp)) {
-                                    logList.setSelectedIndex(j);
-                                    logList.ensureIndexIsVisible(j);
-                                    SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
-                                    return;
-                                }
-                            }
-                            // Still not found after full reload
-                            DialogHelper.showEntryNotFound(this);
-                        });
-                    } catch (Exception ex) {
-                        SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
-                    } finally {
-                        if (showTimer2.isRunning()) showTimer2.stop();
-                        SwingUtilities.invokeLater(() -> progress.close());
-                    }
-                }, "FullListReloadForTimestamp");
-                fullReload.setDaemon(true);
-                fullReload.start();
-            } else {
-                DialogHelper.showEntryNotFound(this);
-            }
-        };
-
-        // If the model seems populated, try selecting immediately
-        if (listModel.getSize() > 0) {
-            selectIfPresent.run();
-            return;
+        // Parse the timestamp to get year and month for filter adjustment
+        int targetYear = 0;
+        int targetMonth = 0;
+        try {
+            LocalDateTime dt = utils.DateHandler.parseTimestamp(timestamp);
+            targetYear = dt.getYear();
+            targetMonth = dt.getMonthValue();
+        } catch (Exception e) {
+            // If parsing fails, try raw selection without filter change
         }
 
-        // Otherwise, load entries synchronously in a background thread and wait for completion
+        // Try to select the entry immediately if present
+        for (int i = 0; i < listModel.getSize(); i++) {
+            String entry = listModel.getElementAt(i);
+            if (entry != null && entry.startsWith(timestamp)) {
+                logList.setSelectedIndex(i);
+                logList.ensureIndexIsVisible(i);
+                SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+                return;
+            }
+        }
+
+        // Entry not found in current list - adjust filter to the entry's year/month and reload
+        if (targetYear > 0 && targetMonth > 0) {
+            final int finalYear = targetYear;
+            final int finalMonth = targetMonth;
+            
+            LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
+            final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+            showTimer.setRepeats(false);
+            showTimer.start();
+
+            // Add listener to detect when filter completes and list is populated
+            ListDataListener filterCompleteListener = new ListDataListener() {
+                @Override
+                public void intervalAdded(ListDataEvent e) {
+                    trySelectEntry();
+                }
+
+                @Override
+                public void intervalRemoved(ListDataEvent e) {}
+
+                @Override
+                public void contentsChanged(ListDataEvent e) {
+                    trySelectEntry();
+                }
+
+                private void trySelectEntry() {
+                    SwingUtilities.invokeLater(() -> {
+                        // Remove listener first to avoid repeated calls
+                        listModel.removeListDataListener(this);
+                        if (showTimer.isRunning()) showTimer.stop();
+                        progress.close();
+
+                        for (int i = 0; i < listModel.getSize(); i++) {
+                            String entry = listModel.getElementAt(i);
+                            if (entry != null && entry.startsWith(timestamp)) {
+                                logList.setSelectedIndex(i);
+                                logList.ensureIndexIsVisible(i);
+                                SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+                                return;
+                            }
+                        }
+                        // Still not found after filter adjustment
+                        DialogHelper.showEntryNotFound(FullLogPanel.this);
+                    });
+                }
+            };
+            listModel.addListDataListener(filterCompleteListener);
+
+            // Apply the filter (async) - this will trigger the listener when complete
+            logListPanel.setFilterAndApply(finalYear, finalMonth);
+
+            // Safety timeout in case filter never triggers listener (e.g., no matching entries)
+            javax.swing.Timer safetyTimer = new javax.swing.Timer(5000, ev -> {
+                listModel.removeListDataListener(filterCompleteListener);
+                if (showTimer.isRunning()) showTimer.stop();
+                progress.close();
+                if (listModel.getSize() == 0) {
+                    DialogHelper.showEntryNotFound(FullLogPanel.this);
+                }
+            });
+            safetyTimer.setRepeats(false);
+            safetyTimer.start();
+        } else {
+            // Fallback: couldn't parse timestamp, try a full reload
+            fallbackFullReload(timestamp, logListPanel, listModel, logList);
+        }
+    }
+
+    /**
+     * Fallback method when timestamp parsing fails - loads all entries and tries to find the entry.
+     */
+    private void fallbackFullReload(String timestamp, LogListPanel logListPanel, 
+                                    DefaultListModel<String> listModel, JList<String> logList) {
         LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
         final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
         showTimer.setRepeats(false);
@@ -565,17 +601,27 @@ public class FullLogPanel extends LogPanel {
 
         Thread loader = new Thread(() -> {
             try {
-                // Load all entries into the shared list model
                 editor.loadLogEntries();
-                // Ensure the UI updates and then attempt selection on EDT
-                SwingUtilities.invokeLater(() -> selectIfPresent.run());
+                SwingUtilities.invokeLater(() -> {
+                    for (int i = 0; i < listModel.getSize(); i++) {
+                        String entry = listModel.getElementAt(i);
+                        if (entry != null && entry.startsWith(timestamp)) {
+                            logList.setSelectedIndex(i);
+                            logList.ensureIndexIsVisible(i);
+                            SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+                            return;
+                        }
+                    }
+                    DialogHelper.showEntryNotFound(this);
+                });
             } catch (Exception ex) {
-                SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
+                SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog(
+                    "<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
             } finally {
                 if (showTimer.isRunning()) showTimer.stop();
                 SwingUtilities.invokeLater(() -> progress.close());
             }
-        }, "OpenEntryLoader");
+        }, "FallbackEntryLoader");
         loader.setDaemon(true);
         loader.start();
     }

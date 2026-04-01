@@ -246,6 +246,7 @@ public class LogListPanel extends JPanel {
     public void setFilterSelection(int year, int month) {
         suppressFilterEvents = true;
         try {
+            ensureYearInCombo(year);
             if (yearCombo != null) {
                 yearCombo.setSelectedItem(year);
             }
@@ -256,6 +257,43 @@ public class LogListPanel extends JPanel {
             }
         } finally {
             suppressFilterEvents = false;
+        }
+    }
+
+    /**
+     * Set the filter to the specified year/month and apply it.
+     * This is used when navigating from Full Log view to a specific entry.
+     * @param year year value (e.g. 2026)
+     * @param month month value 1..12 (use 0 to select "All Months")
+     */
+    public void setFilterAndApply(int year, int month) {
+        setFilterSelection(year, month);
+        applyFilter(yearCombo, monthCombo);
+    }
+
+    /**
+     * Ensure the specified year is in the yearCombo. If not present, add it.
+     */
+    private void ensureYearInCombo(int year) {
+        if (yearCombo == null) return;
+        boolean found = false;
+        for (int i = 0; i < yearCombo.getItemCount(); i++) {
+            if (yearCombo.getItemAt(i) == year) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            // Insert in sorted order (descending - most recent first)
+            int insertIndex = 0;
+            for (int i = 0; i < yearCombo.getItemCount(); i++) {
+                if (yearCombo.getItemAt(i) < year) {
+                    insertIndex = i;
+                    break;
+                }
+                insertIndex = i + 1;
+            }
+            yearCombo.insertItemAt(year, insertIndex);
         }
     }
 
