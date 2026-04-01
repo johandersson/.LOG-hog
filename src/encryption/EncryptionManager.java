@@ -403,26 +403,51 @@ public class EncryptionManager implements encryption.StreamEncryptor {
     public java.io.InputStream openDecryptedStream(java.io.InputStream encryptedIn, char[] password, byte[] salt, utils.ProgressCallback progress) throws EncryptionException {
         if (encryptedIn == null) throw new EncryptionException("Input stream cannot be null");
         if (password == null) throw new EncryptionException("Password cannot be null");
-        if (salt == null) throw new EncryptionException("Salt cannot be null");
+        // salt can be null if reading from header
         try {
             java.io.BufferedInputStream bin = new java.io.BufferedInputStream(encryptedIn);
-            bin.mark(16);
-            byte[] prefix = new byte[16];
-            int read = bin.read(prefix);
-            boolean startsWithSalt = false;
-            if (read == 16 && salt.length == 16) {
-                startsWithSalt = true;
-                for (int i = 0; i < 16; i++) {
-                    if (prefix[i] != salt[i]) {
-                        startsWithSalt = false;
+            
+            // Check for LOGH header format
+            bin.mark(32);
+            byte[] magicCheck = new byte[FILE_MAGIC.length];
+            int magicRead = bin.read(magicCheck);
+            boolean hasHeader = (magicRead == FILE_MAGIC.length);
+            if (hasHeader) {
+                for (int i = 0; i < FILE_MAGIC.length; i++) {
+                    if (magicCheck[i] != FILE_MAGIC[i]) {
+                        hasHeader = false;
                         break;
                     }
                 }
             }
-            if (!startsWithSalt) {
+            
+            byte[] actualSalt = salt;
+            if (hasHeader) {
+                // Read header: version, salt_len, salt, iv_len
+                int version = bin.read() & 0xFF;
+                int saltLen = bin.read() & 0xFF;
+                if (saltLen <= 0 || saltLen > 64) {
+                    throw new EncryptionException("Invalid salt length in header: " + saltLen);
+                }
+                actualSalt = new byte[saltLen];
+                int gotSalt = bin.read(actualSalt);
+                if (gotSalt != saltLen) {
+                    throw new EncryptionException("Truncated header: missing salt");
+                }
+                int ivLen = bin.read() & 0xFF;
+                if (ivLen != GCM_IV_LENGTH) {
+                    throw new EncryptionException("Unexpected IV length in header: " + ivLen);
+                }
+                // IV will be read below
+            } else {
+                // No header - reset and use passed salt
                 bin.reset();
+                if (salt == null) {
+                    throw new EncryptionException("Salt cannot be null for files without header");
+                }
             }
-            SecretKey key = deriveKey(password, salt);
+            
+            SecretKey key = deriveKey(password, actualSalt);
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             byte[] iv = new byte[GCM_IV_LENGTH];
             int got = bin.read(iv);
@@ -432,6 +457,8 @@ public class EncryptionManager implements encryption.StreamEncryptor {
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
             cipher.init(Cipher.DECRYPT_MODE, key, spec);
             return new javax.crypto.CipherInputStream(bin, cipher);
+        } catch (EncryptionException e) {
+            throw e;
         } catch (Exception e) {
             throw new EncryptionException("Unable to open decrypted stream.", e);
         }
