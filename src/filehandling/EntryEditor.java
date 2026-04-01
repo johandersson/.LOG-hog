@@ -59,7 +59,7 @@ public class EntryEditor {
      * Saves a new log entry with timestamp.
      */
     public void saveEntry(String text, String uniqueTimeStamp, boolean encrypted) throws Exception {
-        if (text == null || text.trim().isEmpty()) return;
+        if (text == null || text.isBlank()) return;
         
         String ls = System.lineSeparator();
         String entry = LogFileFormat.createEntry(uniqueTimeStamp, text);
@@ -86,7 +86,7 @@ public class EntryEditor {
             // Normalize content lines: remove trailing blank lines from user-supplied text
             List<String> contentLines = Arrays.asList(text.split("\r?\n", -1));
             // Remove trailing blank lines
-            while (!contentLines.isEmpty() && contentLines.get(contentLines.size() - 1).trim().isEmpty()) {
+            while (!contentLines.isEmpty() && contentLines.get(contentLines.size() - 1).isBlank()) {
                 contentLines = contentLines.subList(0, contentLines.size() - 1);
             }
             String normalizedContent = String.join(LogFileFormat.LINE_SEPARATOR, contentLines);
@@ -109,7 +109,7 @@ public class EntryEditor {
      * Updates an existing log entry.
      */
     public List<String> updateEntry(String timeStamp, String newText, List<String> lines) {
-        if (newText == null || newText.trim().isEmpty()) return lines;
+        if (newText == null || newText.isBlank()) return lines;
 
         // Enforce maximum entry length on updates as well (avoid reassigning parameter)
         String updatedText = newText;
@@ -223,15 +223,16 @@ public class EntryEditor {
      * Returns the generated unique timestamp or null on failure.
      */
     public String createAndSaveEntry(String text) throws Exception {
-        if (text == null || text.trim().isEmpty()) return null;
+        if (text == null || text.isBlank()) return null;
 
         // Enforce maximum entry length to avoid extremely large entries (avoid reassigning parameter)
         String inputText = text;
         try {
             if (inputText.length() > InputLimits.ENTRY_MAX_CHARS) {
-                inputText = inputText.substring(0, InputLimits.ENTRY_MAX_CHARS);
-                if (!inputText.endsWith(System.lineSeparator())) inputText = inputText + System.lineSeparator();
-                inputText = inputText + "[TRUNCATED]" + System.lineSeparator();
+                StringBuilder sb = new StringBuilder(inputText.substring(0, InputLimits.ENTRY_MAX_CHARS));
+                if (!inputText.endsWith(System.lineSeparator())) sb.append(System.lineSeparator());
+                sb.append("[TRUNCATED]").append(System.lineSeparator());
+                inputText = sb.toString();
             }
         } catch (Exception ignore) {
         }

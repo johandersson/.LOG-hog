@@ -187,6 +187,9 @@ public class MarkdownFormatter {
             case "red":
                 StyleConstants.setForeground(attrs, MarkdownStyle.COLOR_RED_TEXT);
                 break;
+            default:
+                // No additional styling for unknown types
+                break;
         }
         
         return attrs;

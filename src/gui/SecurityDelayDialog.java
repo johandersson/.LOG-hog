@@ -18,7 +18,6 @@
 package gui;
 
 import java.awt.Frame;
-import java.security.SecureRandom;
 import main.RandomizationUtils;
 
 import javax.swing.Timer;

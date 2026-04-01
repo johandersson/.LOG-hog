@@ -55,4 +55,11 @@ public class CryptoUtils {
     public static void zeroize(byte[] arr) {
         if (arr != null) Arrays.fill(arr, (byte)0);
     }
+
+    /**
+     * Overwrite a char array with zeros (for password cleanup).
+     */
+    public static void zeroize(char[] arr) {
+        if (arr != null) Arrays.fill(arr, '\0');
+    }
 }

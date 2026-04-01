@@ -142,7 +142,7 @@ public class LogFileHandler implements LogFileOperations {
             invalidateEntryCache();
             // Notify UI (FullLog, etc.) that parsed/full-log caches should be invalidated
             notifyCacheInvalidationListeners();
-            writeDebug(new StringBuilder("saveText: success (ts=").append(uniqueTimeStamp).append(")").toString());
+            writeDebug(new StringBuilder("saveText: success (ts=").append(uniqueTimeStamp).append(')').toString());
         } catch (java.nio.file.AccessDeniedException e) {
             writeDebug(new StringBuilder("saveText: access denied - ").append(e.getMessage()).toString());
             showErrorDialog("<html><b>💾 Save Failed - Access Denied</b><br><br>" +
@@ -172,17 +172,12 @@ public class LogFileHandler implements LogFileOperations {
                 }
             }
         } catch (java.io.IOException e) {
-            String errorMsg = "<html><b>💾 Save Failed - I/O Error</b><br><br>";
+            String errorMsg;
             if (e.getMessage() != null && e.getMessage().contains("being used by another process")) {
-                errorMsg += "The file is <b>locked by another program</b>.<br><br>" +
-                    "<b>Solutions:</b><br>" +
-                    "• Close any programs that might be using the file<br>" +
-                    "• Check if the file is open in a text editor<br>" +
-                    "• Restart the application if issue persists</html>";
+                errorMsg = "<html><b>💾 Save Failed - I/O Error</b><br><br>The file is <b>locked by another program</b>.<br><br><b>Solutions:</b><br>• Close any programs that might be using the file<br>• Check if the file is open in a text editor<br>• Restart the application if issue persists</html>";
             } else {
                 // Security: Don't expose internal error details
-                errorMsg += "Unable to write to the log file.<br><br>" +
-                    "<i>Tip: Ensure the file is not read-only or in use by another program.</i></html>";
+                errorMsg = "<html><b>💾 Save Failed - I/O Error</b><br><br>Unable to write to the log file.<br><br><i>Tip: Ensure the file is not read-only or in use by another program.</i></html>";
             }
             writeDebug(new StringBuilder("saveText: io error - ").append(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()).toString());
             showErrorDialogWithRecovery(errorMsg, "Save Error");
@@ -845,6 +840,14 @@ public class LogFileHandler implements LogFileOperations {
      */
     public void clearCachedLines() {
         cache.clearCachedLines();
+    }
+
+    /**
+     * Securely clears all cached data by overwriting before clearing.
+     * Called when locking the file to prevent memory forensics.
+     */
+    public void secureClearCache() {
+        cache.secureClear();
     }
     
     /**

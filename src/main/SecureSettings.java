@@ -70,7 +70,9 @@ public class SecureSettings {
     public SecureSettings(Properties settings) {
         this.settings = settings;
         String username = System.getProperty("user.name", "default");
-        String keySeed = username + "_LogHog_Settings";
+        // Add machine-specific entropy for stronger key derivation
+        String machineEntropy = getMachineEntropy();
+        String keySeed = username + "_LogHog_Settings_" + machineEntropy;
 
         try {
             // Generate or retrieve random salt for this user
@@ -111,6 +113,26 @@ public class SecureSettings {
         settings.setProperty(SETTINGS_SALT_KEY, Base64.getEncoder().encodeToString(salt));
         
         return salt;
+    }
+
+    /**
+     * Gets machine-specific entropy for key derivation.
+     * Uses OS name, architecture, and Java home to create a deterministic machine fingerprint.
+     */
+    private static String getMachineEntropy() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(System.getProperty("os.name", ""));
+        sb.append(System.getProperty("os.arch", ""));
+        sb.append(System.getProperty("java.home", ""));
+        sb.append(System.getProperty("user.home", ""));
+        // Hash for consistent length and privacy
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(sb.toString().getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hash).substring(0, 16);
+        } catch (Exception e) {
+            return "fallback";
+        }
     }
 
     /**

@@ -51,7 +51,6 @@ import main.BackupManager;
 import main.LogTextEditor;
 import main.SecureSettings;
 import utils.Toast;
-import main.KeyRotationManager;
 import main.SecureDeletionUtils;
 
 public class SettingsPanel extends JPanel {
@@ -631,7 +630,6 @@ public class SettingsPanel extends JPanel {
 
     private void cleanupOldUnencryptedBackups() {
         try {
-            Path logFilePath = logFileHandler.getFilePath();
             String backupDirStr = backupManager.getAutoBackupDirectory();
             Path backupDir = java.nio.file.Paths.get(backupDirStr);
 
@@ -650,10 +648,10 @@ public class SettingsPanel extends JPanel {
             }
 
             // Show dialog asking user what to do
-            StringBuilder message = new StringBuilder();
-            message.append("<html><b>Security Notice: Old Unencrypted Backups Found</b><br><br>");
-            message.append("After encrypting your log file, we found ").append(unencryptedBackups.size());
-            message.append(" backup file(s) that contain unencrypted data:<br><br>");
+            StringBuilder message = new StringBuilder(512);
+            message.append("<html><b>Security Notice: Old Unencrypted Backups Found</b><br><br>")
+                .append("After encrypting your log file, we found ").append(unencryptedBackups.size())
+                .append(" backup file(s) that contain unencrypted data:<br><br>");
 
             for (Path backup : unencryptedBackups) {
                 message.append("• ").append(backup.getFileName().toString()).append("<br>");
@@ -860,7 +858,7 @@ public class SettingsPanel extends JPanel {
                 settings.setProperty("salt", oldSalt);
             }
             saveSettings();
-            throw new Exception("Decryption verification failed: " + verifyEx.getMessage());
+            throw new Exception("Decryption verification failed: " + verifyEx.getMessage(), verifyEx);
         }
     }
 
@@ -901,10 +899,7 @@ public class SettingsPanel extends JPanel {
         }
     }
 
-    private boolean isValidAutoLockTimeout(String timeoutStr) {
-        // Method unused, removed for PMD compliance
-        return false;
-    }
+    // Removed unused isValidAutoLockTimeout method (PMD UnusedPrivateMethod)
 
     private boolean isValidReminder(String reminder) {
         if (reminder == null) {

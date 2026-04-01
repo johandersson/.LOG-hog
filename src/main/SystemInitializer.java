@@ -37,7 +37,7 @@ public class SystemInitializer {
     }
 
     private void initSystemTray() {
-        var systemTrayMenu = new SystemTrayMenu((LogTextEditor) frame);
+        new SystemTrayMenu((LogTextEditor) frame);
         SystemTrayMenu.initSystemTray();
     }
 

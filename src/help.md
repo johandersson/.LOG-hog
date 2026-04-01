@@ -36,7 +36,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 ### Clipboard Security
 .LOG-hog includes advanced clipboard security features to protect sensitive log data from being inadvertently exposed through clipboard operations:
 
-- **Automatic Clipboard Clearing**: When copying log entries or full logs to the clipboard, the content is automatically cleared after a configurable timeout (default: 30 seconds). This prevents sensitive information from remaining in the clipboard indefinitely.
+- **Automatic Clipboard Clearing**: When copying log entries or full logs to the clipboard, the content is automatically cleared after a configurable timeout (default: 15 seconds). This prevents sensitive information from remaining in the clipboard indefinitely.
 - **Secure Content Marking**: Copied content is marked as secure .LOG-hog data, allowing the application to distinguish and manage it appropriately.
 - **Manual Clear Option**: Users can manually clear the secure clipboard at any time through the system tray menu.
 - **Educational Warnings**: Before copying encrypted or full log content, users receive detailed warnings about clipboard security risks and best practices.

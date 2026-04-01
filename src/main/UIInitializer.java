@@ -51,13 +51,11 @@ public class UIInitializer {
     private final LogTextEditor editor;
     private final JTabbedPane tabPane;
     private final List<NavItem> navItems;
-    private final java.util.Properties settings;
 
     public UIInitializer(LogTextEditor editor, JTabbedPane tabPane, List<NavItem> navItems, java.util.Properties settings) {
         this.editor = editor;
         this.tabPane = tabPane;
         this.navItems = navItems;
-        this.settings = settings;
     }
 
     public void initializeUI() {

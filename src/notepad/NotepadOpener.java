@@ -89,7 +89,7 @@ public class NotepadOpener {
             Path absolutePath = path.toAbsolutePath().normalize();
 
             // Check that the path ends with log.txt
-            if (!absolutePath.getFileName().toString().equals("log.txt")) {
+            if (!"log.txt".equals(absolutePath.getFileName().toString())) {
                 return false;
             }
 

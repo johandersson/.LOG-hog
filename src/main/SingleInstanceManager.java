@@ -85,25 +85,18 @@ public class SingleInstanceManager {
     }
 
     private static void handleClientRequest(Socket clientSocket) {
-        try {
-            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        try (clientSocket;
+             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
             String message = in.readLine();
             if ("BRING_TO_FRONT".equals(message)) {
                 // This will be handled by the main application
             } else if ("LOGHOG_PING".equals(message)) {
-                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                out.println("LOGHOG_PONG");
-                out.close();
+                try (PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
+                    out.println("LOGHOG_PONG");
+                }
             }
-            in.close();
         } catch (IOException e) {
             // Ignore communication errors
-        } finally {
-            try {
-                clientSocket.close();
-            } catch (IOException e) {
-                // Ignore
-            }
         }
     }
 

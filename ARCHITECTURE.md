@@ -815,10 +815,12 @@ package "Backup Security" {
 - **Authentication Tag**: 128-bit tag for integrity verification
 
 #### Brute-Force Protection
-1. **Progressive Delays**: 3s → 15s → 30s (±20% randomization)
+1. **Progressive Delays**: 3s → 15s → 30s (with cryptographic jitter up to 2 seconds)
 2. **Attempt Limit**: 4 attempts, then application restart required
-3. **Real-time Countdown**: Visual feedback with cryptographically secure jitter
-4. **Memory Clearing**: All passwords zeroed immediately after use
+3. **Real-time Countdown**: Visual feedback with cryptographically secure randomization
+4. **Memory Clearing**: All passwords zeroed immediately after use via CryptoUtils.zeroize()
+5. **Secure Cache Clearing**: On lock, all cached data overwritten before clearing to prevent memory forensics
+6. **Machine-Specific Settings Entropy**: Settings encryption uses machine fingerprint in addition to username
 
 #### Input Validation
 - **Path Validation**: Blocks directory traversal, shell metacharacters

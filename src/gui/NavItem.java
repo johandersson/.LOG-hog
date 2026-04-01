@@ -27,7 +27,7 @@ public class NavItem extends JPanel {
     private final JLabel label;
     private final int tabIndex;
     private final JTabbedPane tabPane;
-    // Removed unused field 'onClick' (PMD)
+    private final Runnable onClick;
     private boolean hovered; // default false, no initializer needed
 
     public NavItem(String title, int tabIndex, JTabbedPane tabPane, Runnable onClick) {

@@ -22,19 +22,17 @@ public class TestableEncryptionManager implements Encryptor {
     }
 
     @Override
-    public String decrypt(byte[] data, char[] password) throws EncryptionException {
+    public String decrypt(byte[] data, char... password) throws EncryptionException {
         return delegate.decrypt(data, password);
     }
 
     @Override
-    public String decryptWithFallback(byte[] data, char[] password, byte[] salt) throws EncryptionException {
-        return delegate.decryptWithFallback(data, password, salt);
+    public String decryptWithFallback(byte[] data, char... passwordAndSalt) throws EncryptionException {
+        return delegate.decryptWithFallback(data, passwordAndSalt);
     }
 
     @Override
-    public String decryptStream(java.io.InputStream in, char[] password, byte[] salt) throws EncryptionException {
-        return delegate.decryptStream(in, password, salt);
+    public String decryptStream(java.io.InputStream in, char... passwordAndSalt) throws EncryptionException {
+        return delegate.decryptStream(in, passwordAndSalt);
     }
-
-    // Legacy methods removed: no legacy support.
 }

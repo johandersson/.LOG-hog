@@ -126,7 +126,7 @@ public class MarkdownRenderer {
             List<String> filteredLines = new ArrayList<>();
             int consecutiveBlanks = 0;
             for (String line : lines) {
-                boolean isBlank = line.trim().isEmpty();
+                boolean isBlank = line.isBlank();
                 if (isBlank) {
                     consecutiveBlanks++;
                     // Allow only 1 consecutive blank line
@@ -272,7 +272,7 @@ public class MarkdownRenderer {
         List<List<String>> trimmedEntries = new ArrayList<>(entries.size());
         for (List<String> entry : entries) {
             List<String> trimmed = new ArrayList<>(entry);
-            while (!trimmed.isEmpty() && trimmed.get(trimmed.size() - 1).trim().isEmpty()) {
+            while (!trimmed.isEmpty() && trimmed.get(trimmed.size() - 1).isBlank()) {
                 trimmed.remove(trimmed.size() - 1);
             }
             trimmedEntries.add(trimmed);
@@ -350,8 +350,8 @@ public class MarkdownRenderer {
             String line = entry.get(i);
 
             boolean isTimestamp = (i == 0) && isTimestampLine(line);
-            boolean isCodeBlockMarker = line.trim().equals("```");
-            boolean isBlank = line.trim().isEmpty();
+            boolean isCodeBlockMarker = "```".equals(line.trim());
+            boolean isBlank = line.isBlank();
             boolean isList = line.startsWith("- ");
             boolean isQuote = line.startsWith(">");
             boolean isHeading = isHeadingLine(line);
@@ -464,7 +464,7 @@ public class MarkdownRenderer {
             String line = entry.get(j);
             if (line.startsWith("- ")) {
                 listLines.add(line);
-            } else if (!line.trim().isEmpty()) {
+            } else if (!line.isBlank()) {
                 break;
             }
         }
@@ -475,9 +475,9 @@ public class MarkdownRenderer {
         List<String> quoteLines = new ArrayList<>();
         for (int j = startIndex; j < entry.size(); j++) {
             String line = entry.get(j);
-            if (line.startsWith(">")) {
+            if (!line.isEmpty() && line.charAt(0) == '>') {
                 quoteLines.add(line);
-            } else if (!line.trim().isEmpty()) {
+            } else if (!line.isBlank()) {
                 break;
             }
         }
@@ -588,8 +588,6 @@ public class MarkdownRenderer {
     }
 
     private static void renderEntries(List<List<String>> entries, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
-        Style defaultStyle = styles.get("default");
-        Style tsStyle = styles.get("timestamp");
         Style sepStyle = styles.get("sep");
         boolean firstEntry = true;
         
@@ -597,7 +595,7 @@ public class MarkdownRenderer {
         List<List<String>> trimmedEntries = new ArrayList<>(entries.size());
         for (List<String> entry : entries) {
             List<String> trimmed = new ArrayList<>(entry);
-            while (!trimmed.isEmpty() && trimmed.get(trimmed.size() - 1).trim().isEmpty()) {
+            while (!trimmed.isEmpty() && trimmed.get(trimmed.size() - 1).isBlank()) {
                 trimmed.remove(trimmed.size() - 1);
             }
             // Sanitize each line to remove control characters and dangerous script tags

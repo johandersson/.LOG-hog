@@ -19,6 +19,7 @@ package gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.util.Arrays; // Import for Arrays utility
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.InputEvent;

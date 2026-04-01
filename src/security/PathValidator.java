@@ -20,7 +20,7 @@ public final class PathValidator {
             String scheme = uri.getScheme();
             if (scheme == null) return false;
             scheme = scheme.toLowerCase();
-            return scheme.equals("http") || scheme.equals("https");
+            return "http".equals(scheme) || "https".equals(scheme);
         } catch (Exception e) {
             return false;
         }

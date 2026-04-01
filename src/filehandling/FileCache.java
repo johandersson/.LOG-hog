@@ -94,7 +94,44 @@ public class FileCache {
         invalidateEntryCache();
         clearCachedLines();
     }
-    
+
+    /**
+     * Securely clears all cached data by overwriting content before clearing.
+     * Should be called when locking the file to prevent memory forensics.
+     */
+    public void secureClear() {
+        // Overwrite cached lines content before clearing
+        for (int i = 0; i < cachedLines.size(); i++) {
+            cachedLines.set(i, null);
+        }
+        cachedLines.clear();
+        
+        // Overwrite cached entries content before clearing
+        if (cachedEntries != null) {
+            for (List<String> entry : cachedEntries) {
+                if (entry != null) {
+                    for (int i = 0; i < entry.size(); i++) {
+                        entry.set(i, null);
+                    }
+                    entry.clear();
+                }
+            }
+            cachedEntries.clear();
+            cachedEntries = null;
+        }
+        cachedEntriesLastModified = 0;
+        
+        // Clear pending lines
+        if (pendingLines != null) {
+            for (int i = 0; i < pendingLines.size(); i++) {
+                pendingLines.set(i, null);
+            }
+            pendingLines.clear();
+            pendingLines = null;
+        }
+        isDirty = false;
+    }
+
     /**
      * Sets pending lines for write-back cache.
      */

@@ -29,7 +29,6 @@ import main.SecureDeletionUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
@@ -50,7 +49,6 @@ import gui.LoadingProgressDialog;
  */
 public class BackupManager {
     private final Properties settings;
-    private final SecureRandom random = new SecureRandom();
     private static final int MAX_NUMBERED_BACKUPS = 5;
     private static final int MAX_AUTO_BACKUPS = 10;
     private static final long SHOW_PROGRESS_THRESHOLD = 1024 * 1024; // Show progress for files > 1MB

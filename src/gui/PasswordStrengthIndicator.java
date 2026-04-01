@@ -72,8 +72,11 @@ public class PasswordStrengthIndicator extends JPanel {
     public static int calculateStrength(char... password) {
         int score = 0;
         int length = password.length;
-        boolean hasLower = false, hasUpper = false, hasDigit = false, hasSpecial = false;
-        int uniqueChars = 0;
+        boolean hasLower = false;
+        boolean hasUpper = false;
+        boolean hasDigit = false;
+        boolean hasSpecial = false;
+        int uniqueChars;
 
         // Count unique characters for entropy estimation
         java.util.Set<Character> unique = new java.util.HashSet<>();

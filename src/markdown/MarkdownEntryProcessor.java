@@ -53,10 +53,10 @@ public class MarkdownEntryProcessor {
             String line = entry.get(i);
 
             boolean isTimestamp = (i == 0) && isTimestampLine(line);
-            boolean isCodeBlockMarker = line.trim().equals("```");
-            boolean isBlank = line.trim().isEmpty();
-            boolean isList = line.startsWith("- ");
-            boolean isQuote = line.startsWith(">");
+            boolean isCodeBlockMarker = "```".equals(line.trim());
+            boolean isBlank = line.isBlank();
+            boolean isList = !line.isEmpty() && line.charAt(0) == '-' && line.length() > 1 && line.charAt(1) == ' ';
+            boolean isQuote = !line.isEmpty() && line.charAt(0) == '>';
             boolean isHeading = isHeadingLine(line);
 
             // If we have accumulated paragraph lines and this line starts a new block, render the paragraph first
@@ -152,8 +152,10 @@ public class MarkdownEntryProcessor {
 
     private List<String> collectQuoteLines(int startIndex) {
         List<String> quoteLines = new ArrayList<>();
-        for (int j = startIndex; j < entry.size() && entry.get(j).startsWith(">"); j++) {
-            quoteLines.add(entry.get(j));
+        for (int j = startIndex; j < entry.size(); j++) {
+            String line = entry.get(j);
+            if (line.isEmpty() || line.charAt(0) != '>') break;
+            quoteLines.add(line);
         }
         return quoteLines;
     }

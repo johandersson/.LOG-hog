@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security (April 2026)
+- **Clipboard default timeout reduced** from 30s to 15s for tighter security
+- **Secure cache clearing on lock** - all cached data overwritten before clearing to prevent memory forensics
+- **Machine-specific settings entropy** - settings encryption now uses OS/architecture fingerprint in addition to username
+- **Password char[] zeroization helper** - CryptoUtils.zeroize(char[]) for consistent password cleanup
+
 ### Added (January 2026)
 - **Oracle Secure Coding Guidelines conformance** - Hardened to meet all CRITICAL, HIGH, and MEDIUM priority security requirements from [Oracle's Secure Coding Guidelines for Java SE](https://www.oracle.com/java/technologies/javase/seccodeguide.html)
 - **Resource exhaustion protection** with 50MB maximum file size limit to prevent memory exhaustion attacks
@@ -75,7 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CHANGELOG.md for tracking important changes
 - **Manual file locking/unlocking feature** with comprehensive security UI and operation blocking
 - **Advanced search dialog** with whole word matching, case sensitivity, match counts, and navigation
-- **Progressive security delays** (3s → 15s → 30s with ±20% randomization) after incorrect password attempts to prevent brute-force attacks
+- **Progressive security delays** (3s → 15s → 30s with cryptographic randomization) after incorrect password attempts to prevent brute-force attacks
 - **Backup directory setting** to centralize all backup locations
 - **Improved single instance enforcement** with IPC communication and window focus restoration
 - **Backward compatibility** for encrypted files created with old PBKDF2 iterations

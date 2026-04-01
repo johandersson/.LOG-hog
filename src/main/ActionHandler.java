@@ -22,8 +22,6 @@ package main;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.util.List;
 
 import javax.swing.AbstractAction;
@@ -248,7 +246,7 @@ public class ActionHandler {
         }
         String newDateTime = newDateTimeHolder[0];
         if (newDateTime == null) return;
-        if (newDateTime.trim().isEmpty()) {
+        if (newDateTime.isBlank()) {
             DialogHelper.showError(editor, "Error", "Invalid Input", "Date and time cannot be empty.");
             return;
         }

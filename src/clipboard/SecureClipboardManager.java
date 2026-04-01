@@ -66,7 +66,7 @@ public class SecureClipboardManager implements ClipboardHandler {
     // Thread-safe mutable static fields with synchronization
     private static final Object LOCK = new Object();
     private static ScheduledFuture<?> clearTask;
-    private static int timeoutSeconds = 30; // Default 30 seconds
+    private static int timeoutSeconds = 15; // Default 15 seconds (reduced from 30 for tighter security)
     private static boolean autoClearEnabled = true;
     private static byte[] lastCopiedDigest; // Track hash of content we last copied
 

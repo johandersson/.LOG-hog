@@ -108,8 +108,6 @@ public class LogTextEditor extends JFrame {
     private LogListPanel logListPanel;
     private SettingsPanel settingsPanel;
 
-    private static LogTextEditor instance;
-
     private final java.util.Properties settings = new java.util.Properties();
     private final java.nio.file.Path settingsPath = java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
 
@@ -135,6 +133,10 @@ public class LogTextEditor extends JFrame {
     public void setLocked(boolean locked) {
         synchronized (lockObject) {
             this.isLocked = locked;
+            // Securely clear cached data when locking to prevent memory forensics
+            if (locked && logFileHandler != null) {
+                logFileHandler.secureClearCache();
+            }
             updateUILockState();
         }
     }
@@ -260,7 +262,7 @@ public class LogTextEditor extends JFrame {
 
     // Helper: choose and show first log if list has any entries
     private void loadAndDisplayEntry(String timestamp) {
-        if (timestamp != null && !timestamp.trim().isEmpty()) {
+        if (timestamp != null && !timestamp.isBlank()) {
             String content = logFileHandler.loadEntry(timestamp);
             logListPanel.getEntryArea().setText(content);
         } else {
@@ -701,7 +703,7 @@ public class LogTextEditor extends JFrame {
         int timeout = Integer.parseInt(settings.getProperty("clipboardTimeout", "30"));
         // Validate timeout is within SecureClipboardManager bounds (5-30 seconds)
         if (timeout < 5 || timeout > 30) {
-            timeout = 30; // Default to 30 seconds
+            timeout = 15; // Default to 15 seconds
         }
 
         clipboard.SecureClipboardManager.setAutoClearEnabled(autoClear);

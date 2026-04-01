@@ -106,7 +106,7 @@ The encryption system is highly modular and well-encapsulated, making it suitabl
 ## 🔑 Password Security: 9/10
 
 ### Anti-Brute-Force Protection
-- **Progressive Delays**: 3s → 15s → 30s with ±20% randomization
+- **Progressive Delays**: 3s → 15s → 30s with cryptographic randomization (up to 2 seconds added)
 - **Attempt Limits**: Maximum 4 password attempts
 - **Application Restart**: Required after 4 failed attempts
 - **Real-time Feedback**: Live countdown with percentage and time remaining during delays
@@ -114,10 +114,10 @@ The encryption system is highly modular and well-encapsulated, making it suitabl
 
 ### Delay System Details
 | Attempt | Base Delay | Actual Range | Purpose |
-|---------|------------|--------------|---------|
-| 1st | 3 seconds | 2.4s - 3.6s | Quick retry for typos |
-| 2nd | 15 seconds | 12s - 18s | Moderate deterrence |
-| 3rd | 30 seconds | 24s - 36s | Strong automation prevention |
+|---------|------------|--------------|----------|
+| 1st | 3 seconds | 3.0s - 5.0s | Quick retry for typos |
+| 2nd | 15 seconds | 15.0s - 17.0s | Moderate deterrence |
+| 3rd | 30 seconds | 30.0s - 32.0s | Strong automation prevention |
 
 ### Progress Dialog Enhancements
 - **Unified UI Design**: Consistent styling across security delay and loading progress dialogs
@@ -154,10 +154,10 @@ The encryption system is highly modular and well-encapsulated, making it suitabl
 
 ---
 
-## 📋 Clipboard Security: 9/10
+## 📋 Clipboard Security: 9.5/10
 
 ### Security Features
-- **Automatic Clearing**: Configurable timeout (5-30 seconds, default 30s)
+- **Automatic Clearing**: Configurable timeout (5-30 seconds, default 15s for tighter security)
 - **Content Marking**: Secure .LOG-hog data identification
 - **Educational Warnings**: User education about clipboard risks
 - **Manual Controls**: Immediate clear options available
@@ -169,6 +169,8 @@ The encryption system is highly modular and well-encapsulated, making it suitabl
 - **User Notifications**: Toast messages for security actions
 - **Settings Integration**: User-configurable timeout and behavior
 - **Error Handling**: Comprehensive exception handling for clipboard access failures
+- **Secure Cache Clearing**: On lock, all cached data is overwritten before clearing to prevent memory forensics
+- **Machine-Specific Key Entropy**: Settings encryption uses machine fingerprint in addition to username
 
 ### Security Benefits
 - **Data Exposure Prevention**: Eliminates indefinite clipboard access
