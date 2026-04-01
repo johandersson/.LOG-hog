@@ -323,22 +323,40 @@ public class LogFileHandler implements LogFileOperations {
         return cache.hasPendingWrites();
     }
 
-    public void changeTimestamp(String oldTimestamp, String newTimestamp, DefaultListModel<String> listModel) {
+    public void changeTimestamp(String displayTimestamp, String newTimestamp, DefaultListModel<String> listModel) {
         if (!Files.exists(filePath)) return;
 
         try {
+            // Parse display timestamp to get raw timestamp and occurrence
+            String rawOldTs = getRawTimestamp(displayTimestamp);
+            int targetOccurrence = parseOccurrenceIndex(displayTimestamp);
+            
             List<String> lines;
             if (encrypted) {
                 lines = new ArrayList<>(getLines());
             } else {
                 lines = readAllLinesSafe(filePath);
             }
+            
+            // Find and replace the correct occurrence
+            int currentOccurrence = 0;
+            boolean found = false;
             for (int i = 0; i < lines.size(); i++) {
-                if (lines.get(i).trim().equals(oldTimestamp.trim())) {
-                    lines.set(i, newTimestamp);
-                    break;
+                String trimmed = lines.get(i).trim();
+                // Strip any old suffix from file for matching
+                String lineRawTs = trimmed.replaceAll(" \\(\\d+\\)$", "");
+                
+                if (lineRawTs.equals(rawOldTs) || trimmed.equals(rawOldTs)) {
+                    if (currentOccurrence == targetOccurrence) {
+                        lines.set(i, newTimestamp);
+                        found = true;
+                        break;
+                    }
+                    currentOccurrence++;
                 }
             }
+            
+            if (!found) return;
 
             if (encryptionManager.isEncrypted()) {
                 cache.updateCachedLines(lines);
@@ -353,16 +371,21 @@ public class LogFileHandler implements LogFileOperations {
                     backupManager.createNumberedBackup();
                 }
                 Files.write(filePath, lines);
-                // Notify UI that file content changed
-                notifyCacheInvalidationListeners();
             }
             
-            // Update the list model
-            int index = listModel.indexOf(oldTimestamp);
-            if (index != -1) {
-                listModel.remove(index);
-                listModel.addElement(newTimestamp);
-                sortListModel(listModel);
+            // Invalidate caches and reload list for proper display suffix regeneration
+            invalidateEntryCache();
+            notifyCacheInvalidationListeners();
+            try {
+                entryLoader.loadLogEntries(listModel);
+            } catch (Exception e) {
+                // Fallback: just update the model directly
+                int index = listModel.indexOf(displayTimestamp);
+                if (index != -1) {
+                    listModel.remove(index);
+                    listModel.addElement(newTimestamp);
+                    sortListModel(listModel);
+                }
             }
         } catch (Exception e) {
             showErrorDialog("<html><b>⏰ Timestamp Change Failed</b><br><br>Unable to change the timestamp.<br>Please try again.<br><br><i>Tip: Ensure the new timestamp is unique and valid.</i></html>");

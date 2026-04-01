@@ -86,17 +86,12 @@ public class ActionHandler {
         return new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                final String[] newEntryHolder = new String[1];
-                try {
-                    SwingUtilities.invokeAndWait(() -> newEntryHolder[0] = (String) JOptionPane.showInputDialog(
-                            editor,
-                            "Enter new log entry:",
-                            "New Log Entry",
-                            JOptionPane.PLAIN_MESSAGE));
-                } catch (Exception ex) {
-                    newEntryHolder[0] = null;
-                }
-                String newEntry = newEntryHolder[0];
+                // Show dialog directly - we're already on the EDT from ActionListener
+                String newEntry = (String) JOptionPane.showInputDialog(
+                        editor,
+                        "Enter new log entry:",
+                        "New Log Entry",
+                        JOptionPane.PLAIN_MESSAGE);
                 if (newEntry != null && !newEntry.isBlank()) {
                     // Save asynchronously so UI remains responsive for large files
                     logFileHandler.saveTextAsync(newEntry, listModel, () -> {
@@ -122,7 +117,8 @@ public class ActionHandler {
         String selectedItem = logList.getSelectedValue();
         if (selectedItem == null) return;
 
-        // selectedItem contains the exact timestamp from the file (including any duplicate suffix like " (1)")
+        // selectedItem contains display timestamp (may include suffix like " (1)")
+        // updateEntry handles parsing to find correct occurrence in file
         logFileHandler.updateEntry(selectedItem, logListPanel.getEntryArea().getText());
 
         // Flush writes asynchronously to avoid blocking UI on large files
@@ -239,34 +235,37 @@ public class ActionHandler {
         String selectedItem = logList.getSelectedValue();
         if (selectedItem == null) return;
 
-        final String[] newDateTimeHolder = new String[1];
-        try {
-            SwingUtilities.invokeAndWait(() -> newDateTimeHolder[0] = (String) JOptionPane.showInputDialog(editor, "Enter new date and time (format: HH:mm yyyy-MM-dd):", selectedItem));
-        } catch (Exception ex) {
-            newDateTimeHolder[0] = null;
-        }
-        String newDateTime = newDateTimeHolder[0];
-        if (newDateTime == null) return;
-        if (newDateTime.isBlank()) {
-            DialogHelper.showError(editor, "Error", "Invalid Input", "Date and time cannot be empty.");
-            return;
+        // Get raw timestamp without display suffix for editing
+        String rawTimestamp = logFileHandler.getRawTimestamp(selectedItem);
+        String newDateTime = rawTimestamp;
+        
+        // Loop until valid input or cancel
+        while (true) {
+            newDateTime = (String) JOptionPane.showInputDialog(editor, 
+                "Enter new date and time (format: HH:mm yyyy-MM-dd):", newDateTime);
+            if (newDateTime == null) return; // User cancelled
+            
+            if (newDateTime.isBlank()) {
+                DialogHelper.showError(editor, "Error", "Invalid Input", "Date and time cannot be empty.");
+                continue;
+            }
+
+            // Validate format
+            try {
+                java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd");
+                java.time.LocalDateTime.parse(newDateTime.trim(), formatter);
+                break; // Valid input, exit loop
+            } catch (Exception e) {
+                DialogHelper.showError(editor, "Error", "Invalid Format", "Invalid format. Use HH:mm yyyy-MM-dd");
+                // Continue loop to let user try again
+            }
         }
 
-        // validate
-        try {
-            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd");
-            java.time.LocalDateTime.parse(newDateTime.trim(), formatter);
-        } catch (Exception e) {
-            DialogHelper.showError(editor, "Error", "Invalid Format", "Invalid format. Use HH:mm yyyy-MM-dd");
-            return;
-        }
-
-        // calculate unique timestamp
-        int count = logFileHandler.getDuplicateCount(newDateTime.trim());
-        String uniqueNewTimestamp = count > 0 ? newDateTime.trim() + " (" + count + ")" : newDateTime.trim();
+        // Store plain timestamp (no suffix) - suffixes are display-only
+        String plainTimestamp = newDateTime.trim();
 
         // update
-        logFileHandler.changeTimestamp(selectedItem, uniqueNewTimestamp, listModel);
+        logFileHandler.changeTimestamp(selectedItem, plainTimestamp, listModel);
         try {
             editor.loadLogEntries();
         } catch (Exception e) {

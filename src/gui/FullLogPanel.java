@@ -487,7 +487,7 @@ public class FullLogPanel extends LogPanel {
     
     /**
      * Opens the specified entry for editing in the Log List tab.
-     * @param timestamp The timestamp of the entry to edit (format: HH:mm yyyy-MM-dd)
+     * @param timestamp The timestamp of the entry to edit (may include display suffix)
      */
     private void openEntryForEditing(String timestamp) {
         // Switch to Log List tab (index 1)
@@ -497,11 +497,15 @@ public class FullLogPanel extends LogPanel {
         DefaultListModel<String> listModel = logListPanel.getListModel();
         JList<String> logList = logListPanel.getLogList();
 
+        // Strip display suffix to get raw timestamp for matching
+        // Full log and log list may have different (n) numbering due to sort order
+        String rawTimestamp = timestamp.replaceAll(" \\(\\d+\\)$", "").trim();
+
         // Parse the timestamp to get year and month for filter adjustment
         int targetYear = 0;
         int targetMonth = 0;
         try {
-            LocalDateTime dt = utils.DateHandler.parseTimestamp(timestamp);
+            LocalDateTime dt = utils.DateHandler.parseTimestamp(rawTimestamp);
             targetYear = dt.getYear();
             targetMonth = dt.getMonthValue();
         } catch (Exception e) {
@@ -509,13 +513,17 @@ public class FullLogPanel extends LogPanel {
         }
 
         // Try to select the entry immediately if present in current list
+        // Match by raw timestamp (stripping display suffix from both)
         for (int i = 0; i < listModel.getSize(); i++) {
             String entry = listModel.getElementAt(i);
-            if (entry != null && entry.startsWith(timestamp)) {
-                logList.setSelectedIndex(i);
-                logList.ensureIndexIsVisible(i);
-                SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
-                return;
+            if (entry != null) {
+                String entryRaw = entry.replaceAll(" \\(\\d+\\)$", "").trim();
+                if (entryRaw.equals(rawTimestamp)) {
+                    logList.setSelectedIndex(i);
+                    logList.ensureIndexIsVisible(i);
+                    SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+                    return;
+                }
             }
         }
 
@@ -534,14 +542,17 @@ public class FullLogPanel extends LogPanel {
                 if (showTimer.isRunning()) showTimer.stop();
                 progress.close();
                 
-                // Now search for and select the entry
+                // Now search for and select the entry (match by raw timestamp)
                 for (int i = 0; i < listModel.getSize(); i++) {
                     String entry = listModel.getElementAt(i);
-                    if (entry != null && entry.startsWith(timestamp)) {
-                        logList.setSelectedIndex(i);
-                        logList.ensureIndexIsVisible(i);
-                        SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
-                        return;
+                    if (entry != null) {
+                        String entryRaw = entry.replaceAll(" \\(\\d+\\)$", "").trim();
+                        if (entryRaw.equals(rawTimestamp)) {
+                            logList.setSelectedIndex(i);
+                            logList.ensureIndexIsVisible(i);
+                            SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+                            return;
+                        }
                     }
                 }
                 // Entry not found after filter adjustment
@@ -558,6 +569,8 @@ public class FullLogPanel extends LogPanel {
      */
     private void fallbackFullReload(String timestamp, LogListPanel logListPanel, 
                                     DefaultListModel<String> listModel, JList<String> logList) {
+        // Strip display suffix for matching
+        String rawTs = timestamp.replaceAll(" \\(\\d+\\)$", "").trim();
         LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
         final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
         showTimer.setRepeats(false);
@@ -569,11 +582,14 @@ public class FullLogPanel extends LogPanel {
                 SwingUtilities.invokeLater(() -> {
                     for (int i = 0; i < listModel.getSize(); i++) {
                         String entry = listModel.getElementAt(i);
-                        if (entry != null && entry.startsWith(timestamp)) {
-                            logList.setSelectedIndex(i);
-                            logList.ensureIndexIsVisible(i);
-                            SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
-                            return;
+                        if (entry != null) {
+                            String entryRaw = entry.replaceAll(" \\(\\d+\\)$", "").trim();
+                            if (entryRaw.equals(rawTs)) {
+                                logList.setSelectedIndex(i);
+                                logList.ensureIndexIsVisible(i);
+                                SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+                                return;
+                            }
                         }
                     }
                     DialogHelper.showEntryNotFound(this);
