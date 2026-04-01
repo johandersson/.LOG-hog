@@ -45,7 +45,7 @@ import utils.Toast;
  *   <li><b>Automatic Clearing:</b> Clipboard contents are automatically cleared after a configurable timeout (5-30 seconds)</li>
  *   <li><b>Thread Safety:</b> All static mutable fields are properly synchronized to prevent race conditions</li>
  *   <li><b>Content Tracking:</b> Only clears clipboard content that was copied by this application</li>
- *   <li><b>Shutdown Hook:</b> Ensures clipboard is cleared even on abnormal application termination</li>
+ *   <li><b>Explicit Clearing:</b> Clipboard is cleared explicitly before application exit (not via shutdown hook due to AWT deadlock)</li>
  * </ul>
  *
  * <h2>Security Assumptions</h2>
@@ -72,20 +72,12 @@ public class SecureClipboardManager implements ClipboardHandler {
 
     private static final SecureClipboardManager INSTANCE = new SecureClipboardManager();
 
-    static {
-        // Add shutdown hook to guarantee clipboard clearing even if app crashes
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                // Clear clipboard on any app termination (normal or crash)
-                Clipboard clipboard = getSystemClipboardSafe();
-                if (clipboard != null) {
-                    clipboard.setContents(new StringSelection(""), null);
-                }
-            } catch (Exception e) {
-                // Ignore - app is shutting down anyway
-            }
-        }, "ClipboardClearShutdownHook"));
-    }
+    // NOTE: Shutdown hook for clipboard clearing was REMOVED because it causes deadlock.
+    // The AWT clipboard operations require the AWT event thread, but when System.exit()
+    // is called from the EDT, the shutdown hook tries to use AWT which is waiting for
+    // shutdown hooks to complete - classic deadlock.
+    // Instead, clipboard is cleared explicitly in UIInitializer.windowClosing() BEFORE
+    // calling System.exit().
 
     // Defensive getter for system clipboard; returns null if unavailable
     private static Clipboard getSystemClipboardSafe() {
