@@ -269,6 +269,9 @@ public class EntryLoader {
             entryContentCache.clear();
             List<String> timestamps = new ArrayList<>();
             
+            // Track occurrence counts for display suffixes
+            Map<String, Integer> occurrenceCount = new HashMap<>();
+            
             // Collect all elements first for batched update
             List<String> elementsToAdd = new ArrayList<>(sortedEntries.size());
             
@@ -276,18 +279,30 @@ public class EntryLoader {
                 // For the list view, show only the timestamp line (or first line for non-timestamp entries)
                 if (!entry.isEmpty()) {
                     String rawTs = entry.get(0).trim();
+                    // Strip any existing suffix from file (for backwards compatibility)
+                    String cleanTs = rawTs.replaceAll(" \\(\\d+\\)$", "");
+                    
                     // PMD: Suppress warning - StringBuilder is required per entry
                     @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
                     StringBuilder content = new StringBuilder();
                     for (int i = 1; i < entry.size(); i++) {
                         content.append(entry.get(i)).append('\n');
                     }
-                    entryContentCache.put(rawTs, content.toString().trim());
-                    if (tsPattern.matcher(rawTs).matches()) {
-                        // Keep the suffix to distinguish duplicate entries
-                        elementsToAdd.add(rawTs);
-                        timestamps.add(rawTs);
+                    
+                    if (tsPattern.matcher(cleanTs).matches()) {
+                        // Track occurrence for display suffix
+                        int occurrence = occurrenceCount.getOrDefault(cleanTs, 0);
+                        occurrenceCount.put(cleanTs, occurrence + 1);
+                        
+                        // Generate display timestamp with suffix for duplicates
+                        String displayTs = occurrence > 0 ? cleanTs + " (" + occurrence + ")" : cleanTs;
+                        
+                        // Use display timestamp as cache key
+                        entryContentCache.put(displayTs, content.toString().trim());
+                        elementsToAdd.add(displayTs);
+                        timestamps.add(displayTs);
                     } else {
+                        entryContentCache.put(rawTs, content.toString().trim());
                         elementsToAdd.add(rawTs);
                     }
                 }

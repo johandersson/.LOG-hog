@@ -73,6 +73,45 @@ public class TimestampClickHandler {
     private void attachHandlers() {
         // Motion listener for visual feedback
         textPane.addMouseMotionListener(createHoverListener());
+        
+        // Hide overlay when text pane becomes invisible (e.g., tab switch)
+        textPane.addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & java.awt.event.HierarchyEvent.SHOWING_CHANGED) != 0) {
+                if (!textPane.isShowing()) {
+                    hideOverlayButton();
+                }
+            }
+        });
+        
+        // Hide overlay when parent window loses focus
+        textPane.addAncestorListener(new javax.swing.event.AncestorListener() {
+            private java.awt.event.WindowFocusListener focusListener;
+            
+            @Override
+            public void ancestorAdded(javax.swing.event.AncestorEvent event) {
+                java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(textPane);
+                if (window != null && focusListener == null) {
+                    focusListener = new java.awt.event.WindowFocusListener() {
+                        @Override
+                        public void windowGainedFocus(java.awt.event.WindowEvent e) {}
+                        
+                        @Override
+                        public void windowLostFocus(java.awt.event.WindowEvent e) {
+                            hideOverlayButton();
+                        }
+                    };
+                    window.addWindowFocusListener(focusListener);
+                }
+            }
+            
+            @Override
+            public void ancestorRemoved(javax.swing.event.AncestorEvent event) {
+                hideOverlayButton();
+            }
+            
+            @Override
+            public void ancestorMoved(javax.swing.event.AncestorEvent event) {}
+        });
     }
     
     private void createOverlayButton() {

@@ -59,16 +59,10 @@ public class AsyncSaver {
                 }
             }
 
-            if (ts != null) {
-                final String added = ts;
-                javax.swing.SwingUtilities.invokeLater(() -> {
-                    listModel.addElement(added);
-                    // sort not accessible; caller should manage
-                    if (onComplete != null) onComplete.run();
-                });
-            } else {
-                if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
-            }
+            // Signal completion - caller handles list refresh for proper occurrence counting
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                if (onComplete != null) onComplete.run();
+            });
         }, "loghog-save-thread");
         t.setDaemon(true);
         t.start();

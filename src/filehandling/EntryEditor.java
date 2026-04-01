@@ -25,9 +25,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import encryption.FileEncryptionManager;
@@ -106,9 +108,13 @@ public class EntryEditor {
     }
     
     /**
-     * Updates an existing log entry.
+     * Updates an existing log entry by occurrence index.
+     * @param timeStamp the raw timestamp (without display suffix)
+     * @param occurrence which occurrence to update (0 = first, 1 = second, etc.)
+     * @param newText the new content
+     * @param lines all lines in the file
      */
-    public List<String> updateEntry(String timeStamp, String newText, List<String> lines) {
+    public List<String> updateEntry(String timeStamp, int occurrence, String newText, List<String> lines) {
         if (newText == null || newText.isBlank()) return lines;
 
         // Enforce maximum entry length on updates as well (avoid reassigning parameter)
@@ -122,16 +128,24 @@ public class EntryEditor {
         } catch (Exception ignore) {
         }
         
+        String rawTs = timeStamp.trim();
         List<String> updatedLines = new ArrayList<>();
         boolean inTargetEntry = false;
+        int currentOccurrence = 0;
 
         for (String line : lines) {
-            if (line.trim().equals(timeStamp.trim())) {
-                inTargetEntry = true;
-                updatedLines.add(line); // keep the timestamp line
-                // Use Arrays.asList instead of tight loop
-                updatedLines.addAll(Arrays.asList(updatedText.split("\r?\n", -1)));
-                continue;
+            String trimmed = line.trim();
+            // Match the raw timestamp (file doesn't store suffix)
+            if (trimmed.equals(rawTs) || trimmed.startsWith(rawTs + " (")) {
+                // Found a matching timestamp
+                if (currentOccurrence == occurrence) {
+                    inTargetEntry = true;
+                    updatedLines.add(line); // keep the timestamp line
+                    updatedLines.addAll(Arrays.asList(updatedText.split("\r?\n", -1)));
+                    currentOccurrence++;
+                    continue;
+                }
+                currentOccurrence++;
             }
 
             if (inTargetEntry) {
@@ -147,36 +161,60 @@ public class EntryEditor {
         }
 
         return updatedLines;
-        // (Fixed: Only one implementation should exist. The above block is the correct one, so remove the duplicate below.)
+    }
+    
+    /**
+     * Updates an existing log entry (legacy - updates first occurrence).
+     */
+    public List<String> updateEntry(String timeStamp, String newText, List<String> lines) {
+        return updateEntry(timeStamp, 0, newText, lines);
     }
     
     /**
      * Deletes multiple log entries in a single operation.
+     * Supports display timestamps with occurrence suffix like "14:30 2026-04-01 (1)".
      */
-    public List<String> deleteEntries(List<String> timestamps, List<String> lines) {
-        if (timestamps == null || timestamps.isEmpty()) return lines;
+    public List<String> deleteEntries(List<String> displayTimestamps, List<String> lines) {
+        if (displayTimestamps == null || displayTimestamps.isEmpty()) return lines;
         
-        // Convert to set for O(1) lookup
-        Set<String> timestampsToDelete = new HashSet<>();
-        for (String ts : timestamps) {
-            timestampsToDelete.add(ts.trim());
+        // Parse display timestamps to (rawTimestamp -> Set of occurrences to delete)
+        Map<String, Set<Integer>> toDelete = new HashMap<>();
+        for (String displayTs : displayTimestamps) {
+            String trimmed = displayTs.trim();
+            String rawTs = trimmed.replaceAll(" \\(\\d+\\)$", "");
+            int occurrence = 0;
+            var matcher = java.util.regex.Pattern.compile(" \\((\\d+)\\)$").matcher(trimmed);
+            if (matcher.find()) {
+                occurrence = Integer.parseInt(matcher.group(1));
+            }
+            toDelete.computeIfAbsent(rawTs, k -> new HashSet<>()).add(occurrence);
         }
         
-        // Remove all matching entries in one pass
+        // Track current occurrence count per raw timestamp
+        Map<String, Integer> occurrenceCount = new HashMap<>();
+        
+        // Remove matching entries in one pass
         List<String> updatedLines = new ArrayList<>();
         boolean inDeletedEntry = false;
         
         for (String line : lines) {
             String trimmed = line.trim();
             
-            // Check if this is a timestamp we want to delete
-            if (timestampsToDelete.contains(trimmed)) {
-                inDeletedEntry = true;
-                continue; // Skip timestamp line
-            }
-            
-            // Check if we hit the next timestamp (end of deleted entry)
-            if (inDeletedEntry && utils.DateHandler.isTimestamp(trimmed)) {
+            // Check if this is a timestamp line
+            if (utils.DateHandler.isTimestamp(trimmed)) {
+                // Get raw timestamp (without any old suffix that might exist in file)
+                String rawTs = trimmed.replaceAll(" \\(\\d+\\)$", "");
+                int currentOccurrence = occurrenceCount.getOrDefault(rawTs, 0);
+                occurrenceCount.put(rawTs, currentOccurrence + 1);
+                
+                // Check if this occurrence should be deleted
+                Set<Integer> occurrencesToDelete = toDelete.get(rawTs);
+                if (occurrencesToDelete != null && occurrencesToDelete.contains(currentOccurrence)) {
+                    inDeletedEntry = true;
+                    continue; // Skip this timestamp line
+                }
+                
+                // Not deleting - if we were in a deleted entry, we're now past it
                 inDeletedEntry = false;
                 updatedLines.add(line);
                 continue;
@@ -211,11 +249,13 @@ public class EntryEditor {
     }
     
     /**
-     * Creates a unique timestamp, adding duplicate counter if needed.
+     * Creates a timestamp for new entries.
+     * Note: Duplicate counter is for display only, not stored in file.
+     * This maintains Notepad .LOG compatibility.
      */
     public String createUniqueTimestamp(int duplicateCount) {
-        String timeStamp = FORMATTER.format(LocalDateTime.now());
-        return duplicateCount > 0 ? timeStamp + " (" + duplicateCount + ")" : timeStamp;
+        // Always return plain timestamp - suffix is for UI display only
+        return FORMATTER.format(LocalDateTime.now());
     }
 
     /**

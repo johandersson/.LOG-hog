@@ -132,14 +132,12 @@ public class LogFileHandler implements LogFileOperations {
         try {
             uniqueTimeStamp = saveTextInternal(text);
 
-            if (uniqueTimeStamp != null) {
-                listModel.addElement(uniqueTimeStamp);
-                sortListModel(listModel);
-            }
-
-            // Invalidate both file cache and entry loader caches so the UI
-            // picks up the newly saved entry and renders markdown immediately.
+            // Invalidate caches and reload list to properly count occurrences
+            // for display suffixes (e.g., "14:30 2026-04-01 (1)")
             invalidateEntryCache();
+            if (uniqueTimeStamp != null) {
+                entryLoader.loadLogEntries(listModel);
+            }
             // Notify UI (FullLog, etc.) that parsed/full-log caches should be invalidated
             notifyCacheInvalidationListeners();
             writeDebug(new StringBuilder("saveText: success (ts=").append(uniqueTimeStamp).append(')').toString());
@@ -158,12 +156,11 @@ public class LogFileHandler implements LogFileOperations {
                 // File created/restored, try save again
                 try {
                     String ts = saveTextInternal(text);
-                    if (ts != null) {
-                        listModel.addElement(ts);
-                        sortListModel(listModel);
-                    }
-                    // Ensure both caches are invalidated after creating the file
+                    // Invalidate caches and reload list for proper occurrence counting
                     invalidateEntryCache();
+                    if (ts != null) {
+                        entryLoader.loadLogEntries(listModel);
+                    }
                     notifyCacheInvalidationListeners();
                     writeDebug("saveText: success after recreate (ts=" + uniqueTimeStamp + ")");
                 } catch (Exception ex) {
@@ -211,7 +208,14 @@ public class LogFileHandler implements LogFileOperations {
      */
     public void saveTextAsync(String text, DefaultListModel<String> listModel, Runnable onComplete) {
         asyncSaver.saveTextAsync(text, listModel, () -> {
-            sortListModel(listModel);
+            // Reload list to properly count occurrences for display suffixes
+            try {
+                invalidateEntryCache();
+                entryLoader.loadLogEntries(listModel);
+            } catch (Exception e) {
+                // Fall back to just invalidation on error
+                writeDebug("saveTextAsync: reload failed - " + e.getMessage());
+            }
             if (onComplete != null) onComplete.run();
         });
         // PMD: Avoid unused private methods such as 'sortAndNormalizeFile()'.
@@ -219,10 +223,19 @@ public class LogFileHandler implements LogFileOperations {
         // Removed call to entryEditor.writeLines(lines, encrypted); as 'lines' is undefined here.
     }
 
-    public void updateEntry(String timeStamp, String newText) {
+    /**
+     * Updates an entry identified by display timestamp (which may include occurrence suffix).
+     * @param displayTimestamp the timestamp as shown in UI (e.g., "14:30 2026-04-01" or "14:30 2026-04-01 (1)")
+     * @param newText the new content
+     */
+    public void updateEntry(String displayTimestamp, String newText) {
         if (newText.isBlank() || !Files.exists(filePath)) return;
 
         try {
+            // Parse display timestamp to get raw timestamp and occurrence index
+            String rawTs = getRawTimestamp(displayTimestamp);
+            int occurrence = parseOccurrenceIndex(displayTimestamp);
+            
             List<String> lines;
             if (encrypted) {
                 lines = new ArrayList<>(getLines());
@@ -230,7 +243,7 @@ public class LogFileHandler implements LogFileOperations {
                 lines = readAllLinesSafe(filePath);
             }
             
-            List<String> updatedLines = entryEditor.updateEntry(timeStamp, newText, lines);
+            List<String> updatedLines = entryEditor.updateEntry(rawTs, occurrence, newText, lines);
 
             // Use write-back cache for performance
             // Update cache immediately so UI reflects formatted content
@@ -251,6 +264,16 @@ public class LogFileHandler implements LogFileOperations {
         } catch (Exception e) {
             showErrorDialog("<html><b>✏️ Update Failed</b><br><br>Unable to update the log entry.<br>Please try again.<br><br><i>Tip: Ensure the entry exists and the file is writable.</i></html>");
         }
+    }
+    
+    /**
+     * Parses occurrence index from display timestamp.
+     * @param displayTimestamp e.g., "14:30 2026-04-01 (2)" returns 2, "14:30 2026-04-01" returns 0
+     */
+    private int parseOccurrenceIndex(String displayTimestamp) {
+        if (displayTimestamp == null) return 0;
+        var matcher = java.util.regex.Pattern.compile(" \\((\\d+)\\)$").matcher(displayTimestamp.trim());
+        return matcher.find() ? Integer.parseInt(matcher.group(1)) : 0;
     }
     
     /**

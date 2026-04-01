@@ -21,7 +21,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import gui.HighlightableTextPane;
@@ -46,6 +48,51 @@ public class FullLogFileLoader {
     public FullLogFileLoader(LogFileHandler logFileHandler, HighlightableTextPane textPane) {
         this.logFileHandler = logFileHandler;
         this.textPane = textPane;
+    }
+
+    /**
+     * Adds display suffixes (1), (2), etc. to duplicate timestamps in entries.
+     * Processes entries in chronological order (oldest first) for consistent numbering.
+     * @param entries List of entries where each entry is a List of Strings with timestamp as first element
+     * @return New list with display suffixes added to timestamps
+     */
+    private List<List<String>> addDisplaySuffixes(List<List<String>> entries) {
+        if (entries == null || entries.isEmpty()) return entries;
+        
+        Map<String, Integer> occurrenceCount = new HashMap<>();
+        List<List<String>> result = new ArrayList<>(entries.size());
+        
+        for (List<String> entry : entries) {
+            if (entry.isEmpty()) {
+                result.add(entry);
+                continue;
+            }
+            
+            String rawTs = entry.get(0).trim();
+            // Strip any existing suffix from old files
+            String cleanTs = rawTs.replaceAll(" \\(\\d+\\)$", "");
+            
+            // Check if this is a timestamp line
+            if (utils.DateHandler.isTimestamp(cleanTs)) {
+                int occurrence = occurrenceCount.getOrDefault(cleanTs, 0);
+                occurrenceCount.put(cleanTs, occurrence + 1);
+                
+                // Generate display timestamp with suffix for duplicates
+                String displayTs = occurrence > 0 ? cleanTs + " (" + occurrence + ")" : cleanTs;
+                
+                // Create new entry with display timestamp
+                List<String> newEntry = new ArrayList<>(entry.size());
+                newEntry.add(displayTs);
+                for (int i = 1; i < entry.size(); i++) {
+                    newEntry.add(entry.get(i));
+                }
+                result.add(newEntry);
+            } else {
+                result.add(entry);
+            }
+        }
+        
+        return result;
     }
 
     /** Compatibility: invalidate internal caches used by this loader. */
@@ -172,6 +219,8 @@ public class FullLogFileLoader {
             } else {
                 entriesToRender = allEntries;
             }
+            // Add display suffixes for duplicate timestamps
+            entriesToRender = addDisplaySuffixes(entriesToRender);
             return new ParsedLogData(allEntries, entriesToRender);
         } else {
             try (var stream = logFileHandler.getLinesStreamed()) {
@@ -197,6 +246,8 @@ public class FullLogFileLoader {
                 } else {
                     entriesToRender = chrono;
                 }
+                // Add display suffixes for duplicate timestamps
+                entriesToRender = addDisplaySuffixes(entriesToRender);
                 return new ParsedLogData((int)Math.min(total, Integer.MAX_VALUE), entriesToRender);
             }
         }
@@ -258,6 +309,8 @@ public class FullLogFileLoader {
             entriesToRender = filteredEntries;
         }
 
+        // Add display suffixes for duplicate timestamps
+        entriesToRender = addDisplaySuffixes(entriesToRender);
         MarkdownRenderer.renderMarkdownFromEntries(textPane, entriesToRender, true);
         LinkHandler.addLinkListeners(textPane);
     }
@@ -309,6 +362,8 @@ public class FullLogFileLoader {
             entriesToRender = filteredEntries;
         }
 
+        // Add display suffixes for duplicate timestamps
+        entriesToRender = addDisplaySuffixes(entriesToRender);
         MarkdownRenderer.renderMarkdownFromEntries(textPane, entriesToRender, true);
         LinkHandler.addLinkListeners(textPane);
     }

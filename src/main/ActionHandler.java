@@ -122,6 +122,7 @@ public class ActionHandler {
         String selectedItem = logList.getSelectedValue();
         if (selectedItem == null) return;
 
+        // selectedItem contains the exact timestamp from the file (including any duplicate suffix like " (1)")
         logFileHandler.updateEntry(selectedItem, logListPanel.getEntryArea().getText());
 
         // Flush writes asynchronously to avoid blocking UI on large files
