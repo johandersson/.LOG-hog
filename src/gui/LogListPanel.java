@@ -35,6 +35,8 @@ import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.JComboBox;
 import javax.swing.JProgressBar;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
@@ -54,6 +56,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.text.AbstractDocument;
 
+import filehandling.LogEntrySearcher;
 import filehandling.LogFileHandler;
 import filehandling.DialogHandler;
 import main.LogTextEditor;
@@ -78,6 +81,12 @@ public class LogListPanel extends JPanel {
     private JComboBox<String> monthCombo;
     private final LogInfoPanel infoPanel;
     private final JProgressBar filterProgressBar;
+    // Search components
+    private JTextField searchField;
+    private JCheckBox wholeWordCheck;
+    private JCheckBox caseSensitiveCheck;
+    private JLabel searchResultLabel;
+    private JButton clearSearchBtn;
     private final JProgressBar entryProgressBar;
 
     public LogListPanel(LogTextEditor editor, LogFileHandler logFileHandler, DefaultListModel<String> listModel, JList<String> logList) {
@@ -125,11 +134,15 @@ public class LogListPanel extends JPanel {
     }
 
     private JPanel createFilterPanel() {
-        var filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 6));
-        filterPanel.setOpaque(false);
-        var filterLabel = new JLabel("Filter on date");
+        var mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setOpaque(false);
+        
+        // Date filter row
+        var dateFilterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 3));
+        dateFilterPanel.setOpaque(false);
+        var filterLabel = new JLabel("Filter");
         filterLabel.setFont(filterLabel.getFont().deriveFont(Font.BOLD));
-        filterPanel.add(filterLabel);
+        dateFilterPanel.add(filterLabel);
 
         // Populate year combo from the currently displayed entries in the list (most recent view)
         java.util.Set<Integer> yearsSet = new java.util.LinkedHashSet<>();
@@ -151,7 +164,7 @@ public class LogListPanel extends JPanel {
         yearCombo = new JComboBox<>(yearsArr);
         // Select the most recent year by default if present
         if (yearsArr.length > 0) yearCombo.setSelectedItem(yearsArr[0]);
-        filterPanel.add(yearCombo);
+        dateFilterPanel.add(yearCombo);
 
         var months = new String[]{
                 "All Months",
@@ -161,19 +174,81 @@ public class LogListPanel extends JPanel {
         };
         monthCombo = new JComboBox<>(months);
         monthCombo.setSelectedIndex(LocalDate.now().getMonthValue()); // Offset by 1 due to "All Months" at index 0
-        filterPanel.add(monthCombo);
+        dateFilterPanel.add(monthCombo);
 
-        // Lightweight non-blocking progress indicator for filters
+        // Progress bar
         filterProgressBar.setIndeterminate(true);
         filterProgressBar.setVisible(false);
-        filterProgressBar.setPreferredSize(new Dimension(120, 16));
-        filterPanel.add(filterProgressBar);
+        filterProgressBar.setPreferredSize(new Dimension(100, 16));
+        dateFilterPanel.add(filterProgressBar);
+        
+        // Search row
+        var searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 3));
+        searchPanel.setOpaque(false);
+        var searchLabel = new JLabel("Search");
+        searchLabel.setFont(searchLabel.getFont().deriveFont(Font.BOLD));
+        searchPanel.add(searchLabel);
+        
+        searchField = new JTextField(15);
+        searchField.setToolTipText("Search in entry timestamps and content (Ctrl+F)");
+        searchPanel.add(searchField);
+        
+        wholeWordCheck = new JCheckBox("Whole word");
+        wholeWordCheck.setOpaque(false);
+        searchPanel.add(wholeWordCheck);
+        
+        caseSensitiveCheck = new JCheckBox("Case sensitive");
+        caseSensitiveCheck.setOpaque(false);
+        searchPanel.add(caseSensitiveCheck);
+        
+        clearSearchBtn = new JButton("Clear");
+        clearSearchBtn.setEnabled(false);
+        searchPanel.add(clearSearchBtn);
+        
+        searchResultLabel = new JLabel("");
+        searchResultLabel.setForeground(Color.GRAY);
+        searchPanel.add(searchResultLabel);
 
-        // Filter actions
-        yearCombo.addActionListener(e -> applyFilter(yearCombo, monthCombo));
-        monthCombo.addActionListener(e -> applyFilter(yearCombo, monthCombo));
+        // Filter/search actions
+        yearCombo.addActionListener(e -> applyFilterAndSearch());
+        monthCombo.addActionListener(e -> applyFilterAndSearch());
+        searchField.addActionListener(e -> applyFilterAndSearch());
+        wholeWordCheck.addActionListener(e -> {
+            if (!searchField.getText().isEmpty()) applyFilterAndSearch();
+        });
+        caseSensitiveCheck.addActionListener(e -> {
+            if (!searchField.getText().isEmpty()) applyFilterAndSearch();
+        });
+        clearSearchBtn.addActionListener(e -> {
+            searchField.setText("");
+            searchResultLabel.setText("");
+            clearSearchBtn.setEnabled(false);
+            applyFilterAndSearch();
+        });
+        
+        // Ctrl+F focuses search field
+        getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
+            KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F, java.awt.event.InputEvent.CTRL_DOWN_MASK), "focusSearch");
+        getActionMap().put("focusSearch", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                searchField.requestFocusInWindow();
+                searchField.selectAll();
+            }
+        });
+        
+        // Layout both rows
+        var rowsPanel = new JPanel(new GridLayout(2, 1, 0, 0));
+        rowsPanel.setOpaque(false);
+        rowsPanel.add(dateFilterPanel);
+        rowsPanel.add(searchPanel);
+        mainPanel.add(rowsPanel, BorderLayout.CENTER);
 
-        return filterPanel;
+        return mainPanel;
+    }
+    
+    private void applyFilterAndSearch() {
+        applyFilter(yearCombo, monthCombo);
     }
 
     private void applyFilter(JComboBox<Integer> yearCombo, JComboBox<String> monthCombo) {
@@ -186,11 +261,24 @@ public class LogListPanel extends JPanel {
         var year = (Integer) yearCombo.getSelectedItem();
         var monthIndex = monthCombo.getSelectedIndex();
         if (year == null) return;
+        
+        // Get search parameters
+        String searchQuery = searchField != null ? searchField.getText().trim() : "";
+        boolean wholeWord = wholeWordCheck != null && wholeWordCheck.isSelected();
+        boolean caseSensitive = caseSensitiveCheck != null && caseSensitiveCheck.isSelected();
+        
+        // Create search options (null if no search)
+        LogEntrySearcher.SearchOptions searchOptions = searchQuery.isEmpty() 
+            ? null 
+            : new LogEntrySearcher.SearchOptions(searchQuery, wholeWord, caseSensitive);
 
         // Provide quick feedback: show an indeterminate progress bar while computing off-EDT
         SwingUtilities.invokeLater(() -> {
             listModel.removeAllElements();
             filterProgressBar.setVisible(true);
+            if (searchResultLabel != null) {
+                searchResultLabel.setText(searchQuery.isEmpty() ? "" : "Searching...");
+            }
         });
 
         // Compute filtered timestamps off the EDT and update model on completion
@@ -198,12 +286,9 @@ public class LogListPanel extends JPanel {
             @Override
             protected List<String> doInBackground() throws Exception {
                 try {
-                    if (monthIndex == 0) {
-                        return logFileHandler.getEntryLoader().computeTimestampsByYear(year);
-                    } else {
-                        int month = monthIndex; // offset already considered in UI
-                        return logFileHandler.getEntryLoader().computeTimestampsByYearMonth(year, month);
-                    }
+                    // Use combined search that applies date filter AND text search in O(N)
+                    int month = monthIndex; // 0 = All Months, 1-12 = specific month
+                    return logFileHandler.getEntryLoader().searchEntries(year, month, searchOptions);
                 } catch (IllegalStateException ise) {
                     // Propagate to done() to show limit dialog on EDT
                     throw ise;
@@ -216,6 +301,19 @@ public class LogListPanel extends JPanel {
                     List<String> filtered = get();
                     listModel.removeAllElements();
                     filterProgressBar.setVisible(false);
+                    
+                    // Update search result label
+                    if (searchResultLabel != null && clearSearchBtn != null) {
+                        if (!searchQuery.isEmpty()) {
+                            int count = filtered != null ? filtered.size() : 0;
+                            searchResultLabel.setText(count == 0 ? "No matches" : count + " match" + (count == 1 ? "" : "es"));
+                            clearSearchBtn.setEnabled(true);
+                        } else {
+                            searchResultLabel.setText("");
+                            clearSearchBtn.setEnabled(false);
+                        }
+                    }
+                    
                     if (filtered == null || filtered.isEmpty()) {
                         // Keep empty list if nothing found
                         return;
@@ -224,12 +322,13 @@ public class LogListPanel extends JPanel {
                         listModel.addElement(ts);
                     }
                 } catch (java.util.concurrent.ExecutionException ee) {
+                    filterProgressBar.setVisible(false);
                     Throwable cause = ee.getCause();
                     if (cause instanceof IllegalStateException) {
                         // File too large - show friendly dialog handled by DialogHandler
                         DialogHandler.showLimitExceeded("File Too Large", "The log file exceeds configured limits and cannot be filtered.");
                     } else {
-                        logFileHandler.showErrorDialog("<html><b>📅 Filter Failed</b><br><br>Unable to apply date filter.<br><br><i>Tip: Check the selected year and month.</i></html>");
+                        logFileHandler.showErrorDialog("<html><b>🔍 Search Failed</b><br><br>Unable to search entries.<br><br><i>Tip: Check search query and try again.</i></html>");
                     }
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
@@ -702,6 +801,20 @@ public class LogListPanel extends JPanel {
         }
         if (monthCombo != null) {
             monthCombo.setEnabled(!locked);
+        }
+        
+        // Disable search controls when locked
+        if (searchField != null) {
+            searchField.setEnabled(!locked);
+        }
+        if (wholeWordCheck != null) {
+            wholeWordCheck.setEnabled(!locked);
+        }
+        if (caseSensitiveCheck != null) {
+            caseSensitiveCheck.setEnabled(!locked);
+        }
+        if (clearSearchBtn != null) {
+            clearSearchBtn.setEnabled(!locked && !searchField.getText().isEmpty());
         }
         
         if (locked) {

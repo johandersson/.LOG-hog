@@ -572,6 +572,67 @@ public class EntryLoader {
         return "";
     }
 
+    /**
+     * Get content for a timestamp. Used by LogEntrySearcher for O(N) search.
+     * @param timestamp the timestamp to get content for
+     * @return the content, or empty string if not found
+     */
+    public String getEntryContent(String timestamp) {
+        return loadEntry(timestamp);
+    }
+    
+    /**
+     * Search entries with combined date and text filtering.
+     * This is O(N) where N is entries in cache.
+     * 
+     * @param year filter year (ignored if <= 0)
+     * @param month filter month 1-12 (0 = all months, ignored if year <= 0)
+     * @param searchOptions text search options (can be null/empty for no text search)
+     * @return list of matching timestamps
+     */
+    public List<String> searchEntries(int year, int month, LogEntrySearcher.SearchOptions searchOptions) throws Exception {
+        if (!Files.exists(logFileHandler.getFilePath())) {
+            return Collections.emptyList();
+        }
+        
+        // Ensure cache is populated
+        if (!isCacheValid() || parsedEntriesCache == null) {
+            parseParsedEntriesCache();
+        }
+        
+        // Also ensure content cache is populated for text search
+        if (searchOptions != null && !searchOptions.isEmpty()) {
+            if (!isCacheValid() || entryContentCache.isEmpty()) {
+                // Force content cache population by loading any entry
+                // This triggers full cache rebuild
+                if (!parsedEntriesCache.isEmpty()) {
+                    loadEntry(parsedEntriesCache.get(0).timestamp);
+                }
+            }
+        }
+        
+        // First pass: date filter (O(N))
+        List<String> dateFiltered = new ArrayList<>();
+        for (ParsedEntry entry : parsedEntriesCache) {
+            if (year > 0 && entry.dateTime != null) {
+                if (entry.dateTime.getYear() != year) continue;
+                if (month > 0 && entry.dateTime.getMonthValue() != month) continue;
+            }
+            dateFiltered.add(entry.timestamp);
+        }
+        
+        // Second pass: text search (O(M) where M = date filtered entries)
+        if (searchOptions == null || searchOptions.isEmpty()) {
+            return dateFiltered;
+        }
+        
+        return LogEntrySearcher.searchTimestamps(
+            dateFiltered,
+            this::getEntryContent,
+            searchOptions
+        );
+    }
+
     public List<String> getRecentLogEntries(int i) {
         List<String> recentEntries = new ArrayList<>();
         if (!Files.exists(logFileHandler.getFilePath())) return recentEntries;
