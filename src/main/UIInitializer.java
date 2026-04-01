@@ -73,18 +73,22 @@ public class UIInitializer {
         editor.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
-                showSecurityProgressDialog(editor);
-                // Clean shutdown of all background processes
-                editor.shutdown();
-                // Dispose the window
-                editor.dispose();
-                // Clean up before exit
-                clipboard.SecureClipboardManager.clearSecureClipboard();
-                editor.getLogFileHandler().clearSensitiveData();
-                // Clear UI text areas
-                editor.getLogListPanel().getEntryArea().setText("");
-                editor.getFullLogPanel().getFullLogPane().setText("");
-                System.exit(0);
+                try {
+                    showSecurityProgressDialog(editor);
+                    // Clean shutdown of all background processes
+                    editor.shutdown();
+                    // Dispose the window
+                    editor.dispose();
+                    // Clean up before exit
+                    clipboard.SecureClipboardManager.clearSecureClipboard();
+                    editor.getLogFileHandler().clearSensitiveData();
+                    // Clear UI text areas
+                    editor.getLogListPanel().getEntryArea().setText("");
+                    editor.getFullLogPanel().getFullLogPane().setText("");
+                } finally {
+                    // Always exit, even if cleanup throws
+                    System.exit(0);
+                }
             }
         });
         editor.setLocationRelativeTo(null);
@@ -260,7 +264,7 @@ public class UIInitializer {
                 // Load filtered entries in background then update view on EDT.
                 // If there are no entries for the current month, fall back to
                 // the month/year of the latest entry in the file.
-                new Thread(() -> {
+                Thread loaderThread = new Thread(() -> {
                     int filterYear = currentYear;
                     int filterMonth = currentMonth;
                     try {
@@ -297,7 +301,9 @@ public class UIInitializer {
                             progress.close();
                         });
                     }
-                }, "LogEntriesFilteredLoader").start();
+                }, "LogEntriesFilteredLoader");
+                loaderThread.setDaemon(true);
+                loaderThread.start();
             } else if (idx == 3) {
                 editor.getSettingsPanel().loadCurrentSettings();
             } else if (idx == 5) {
@@ -335,16 +341,18 @@ public class UIInitializer {
         // Show dialog (non-modal) then perform delay off the EDT so UI stays responsive
         dialog.setModal(false);
         SwingUtilities.invokeLater(() -> dialog.setVisible(true));
-        new Thread(() -> {
+        Thread delayThread = new Thread(() -> {
             try {
                 Thread.sleep(3000); // 3 seconds delay
             } catch (InterruptedException e) {
-                // Ignore
+                Thread.currentThread().interrupt();
             }
             SwingUtilities.invokeLater(() -> {
                 dialog.setVisible(false);
                 dialog.dispose();
             });
-        }, "SecurityDelayCloser").start();
+        }, "SecurityDelayCloser");
+        delayThread.setDaemon(true);
+        delayThread.start();
     }
 }

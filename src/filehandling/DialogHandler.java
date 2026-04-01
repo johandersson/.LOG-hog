@@ -90,7 +90,9 @@ public class DialogHandler {
 
         if (choice == 1 && onRestoreBackup != null) {
             // Run restore on background thread to avoid blocking EDT during file IO
-            new Thread(() -> onRestoreBackup.run(), "BackupRestore").start();
+            Thread restoreThread = new Thread(() -> onRestoreBackup.run(), "BackupRestore");
+            restoreThread.setDaemon(true);
+            restoreThread.start();
         }
     }
     
