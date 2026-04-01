@@ -142,7 +142,7 @@ public class EntryLoader {
     }
 
     public void loadLogEntries(DefaultListModel<String> listModel) throws Exception {
-        listModel.clear();
+        javax.swing.SwingUtilities.invokeLater(() -> listModel.clear());
         
         // Check if file exists and handle missing file
         if (!Files.exists(logFileHandler.getFilePath())) {
@@ -165,11 +165,14 @@ public class EntryLoader {
                 timestamps.add(pe.timestamp);
             }
 
-            // Batch update the model
-            listModel.removeAllElements();
-            for (String element : elementsToAdd) {
-                listModel.addElement(element);
-            }
+            // Batch update the model on EDT - DefaultListModel is NOT thread-safe
+            final List<String> elementsFinal = elementsToAdd;
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                listModel.removeAllElements();
+                for (String element : elementsFinal) {
+                    listModel.addElement(element);
+                }
+            });
 
             // Keep timestamp cache for other callers
             timestampListCache = timestamps;
@@ -257,11 +260,14 @@ public class EntryLoader {
                 }
             }
             
-            // Batch update: Clear and add all at once to minimize event firing
-            listModel.removeAllElements();
-            for (String element : elementsToAdd) {
-                listModel.addElement(element);
-            }
+            // Batch update on EDT - DefaultListModel is NOT thread-safe
+            final List<String> elementsFinal = elementsToAdd;
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                listModel.removeAllElements();
+                for (String element : elementsFinal) {
+                    listModel.addElement(element);
+                }
+            });
             
             // Cache timestamp list for getRecentLogEntries
             timestampListCache = timestamps;
@@ -298,7 +304,7 @@ public class EntryLoader {
 
     public void loadFilteredEntriesByYear(DefaultListModel<String> listModel, int year) {
         if (!Files.exists(logFileHandler.getFilePath())) {
-            listModel.removeAllElements();
+            javax.swing.SwingUtilities.invokeLater(() -> listModel.removeAllElements());
             return;
         }
 
@@ -316,11 +322,14 @@ public class EntryLoader {
                 }
             }
             
-            // Batch update: Clear and add all at once
-            listModel.removeAllElements();
-            for (String timestamp : filtered) {
-                listModel.addElement(timestamp);
-            }
+            // Update Swing model on EDT - DefaultListModel is NOT thread-safe
+            final List<String> filteredFinal = filtered;
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                listModel.removeAllElements();
+                for (String timestamp : filteredFinal) {
+                    listModel.addElement(timestamp);
+                }
+            });
         } catch (Exception e) {
             // Security: Don't expose internal error details
             logFileHandler.showErrorDialog("<html><b>🔍 Filter Failed</b><br><br>Unable to load filtered log entries.<br><br><i>Tip: Check the log file format and try reloading.</i></html>");
@@ -373,7 +382,7 @@ public class EntryLoader {
 
     public void loadFilteredEntries(DefaultListModel<String> listModel, int year, int month) {
         if (!Files.exists(logFileHandler.getFilePath())) {
-            listModel.removeAllElements();
+            javax.swing.SwingUtilities.invokeLater(() -> listModel.removeAllElements());
             return;
         }
 
@@ -393,11 +402,14 @@ public class EntryLoader {
                 }
             }
             
-            // Batch update: Clear and add all at once
-            listModel.removeAllElements();
-            for (String timestamp : filtered) {
-                listModel.addElement(timestamp);
-            }
+            // Update Swing model on EDT - DefaultListModel is NOT thread-safe
+            final List<String> filteredFinal = filtered;
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                listModel.removeAllElements();
+                for (String timestamp : filteredFinal) {
+                    listModel.addElement(timestamp);
+                }
+            });
         } catch (Exception e) {
             // Security: Don't expose internal error details
             logFileHandler.showErrorDialog("<html><b>🔍 Filter Failed</b><br><br>Unable to load filtered log entries.<br><br><i>Tip: Check the log file format and try reloading.</i></html>");
