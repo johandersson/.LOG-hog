@@ -55,6 +55,8 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.text.AbstractDocument;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Highlighter;
 
 import filehandling.LogEntrySearcher;
 import filehandling.LogFileHandler;
@@ -87,6 +89,10 @@ public class LogListPanel extends JPanel {
     private JCheckBox caseSensitiveCheck;
     private JLabel searchResultLabel;
     private JButton clearSearchBtn;
+    // Track current search for highlighting in entry area
+    private LogEntrySearcher.SearchOptions currentSearchOptions;
+    private final Highlighter.HighlightPainter searchHighlightPainter = 
+        new DefaultHighlighter.DefaultHighlightPainter(java.awt.Color.YELLOW);
     private final JProgressBar entryProgressBar;
 
     public LogListPanel(LogTextEditor editor, LogFileHandler logFileHandler, DefaultListModel<String> listModel, JList<String> logList) {
@@ -271,6 +277,13 @@ public class LogListPanel extends JPanel {
         LogEntrySearcher.SearchOptions searchOptions = searchQuery.isEmpty() 
             ? null 
             : new LogEntrySearcher.SearchOptions(searchQuery, wholeWord, caseSensitive);
+        
+        // Store for highlighting in entry area
+        currentSearchOptions = searchOptions;
+        
+        // When search is active, search ALL entries (ignore date filter)
+        final int searchYear = searchQuery.isEmpty() ? year : -1;
+        final int searchMonth = searchQuery.isEmpty() ? monthIndex : -1;
 
         // Provide quick feedback: show an indeterminate progress bar while computing off-EDT
         SwingUtilities.invokeLater(() -> {
@@ -286,9 +299,8 @@ public class LogListPanel extends JPanel {
             @Override
             protected List<String> doInBackground() throws Exception {
                 try {
-                    // Use combined search that applies date filter AND text search in O(N)
-                    int month = monthIndex; // 0 = All Months, 1-12 = specific month
-                    return logFileHandler.getEntryLoader().searchEntries(year, month, searchOptions);
+                    // Use combined search - when searchYear < 0, all entries are searched
+                    return logFileHandler.getEntryLoader().searchEntries(searchYear, searchMonth, searchOptions);
                 } catch (IllegalStateException ise) {
                     // Propagate to done() to show limit dialog on EDT
                     throw ise;
@@ -366,8 +378,30 @@ public class LogListPanel extends JPanel {
      * @param month month value 1..12 (use 0 to select "All Months")
      */
     public void setFilterAndApply(int year, int month) {
+        // Clear search when jumping to specific entry
+        clearSearch();
         setFilterSelection(year, month);
         applyFilter(yearCombo, monthCombo);
+    }
+    
+    /**
+     * Clear the search field and search state without triggering a filter.
+     */
+    public void clearSearch() {
+        if (searchField != null) {
+            searchField.setText("");
+        }
+        if (searchResultLabel != null) {
+            searchResultLabel.setText("");
+        }
+        if (clearSearchBtn != null) {
+            clearSearchBtn.setEnabled(false);
+        }
+        currentSearchOptions = null;
+        // Clear any highlights in entry area
+        if (entryArea != null) {
+            entryArea.getHighlighter().removeAllHighlights();
+        }
     }
 
     /**
@@ -615,6 +649,7 @@ public class LogListPanel extends JPanel {
     private void loadAndDisplayEntry(String timestamp) {
         if (timestamp == null || timestamp.trim().isEmpty()) {
             entryArea.setText("");
+            entryArea.getHighlighter().removeAllHighlights();
             if (isPreviewMode) renderPreview();
             return;
         }
@@ -634,6 +669,10 @@ public class LogListPanel extends JPanel {
                     String content = get();
                     entryArea.setText(content != null ? content : "");
                     entryProgressBar.setVisible(false);
+                    
+                    // Highlight search terms if search is active
+                    highlightSearchTermsInEntry();
+                    
                     if (isPreviewMode) renderPreview();
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
@@ -642,6 +681,72 @@ public class LogListPanel extends JPanel {
                 }
             }
         }.execute();
+    }
+    
+    /**
+     * Highlight search terms in the entry area and scroll to first match.
+     */
+    private void highlightSearchTermsInEntry() {
+        Highlighter highlighter = entryArea.getHighlighter();
+        highlighter.removeAllHighlights();
+        
+        if (currentSearchOptions == null || currentSearchOptions.isEmpty()) {
+            return;
+        }
+        
+        String text = entryArea.getText();
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+        
+        String query = currentSearchOptions.getQuery();
+        boolean wholeWord = currentSearchOptions.isWholeWord();
+        boolean caseSensitive = currentSearchOptions.isCaseSensitive();
+        
+        int firstMatchStart = -1;
+        
+        try {
+            if (wholeWord) {
+                // Use regex for whole word matching
+                String regex = "\\b" + java.util.regex.Pattern.quote(query) + "\\b";
+                int flags = caseSensitive ? 0 : java.util.regex.Pattern.CASE_INSENSITIVE;
+                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex, flags);
+                java.util.regex.Matcher matcher = pattern.matcher(text);
+                
+                while (matcher.find()) {
+                    if (firstMatchStart < 0) firstMatchStart = matcher.start();
+                    highlighter.addHighlight(matcher.start(), matcher.end(), searchHighlightPainter);
+                }
+            } else {
+                // Simple substring search
+                String searchText = caseSensitive ? text : text.toLowerCase();
+                String searchQuery = caseSensitive ? query : query.toLowerCase();
+                int index = 0;
+                int queryLen = searchQuery.length();
+                
+                while ((index = searchText.indexOf(searchQuery, index)) != -1) {
+                    if (firstMatchStart < 0) firstMatchStart = index;
+                    highlighter.addHighlight(index, index + queryLen, searchHighlightPainter);
+                    index += queryLen;
+                }
+            }
+            
+            // Scroll to first match
+            if (firstMatchStart >= 0) {
+                final int scrollTo = firstMatchStart;
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        var rect = entryArea.modelToView2D(scrollTo);
+                        if (rect != null) {
+                            entryArea.scrollRectToVisible(rect.getBounds());
+                            entryArea.setCaretPosition(scrollTo);
+                        }
+                    } catch (Exception ignored) {}
+                });
+            }
+        } catch (javax.swing.text.BadLocationException ignored) {
+            // Ignore highlight failures
+        }
     }
 
     private void setupListeners(JSplitPane split) {
