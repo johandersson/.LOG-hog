@@ -378,10 +378,123 @@ public class LogListPanel extends JPanel {
      * @param month month value 1..12 (use 0 to select "All Months")
      */
     public void setFilterAndApply(int year, int month) {
+        setFilterAndApply(year, month, null);
+    }
+    
+    /**
+     * Set the filter to the specified year/month, apply it, and run callback when complete.
+     * @param year year value (e.g. 2026)
+     * @param month month value 1..12 (use 0 to select "All Months")
+     * @param onComplete callback to run on EDT after filter is applied (can be null)
+     */
+    public void setFilterAndApply(int year, int month, Runnable onComplete) {
         // Clear search when jumping to specific entry
         clearSearch();
         setFilterSelection(year, month);
-        applyFilter(yearCombo, monthCombo);
+        applyFilterWithCallback(onComplete);
+    }
+    
+    /**
+     * Apply filter and run callback when complete.
+     */
+    private void applyFilterWithCallback(Runnable onComplete) {
+        if (suppressFilterEvents) {
+            if (onComplete != null) SwingUtilities.invokeLater(onComplete);
+            return;
+        }
+        if (editor.isLocked()) {
+            if (onComplete != null) SwingUtilities.invokeLater(onComplete);
+            return;
+        }
+        
+        var year = (Integer) yearCombo.getSelectedItem();
+        var monthIndex = monthCombo.getSelectedIndex();
+        if (year == null) {
+            if (onComplete != null) SwingUtilities.invokeLater(onComplete);
+            return;
+        }
+        
+        // Get search parameters
+        String searchQuery = searchField != null ? searchField.getText().trim() : "";
+        boolean wholeWord = wholeWordCheck != null && wholeWordCheck.isSelected();
+        boolean caseSensitive = caseSensitiveCheck != null && caseSensitiveCheck.isSelected();
+        
+        // Create search options (null if no search)
+        LogEntrySearcher.SearchOptions searchOptions = searchQuery.isEmpty() 
+            ? null 
+            : new LogEntrySearcher.SearchOptions(searchQuery, wholeWord, caseSensitive);
+        
+        // Store for highlighting in entry area
+        currentSearchOptions = searchOptions;
+        
+        // When search is active, search ALL entries (ignore date filter)
+        final int searchYear = searchQuery.isEmpty() ? year : -1;
+        final int searchMonth = searchQuery.isEmpty() ? monthIndex : -1;
+
+        // Provide quick feedback
+        SwingUtilities.invokeLater(() -> {
+            listModel.removeAllElements();
+            filterProgressBar.setVisible(true);
+            if (searchResultLabel != null) {
+                searchResultLabel.setText(searchQuery.isEmpty() ? "" : "Searching...");
+            }
+        });
+
+        // Compute filtered timestamps off the EDT and update model on completion
+        new SwingWorker<List<String>, Void>() {
+            @Override
+            protected List<String> doInBackground() throws Exception {
+                try {
+                    return logFileHandler.getEntryLoader().searchEntries(searchYear, searchMonth, searchOptions);
+                } catch (IllegalStateException ise) {
+                    throw ise;
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<String> filtered = get();
+                    listModel.removeAllElements();
+                    filterProgressBar.setVisible(false);
+                    
+                    // Update search result label
+                    if (searchResultLabel != null && clearSearchBtn != null) {
+                        if (!searchQuery.isEmpty()) {
+                            int count = filtered != null ? filtered.size() : 0;
+                            searchResultLabel.setText(count == 0 ? "No matches" : count + " match" + (count == 1 ? "" : "es"));
+                            clearSearchBtn.setEnabled(true);
+                        } else {
+                            searchResultLabel.setText("");
+                            clearSearchBtn.setEnabled(false);
+                        }
+                    }
+                    
+                    if (filtered != null && !filtered.isEmpty()) {
+                        for (String ts : filtered) {
+                            listModel.addElement(ts);
+                        }
+                    }
+                    
+                    // Run callback after all entries are loaded
+                    if (onComplete != null) {
+                        SwingUtilities.invokeLater(onComplete);
+                    }
+                } catch (java.util.concurrent.ExecutionException ee) {
+                    filterProgressBar.setVisible(false);
+                    Throwable cause = ee.getCause();
+                    if (cause instanceof IllegalStateException) {
+                        DialogHandler.showLimitExceeded("File Too Large", "The log file exceeds configured limits and cannot be filtered.");
+                    } else {
+                        logFileHandler.showErrorDialog("<html><b>🔍 Search Failed</b><br><br>Unable to search entries.<br><br><i>Tip: Check search query and try again.</i></html>");
+                    }
+                    if (onComplete != null) SwingUtilities.invokeLater(onComplete);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    if (onComplete != null) SwingUtilities.invokeLater(onComplete);
+                }
+            }
+        }.execute();
     }
     
     /**

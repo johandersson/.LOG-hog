@@ -41,8 +41,6 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.ToolTipManager;
-import javax.swing.event.ListDataEvent;
-import javax.swing.event.ListDataListener;
 import javax.swing.text.StyledDocument;
 import javax.swing.JProgressBar;
 
@@ -510,7 +508,7 @@ public class FullLogPanel extends LogPanel {
             // If parsing fails, try raw selection without filter change
         }
 
-        // Try to select the entry immediately if present
+        // Try to select the entry immediately if present in current list
         for (int i = 0; i < listModel.getSize(); i++) {
             String entry = listModel.getElementAt(i);
             if (entry != null && entry.startsWith(timestamp)) {
@@ -531,58 +529,24 @@ public class FullLogPanel extends LogPanel {
             showTimer.setRepeats(false);
             showTimer.start();
 
-            // Add listener to detect when filter completes and list is populated
-            ListDataListener filterCompleteListener = new ListDataListener() {
-                @Override
-                public void intervalAdded(ListDataEvent e) {
-                    trySelectEntry();
-                }
-
-                @Override
-                public void intervalRemoved(ListDataEvent e) {}
-
-                @Override
-                public void contentsChanged(ListDataEvent e) {
-                    trySelectEntry();
-                }
-
-                private void trySelectEntry() {
-                    SwingUtilities.invokeLater(() -> {
-                        // Remove listener first to avoid repeated calls
-                        listModel.removeListDataListener(this);
-                        if (showTimer.isRunning()) showTimer.stop();
-                        progress.close();
-
-                        for (int i = 0; i < listModel.getSize(); i++) {
-                            String entry = listModel.getElementAt(i);
-                            if (entry != null && entry.startsWith(timestamp)) {
-                                logList.setSelectedIndex(i);
-                                logList.ensureIndexIsVisible(i);
-                                SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
-                                return;
-                            }
-                        }
-                        // Still not found after filter adjustment
-                        DialogHelper.showEntryNotFound(FullLogPanel.this);
-                    });
-                }
-            };
-            listModel.addListDataListener(filterCompleteListener);
-
-            // Apply the filter (async) - this will trigger the listener when complete
-            logListPanel.setFilterAndApply(finalYear, finalMonth);
-
-            // Safety timeout in case filter never triggers listener (e.g., no matching entries)
-            javax.swing.Timer safetyTimer = new javax.swing.Timer(5000, ev -> {
-                listModel.removeListDataListener(filterCompleteListener);
+            // Use callback to select entry after filter completes
+            logListPanel.setFilterAndApply(finalYear, finalMonth, () -> {
                 if (showTimer.isRunning()) showTimer.stop();
                 progress.close();
-                if (listModel.getSize() == 0) {
-                    DialogHelper.showEntryNotFound(FullLogPanel.this);
+                
+                // Now search for and select the entry
+                for (int i = 0; i < listModel.getSize(); i++) {
+                    String entry = listModel.getElementAt(i);
+                    if (entry != null && entry.startsWith(timestamp)) {
+                        logList.setSelectedIndex(i);
+                        logList.ensureIndexIsVisible(i);
+                        SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+                        return;
+                    }
                 }
+                // Entry not found after filter adjustment
+                DialogHelper.showEntryNotFound(FullLogPanel.this);
             });
-            safetyTimer.setRepeats(false);
-            safetyTimer.start();
         } else {
             // Fallback: couldn't parse timestamp, try a full reload
             fallbackFullReload(timestamp, logListPanel, listModel, logList);
