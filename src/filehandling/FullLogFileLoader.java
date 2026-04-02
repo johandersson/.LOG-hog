@@ -422,6 +422,35 @@ public class FullLogFileLoader {
             })
             .collect(Collectors.toList());
     }
+
+    /**
+     * Gets the content of an entry by its display timestamp.
+     * Used for content-based matching when navigating from Full Log to Log List
+     * for entries with duplicate timestamps.
+     * 
+     * @param displayTimestamp The timestamp as shown in Full Log (may include suffix like " (1)")
+     * @return The entry content (lines after timestamp joined with newline), or null if not found
+     */
+    public String getEntryContent(String displayTimestamp) {
+        synchronized (cacheLock) {
+            if (cachedParsedData == null || cachedParsedData.entriesToRender == null) {
+                return null;
+            }
+            
+            for (List<String> entry : cachedParsedData.entriesToRender) {
+                if (!entry.isEmpty() && entry.get(0).trim().equals(displayTimestamp.trim())) {
+                    // Found the entry - join content lines (skip timestamp at index 0)
+                    StringBuilder content = new StringBuilder();
+                    for (int i = 1; i < entry.size(); i++) {
+                        if (i > 1) content.append('\n');
+                        content.append(entry.get(i));
+                    }
+                    return content.toString().trim();
+                }
+            }
+            return null;
+        }
+    }
 }
 
 

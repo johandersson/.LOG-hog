@@ -500,6 +500,9 @@ public class FullLogPanel extends LogPanel {
         // Strip display suffix to get raw timestamp for matching
         // Full log and log list may have different (n) numbering due to sort order
         String rawTimestamp = timestamp.replaceAll(" \\(\\d+\\)$", "").trim();
+        
+        // Get the entry content from Full Log for content-based matching (handles duplicates)
+        String fullLogContent = fileLoader.getEntryContent(timestamp);
 
         // Parse the timestamp to get year and month for filter adjustment
         int targetYear = 0;
@@ -513,24 +516,19 @@ public class FullLogPanel extends LogPanel {
         }
 
         // Try to select the entry immediately if present in current list
-        // Match by raw timestamp (stripping display suffix from both)
-        for (int i = 0; i < listModel.getSize(); i++) {
-            String entry = listModel.getElementAt(i);
-            if (entry != null) {
-                String entryRaw = entry.replaceAll(" \\(\\d+\\)$", "").trim();
-                if (entryRaw.equals(rawTimestamp)) {
-                    logList.setSelectedIndex(i);
-                    logList.ensureIndexIsVisible(i);
-                    SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
-                    return;
-                }
-            }
+        int matchIndex = findMatchingEntry(listModel, rawTimestamp, fullLogContent);
+        if (matchIndex >= 0) {
+            logList.setSelectedIndex(matchIndex);
+            logList.ensureIndexIsVisible(matchIndex);
+            SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+            return;
         }
 
         // Entry not found in current list - adjust filter to the entry's year/month and reload
         if (targetYear > 0 && targetMonth > 0) {
             final int finalYear = targetYear;
             final int finalMonth = targetMonth;
+            final String finalContent = fullLogContent;
             
             LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
             final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
@@ -542,32 +540,76 @@ public class FullLogPanel extends LogPanel {
                 if (showTimer.isRunning()) showTimer.stop();
                 progress.close();
                 
-                // Now search for and select the entry (match by raw timestamp)
-                for (int i = 0; i < listModel.getSize(); i++) {
-                    String entry = listModel.getElementAt(i);
-                    if (entry != null) {
-                        String entryRaw = entry.replaceAll(" \\(\\d+\\)$", "").trim();
-                        if (entryRaw.equals(rawTimestamp)) {
-                            logList.setSelectedIndex(i);
-                            logList.ensureIndexIsVisible(i);
-                            SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
-                            return;
-                        }
-                    }
+                // Now search for and select the entry with content matching
+                int idx = findMatchingEntry(listModel, rawTimestamp, finalContent);
+                if (idx >= 0) {
+                    logList.setSelectedIndex(idx);
+                    logList.ensureIndexIsVisible(idx);
+                    SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+                } else {
+                    // Entry not found after filter adjustment
+                    DialogHelper.showEntryNotFound(FullLogPanel.this);
                 }
-                // Entry not found after filter adjustment
-                DialogHelper.showEntryNotFound(FullLogPanel.this);
             });
         } else {
             // Fallback: couldn't parse timestamp, try a full reload
-            fallbackFullReload(timestamp, logListPanel, listModel, logList);
+            fallbackFullReload(timestamp, fullLogContent, logListPanel, listModel, logList);
         }
+    }
+    
+    /**
+     * Finds the correct entry in the list model by matching timestamp and content.
+     * When multiple entries have the same timestamp, uses content to identify the correct one.
+     * 
+     * @param listModel The list model to search
+     * @param rawTimestamp The raw timestamp (without display suffix)
+     * @param targetContent The content to match (from Full Log), or null to match first by timestamp
+     * @return Index of matching entry, or -1 if not found
+     */
+    private int findMatchingEntry(DefaultListModel<String> listModel, String rawTimestamp, String targetContent) {
+        java.util.List<Integer> candidates = new java.util.ArrayList<>();
+        
+        // First pass: find all entries with matching raw timestamp
+        for (int i = 0; i < listModel.getSize(); i++) {
+            String entry = listModel.getElementAt(i);
+            if (entry != null) {
+                String entryRaw = entry.replaceAll(" \\(\\d+\\)$", "").trim();
+                if (entryRaw.equals(rawTimestamp)) {
+                    candidates.add(i);
+                }
+            }
+        }
+        
+        if (candidates.isEmpty()) {
+            return -1;
+        }
+        
+        // If only one match or no content to compare, return first match
+        if (candidates.size() == 1 || targetContent == null) {
+            return candidates.get(0);
+        }
+        
+        // Multiple matches - use content comparison to find the correct one
+        for (int idx : candidates) {
+            String displayTimestamp = listModel.getElementAt(idx);
+            try {
+                String entryContent = logFileHandler.loadEntry(displayTimestamp);
+                if (entryContent != null && entryContent.trim().equals(targetContent.trim())) {
+                    return idx;
+                }
+            } catch (Exception e) {
+                // Skip entries that fail to load
+            }
+        }
+        
+        // Content match failed, return first timestamp match as fallback
+        return candidates.get(0);
     }
 
     /**
      * Fallback method when timestamp parsing fails - loads all entries and tries to find the entry.
      */
-    private void fallbackFullReload(String timestamp, LogListPanel logListPanel, 
+    private void fallbackFullReload(String timestamp, String targetContent, LogListPanel logListPanel, 
                                     DefaultListModel<String> listModel, JList<String> logList) {
         // Strip display suffix for matching
         String rawTs = timestamp.replaceAll(" \\(\\d+\\)$", "").trim();
@@ -580,19 +622,14 @@ public class FullLogPanel extends LogPanel {
             try {
                 editor.loadLogEntries();
                 SwingUtilities.invokeLater(() -> {
-                    for (int i = 0; i < listModel.getSize(); i++) {
-                        String entry = listModel.getElementAt(i);
-                        if (entry != null) {
-                            String entryRaw = entry.replaceAll(" \\(\\d+\\)$", "").trim();
-                            if (entryRaw.equals(rawTs)) {
-                                logList.setSelectedIndex(i);
-                                logList.ensureIndexIsVisible(i);
-                                SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
-                                return;
-                            }
-                        }
+                    int idx = findMatchingEntry(listModel, rawTs, targetContent);
+                    if (idx >= 0) {
+                        logList.setSelectedIndex(idx);
+                        logList.ensureIndexIsVisible(idx);
+                        SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+                    } else {
+                        DialogHelper.showEntryNotFound(this);
                     }
-                    DialogHelper.showEntryNotFound(this);
                 });
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog(
