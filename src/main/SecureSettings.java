@@ -39,7 +39,7 @@ import utils.Log;
  * <h2>Security Properties</h2>
  * <ul>
  *   <li><b>Encryption Algorithm:</b> AES/GCM with 128-bit key and 128-bit authentication tag</li>
- *   <li><b>Key Derivation:</b> PBKDF2 with 100,000 iterations and random salt per user</li>
+ *   <li><b>Key Derivation:</b> PBKDF2 with 600,000 iterations and random salt per user</li>
  *   <li><b>IV Generation:</b> Cryptographically secure random IV for each encryption operation</li>
  *   <li><b>Backwards Compatibility:</b> No legacy fallback. Only current format supported.</li>
  *   <li><b>Integer Overflow Protection:</b> Uses Math.addExact() for array size calculations</li>

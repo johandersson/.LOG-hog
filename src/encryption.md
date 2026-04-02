@@ -291,9 +291,11 @@ randomizedDelay = Math.max(1000, randomizedDelay);
 
 ### Security Implementation
 - **Encryption Preservation**: Backup files maintain original encryption state
-- **File Overwrite Security**: Secure deletion prevents data recovery from old backups
+- **File Overwrite Security**: Secure deletion prevents data recovery from old backups on traditional HDDs
 - **Path Validation**: Backup directories validated for safety
 - **Error Handling**: Backup failures don't interrupt user workflow
+
+**⚠️ SSD/Flash Storage Note:** Secure file deletion is fundamentally limited on solid-state drives due to wear-leveling and over-provisioned space. Old data may persist in blocks inaccessible to the OS. For maximum security on SSDs, use full-disk encryption (BitLocker, FileVault, LUKS) rather than relying solely on file-level secure deletion.
 
 Note: recent hardening changes ensure encrypted files no longer produce plaintext `.bak` files. When the source file is encrypted, backups are created with the `.bak.enc` suffix and copy the encrypted bytes directly. The `LogFileHandler` and `BackupManager` use same-directory temporary files and atomic moves to avoid leaving partial plaintext files on disk. Legacy plaintext backups are detected and securely deleted when possible.
 

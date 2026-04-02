@@ -31,7 +31,7 @@
 ### Technology Stack
 - **Language**: Java 17
 - **UI Framework**: Swing with platform-specific native look and feel
-- **Encryption**: AES-256-GCM with PBKDF2-100,000 iterations
+- **Encryption**: AES-256-GCM with PBKDF2-600,000 iterations
 - **Build System**: Standard javac/jar (no build tools required)
 - **File Format**: Plain text with .LOG extension (human-readable)
 - **Dependencies**: **ZERO** - Pure JDK implementation
@@ -714,7 +714,7 @@ The application already implemented many Oracle guidelines correctly:
 ✅ **Guideline 3-1/3-2/3-3/3-4**: Strong Cryptographic Operations
 - Uses `SecureRandom` for all cryptographic randomness (not `Random`)
 - AES-256-GCM authenticated encryption
-- PBKDF2-HMAC-SHA256 with 100,000 iterations
+- PBKDF2-HMAC-SHA256 with 600,000 iterations
 - No custom cryptography, only standard JDK implementations
 
 ✅ **Guideline 5-1/5-2**: Input Validation
@@ -808,7 +808,7 @@ package "Backup Security" {
   - Provides both confidentiality and integrity
   - 256-bit key size for maximum security
 - **Key Derivation**: PBKDF2-HMAC-SHA256
-  - 100,000 iterations (configurable, backward compatible with 65,536)
+  - 600,000 iterations (increased from legacy 65,536 for stronger protection)
   - Random 16-byte salt per file
   - Prevents rainbow table attacks
 - **IV Management**: Random 12-byte IV per encryption operation

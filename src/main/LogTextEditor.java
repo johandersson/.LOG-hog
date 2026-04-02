@@ -120,7 +120,6 @@ public class LogTextEditor extends JFrame {
     private BackupManager backupManager;
     private javax.swing.Timer periodicBackupTimer;
     private javax.swing.Timer autoLockTimer;
-    private Thread listenerThread;
     private boolean autoLockEnabled;
     private int autoLockTimeoutSeconds = 900; // Default 15 minutes
 
@@ -399,7 +398,7 @@ public class LogTextEditor extends JFrame {
                 LogTextEditor editor = new LogTextEditor();
                 // don't call setVisible here: loadSettings will make the
                 // window visible after any loading/decryption completes.
-                editor.startSingleInstanceListener();
+                // Note: Single-instance enforcement now uses file locking (see SingleInstanceManager)
             } catch (Exception e) {
                 // Security: Log error and exit
                 utils.Log.error("Fatal error starting UI", e);
@@ -433,34 +432,6 @@ public class LogTextEditor extends JFrame {
             this.setExtendedState(JFrame.NORMAL);
             this.toFront();
         }
-    }
-
-    private void startSingleInstanceListener() {
-        // Server thread is already started in SingleInstanceManager.isAnotherInstanceRunning()
-        // This method now just handles the UI response to incoming requests
-        listenerThread = new Thread(() -> {
-            try {
-                while (true) {
-                    java.net.Socket clientSocket = SingleInstanceManager.getServerSocket().accept();
-                    java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(clientSocket.getInputStream()));
-                    String message = in.readLine();
-                    if ("BRING_TO_FRONT".equals(message)) {
-                        SwingUtilities.invokeLater(() -> {
-                            checkIfWindowIsVisible();
-                            this.toFront();
-                            this.requestFocus();
-                        });
-                    }
-                    // PING/PONG is now handled directly in SingleInstanceManager
-                    in.close();
-                    clientSocket.close();
-                }
-            } catch (java.io.IOException e) {
-                // Socket closed, which is expected when the application exits
-            }
-        });
-        listenerThread.setDaemon(true);
-        listenerThread.start();
     }
 
     private void loadSettings() {
@@ -793,19 +764,8 @@ public class LogTextEditor extends JFrame {
             SystemTray.getSystemTray().remove(gui.SystemTrayMenu.trayIcon);
         }
 
-        // Close single instance server socket
-        try {
-            if (SingleInstanceManager.getServerSocket() != null) {
-                SingleInstanceManager.getServerSocket().close();
-            }
-        } catch (java.io.IOException e) {
-            // Ignore
-        }
-
-        // Interrupt listener thread
-        if (listenerThread != null) {
-            listenerThread.interrupt();
-        }
+        // Release single instance lock (file-based)
+        SingleInstanceManager.releaseLock();
 
         // Dispose UI components
         if (fullLogPanel != null) {
