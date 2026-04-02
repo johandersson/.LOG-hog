@@ -1,1393 +1,577 @@
 # .LOG-hog Architecture Documentation
 
-**Version:** 1.0  
-**Last Updated:** January 9, 2026  
+**Version:** 2.0  
+**Last Updated:** April 2026  
 **Author:** Johan Andersson
 
-## Table of Contents
-1. [Overview](#overview)
-2. [System Architecture](#system-architecture)
-3. [Component Architecture](#component-architecture)
-4. [Key Workflows](#key-workflows)
-5. [Security Architecture](#security-architecture)
-6. [Data Flow](#data-flow)
-7. [Design Patterns](#design-patterns)
-8. [Package Structure](#package-structure)
+---
+
+## 📖 Quick Start for New Developers
+
+Welcome! This document explains how .LOG-hog is built. If you're new to coding, here's what you need to know:
+
+- **.LOG-hog** is a **desktop app** for writing secure, timestamped notes
+- It's written in **Java** (a popular programming language)
+- It uses **AES-256 encryption** (the same security used by governments and banks)
+- It has **zero external dependencies** - everything is built with standard Java
+
+### What is "Architecture"?
+
+Think of architecture like a building blueprint. It shows:
+- **What parts exist** (like rooms in a house)
+- **How they connect** (like hallways between rooms)
+- **What each part does** (like "this is the kitchen")
 
 ---
 
-## Overview
+## 🏠 The Big Picture
 
-.LOG-hog is a cross-platform Java Swing desktop application for secure, timestamped note-taking with optional AES-256-GCM encryption. The application follows a layered architecture with clear separation between UI, business logic, and data access layers.
+.LOG-hog is organized in **layers**, like a cake. Each layer has a specific job:
 
-### Design Principles
-- **Cross-platform compatibility**: Works seamlessly on Windows, macOS, and Linux
-- **Security-first**: Enterprise-grade encryption with comprehensive security hardening
-- **Oracle Secure Coding Conformance**: Adheres to Oracle's Secure Coding Guidelines for Java SE
-- **Zero dependencies**: Self-contained with no external Java libraries
-- **Separation of concerns**: Clear boundaries between UI, services, and file operations
-- **Fail-safe design**: Progressive backups and secure error handling
-
-### Technology Stack
-- **Language**: Java 17
-- **UI Framework**: Swing with platform-specific native look and feel
-- **Encryption**: AES-256-GCM with PBKDF2-600,000 iterations
-- **Build System**: Standard javac/jar (no build tools required)
-- **File Format**: Plain text with .LOG extension (human-readable)
-- **Dependencies**: **ZERO** - Pure JDK implementation
-
-### Zero-Dependency Architecture
-
-.LOG-hog is built entirely with the Java Standard Library, resulting in a **~230KB production JAR** (100x smaller than typical enterprise Java applications). This architectural decision provides significant technical and operational advantages:
-
-**Java Standard Library APIs Utilized:**
-- `javax.crypto.*` - AES-256-GCM encryption, PBKDF2 key derivation, SecureRandom
-- `javax.swing.*` - Complete GUI framework with tabbed panes, dialogs, tables, system tray
-- `javax.swing.text.*` - StyledDocument for markdown rendering, syntax highlighting
-- `java.nio.file.*` - Modern file I/O, path validation, atomic operations
-- `java.awt.*` - Desktop integration, clipboard management, platform-specific rendering
-- `java.net.*` - Socket-based IPC for single-instance enforcement
-- `java.util.regex.*` - Markdown parsing, timestamp format detection (23+ formats)
-- `java.security.*` - Cryptographic operations, secure random number generation
-- `java.time.*` - Modern date/time handling with timezone support
-
-**Technical Benefits:**
-- **Minimal Attack Surface**: No third-party code to audit; reduces supply chain vulnerabilities
-- **Binary Size Optimization**: 230KB vs typical desktop apps:
-  - Electron apps: 100-200MB (bundles Chromium + Node.js runtime)
-  - JavaFX apps with dependencies: 5-20MB (JavaFX libs + third-party utilities)
-  - Java desktop apps with logging/JSON/utils libraries: 2-10MB
-- **Zero Dependency Conflicts**: No version incompatibilities or transitive dependency issues  
-- **Startup Performance**: Sub-second cold start; no classpath scanning or framework initialization
-- **Memory Efficiency**: ~25MB runtime footprint vs 100-500MB for Electron-based apps
-- **Long-term Maintainability**: Immune to library deprecation and breaking API changes
-- **Deployment Simplicity**: Single JAR artifact; no dependency management required
-- **Security Patching**: Only JRE updates needed; no library vulnerability tracking
-
-**Architectural Trade-offs:**
-- Custom implementations for markdown rendering and password strength analysis
-- Manual dependency injection through ServiceFactory pattern
-- Platform-specific code paths for cross-OS compatibility (Windows/macOS/Linux)
-- Hand-coded UI layouts instead of declarative frameworks
-
-This approach demonstrates that the Java standard library provides enterprise-grade capabilities (cryptography, GUI, I/O, networking) sufficient for building feature-complete desktop applications without external dependencies—achieving the same functionality as larger applications at a fraction of the size.
-
----
-
-## System Architecture
-
-### High-Level Architecture Diagram
-
-```plantuml
-@startuml
-!theme plain
-
-package "User Interface Layer" {
-    [LogHog Entry Point]
-    [LogTextEditor Main Window]
-    [GUI Components]
-    [System Tray Integration]
-}
-
-package "Application Layer" {
-    [Application Coordinator]
-    [Action Handlers]
-    [UI Initializers]
-    [System Initializer]
-}
-
-package "Service Layer" {
-    [FileService]
-    [EncryptionService]
-    [LogEntryService]
-    [ServiceFactory]
-}
-
-package "Business Logic Layer" {
-    [LogFileHandler]
-    [EncryptionManager]
-    [BackupManager]
-    [EntryLoader]
-    [LogParser]
-}
-
-package "Utility Layer" {
-    [DateHandler]
-    [ClipboardHandler]
-    [MarkdownRenderer]
-    [LinkHandler]
-    [NotepadOpener]
-    [BrowserOpener]
-}
-
-package "Data Layer" {
-    [Settings Storage]
-    [Log File]
-    [Backup Files]
-}
-
-[LogHog Entry Point] --> [LogTextEditor Main Window]
-[LogTextEditor Main Window] --> [GUI Components]
-[LogTextEditor Main Window] --> [Application Coordinator]
-[Application Coordinator] --> [ServiceFactory]
-[ServiceFactory] ..> [FileService]
-[ServiceFactory] ..> [EncryptionService]
-[ServiceFactory] ..> [LogEntryService]
-[GUI Components] --> [Action Handlers]
-[Action Handlers] --> [LogFileHandler]
-[LogFileHandler] --> [EncryptionManager]
-[LogFileHandler] --> [BackupManager]
-[LogFileHandler] --> [EntryLoader]
-[EntryLoader] --> [LogParser]
-[GUI Components] --> [Utility Layer]
-[LogFileHandler] --> [Data Layer]
-[BackupManager] --> [Data Layer]
-
-@enduml
-```
-
-### Layer Responsibilities
-
-#### User Interface Layer
-- **LogHog.java**: Application entry point, platform detection, look and feel initialization
-- **LogTextEditor.java**: Main window, tab management, menu bar, keyboard shortcuts
-- **GUI Components**: Tabbed panels (Entry, Log Entries, Full Log, Settings, Help)
-- **System Tray**: Quick access, recent entries, clipboard security
-
-#### Application Layer
-- **Application.java**: Service coordinator and dependency manager
-- **ActionHandler.java**: User action processing and validation
-- **UIInitializer.java**: GUI component construction and layout
-- **SystemInitializer.java**: Platform-specific initialization
-
-#### Service Layer
-- **FileService**: File I/O operations abstraction
-- **EncryptionService**: Encryption/decryption operations
-- **LogEntryService**: Entry manipulation and retrieval
-- **ServiceFactory**: Service instantiation with dependency injection
-
-#### Business Logic Layer
-- **LogFileHandler**: Core file operations, caching, locking
-- **EncryptionManager**: AES-256-GCM implementation, key derivation
-- **BackupManager**: 6-layer backup system, secure deletion
-- **EntryLoader**: Entry parsing and caching
-- **LogParser**: Timestamp parsing (23+ formats supported)
-
-#### Utility Layer
-- Cross-cutting concerns: date handling, clipboard, markdown rendering, external program launching
-
----
-
-## Component Architecture
-
-### Core Components Class Diagram
-
-```plantuml
-@startuml
-!theme plain
-
-class LogHog {
-    +main(String[] args)
-    -initializePlatformLookAndFeel()
-}
-
-class LogTextEditor {
-    -LogFileHandler logFileHandler
-    -BackupManager backupManager
-    -EntryPanel entryPanel
-    -LogListPanel logListPanel
-    -FullLogPanel fullLogPanel
-    -SettingsPanel settingsPanel
-    +createUI()
-    +setupMenuBar()
-    +setupKeyboardShortcuts()
-    +handleStartupFileValidation()
-}
-
-class Application {
-    -ServiceFactory serviceFactory
-    -FileService fileService
-    -EncryptionService encryptionService
-    -LogEntryService logEntryService
-    +getFileService()
-    +getEncryptionService()
-    +getLogEntryService()
-}
-
-class LogFileHandler {
-    -Path logFilePath
-    -EncryptionManager encryptionManager
-    -BackupManager backupManager
-    -EntryLoader entryLoader
-    -boolean isLocked
-    -Map<String, String> cachedEntries
-    +saveEntry(String content)
-    +getAllEntries()
-    +deleteEntry(String timestamp)
-    +isEncrypted()
-    +lock()
-    +unlock(char[] password)
-}
-
-class EncryptionManager {
-    -SecureRandom secureRandom
-    -byte[] salt
-    -int pbkdf2Iterations
-    +encrypt(byte[] data, char[] password)
-    +decrypt(byte[] data, char[] password)
-    +deriveKey(char[] password, byte[] salt)
-    +clearPassword(char[] password)
-}
-
-class BackupManager {
-    -Path logFilePath
-    -Path backupDirectory
-    -int maxTimestampedBackups
-    +createNumberedBackup()
-    +createStartupBackup()
-    +createAutoBackup()
-    +createTimestampedBackup()
-    +verifyBackup(Path backup)
-    +secureDelete(Path file)
-}
-
-class EntryLoader {
-    -LogParser parser
-    -Map<String, String> contentCache
-    -List<String> timestampCache
-    +loadEntries()
-    +parseEntry(String raw)
-    +clearCache()
-}
-
-class LogParser {
-    -DateHandler dateHandler
-    +parseTimestamp(String line)
-    +stripTimestampSuffix(String line)
-    +detectFormat(String line)
-}
-
-LogHog --> LogTextEditor : creates
-LogTextEditor --> Application : uses
-LogTextEditor --> LogFileHandler : manages
-LogTextEditor *-- EntryPanel
-LogTextEditor *-- LogListPanel
-LogTextEditor *-- FullLogPanel
-LogTextEditor *-- SettingsPanel
-LogFileHandler --> EncryptionManager : uses
-LogFileHandler --> BackupManager : uses
-LogFileHandler --> EntryLoader : uses
-EntryLoader --> LogParser : uses
-Application --> ServiceFactory : uses
-
-@enduml
-```
-
-### GUI Component Hierarchy
-
-```plantuml
-@startuml
-!theme plain
-
-class JFrame
-class JTabbedPane
-class JPanel
-
-JFrame <|-- LogTextEditor
-JPanel <|-- EntryPanel
-JPanel <|-- LogListPanel
-JPanel <|-- FullLogPanel
-JPanel <|-- SettingsPanel
-JPanel <|-- InformationPanel
-
-LogTextEditor *-- "1" JTabbedPane
-JTabbedPane *-- "1" EntryPanel : Entry Tab
-JTabbedPane *-- "1" LogListPanel : Log Entries Tab
-JTabbedPane *-- "1" FullLogPanel : Full Log Tab
-JTabbedPane *-- "1" SettingsPanel : Settings Tab
-JTabbedPane *-- "2" InformationPanel : Help/About
-
-class EntryPanel {
-    -JTextArea textArea
-    -StandardButton saveButton
-    +getEntryText()
-    +clearEntry()
-    +requestFocusInEditor()
-}
-
-class LogListPanel {
-    -JList<String> entryList
-    -JTextField searchField
-    -DatePicker startDate
-    -DatePicker endDate
-    +loadEntries()
-    +filterEntries()
-    +deleteSelectedEntry()
-}
-
-class FullLogPanel {
-    -HighlightableTextPane textPane
-    -StandardButton copyButton
-    -StandardButton openInEditorButton
-    -StandardButton lockButton
-    +loadFullLog()
-    +searchInLog(String query)
-    +copyToClipboard()
-    +openInExternalEditor()
-}
-
-class SettingsPanel {
-    -JCheckBox encryptionCheckbox
-    -JTextField clipboardTimeoutField
-    -JTextField backupDirectoryField
-    -JSpinner autoLockSpinner
-    +loadCurrentSettings()
-    +saveSettings()
-    +applyEncryption()
-}
-
-@enduml
-```
-
----
-
-## Key Workflows
-
-### Application Startup Workflow
-
-```plantuml
-@startuml
-!theme plain
-actor User
-participant LogHog
-participant LogTextEditor
-participant SingleInstanceManager
-participant SystemInitializer
-participant LogFileHandler
-participant EncryptionManager
-participant UIInitializer
-
-User -> LogHog : Launch
-activate LogHog
-
-LogHog -> LogHog : Detect Platform
-LogHog -> LogHog : Set Native Look & Feel
-
-LogHog -> SingleInstanceManager : Check Instance
-activate SingleInstanceManager
-alt Another instance running
-    SingleInstanceManager -> User : Focus existing window
-    SingleInstanceManager -> LogHog : Exit
-    deactivate SingleInstanceManager
-else First instance
-    SingleInstanceManager -> LogHog : Proceed
-    deactivate SingleInstanceManager
-end
-
-LogHog -> SystemInitializer : Initialize
-activate SystemInitializer
-SystemInitializer -> SystemInitializer : Setup uncaught exception handler
-SystemInitializer -> SystemInitializer : Configure security settings
-deactivate SystemInitializer
-
-LogHog -> LogTextEditor : Create main window
-activate LogTextEditor
-
-LogTextEditor -> LogFileHandler : Initialize
-activate LogFileHandler
-
-LogFileHandler -> LogFileHandler : Check if file exists
-alt File encrypted
-    LogFileHandler -> EncryptionManager : Initialize
-    activate EncryptionManager
-    LogFileHandler -> User : Prompt for password
-    User -> LogFileHandler : Enter password
-    LogFileHandler -> EncryptionManager : Decrypt file
-    alt Incorrect password
-        EncryptionManager -> User : Show error + security delay
-        User -> LogFileHandler : Retry (max 4 attempts)
-    else Correct password
-        EncryptionManager -> LogFileHandler : Decrypted content
-    end
-    deactivate EncryptionManager
-end
-
-LogFileHandler -> EntryLoader : Load entries
-LogFileHandler -> LogFileHandler : Cache entries
-deactivate LogFileHandler
-
-LogTextEditor -> UIInitializer : Build GUI
-activate UIInitializer
-UIInitializer -> UIInitializer : Create tabs
-UIInitializer -> UIInitializer : Setup menu bar
-UIInitializer -> UIInitializer : Configure shortcuts
-UIInitializer -> LogTextEditor : UI ready
-deactivate UIInitializer
-
-LogTextEditor -> User : Show window
-LogTextEditor -> EntryPanel : Focus text area
-
-deactivate LogTextEditor
-deactivate LogHog
-
-@enduml
-```
-
-### Save Entry Workflow
-
-```plantuml
-@startuml
-!theme plain
-actor User
-participant EntryPanel
-participant ActionHandler
-participant LogFileHandler
-participant BackupManager
-participant EncryptionManager
-participant EntryLoader
-
-User -> EntryPanel : Type entry
-User -> EntryPanel : Press Ctrl+S
-
-activate EntryPanel
-EntryPanel -> ActionHandler : saveEntry(text)
-activate ActionHandler
-
-ActionHandler -> ActionHandler : Validate text not empty
-
-alt File is locked
-    ActionHandler -> User : Show error: File locked
-else File is unlocked
-    ActionHandler -> LogFileHandler : saveEntry(text)
-    activate LogFileHandler
-    
-    LogFileHandler -> BackupManager : createNumberedBackup()
-    activate BackupManager
-    BackupManager -> BackupManager : Rotate .bak → .bak.1 → ... → .bak.5
-    BackupManager -> BackupManager : Create new .bak
-    deactivate BackupManager
-    
-    LogFileHandler -> LogFileHandler : Get current timestamp
-    LogFileHandler -> LogFileHandler : Format: "HH:mm yyyy-MM-dd\\n"
-    LogFileHandler -> LogFileHandler : Append timestamp + text
-    
-    alt Encryption enabled
-        LogFileHandler -> EncryptionManager : encrypt(content, password)
-        activate EncryptionManager
-        EncryptionManager -> EncryptionManager : Derive key (PBKDF2-100k)
-        EncryptionManager -> EncryptionManager : Encrypt (AES-256-GCM)
-        EncryptionManager -> LogFileHandler : Encrypted bytes
-        deactivate EncryptionManager
+```mermaid
+graph TB
+    subgraph "🖥️ What You See - UI Layer"
+        UI[GUI - Buttons, Text Areas, Menus]
     end
     
-    LogFileHandler -> LogFileHandler : Write to file
-    LogFileHandler -> EntryLoader : clearCache()
-    LogFileHandler -> User : Entry saved
-    deactivate LogFileHandler
-    
-    ActionHandler -> EntryPanel : clearEntry()
-    deactivate ActionHandler
-    
-    EntryPanel -> EntryPanel : Clear text area
-    EntryPanel -> EntryPanel : Request focus
-end
-
-deactivate EntryPanel
-
-@enduml
-```
-
-### Encryption Enable/Disable Workflow
-
-```plantuml
-@startuml
-!theme plain
-actor User
-participant SettingsPanel
-participant EncryptionHandler
-participant LogFileHandler
-participant EncryptionManager
-participant BackupManager
-
-User -> SettingsPanel : Click "Enable Encryption"
-activate SettingsPanel
-
-SettingsPanel -> User : Offer backup
-User -> SettingsPanel : Choose Yes/No
-
-alt User chooses backup
-    SettingsPanel -> BackupManager : createManualBackup()
-    activate BackupManager
-    BackupManager -> User : File chooser
-    User -> BackupManager : Select location
-    BackupManager -> BackupManager : Copy file
-    deactivate BackupManager
-end
-
-SettingsPanel -> EncryptionHandler : promptForNewPassword()
-activate EncryptionHandler
-
-EncryptionHandler -> User : Show password dialog
-User -> EncryptionHandler : Enter password
-
-EncryptionHandler -> EncryptionHandler : Validate requirements:\n- Min 20 characters\n- 1 uppercase\n- 1 special char (if score < Strong)\n- Score ≥ Good
-
-alt Password too weak
-    EncryptionHandler -> User : Show error + requirements
-    User -> EncryptionHandler : Retry
-else Password valid
-    EncryptionHandler -> User : Confirm password
-    User -> EncryptionHandler : Re-enter password
-    
-    alt Passwords don't match
-        EncryptionHandler -> User : Show error
-        User -> EncryptionHandler : Retry from start
-    else Passwords match
-        EncryptionHandler -> SettingsPanel : Password confirmed
-        deactivate EncryptionHandler
-        
-        SettingsPanel -> LogFileHandler : setEncryption(true, password)
-        activate LogFileHandler
-        
-        LogFileHandler -> BackupManager : createAutoBackup()
-        activate BackupManager
-        BackupManager -> BackupManager : Create timestamped backup
-        deactivate BackupManager
-        
-        LogFileHandler -> EncryptionManager : Initialize with password
-        activate EncryptionManager
-        EncryptionManager -> EncryptionManager : Generate random salt
-        EncryptionManager -> EncryptionManager : Derive key (PBKDF2-100k)
-        deactivate EncryptionManager
-        
-        LogFileHandler -> LogFileHandler : Read current content
-        LogFileHandler -> EncryptionManager : encrypt(content, password)
-        activate EncryptionManager
-        EncryptionManager -> EncryptionManager : Encrypt (AES-256-GCM)
-        EncryptionManager -> LogFileHandler : Encrypted bytes
-        deactivate EncryptionManager
-        
-        LogFileHandler -> LogFileHandler : Write encrypted file
-        LogFileHandler -> LogFileHandler : Clear password from memory
-        deactivate LogFileHandler
-        
-        SettingsPanel -> User : Encryption enabled
+    subgraph "🧠 The Brain - Application Layer"
+        APP[Coordinates everything]
     end
-end
-
-deactivate SettingsPanel
-
-@enduml
-```
-
-### Search Workflow
-
-```plantuml
-@startuml
-!theme plain
-actor User
-participant FullLogPanel
-participant SearchDialog
-participant HighlightableTextPane
-participant LogFileHandler
-
-User -> FullLogPanel : Press Ctrl+F
-activate FullLogPanel
-
-FullLogPanel -> SearchDialog : Show dialog
-activate SearchDialog
-
-SearchDialog -> User : Prompt for search term
-User -> SearchDialog : Enter: "project"\n+ Options: Whole word, Case sensitive
-
-SearchDialog -> FullLogPanel : search("project", options)
-deactivate SearchDialog
-
-FullLogPanel -> HighlightableTextPane : highlightText("project", options)
-activate HighlightableTextPane
-
-HighlightableTextPane -> HighlightableTextPane : Get full text content
-
-alt Whole word matching
-    HighlightableTextPane -> HighlightableTextPane : Pattern: "\\bproject\\b"
-else Partial matching
-    HighlightableTextPane -> HighlightableTextPane : Pattern: "project"
-end
-
-HighlightableTextPane -> HighlightableTextPane : Compile regex pattern
-HighlightableTextPane -> HighlightableTextPane : Find all matches (O(N) complexity)
-
-loop For each match
-    HighlightableTextPane -> HighlightableTextPane : Add yellow highlight
-    HighlightableTextPane -> HighlightableTextPane : Store match position
-end
-
-HighlightableTextPane -> HighlightableTextPane : Scroll to first match
-HighlightableTextPane -> User : Show match count: "5 matches found"
-
-deactivate HighlightableTextPane
-
-User -> SearchDialog : Click "Next Match"
-activate SearchDialog
-SearchDialog -> HighlightableTextPane : navigateToNextMatch()
-HighlightableTextPane -> HighlightableTextPane : Scroll to next position
-deactivate SearchDialog
-
-deactivate FullLogPanel
-
-@enduml
-```
-
----
-
-## Security Architecture
-
-### Oracle Secure Coding Guidelines Conformance
-
-.LOG-hog has been hardened to conform to [Oracle's Secure Coding Guidelines for Java SE](https://www.oracle.com/java/technologies/javase/seccodeguide.html). The following sections detail how the application addresses each security category:
-
-#### CRITICAL Priority Fixes ✅
-
-**1. Guideline 2-1: Purge Sensitive Information from Exceptions**
-- **Issue**: Exception messages (`e.getMessage()`) can expose file paths, internal errors, and system details
-- **Solution**: All user-facing error messages sanitized to generic descriptions
-- **Implementation**: 
-  - `LogFileHandler.java`: "Unable to save log entry" instead of exception details
-  - `EntryLoader.java`: "Unable to load entries" instead of file paths
-  - `LinkHandler.java`: "Unable to open file" instead of absolute paths
-  - 20+ locations across 8 files sanitized
-- **Impact**: Prevents information disclosure attacks and reconnaissance
-
-**2. Resource Exhaustion Prevention (Guideline 1-2)**
-- **Issue**: Large files could cause OutOfMemoryError
-- **Solution**: 50MB maximum file size check before loading
-- **Implementation**: `LogFileHandler.java` checks `Files.size()` before `getLines()`
-- **Impact**: Prevents denial-of-service attacks via memory exhaustion
-
-#### HIGH Priority Fixes ✅
-
-**3. Guideline 6-9/6-11: Make Public Static Fields Final**
-- **Issue**: Mutable `static Path DEFAULT_FILE_PATH` allowed runtime modification
-- **Solution**: Made field `final` and deprecated `setTestFilePath()` method
-- **Implementation**: `LogFileHandler.java` line 44
-- **Impact**: Prevents state corruption affecting all instances
-
-**4. Guideline 6-2/6-3: Create Defensive Copies of Mutable Objects**
-- **Issue**: `getSalt()` and `getPassword()` returned direct references to byte arrays
-- **Solution**: Return `.clone()` of all mutable byte arrays
-- **Implementation**: `FileEncryptionManager.java` uses defensive copying
-- **Impact**: Prevents external code from modifying cryptographic keys/salts
-
-**5. Secure Fallback Bypass**
-- **Issue**: `SecureSettings` returned plaintext when encryption failed
-- **Solution**: Return empty string instead of plaintext on failure
-- **Implementation**: `SecureSettings.java` line 86-91
-- **Impact**: Fail-secure design prevents accidental information disclosure
-
-#### MEDIUM Priority Fixes ✅
-
-**6. Guideline 1-4: Avoid Excessive Logging or Exception Swallowing**
-- **Issue**: Empty `catch (Exception ignored) {}` blocks silently failed
-- **Solution**: Log all exceptions with `System.err.println()`
-- **Implementation**: 
-  - `EntryLoader.java`: Date parsing errors logged
-  - `LogParser.java`: Entry parsing errors logged
-- **Impact**: Debugging capability maintained without exposing details to users
-
-**7. Resource Limits (DoS Protection)** ✅ **FULLY IMPLEMENTED**
-- **Issue**: No limits on collection sizes or file operations
-- **Solution**: Added `MAX_FILE_SIZE` and `MAX_COLLECTION_SIZE` constants
-- **Implementation**: 
-  - `LogFileHandler.java` lines 47-50 (constants defined)
-  - `LogFileHandler.java` getLines() method - File size checked BEFORE loading
-  - `LogParser.java` parseAllEntries() - Entry count checked during parsing
-  - `LogFileFormatter.java` line 214 - Collection size validated
-- **Status**: 
-  - ✅ MAX_FILE_SIZE (50MB) - **ENFORCED** in getLines()
-  - ✅ MAX_COLLECTION_SIZE (100,000) - **ENFORCED** in LogParser.parseAllEntries()
-- **Impact**: Prevents memory exhaustion and resource DoS attacks
-
-#### Existing Security Strengths
-
-The application already implemented many Oracle guidelines correctly:
-
-✅ **Guideline 3-1/3-2/3-3/3-4**: Strong Cryptographic Operations
-- Uses `SecureRandom` for all cryptographic randomness (not `Random`)
-- AES-256-GCM authenticated encryption
-- PBKDF2-HMAC-SHA256 with 600,000 iterations
-- No custom cryptography, only standard JDK implementations
-
-✅ **Guideline 5-1/5-2**: Input Validation
-- All file paths validated and confined to user home/working directory
-- Timestamp format validation with 23+ supported formats
-- Bounds checking on all array/collection operations
-- Path traversal prevention (`../` sequences blocked)
-
-✅ **Guideline 8-1/8-2**: Serialization
-- **No Java serialization used** - eliminates entire attack surface
-- Plain text format is human-readable and inspectable
-- No deserialization vulnerabilities possible
-
-✅ **Guideline 7-1**: Thread Safety
-- Proper synchronization on shared mutable state
-- Immutable configuration objects where possible
-- Thread-safe clipboard operations
-
-#### Security Performance Impact
-
-**Measured Impact**: < 1ms per file load operation
-- File size check: O(1) filesystem metadata call
-- Defensive copying: 16-byte array clone (< 0.001ms)
-- Exception sanitization: String literals (no concatenation overhead)
-- Completely imperceptible to users
-
-### Security Components Diagram
-
-```plantuml
-@startuml
-!theme plain
-
-package "Security Layer" {
-    [EncryptionManager]
-    [SecureSettings]
-    [ClipboardSecurityWarner]
-    [PasswordStrengthIndicator]
-    [SecurityDelayDialog]
-}
-
-package "Protection Mechanisms" {
-    [Path Validation]
-    [Input Sanitization]
-    [Memory Clearing]
-    [Secure Random Generator]
-    [Progressive Delays]
-}
-
-package "Cryptographic Operations" {
-    [AES-256-GCM Cipher]
-    [PBKDF2 Key Derivation]
-    [SecureRandom IV/Salt]
-    [Authentication Tag]
-}
-
-package "Backup Security" {
-    [Multiple Overwrite Deletion]
-    [Backup Verification]
-    [Encrypted Backup Preservation]
-}
-
-[EncryptionManager] --> [AES-256-GCM Cipher]
-[EncryptionManager] --> [PBKDF2 Key Derivation]
-[EncryptionManager] --> [SecureRandom IV/Salt]
-[EncryptionManager] --> [Memory Clearing]
-
-[SecureSettings] --> [EncryptionManager]
-[SecureSettings] --> [Input Sanitization]
-
-[ClipboardSecurityWarner] --> [Memory Clearing]
-
-[PasswordStrengthIndicator] --> [Input Sanitization]
-
-[SecurityDelayDialog] --> [Progressive Delays]
-[SecurityDelayDialog] --> [Secure Random Generator]
-
-[Path Validation] --> [Input Sanitization]
-
-[BackupManager] --> [Multiple Overwrite Deletion]
-[BackupManager] --> [Backup Verification]
-[BackupManager] --> [Encrypted Backup Preservation]
-
-@enduml
-```
-
-### Security Features
-
-#### Encryption
-- **Algorithm**: AES-256-GCM (Galois/Counter Mode)
-  - Authenticated encryption with associated data (AEAD)
-  - Provides both confidentiality and integrity
-  - 256-bit key size for maximum security
-- **Key Derivation**: PBKDF2-HMAC-SHA256
-  - 600,000 iterations (increased from legacy 65,536 for stronger protection)
-  - Random 16-byte salt per file
-  - Prevents rainbow table attacks
-- **IV Management**: Random 12-byte IV per encryption operation
-- **Authentication Tag**: 128-bit tag for integrity verification
-
-#### Brute-Force Protection
-1. **Progressive Delays**: 3s → 15s → 30s (with cryptographic jitter up to 2 seconds)
-2. **Attempt Limit**: 4 attempts, then application restart required
-3. **Real-time Countdown**: Visual feedback with cryptographically secure randomization
-4. **Memory Clearing**: All passwords zeroed immediately after use via CryptoUtils.zeroize()
-5. **Secure Cache Clearing**: On lock, all cached data overwritten before clearing to prevent memory forensics
-
-#### Input Validation
-- **Path Validation**: Blocks directory traversal, shell metacharacters
-- **Bounds Checking**: All numeric inputs (clipboard timeout: 1-3600s)
-- **Password Requirements**: 
-  - Minimum 20 characters
-  - At least 1 uppercase letter
-  - At least 1 special character (unless score ≥ Strong)
-  - Minimum strength: Good (enforced scoring)
-
-#### Memory Security
-- **Immediate Clearing**: char[] passwords zeroed after use
-- **Cache Clearing**: All decrypted content cleared on lock
-- **Secure Deletion**: Backups overwritten multiple times before deletion
-
-#### File System Security
-- **Directory Confinement**: Operations restricted to user home + working directory
-- **Path Canonicalization**: Resolves symbolic links, prevents traversal
-- **Secure Backup Deletion**: Multiple overwrites with random data
-
----
-
-## Data Flow
-
-### Entry Creation and Storage
-
-```plantuml
-@startuml
-!theme plain
-
-User -> EntryPanel : Type entry text
-EntryPanel -> ActionHandler : saveEntry()
-ActionHandler -> LogFileHandler : saveEntry(text)
-LogFileHandler -> DateHandler : getCurrentTimestamp()
-DateHandler -> LogFileHandler : "HH:mm yyyy-MM-dd"
-LogFileHandler -> LogFileHandler : Format: timestamp + newline + text
-LogFileHandler -> BackupManager : createNumberedBackup()
-BackupManager -> FileSystem : Rotate backups (.bak → .bak.5)
-alt Encryption enabled
-    LogFileHandler -> EncryptionManager : encrypt(content, password)
-    EncryptionManager -> SecureRandom : Generate IV
-    EncryptionManager -> PBKDF2 : Derive key from password + salt
-    PBKDF2 -> EncryptionManager : 256-bit key
-    EncryptionManager -> AES_GCM : Encrypt with key + IV
-    AES_GCM -> EncryptionManager : Ciphertext + auth tag
-    EncryptionManager -> LogFileHandler : Encrypted bytes
-end
-LogFileHandler -> FileSystem : Write to log file
-LogFileHandler -> EntryLoader : clearCache()
-LogFileHandler -> ActionHandler : Success
-ActionHandler -> EntryPanel : clearEntry()
-EntryPanel -> User : Ready for next entry
-
-@enduml
-```
-
-### Entry Retrieval and Display
-
-```plantuml
-@startuml
-!theme plain
-
-User -> LogListPanel : Open Log Entries tab
-LogListPanel -> LogFileHandler : getAllEntries()
-LogFileHandler -> EntryLoader : Check cache
-alt Cache valid
-    EntryLoader -> LogFileHandler : Return cached entries
-else Cache invalid or empty
-    EntryLoader -> FileSystem : Read log file
-    alt File encrypted
-        FileSystem -> EntryLoader : Encrypted bytes
-        EntryLoader -> EncryptionManager : decrypt(bytes, password)
-        EncryptionManager -> PBKDF2 : Derive key
-        PBKDF2 -> EncryptionManager : 256-bit key
-        EncryptionManager -> AES_GCM : Decrypt with key + IV
-        alt Authentication fails
-            AES_GCM -> EncryptionManager : Error
-            EncryptionManager -> User : "File corrupted or wrong password"
-        else Authentication succeeds
-            AES_GCM -> EncryptionManager : Plaintext
-        end
-        EncryptionManager -> EntryLoader : Decrypted content
-    else File unencrypted
-        FileSystem -> EntryLoader : Plain text
+    
+    subgraph "⚙️ The Workers - Service Layer"
+        SVC[Does the actual work]
     end
-    EntryLoader -> LogParser : Parse entries
-    LogParser -> LogParser : Split by timestamp pattern
-    loop For each entry
-        LogParser -> DateHandler : Parse timestamp
-        DateHandler -> LogParser : Parsed date
-        LogParser -> EntryLoader : {timestamp, content}
+    
+    subgraph "💾 The Storage - Data Layer"
+        DATA[Files on your computer]
     end
-    EntryLoader -> EntryLoader : Cache entries
-    EntryLoader -> LogFileHandler : Parsed entries
-end
-LogFileHandler -> LogListPanel : Entry list
-LogListPanel -> JList : Populate with entries
-JList -> User : Display entry list
+    
+    UI --> APP
+    APP --> SVC
+    SVC --> DATA
+```
 
-@enduml
+**Why layers?** Each layer only talks to the layer below it. This makes the code:
+- ✅ Easier to understand (one thing at a time)
+- ✅ Easier to fix (problems are isolated)
+- ✅ Easier to test (test each layer separately)
+
+---
+
+## 🧩 Main Components
+
+Here are the most important parts of .LOG-hog and what they do:
+
+```mermaid
+graph LR
+    subgraph "Entry Point"
+        LH[LogHog.java<br/>Starts the app]
+    end
+    
+    subgraph "Main Window"
+        LTE[LogTextEditor.java<br/>The main window]
+    end
+    
+    subgraph "Core Logic"
+        LFH[LogFileHandler.java<br/>Manages your log file]
+        EM[EncryptionManager.java<br/>Encrypts/decrypts]
+        BM[BackupManager.java<br/>Creates backups]
+    end
+    
+    subgraph "UI Tabs"
+        EP[EntryPanel<br/>Write entries]
+        LLP[LogListPanel<br/>Browse entries]
+        FLP[FullLogPanel<br/>View full log]
+        SP[SettingsPanel<br/>Settings]
+    end
+    
+    LH --> LTE
+    LTE --> EP
+    LTE --> LLP
+    LTE --> FLP
+    LTE --> SP
+    LTE --> LFH
+    LFH --> EM
+    LFH --> BM
+```
+
+### What Each Part Does (Simple Explanation)
+
+| Component | What it does | Real-world analogy |
+|-----------|-------------|-------------------|
+| **LogHog.java** | Starts the application | The "ON" button |
+| **LogTextEditor.java** | The main window with tabs | A tabbed notebook |
+| **LogFileHandler.java** | Reads/writes your log file | A librarian who finds and stores books |
+| **EncryptionManager.java** | Scrambles data so only you can read it | A safe with a combination lock |
+| **BackupManager.java** | Creates safety copies | A photocopy machine |
+| **EntryPanel** | Where you type new entries | A blank page in your diary |
+| **LogListPanel** | Shows all your entries in a list | The table of contents |
+| **FullLogPanel** | Shows your entire log | Reading the whole book |
+| **SettingsPanel** | Change how the app works | Control panel |
+
+---
+
+## 🔐 How Encryption Works
+
+Encryption is how we keep your data secret. Here's the process:
+
+```mermaid
+sequenceDiagram
+    participant You
+    participant App as LOG-hog
+    participant Crypto as Encryption Engine
+    participant File as Your Log File
+    
+    Note over You,File: SAVING AN ENTRY
+    You->>App: Type "Dear diary..."
+    You->>App: Click Save
+    App->>Crypto: Please encrypt this
+    Crypto->>Crypto: 1. Generate random salt
+    Crypto->>Crypto: 2. Derive key from password 600k rounds
+    Crypto->>Crypto: 3. Encrypt with AES-256-GCM
+    Crypto->>App: Here is the encrypted data
+    App->>File: Save encrypted data
+    
+    Note over You,File: READING AN ENTRY
+    You->>App: Open log file
+    App->>You: Enter password?
+    You->>App: MySecretPassword123
+    App->>File: Read encrypted data
+    App->>Crypto: Please decrypt this
+    Crypto->>Crypto: 1. Derive key from password
+    Crypto->>Crypto: 2. Decrypt with AES-256-GCM
+    Crypto->>Crypto: 3. Verify data was not tampered
+    Crypto->>App: Here is your original text
+    App->>You: Display Dear diary...
+```
+
+### Encryption Terms Explained
+
+| Term | What it means | Why it matters |
+|------|--------------|----------------|
+| **AES-256** | Advanced Encryption Standard with 256-bit key | Military-grade security, NSA approved |
+| **GCM** | Galois/Counter Mode | Detects if someone tampered with your data |
+| **PBKDF2** | Password-Based Key Derivation Function 2 | Makes password cracking very slow |
+| **600,000 iterations** | How many times we process your password | Takes centuries to brute-force |
+| **Salt** | Random data added to your password | Same password = different encryption each time |
+| **IV** | Initialization Vector | Random starting point for encryption |
+
+---
+
+## 💾 How Backups Work
+
+.LOG-hog automatically protects against data loss with a 6-layer backup system:
+
+```mermaid
+flowchart TD
+    subgraph "6 Backup Layers"
+        B0[.bak - Last save]
+        B1[.bak.1 - Previous save]
+        B2[.bak.2 - 2 saves ago]
+        B3[.bak.3 - 3 saves ago]
+        B4[.bak.4 - 4 saves ago]
+        B5[.bak.5 - 5 saves ago]
+        TS[Timestamped backups]
+    end
+    
+    SAVE[You save an entry] --> ROTATE
+    ROTATE[Backups rotate] --> B0
+    B0 --> B1
+    B1 --> B2
+    B2 --> B3
+    B3 --> B4
+    B4 --> B5
+    B5 --> DELETE[Secure Delete<br/>3-pass wipe]
+```
+
+### Secure Deletion (3-Pass Wipe)
+
+When old backups are deleted, we **securely erase** them:
+
+```mermaid
+flowchart LR
+    subgraph "3-Pass Secure Deletion"
+        P1["Pass 1<br/>Random Data"]
+        P2["Pass 2<br/>Pattern 0x55"]
+        P3["Pass 3<br/>All Zeros"]
+        DEL["Delete File"]
+    end
+    
+    FILE[Old Backup] --> P1 --> P2 --> P3 --> DEL
+```
+
+| Pass | What's Written | Why |
+|------|---------------|-----|
+| 1 | Random bytes (SecureRandom) | Obscures the original data |
+| 2 | 0x55 (01010101 binary) | Breaks up patterns |
+| 3 | 0x00 (zeros) | Final clean wipe |
+
+> ⚠️ **SSD Note:** On solid-state drives, this isn't 100% effective due to wear-leveling. Use full-disk encryption (BitLocker/FileVault/LUKS) for maximum SSD security.
+
+---
+
+## 🚀 Application Startup Flow
+
+What happens when you launch .LOG-hog:
+
+```mermaid
+flowchart TD
+    START[Launch LOG-hog] --> PLATFORM
+    PLATFORM[Detect OS<br/>Windows/Mac/Linux] --> LAF
+    LAF[Set native look and feel] --> SINGLE
+    
+    SINGLE{Another instance<br/>running?}
+    SINGLE -->|Yes| FOCUS[Focus existing window]
+    FOCUS --> EXIT[Exit new instance]
+    SINGLE -->|No| INIT
+    
+    INIT[Initialize security] --> CHECK
+    CHECK{Log file<br/>encrypted?}
+    CHECK -->|Yes| PWD[Ask for password]
+    CHECK -->|No| LOAD
+    
+    PWD --> VERIFY{Password<br/>correct?}
+    VERIFY -->|No| DELAY[Security delay<br/>3s then 15s then 30s]
+    DELAY --> PWD
+    VERIFY -->|Yes| DECRYPT[Decrypt file]
+    DECRYPT --> LOAD
+    
+    LOAD[Load entries] --> SHOW[Show main window]
+    SHOW --> READY[Ready to use]
 ```
 
 ---
 
-## Design Patterns
+## 🔒 Password Security System
 
-### Patterns Used in .LOG-hog
+.LOG-hog protects against password guessing with progressive delays:
 
-#### 1. Singleton Pattern
-**Purpose**: Ensure single instance of critical components  
-**Implementation**: ServiceFactory, SingleInstanceManager
-
-```java
-public class ServiceFactory {
-    private static ServiceFactory instance;
+```mermaid
+flowchart TD
+    TRY1[Attempt 1] --> WRONG1{Correct?}
+    WRONG1 -->|No| WAIT1[Wait 3 seconds]
+    WAIT1 --> TRY2[Attempt 2]
     
-    public static ServiceFactory getInstance() {
-        if (instance == null) {
-            instance = new ServiceFactory();
-        }
-        return instance;
-    }
-}
-```
-
-#### 2. Factory Pattern
-**Purpose**: Create service instances with dependency injection  
-**Implementation**: ServiceFactory creates FileService, EncryptionService, LogEntryService
-
-```java
-public class ServiceFactory {
-    public FileService createFileService(Path logFilePath) {
-        return new FileServiceImpl(logFilePath);
-    }
+    TRY2 --> WRONG2{Correct?}
+    WRONG2 -->|No| WAIT2[Wait 15 seconds]
+    WAIT2 --> TRY3[Attempt 3]
     
-    public EncryptionService createEncryptionService(Path logFilePath) {
-        return new EncryptionServiceImpl(logFilePath, encryptor);
-    }
-}
-```
-
-#### 3. Strategy Pattern
-**Purpose**: Different encryption strategies (with/without encryption)  
-**Implementation**: EncryptionManager with configurable PBKDF2 iterations
-
-```java
-public class EncryptionManager {
-    private int pbkdf2Iterations; // 65536 or 100000
+    TRY3 --> WRONG3{Correct?}
+    WRONG3 -->|No| WAIT3[Wait 30 seconds]
+    WAIT3 --> TRY4[Attempt 4]
     
-    public byte[] deriveKey(char[] password, byte[] salt) {
-        // Strategy varies based on iterations setting
-    }
-}
-```
-
-#### 4. Observer Pattern
-**Purpose**: UI updates when data changes  
-**Implementation**: Swing event listeners, tab change listeners
-
-```java
-tabPane.addChangeListener(e -> {
-    if (tabPane.getSelectedIndex() == 2) {
-        fullLogPanel.loadFullLog(); // Refresh on tab switch
-    }
-});
-```
-
-#### 5. Template Method Pattern
-**Purpose**: Common dialog structure with customizable behavior  
-**Implementation**: ProgressDialogBase with specialized SecurityDelayDialog, LoadingProgressDialog
-
-```java
-public abstract class ProgressDialogBase extends JDialog {
-    protected abstract void updateProgressDisplay();
-    protected abstract void onProgressComplete();
-}
-```
-
-#### 6. Facade Pattern
-**Purpose**: Simplify complex subsystems  
-**Implementation**: LogFileHandler provides simple interface to EncryptionManager, BackupManager, EntryLoader
-
-```java
-public class LogFileHandler {
-    public void saveEntry(String content) {
-        // Coordinates backup, encryption, file writing
-        backupManager.createBackup();
-        if (isEncrypted()) {
-            content = encryptionManager.encrypt(content);
-        }
-        writeToFile(content);
-    }
-}
-```
-
-#### 7. Cache-Aside Pattern
-**Purpose**: Improve performance with in-memory caching  
-**Implementation**: EntryLoader caches parsed entries, timestamps
-
-```java
-public class EntryLoader {
-    private Map<String, String> contentCache;
-    private List<String> timestampCache;
-    private long lastModified;
+    TRY4 --> WRONG4{Correct?}
+    WRONG4 -->|No| LOCKED[App restart required]
     
-    public List<Entry> loadEntries() {
-        if (cacheValid()) return cachedEntries;
-        // Load and cache
-    }
-}
+    WRONG1 -->|Yes| SUCCESS[Access granted]
+    WRONG2 -->|Yes| SUCCESS
+    WRONG3 -->|Yes| SUCCESS
+    WRONG4 -->|Yes| SUCCESS
 ```
+
+**Why progressive delays?**
+- Attempt 1: 3 seconds → Allows fixing typos
+- Attempt 2: 15 seconds → Slows down guessing
+- Attempt 3: 30 seconds → Automated attacks become impractical
+- Attempt 4+: App restart required → Completely stops scripts
 
 ---
 
-## Package Structure
+## 📦 Package Structure
 
-### Directory Layout
+Here's how the code is organized:
 
 ```
 src/
-├── LogHog.java                    # Entry point
-├── browser/                       # External browser integration
-│   └── BrowserOpener.java
-├── clipboard/                     # Clipboard security
-│   ├── ClipboardHandler.java
-│   ├── ClipboardSecurityWarner.java
-│   └── SecureClipboardManager.java
-├── encryption/                    # Cryptographic operations
-│   ├── EncryptionManager.java     # AES-256-GCM implementation
-│   ├── Encryptor.java             # Interface
+├── LogHog.java                 ← App entry point
+│
+├── main/                       ← Core application
+│   ├── LogTextEditor.java      ← Main window
+│   ├── BackupManager.java      ← Backup system
+│   ├── SecureDeletionUtils.java← 3-pass file wipe
+│   ├── SingleInstanceManager.java ← Prevent duplicate instances
+│   └── ...
+│
+├── encryption/                 ← Security
+│   ├── EncryptionManager.java  ← AES-256-GCM
+│   ├── Encryptor.java          ← Interface
 │   └── FileEncryptionManager.java
-├── filehandling/                  # File I/O and parsing
-│   ├── LogFileHandler.java        # Core file operations
-│   ├── EntryLoader.java           # Entry parsing and caching
-│   └── LogParser.java             # Timestamp parsing
-├── gui/                           # User interface components
-│   ├── EntryPanel.java            # Entry tab
-│   ├── LogListPanel.java          # Log entries tab
-│   ├── FullLogPanel.java          # Full log tab
-│   ├── SettingsPanel.java         # Settings tab
-│   ├── InformationPanel.java      # Help/About tabs
-│   ├── SearchDialog.java          # Advanced search
-│   ├── PasswordDialog.java        # Password prompts
-│   ├── PasswordGeneratorDialog.java
-│   ├── HighlightableTextPane.java # Search highlighting
-│   └── [Other UI components]
-├── main/                          # Application core
-│   ├── Application.java           # Service coordinator
-│   ├── LogTextEditor.java         # Main window
-│   ├── ActionHandler.java         # User action processing
-│   ├── UIInitializer.java         # GUI construction
-│   ├── SystemInitializer.java     # Platform initialization
-│   ├── BackupManager.java         # Backup system
-│   ├── EncryptionHandler.java     # Encryption setup
-│   └── SecureSettings.java        # Settings persistence
-├── markdown/                      # Markdown rendering
-│   ├── MarkdownRenderer.java
-│   └── LinkHandler.java
-├── notepad/                       # External editor integration
-│   └── NotepadOpener.java         # Cross-platform text editor
-├── services/                      # Service layer interfaces
-│   ├── FileService.java
-│   ├── EncryptionService.java
-│   ├── LogEntryService.java
-│   └── ServiceFactory.java
-├── utils/                         # Utility classes
-│   ├── DateHandler.java           # Timestamp parsing/formatting
-│   ├── Toast.java                 # Notifications
-│   └── [Other utilities]
-└── resources/                     # Static resources
+│
+├── filehandling/               ← File operations
+│   ├── LogFileHandler.java     ← Read/write logs
+│   ├── EntryLoader.java        ← Parse entries
+│   └── LogParser.java          ← Timestamp parsing (23+ formats)
+│
+├── gui/                        ← User interface
+│   ├── EntryPanel.java         ← Write entries tab
+│   ├── LogListPanel.java       ← Entry list tab
+│   ├── FullLogPanel.java       ← Full log view tab
+│   ├── SettingsPanel.java      ← Settings tab
+│   ├── PasswordDialog.java     ← Password prompts
+│   └── ...
+│
+├── clipboard/                  ← Clipboard security
+│   ├── ClipboardHandler.java
+│   └── SecureClipboardManager.java ← Auto-clear clipboard
+│
+├── security/                   ← Security utilities
+│   └── SecureTempFiles.java    ← Secure temp file creation
+│
+├── utils/                      ← Helpers
+│   ├── DateHandler.java        ← Date/time formatting
+│   ├── CryptoUtils.java        ← Memory zeroization
+│   └── ...
+│
+└── resources/                  ← Static files
     ├── help.md
-    ├── LICENSE.md
-    └── dict.txt                   # EFF Diceware wordlist
-```
-
-### Package Dependencies
-
-```plantuml
-@startuml
-!theme plain
-
-package "main" {
-}
-
-package "gui" {
-}
-
-package "filehandling" {
-}
-
-package "encryption" {
-}
-
-package "services" {
-}
-
-package "utils" {
-}
-
-package "clipboard" {
-}
-
-package "markdown" {
-}
-
-package "notepad" {
-}
-
-package "browser" {
-}
-
-main --> gui
-main --> filehandling
-main --> encryption
-main --> services
-gui --> filehandling
-gui --> utils
-gui --> clipboard
-gui --> markdown
-filehandling --> encryption
-filehandling --> utils
-clipboard --> utils
-services --> filehandling
-services --> encryption
-
-@enduml
+    └── dict.txt                ← EFF Diceware wordlist
 ```
 
 ---
 
-## Platform-Specific Features
+## 🎯 Design Patterns Used
 
-### Cross-Platform Architecture
+Design patterns are proven solutions to common programming problems:
 
-```plantuml
-@startuml
-!theme plain
+### 1. Singleton Pattern
+**Problem:** We need exactly ONE instance of something  
+**Solution:** Create it once, reuse everywhere
 
-package "Platform Detection" {
-    [OS Detection]
-    [Platform Factory]
-}
-
-package "Windows Implementation" {
-    [Windows L&F]
-    [notepad.exe launcher]
-}
-
-package "macOS Implementation" {
-    [Aqua L&F]
-    [Menu Bar Integration]
-    [open -e launcher]
-}
-
-package "Linux Implementation" {
-    [GTK+ L&F]
-    [xdg-open/gedit/nano launcher]
-}
-
-[OS Detection] --> [Platform Factory]
-[Platform Factory] ..> [Windows Implementation] : if Windows
-[Platform Factory] ..> [macOS Implementation] : if macOS
-[Platform Factory] ..> [Linux Implementation] : if Linux
-
-@enduml
+```mermaid
+flowchart LR
+    A[Code A] --> S[Single Instance]
+    B[Code B] --> S
+    C[Code C] --> S
 ```
 
-### Platform-Specific Behaviors
+**Used in:** `ServiceFactory`, `SingleInstanceManager`
 
-#### Windows
-- **Look & Feel**: Windows LAF
-- **External Editor**: notepad.exe
-- **File Paths**: Backslash separators
-- **Button Label**: "Open in Notepad"
+### 2. Factory Pattern  
+**Problem:** Creating objects is complex  
+**Solution:** Have a "factory" create them for you
 
-#### macOS
-- **Look & Feel**: System (Aqua)
-- **Menu Bar**: Screen menu bar integration
-- **External Editor**: `open -e` (TextEdit)
-- **File Paths**: Forward slash separators
-- **Button Label**: "Open in Text Editor"
-
-#### Linux
-- **Look & Feel**: GTK+ (fallback to system)
-- **External Editor**: xdg-open → gedit → nano (cascading fallback)
-- **File Paths**: Forward slash separators
-- **Button Label**: "Open in Text Editor"
-
----
-
-## Performance Characteristics
-
-### Time Complexity Analysis
-
-| Operation | Complexity | Notes |
-|-----------|-----------|-------|
-| Save Entry | O(N + E) | N = file size, E = encryption overhead |
-| Load All Entries | O(N) | Single file read + parse |
-| Search (Regex) | O(N) | Pattern matching with Matcher |
-| Search (Naive) | O(N×M) | **Deprecated**: Old string search |
-| Entry Deletion | O(N) | Rewrite entire file |
-| Filter Entries | O(N) | Linear scan of cached entries |
-| Timestamp Parsing | O(1) | Regex pattern matching |
-
-### Space Complexity
-
-| Component | Memory Usage | Notes |
-|-----------|-------------|-------|
-| Entry Cache | O(N) | Full file content in memory |
-| Timestamp Cache | O(E) | E = number of entries |
-| GUI Components | O(1) | Fixed overhead |
-| Encryption Buffer | O(N) | Temporary during encrypt/decrypt |
-
-### Performance Optimizations
-
-1. **Entry Caching**: EntryLoader caches all parsed entries after first load
-2. **Modification Tracking**: Cache invalidation based on file modification time
-3. **Lazy Loading**: InformationPanel loads help content only when tab is activated
-4. **Regex Compilation**: Search patterns compiled once and reused
-5. **Numbered Backups**: File rotation without full content copying
-
-### Encryption Performance
-
-- **PBKDF2 Iterations**: 100,000 (configurable)
-  - Startup delay: ~200-500ms depending on hardware
-  - Protects against brute-force attacks
-- **AES-GCM Overhead**: ~5-10% file size increase (IV + auth tag + salt)
-- **Memory Clearing**: Immediate zeroing of password arrays (negligible overhead)
-
----
-
-## Testing Architecture
-
-### Test Structure
-
-```plantuml
-@startuml
-!theme plain
-
-package "Pure Java Tests" {
-    [FileHandlingTest]
-    [EncryptionEdgeCaseTest]
-    [ClipboardSecurityTest]
-    [LogHogOptimizationTest]
-}
-
-package "Test Utilities" {
-    [TestableEncryptionManager]
-    [Secure Password Generator]
-}
-
-[FileHandlingTest] --> [TestableEncryptionManager]
-[EncryptionEdgeCaseTest] --> [TestableEncryptionManager]
-[ClipboardSecurityTest] --> [Secure Password Generator]
-
-@enduml
+```mermaid
+flowchart LR
+    REQ[Request a service] --> FAC[ServiceFactory]
+    FAC --> FS[FileService]
+    FAC --> ES[EncryptionService]
+    FAC --> LS[LogEntryService]
 ```
 
-### Test Categories
+### 3. Observer Pattern
+**Problem:** One thing changes, others need to know  
+**Solution:** "Subscribe" to updates
 
-1. **Unit Tests**: Individual component testing (EncryptionManager, LogParser)
-2. **Integration Tests**: Component interaction testing (LogFileHandler + EncryptionManager)
-3. **Security Tests**: Clipboard security, encryption edge cases
-4. **Performance Tests**: LogHogOptimizationTest for regression testing
+```mermaid
+flowchart LR
+    DATA[Data changes] --> NOTIFY[Notify observers]
+    NOTIFY --> UI1[Update Tab 1]
+    NOTIFY --> UI2[Update Tab 2]
+    NOTIFY --> UI3[Update List]
+```
 
-### Test Execution
+### 4. Facade Pattern
+**Problem:** Complex system with many parts  
+**Solution:** Simple interface hides complexity
 
-```bash
-# Windows
-run_tests_simple.bat
-
-# Linux/macOS
-chmod +x run_tests_simple.sh
-./run_tests_simple.sh
+```mermaid
+flowchart TD
+    USER[Your Code] --> FACADE[LogFileHandler<br/>Simple Interface]
+    FACADE --> A[BackupManager]
+    FACADE --> B[EncryptionManager]
+    FACADE --> C[EntryLoader]
+    FACADE --> D[FileSystem]
 ```
 
 ---
 
-## Build and Deployment
+## 🔧 Technology Stack
 
-### Build Process
+| Component | Technology | Why we chose it |
+|-----------|------------|-----------------|
+| Language | Java 17 | Cross-platform, secure, mature |
+| UI | Swing | Built into Java, no downloads needed |
+| Encryption | JDK Crypto | Audited, government-approved |
+| Build | javac/jar | Simple, no build tools required |
+| Dependencies | **ZERO** | Smaller, more secure, maintainable |
 
-```plantuml
-@startuml
-!theme plain
+### Zero-Dependency Benefits
 
-start
+| App Type | Typical Size | Notes |
+|----------|-------------|-------|
+| **.LOG-hog** | **230 KB** | Pure JDK, zero dependencies |
+| JavaFX App | 5-20 MB | JavaFX + libraries |
+| Electron App | 100-200 MB | Bundles Chrome browser |
 
-:Sync help.md to resources/;
-note right
-    Ensures JAR has latest help content
-end note
+**Why zero dependencies matter:**
+- ✅ No supply chain attacks (malicious libraries)
+- ✅ No version conflicts
+- ✅ No dependency updates to track
+- ✅ Sub-second startup time
+- ✅ ~25 MB memory usage (vs 100-500 MB for Electron)
 
-:Stop running instances;
-note right
-    Windows: taskkill
-    Unix: pkill
-end note
+---
 
-:Compile all .java files;
-note right
-    Excluding test files
-    Output to current directory
-end note
+## 🛡️ Security Architecture
 
-if (Compilation successful?) then (yes)
-    :Create JAR with manifest;
-    note right
-        Includes all .class files
-        and resources/ folder
-    end note
+```mermaid
+flowchart TB
+    subgraph "Encryption Layer"
+        AES[AES-256-GCM]
+        PBKDF2[PBKDF2-SHA256<br/>600,000 iterations]
+        RNG[SecureRandom]
+    end
     
-    if (JAR creation successful?) then (yes)
-        :Build complete: loghog.jar;
-        stop
-    else (no)
-        :Show error;
-        stop
-    endif
-else (no)
-    :Show compilation errors;
-    stop
-endif
-
-@enduml
+    subgraph "Protection Layer"
+        PATH[Path Validation]
+        INPUT[Input Sanitization]
+        MEM[Memory Clearing]
+        DELAY[Progressive Delays]
+    end
+    
+    subgraph "Storage Layer"
+        WIPE[3-Pass Secure Delete]
+        BACKUP[Encrypted Backups]
+        PERM[Owner-Only Permissions]
+    end
+    
+    USER[Your Data] --> AES
+    AES --> PBKDF2
+    PBKDF2 --> RNG
+    
+    USER --> PATH
+    PATH --> INPUT
+    INPUT --> MEM
+    
+    AES --> WIPE
+    AES --> BACKUP
+    BACKUP --> PERM
 ```
 
-### Deployment Package
+### Security Checklist
 
-**Contents:**
-- `loghog.jar` (~145 KB)
-- `help.md` / `LICENSE.md` (embedded in JAR)
-- `resources/dict.txt` (EFF Diceware wordlist, embedded)
-
-**Runtime Requirements:**
-- Java 17+ JRE
-- No external dependencies
-- Writable user directory for log.txt and settings
-
----
-
-## Future Architecture Considerations
-
-### Planned Enhancements
-1. **Plugin System**: Extensible architecture for custom entry processors
-2. **Cloud Sync**: Optional encrypted cloud backup
-3. **Multi-file Support**: Manage multiple log files with tabs
-4. **Advanced Search**: Full-text indexing for large log files
-5. **Export Formats**: PDF, HTML, Markdown export
-
-### Scalability Considerations
-- **Large Files**: Current design handles 10,000+ entries well
-- **Memory Limits**: Consider streaming for files >100MB
-- **Search Performance**: Add indexing for files with >50,000 entries
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Encryption | ✅ | AES-256-GCM (military grade) |
+| Key Derivation | ✅ | PBKDF2 with 600,000 iterations |
+| Memory Safety | ✅ | Passwords zeroed immediately after use |
+| Secure Deletion | ✅ | 3-pass wipe (random, 0x55, zeros) |
+| Path Traversal | ✅ | Blocked (no `../` attacks) |
+| Input Validation | ✅ | All inputs sanitized |
+| Brute Force | ✅ | Progressive delays + lockout |
+| Single Instance | ✅ | FileLock prevents conflicts |
+| File Permissions | ✅ | Owner-only on encrypted files |
+| No Serialization | ✅ | Eliminates deserialization attacks |
 
 ---
 
-## References
+## 📊 Data Flow
 
-- [Java Swing Documentation](https://docs.oracle.com/javase/tutorial/uiswing/)
-- [AES-GCM Specification (NIST SP 800-38D)](https://csrc.nist.gov/publications/detail/sp/800-38d/final)
-- [PBKDF2 Specification (RFC 8018)](https://tools.ietf.org/html/rfc8018)
-- [EFF Diceware Word List](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases)
-- [Windows Notepad .LOG Feature](https://www.howtogeek.com/359463/what-is-a-log-file/)
+How data moves through the application:
+
+```mermaid
+flowchart TD
+    subgraph "Input"
+        TYPE[You type an entry]
+        LOAD[You open a file]
+    end
+    
+    subgraph "Processing"
+        PARSE[Parse timestamp]
+        ENCRYPT[Encrypt]
+        DECRYPT[Decrypt]
+        CACHE[Cache in memory]
+    end
+    
+    subgraph "Storage"
+        FILE[Log file .LOG]
+        BACKUP[Backup files .bak]
+        SETTINGS[Settings file]
+    end
+    
+    TYPE --> PARSE
+    PARSE --> ENCRYPT
+    ENCRYPT --> FILE
+    FILE --> BACKUP
+    
+    LOAD --> FILE
+    FILE --> DECRYPT
+    DECRYPT --> CACHE
+    CACHE --> DISPLAY[Display to you]
+```
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** January 9, 2026  
-**Maintainer:** Johan Andersson  
-**License:** GPL-3.0
+## 📈 Performance
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Startup Time | < 1 second | Cold start |
+| Memory Usage | ~25 MB | Typical usage |
+| File Size Limit | 50 MB | DoS protection |
+| Entry Limit | 100,000 | DoS protection |
+| JAR Size | 230 KB | Zero dependencies |
+| Encryption Time | ~1 second | For key derivation |
+
+---
+
+## 🎓 Oracle Secure Coding Compliance
+
+.LOG-hog follows [Oracle's Secure Coding Guidelines for Java SE](https://www.oracle.com/java/technologies/javase/seccodeguide.html):
+
+| Guideline | Implementation |
+|-----------|---------------|
+| Purge sensitive info from exceptions | Generic error messages shown to users |
+| Resource exhaustion prevention | 50MB file limit, 100k entry limit |
+| Make static fields final | Immutable configuration |
+| Defensive copies of mutable objects | Salt/key arrays cloned before return |
+| Use SecureRandom | All randomness is cryptographic |
+| No Java serialization | Eliminates entire attack class |
+
+---
+
+## 🤝 Contributing
+
+### Code Style
+- Use clear, descriptive variable names
+- Comment complex logic
+- Follow existing patterns
+- Write tests for new features
+- Never log passwords or keys
+
+### Security Rules
+- Always clear sensitive data from memory
+- Validate all user inputs
+- Use SecureRandom (never java.util.Random for security)
+- Defensive copies for mutable returns
+
+---
+
+## 📚 Glossary
+
+| Term | Definition |
+|------|------------|
+| **AES** | Advanced Encryption Standard - the encryption algorithm |
+| **GCM** | Galois/Counter Mode - provides integrity verification |
+| **PBKDF2** | Password-Based Key Derivation Function 2 |
+| **IV** | Initialization Vector - random starting point |
+| **Salt** | Random data added to password before hashing |
+| **Swing** | Java's built-in GUI framework |
+| **JDK** | Java Development Kit |
+| **DoS** | Denial of Service - attack that overwhelms resources |
+| **Singleton** | Design pattern ensuring only one instance |
+| **Facade** | Design pattern that hides complexity |
+| **FileLock** | Java mechanism for exclusive file access |
+
+---
+
+## 🔗 Related Documentation
+
+- [encryption.md](src/encryption.md) - Detailed security documentation
+- [help.md](src/help.md) - User guide
+- [CHANGELOG.md](CHANGELOG.md) - Version history
+- [README.md](README.md) - Project overview
+
+---
+
+*Architecture document v2.0 - April 2026*

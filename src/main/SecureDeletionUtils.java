@@ -9,8 +9,7 @@ import java.security.SecureRandom;
  * 
  * <h2>Security Properties</h2>
  * <ul>
- *   <li>Overwrites file content with random bytes before deletion</li>
- *   <li>Followed by zero-fill pass to ensure no residual data patterns</li>
+ *   <li>3-pass overwrite: random data, complement pattern (0x55), zeros</li>
  *   <li>Uses {@link SecureRandom} for cryptographically secure random data</li>
  * </ul>
  * 
@@ -41,8 +40,13 @@ public class SecureDeletionUtils {
     /**
      * Securely deletes a file by overwriting its contents before deletion.
      * 
-     * <p>Performs a random-data pass followed by a zero-fill pass, then deletes the file.
-     * See class documentation for SSD/flash storage limitations.</p>
+     * <p>Performs a 3-pass overwrite pattern:</p>
+     * <ol>
+     *   <li>Pass 1: Random data</li>
+     *   <li>Pass 2: Complement pattern (0x55)</li>
+     *   <li>Pass 3: Zero-fill</li>
+     * </ol>
+     * <p>See class documentation for SSD/flash storage limitations.</p>
      * 
      * @param file the file to securely delete
      * @throws IOException if an I/O error occurs during overwriting or deletion
@@ -51,16 +55,36 @@ public class SecureDeletionUtils {
         if (!Files.exists(file)) return;
         long size = Files.size(file);
         SecureRandom random = new SecureRandom();
-        byte[] zeros = new byte[4096];
-        byte[] randomBytes = new byte[4096];
+        byte[] buffer = new byte[4096];
+        
         try (var channel = Files.newByteChannel(file, StandardOpenOption.WRITE)) {
+            // Pass 1: Random data
             long written = 0;
             while (written < size) {
-                random.nextBytes(randomBytes);
-                channel.write(java.nio.ByteBuffer.wrap(randomBytes));
-                channel.position(written);
-                channel.write(java.nio.ByteBuffer.wrap(zeros));
-                written += zeros.length;
+                random.nextBytes(buffer);
+                int toWrite = (int) Math.min(buffer.length, size - written);
+                channel.write(java.nio.ByteBuffer.wrap(buffer, 0, toWrite));
+                written += toWrite;
+            }
+            
+            // Pass 2: Complement pattern (0x55 = 01010101)
+            java.util.Arrays.fill(buffer, (byte) 0x55);
+            channel.position(0);
+            written = 0;
+            while (written < size) {
+                int toWrite = (int) Math.min(buffer.length, size - written);
+                channel.write(java.nio.ByteBuffer.wrap(buffer, 0, toWrite));
+                written += toWrite;
+            }
+            
+            // Pass 3: Zero-fill
+            java.util.Arrays.fill(buffer, (byte) 0x00);
+            channel.position(0);
+            written = 0;
+            while (written < size) {
+                int toWrite = (int) Math.min(buffer.length, size - written);
+                channel.write(java.nio.ByteBuffer.wrap(buffer, 0, toWrite));
+                written += toWrite;
             }
         }
         Files.delete(file);

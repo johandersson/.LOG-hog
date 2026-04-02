@@ -284,14 +284,23 @@ randomizedDelay = Math.max(1000, randomizedDelay);
 
 ### Backup Features
 - **Automatic Triggers**: Backups created after encryption/decryption operations
-- **Secure Deletion**: Multiple overwrites (3 passes) when replacing backup files
+- **Secure Deletion**: 3-pass overwrite (random → complement → zeros) when replacing backup files
 - **Configurable Settings**: User-controlled backup directory and enable/disable
 - **Silent Operation**: Non-intrusive background backup process
 - **Timestamp Naming**: Unique filenames prevent conflicts
 
+### 3-Pass Secure Deletion
+When deleting sensitive files, LogHog uses a DoD-style 3-pass wipe:
+
+| Pass | Data Written | Purpose |
+|------|--------------|---------|
+| 1 | Random bytes (SecureRandom) | Obscure original data patterns |
+| 2 | Complement pattern (0x55) | Break up random data artifacts |
+| 3 | Zeros (0x00) | Final sanitization |
+
 ### Security Implementation
 - **Encryption Preservation**: Backup files maintain original encryption state
-- **File Overwrite Security**: Secure deletion prevents data recovery from old backups on traditional HDDs
+- **File Overwrite Security**: 3-pass deletion prevents data recovery on traditional HDDs
 - **Path Validation**: Backup directories validated for safety
 - **Error Handling**: Backup failures don't interrupt user workflow
 
@@ -349,5 +358,4 @@ Current implementation uses PBKDF2 with per-user random salt and AES/GCM for set
 
 ---
 
-*This security implementation provides robust protection for personal sensitive data while maintaining usability. For high-security government or enterprise use, consider additional measures like hardware security modules or multi-factor authentication.*</content>
-<parameter name="filePath">c:\Users\johanand\IdeaProjects\loghog\src\encryption.md
+*This security implementation provides robust protection for personal sensitive data while maintaining usability. For high-security government or enterprise use, consider additional measures like hardware security modules or multi-factor authentication.*
