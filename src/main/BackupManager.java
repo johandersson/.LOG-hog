@@ -329,7 +329,7 @@ public class BackupManager {
             }
 
             // Compute and append HMAC for integrity verification
-            byte[] key = deriveSimpleHmacKey();
+            byte[] key = getOrCreateHmacKey();
             byte[] data = Files.readAllBytes(backupPath);
             byte[] hmac = HmacUtils.computeHmacSha256(key, data);
             Files.write(backupPath, hmac, StandardOpenOption.APPEND);
@@ -378,18 +378,35 @@ public class BackupManager {
         }
     }
 
+    private static final String HMAC_KEY_SETTING = "backupHmacKey";
+
     /**
-     * Derives a simple HMAC key for backup integrity (not persisted, ephemeral for demo).
-     * In production, use a securely stored key.
+     * Gets or generates the HMAC key for backup integrity verification.
+     * The key is randomly generated on first use and stored persistently in settings.
+     * This prevents trivial forgery of backup integrity signatures.
      */
-    private byte[] deriveSimpleHmacKey() {
-        // For demo: use a fixed string and user home as salt (not secure for real use)
-        String base = System.getProperty("user.home") + "-loghog-hmac-key";
-        try {
-            return java.util.Arrays.copyOf(base.getBytes("UTF-8"), 32);
-        } catch (Exception e) {
-            return new byte[32];
+    private byte[] getOrCreateHmacKey() {
+        String storedKey = settings.getProperty(HMAC_KEY_SETTING);
+        if (storedKey != null && !storedKey.isEmpty()) {
+            try {
+                byte[] decoded = java.util.Base64.getDecoder().decode(storedKey);
+                if (decoded.length == 32) {
+                    return decoded;
+                }
+            } catch (IllegalArgumentException e) {
+                // Invalid base64, regenerate
+            }
         }
+        
+        // Generate new random 256-bit key
+        byte[] newKey = new byte[32];
+        new java.security.SecureRandom().nextBytes(newKey);
+        
+        // Store in settings
+        settings.setProperty(HMAC_KEY_SETTING, java.util.Base64.getEncoder().encodeToString(newKey));
+        saveSettings();
+        
+        return newKey;
     }
 
     /**
@@ -402,7 +419,7 @@ public class BackupManager {
             if (backupAll.length < 32) return false;
             byte[] backupData = java.util.Arrays.copyOf(backupAll, backupAll.length - 32);
             byte[] backupHmac = java.util.Arrays.copyOfRange(backupAll, backupAll.length - 32, backupAll.length);
-            byte[] key = deriveSimpleHmacKey();
+            byte[] key = getOrCreateHmacKey();
             boolean sizeMatch = orig.length == backupData.length;
             boolean hmacMatch = HmacUtils.verifyHmacSha256(key, backupData, backupHmac);
             return sizeMatch && hmacMatch;

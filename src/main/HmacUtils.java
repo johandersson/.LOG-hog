@@ -1,7 +1,6 @@
 package main;
 
 import java.security.MessageDigest;
-// Unused import removed for PMD compliance
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
