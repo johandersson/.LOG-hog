@@ -185,9 +185,10 @@ public class FullLogFileLoader {
             infoEntry.add("Use the Log List view with filters to browse older entries.");
 
             List<List<String>> uiSubset = new ArrayList<>();
-            uiSubset.add(infoEntry);
             int start = Math.max(0, toRender.size() - ResourceLimits.MAX_ENTRIES_TO_RENDER_UI);
             uiSubset.addAll(toRender.subList(start, toRender.size()));
+            // Show informational note after the rendered entries so it appears at the bottom
+            uiSubset.add(infoEntry);
             MarkdownRenderer.renderMarkdownFromEntries(textPane, uiSubset, scrollToBottom);
         } else {
             MarkdownRenderer.renderMarkdownFromEntries(textPane, toRender, scrollToBottom);
@@ -215,7 +216,8 @@ public class FullLogFileLoader {
                 List<String> infoEntry = new ArrayList<>();
                 infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + allEntries.size() + " total)");
                 infoEntry.add("Use the Log List view with filters to browse older entries.");
-                entriesToRender.add(0, infoEntry);
+                // Append informational entry so it displays after the log entries
+                entriesToRender.add(infoEntry);
             } else {
                 entriesToRender = allEntries;
             }
@@ -241,7 +243,8 @@ public class FullLogFileLoader {
                     List<String> infoEntry = new ArrayList<>();
                     infoEntry.add("Showing " + ResourceLimits.MAX_ENTRIES_TO_RENDER + " most recent entries (out of " + total + " total)");
                     infoEntry.add("Use the Log List view with filters to browse older entries.");
-                    tail.add(0, infoEntry);
+                    // Place informational entry after the tail so it appears at the bottom of the view
+                    tail.add(infoEntry);
                     entriesToRender = tail;
                 } else {
                     entriesToRender = chrono;
