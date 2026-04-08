@@ -937,8 +937,32 @@ public class LogListPanel extends JPanel {
         editDateTimeItem.addActionListener(e -> editor.editDateTime());
         contextMenu.add(editDateTimeItem);
 
-        // Selection listeners
+        // Selection listeners - ensure right-click selects the item under cursor
         logList.addMouseListener(new java.awt.event.MouseAdapter() {
+            private void handlePopupSelect(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    int idx = logList.locationToIndex(e.getPoint());
+                    if (idx >= 0) {
+                        java.awt.Rectangle cell = logList.getCellBounds(idx, idx);
+                        if (cell != null && cell.contains(e.getPoint())) {
+                            logList.setSelectedIndex(idx);
+                        } else {
+                            logList.clearSelection();
+                        }
+                    } else {
+                        logList.clearSelection();
+                    }
+                }
+            }
+
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                handlePopupSelect(e);
+            }
+
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                handlePopupSelect(e);
+            }
+
             public void mouseClicked(java.awt.event.MouseEvent e) {
                 var selectedItem = logList.getSelectedValue();
                 loadAndDisplayEntry(selectedItem);
