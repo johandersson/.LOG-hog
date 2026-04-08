@@ -89,7 +89,10 @@ public class ActionHandler {
                         len = logContent.length();
                         snippet = logContent.length() > 200 ? logContent.substring(0, 200) + "..." : logContent;
                     }
-                    String details = "Raw timestamp: " + rawTs + "<br>Length: " + len + "<br><br>Snippet:<br>" + utils.StringUtils.escapeHtml(snippet);
+                    // Basic HTML-escape to avoid breaking the dialog when showing raw snippets
+                    String escaped = snippet.replace("&", "&amp;").replace("<", "&lt;")
+                        .replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
+                    String details = "Raw timestamp: " + rawTs + "<br>Length: " + len + "<br><br>Snippet:<br>" + escaped;
                     DialogHelper.showInfo(editor, "Copy Debug", "Preparing to copy entry:", details);
 
                     clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(
