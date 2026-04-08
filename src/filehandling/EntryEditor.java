@@ -99,10 +99,16 @@ public class EntryEditor {
                     backupManager.createNumberedBackup();
                 }
                 java.nio.file.Files.write(filePath, entryToAppend.getBytes(java.nio.charset.StandardCharsets.UTF_8), java.nio.file.StandardOpenOption.APPEND);
+                try {
+                    encryption.CryptoUtils.setOwnerOnlyPermissions(filePath);
+                } catch (Exception ignored) {}
             } else {
                 // For new files, ensure .LOG header exists for Notepad compatibility
                 String contentWithHeader = ".LOG" + ls + ls + entryToAppend;
                 java.nio.file.Files.write(filePath, contentWithHeader.getBytes(java.nio.charset.StandardCharsets.UTF_8), java.nio.file.StandardOpenOption.CREATE);
+                try {
+                    encryption.CryptoUtils.setOwnerOnlyPermissions(filePath);
+                } catch (Exception ignored) {}
             }
         }
     }
@@ -313,6 +319,9 @@ public class EntryEditor {
                 backupManager.createNumberedBackup();
             }
             Files.write(filePath, normalized);
+            try {
+                encryption.CryptoUtils.setOwnerOnlyPermissions(filePath);
+            } catch (Exception ignored) {}
         }
     }
 }

@@ -98,6 +98,7 @@ public class AsyncSaver {
                 } else {
                     if (backupManager != null) backupManager.createNumberedBackup();
                     Files.write(filePath, pendingLines);
+                    try { encryption.CryptoUtils.setOwnerOnlyPermissions(filePath); } catch (Exception ignored) {}
                 }
                 cache.clearPendingWrites();
                 } catch (Exception e) {

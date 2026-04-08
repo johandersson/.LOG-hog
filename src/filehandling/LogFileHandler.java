@@ -298,6 +298,7 @@ public class LogFileHandler implements LogFileOperations {
                     backupManager.createNumberedBackup();
                 }
                 Files.write(filePath, pendingLines);
+                try { encryption.CryptoUtils.setOwnerOnlyPermissions(filePath); } catch (Exception ignored) {}
             }
             
             cache.clearPendingWrites();
@@ -371,6 +372,7 @@ public class LogFileHandler implements LogFileOperations {
                     backupManager.createNumberedBackup();
                 }
                 Files.write(filePath, lines);
+                try { encryption.CryptoUtils.setOwnerOnlyPermissions(filePath); } catch (Exception ignored) {}
             }
             
             // Invalidate caches and reload list for proper display suffix regeneration
