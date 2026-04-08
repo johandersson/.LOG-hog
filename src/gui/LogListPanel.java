@@ -150,26 +150,44 @@ public class LogListPanel extends JPanel {
         filterLabel.setFont(filterLabel.getFont().deriveFont(Font.BOLD));
         dateFilterPanel.add(filterLabel);
 
-        // Populate year combo from the currently displayed entries in the list (most recent view)
-        java.util.Set<Integer> yearsSet = new java.util.LinkedHashSet<>();
-        for (int i = 0; i < listModel.getSize(); i++) {
-            try {
-                String ts = listModel.getElementAt(i);
-                java.time.LocalDateTime dt = utils.DateHandler.parseTimestamp(ts);
-                yearsSet.add(dt.getYear());
-            } catch (Exception ignored) {
+        // Initially show current year to avoid blocking UI; populate full year list asynchronously
+        int currentYear = Year.now().getValue();
+        Integer[] initial = IntStream.rangeClosed(currentYear, currentYear).boxed().toArray(Integer[]::new);
+        yearCombo = new JComboBox<>(initial);
+
+        // Populate actual years off the EDT to avoid blocking the UI on large files or encrypted files
+        new SwingWorker<java.util.List<Integer>, Void>() {
+            @Override
+            protected java.util.List<Integer> doInBackground() throws Exception {
+                try {
+                    return logFileHandler.getAvailableYears(0); // 0 => no cap
+                } catch (Exception e) {
+                    return java.util.List.of();
+                }
             }
-        }
-        Integer[] yearsArr;
-        if (!yearsSet.isEmpty()) {
-            yearsArr = yearsSet.toArray(new Integer[0]);
-        } else {
-            var currentYear = Year.now().getValue();
-            yearsArr = IntStream.rangeClosed(currentYear, currentYear).boxed().toArray(Integer[]::new);
-        }
-        yearCombo = new JComboBox<>(yearsArr);
-        // Select the most recent year by default if present
-        if (yearsArr.length > 0) yearCombo.setSelectedItem(yearsArr[0]);
+
+            @Override
+            protected void done() {
+                try {
+                    java.util.List<Integer> yearsList = get();
+                    if (yearsList != null && !yearsList.isEmpty()) {
+                        Integer[] yearsArr = yearsList.toArray(new Integer[0]);
+                        // Update combo model without triggering filter/search events
+                        boolean prevSuppress = suppressFilterEvents;
+                        suppressFilterEvents = true;
+                        try {
+                            yearCombo.setModel(new javax.swing.DefaultComboBoxModel<>(yearsArr));
+                            yearCombo.setSelectedItem(yearsArr[0]);
+                        } finally {
+                            suppressFilterEvents = prevSuppress;
+                        }
+                    }
+                } catch (Exception ignored) {
+                    // keep current year fallback
+                }
+            }
+        }.execute();
+        // Most recent year is already selected by initial combo model (current year)
         dateFilterPanel.add(yearCombo);
 
         var months = new String[]{

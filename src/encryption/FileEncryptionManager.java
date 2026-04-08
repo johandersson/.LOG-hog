@@ -50,7 +50,7 @@ public class FileEncryptionManager {
             if (encryptor instanceof StreamEncryptor) {
                  // Create secure temp file in the same directory to allow atomic move
                  String prefix = filePath.getFileName().toString();
-                 Path tmp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), prefix + "-", ".tmp");
+                 Path tmp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), prefix + "-", ".tmp", true);
                  try (var in = new utils.LinesInputStream(lines, LogFileFormat.INTERNAL_LINE_SEPARATOR, java.nio.charset.StandardCharsets.UTF_8);
                      var out = Files.newOutputStream(tmp)) {
 
@@ -96,13 +96,16 @@ public class FileEncryptionManager {
                 progressDialog.show();
 
                 var encryptedData = encryptor.encrypt(full, pwd, salt);
-                Path tmp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), filePath.getFileName().toString() + "-", ".tmp");
+                Path tmp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), filePath.getFileName().toString() + "-", ".tmp", true);
                 try {
                     Files.write(tmp, encryptedData);
+                    try { encryption.CryptoUtils.setOwnerOnlyPermissions(tmp); } catch (Exception ignored) {}
                     try {
                         java.nio.file.Files.move(tmp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                        try { encryption.CryptoUtils.setOwnerOnlyPermissions(filePath); } catch (Exception ignored) {}
                     } catch (java.nio.file.AtomicMoveNotSupportedException amnse) {
                         java.nio.file.Files.move(tmp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        try { encryption.CryptoUtils.setOwnerOnlyPermissions(filePath); } catch (Exception ignored) {}
                     }
                 } finally {
                     try { if (tmp != null && Files.exists(tmp)) Files.deleteIfExists(tmp); } catch (Exception ignored) {}
@@ -257,12 +260,19 @@ public class FileEncryptionManager {
                 progressDialog.show();
 
                 var encryptedData = encryptor.encrypt(toEncrypt, pwd, salt);
-                Path tmp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), filePath.getFileName().toString() + "-", ".tmp");
-                Files.write(tmp, encryptedData);
+                Path tmp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), filePath.getFileName().toString() + "-", ".tmp", true);
                 try {
-                    java.nio.file.Files.move(tmp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
-                } catch (java.nio.file.AtomicMoveNotSupportedException amnse) {
-                    java.nio.file.Files.move(tmp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    Files.write(tmp, encryptedData);
+                    try { encryption.CryptoUtils.setOwnerOnlyPermissions(tmp); } catch (Exception ignored) {}
+                    try {
+                        java.nio.file.Files.move(tmp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                        try { encryption.CryptoUtils.setOwnerOnlyPermissions(filePath); } catch (Exception ignored) {}
+                    } catch (java.nio.file.AtomicMoveNotSupportedException amnse) {
+                        java.nio.file.Files.move(tmp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        try { encryption.CryptoUtils.setOwnerOnlyPermissions(filePath); } catch (Exception ignored) {}
+                    }
+                } finally {
+                    try { if (tmp != null && Files.exists(tmp)) Files.deleteIfExists(tmp); } catch (Exception ignored) {}
                 }
             }
         } finally {

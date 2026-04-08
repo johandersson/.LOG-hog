@@ -35,6 +35,16 @@ public class HighlightableTextPane extends JTextPane {
         super();
     }
 
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        // Force the text pane to track the viewport width so long lines wrap
+        java.awt.Component p = getParent();
+        if (p instanceof javax.swing.JViewport) {
+            return ((javax.swing.JViewport)p).getWidth() > 0;
+        }
+        return super.getScrollableTracksViewportWidth();
+    }
+
     public boolean highlightText(String query) {
         return highlightText(query, false, false) > 0;
     }

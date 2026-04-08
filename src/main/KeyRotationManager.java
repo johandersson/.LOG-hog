@@ -26,5 +26,6 @@ public class KeyRotationManager {
         String plaintext = encryptionManager.decryptWithFallback(encrypted, passwordAndSalt);
         byte[] newEncrypted = encryptionManager.encrypt(plaintext, newPassword, salt);
         Files.write(file, newEncrypted, StandardOpenOption.TRUNCATE_EXISTING);
+        try { encryption.CryptoUtils.setOwnerOnlyPermissions(file); } catch (Exception ignored) {}
     }
 }

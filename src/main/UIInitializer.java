@@ -224,10 +224,21 @@ public class UIInitializer {
     }
 
     private void createContentCardWithTabs(JPanel center) {
+        JPanel contentCard = createContentCard();
+        configureTabPane();
+        contentCard.add(tabPane, BorderLayout.CENTER);
+
+        center.add(contentCard, BorderLayout.CENTER);
+    }
+
+    private JPanel createContentCard() {
         JPanel contentCard = new JPanel(new BorderLayout());
         contentCard.setBackground(Color.WHITE);
         contentCard.setBorder(new EmptyBorder(12, 12, 12, 12));
+        return contentCard;
+    }
 
+    private void configureTabPane() {
         tabPane.setUI(new HiddenTabUI());
         tabPane.setBorder(null);
         tabPane.addTab("Entry", editor.getEntryPanel());
@@ -237,97 +248,112 @@ public class UIInitializer {
         tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help", false, true));
         // Load About immediately (no lazy splash gating) so license is always available
         tabPane.addTab("About", new InformationPanel(tabPane, "LICENSE.md", "About", false, false));
-        tabPane.addChangeListener(e -> {
-            int idx = tabPane.getSelectedIndex();
-            if (idx == 2) {
-                if (!editor.getFullLogPanel().isSuppressAutoLoad()) {
-                    LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
-                    // Delay showing the dialog to avoid flashing for fast loads
-                    final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
-                    showTimer.setRepeats(false);
-                    showTimer.start();
-                    editor.getFullLogPanel().loadFullLog(() -> {
-                        if (showTimer.isRunning()) showTimer.stop();
-                        progress.close();
-                    });
-                }
-            } else if (idx == 1) {
-                // Log Entries tab - do not override user's active filter or selection
-                // when switching tabs. Only perform an initial filtered load if the
-                // model is empty (first time view) to avoid resetting filters.
-                DefaultListModel<String> model = editor.getLogListPanel().getListModel();
-                if (model.getSize() > 0) {
-                    // Model already populated — keep existing filter and selection intact
-                    // just ensure the view is updated
-                    SwingUtilities.invokeLater(() -> editor.updateLogListView());
-                } else {
-                    LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
-                    final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
-                    showTimer.setRepeats(false);
-                    showTimer.start();
-                    // Determine default filter: current year and month
-                    int currentYear = java.time.Year.now().getValue();
-                    int currentMonth = java.time.LocalDate.now().getMonthValue();
 
-                    // Load filtered entries in background then update view on EDT.
-                    Thread loaderThread = new Thread(() -> {
-                        int filterYear = currentYear;
-                        int filterMonth = currentMonth;
-                        try {
-                            editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
-
-                            if (model.getSize() == 0) {
-                                // Try to find the latest entry and use its month/year
-                                java.util.List<String> recent = editor.getLogFileHandler().getRecentLogEntries(1);
-                                if (!recent.isEmpty()) {
-                                    try {
-                                        java.time.LocalDateTime dt = utils.DateHandler.parseTimestamp(recent.get(0));
-                                        filterYear = dt.getYear();
-                                        filterMonth = dt.getMonthValue();
-                                        // reload with fallback filter
-                                        editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
-                                    } catch (Exception ignore) {
-                                        // keep original filter if parse fails
-                                    }
-                                }
-                            }
-
-                            int fYear = filterYear;
-                            int fMonth = filterMonth;
-                            SwingUtilities.invokeLater(() -> {
-                                editor.updateLogListView();
-                                // Update the UI controls to reflect the active filter
-                                editor.getLogListPanel().setFilterSelection(fYear, fMonth);
-                            });
-                        } catch (Exception ex) {
-                            SwingUtilities.invokeLater(() -> editor.getLogFileHandler().showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
-                        } finally {
-                            SwingUtilities.invokeLater(() -> {
-                                if (showTimer.isRunning()) showTimer.stop();
-                                progress.close();
-                            });
-                        }
-                    }, "LogEntriesFilteredLoader");
-                    loaderThread.setDaemon(true);
-                    loaderThread.start();
-                }
-            } else if (idx == 3) {
-                editor.getSettingsPanel().loadCurrentSettings();
-            } else if (idx == 5) {
-                // Ensure About tab content is loaded immediately without showing the splash
-                ((InformationPanel) tabPane.getComponentAt(5)).loadText();
-            } else if (idx == 0) {
-                // Focus the entry text area when switching to the Entry tab
-                SwingUtilities.invokeLater(() -> {
-                    var textArea = editor.getEntryPanel().getTextArea();
-                    textArea.requestFocusInWindow();
-                    textArea.setCaretPosition(textArea.getDocument().getLength()); // Place cursor at the end
-                });
+        tabPane.addChangeListener(new javax.swing.event.ChangeListener() {
+            @Override
+            public void stateChanged(javax.swing.event.ChangeEvent e) {
+                int idx = tabPane.getSelectedIndex();
+                handleTabSelection(idx);
             }
         });
-        contentCard.add(tabPane, BorderLayout.CENTER);
+    }
 
-        center.add(contentCard, BorderLayout.CENTER);
+    private void handleTabSelection(int idx) {
+        if (idx == 2) {
+            handleFullLogTabSelection();
+        } else if (idx == 1) {
+            handleLogEntriesTabSelection();
+        } else if (idx == 3) {
+            editor.getSettingsPanel().loadCurrentSettings();
+        } else if (idx == 5) {
+            ((InformationPanel) tabPane.getComponentAt(5)).loadText();
+        } else if (idx == 0) {
+            handleEntryTabSelection();
+        }
+    }
+
+    private void handleFullLogTabSelection() {
+        if (!editor.getFullLogPanel().isSuppressAutoLoad()) {
+            LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
+            final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+            showTimer.setRepeats(false);
+            showTimer.start();
+            editor.getFullLogPanel().loadFullLog(() -> {
+                if (showTimer.isRunning()) showTimer.stop();
+                progress.close();
+            });
+        }
+    }
+
+    private void handleLogEntriesTabSelection() {
+        // Log Entries tab - do not override user's active filter or selection
+        // when switching tabs. Only perform an initial filtered load if the
+        // model is empty (first time view) to avoid resetting filters.
+        DefaultListModel<String> model = editor.getLogListPanel().getListModel();
+        if (model.getSize() > 0) {
+            SwingUtilities.invokeLater(() -> editor.updateLogListView());
+            return;
+        }
+
+        LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
+        final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+        showTimer.setRepeats(false);
+        showTimer.start();
+
+        // Determine default filter: current year and month
+        int currentYear = java.time.Year.now().getValue();
+        int currentMonth = java.time.LocalDate.now().getMonthValue();
+
+        startFilteredEntriesLoader(model, currentYear, currentMonth, progress, showTimer);
+    }
+
+    private void startFilteredEntriesLoader(DefaultListModel<String> model, int currentYear, int currentMonth,
+                                           LoadingProgressDialog progress, javax.swing.Timer showTimer) {
+        Thread loaderThread = new Thread(() -> {
+            int filterYear = currentYear;
+            int filterMonth = currentMonth;
+            try {
+                editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
+
+                if (model.getSize() == 0) {
+                    java.util.List<String> recent = editor.getLogFileHandler().getRecentLogEntries(1);
+                    if (!recent.isEmpty()) {
+                        try {
+                            java.time.LocalDateTime dt = utils.DateHandler.parseTimestamp(recent.get(0));
+                            filterYear = dt.getYear();
+                            filterMonth = dt.getMonthValue();
+                            editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
+                        } catch (Exception ignore) {
+                            // keep original filter if parse fails
+                        }
+                    }
+                }
+
+                int fYear = filterYear;
+                int fMonth = filterMonth;
+                SwingUtilities.invokeLater(() -> {
+                    editor.updateLogListView();
+                    editor.getLogListPanel().setFilterSelection(fYear, fMonth);
+                });
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> editor.getLogFileHandler().showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
+            } finally {
+                SwingUtilities.invokeLater(() -> {
+                    if (showTimer.isRunning()) showTimer.stop();
+                    progress.close();
+                });
+            }
+        }, "LogEntriesFilteredLoader");
+        loaderThread.setDaemon(true);
+        loaderThread.start();
+    }
+
+    private void handleEntryTabSelection() {
+        SwingUtilities.invokeLater(() -> {
+            var textArea = editor.getEntryPanel().getTextArea();
+            textArea.requestFocusInWindow();
+            textArea.setCaretPosition(textArea.getDocument().getLength());
+        });
     }
 
     private void showSecurityProgressDialog(JFrame parent) {

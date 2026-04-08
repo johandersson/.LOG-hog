@@ -68,7 +68,9 @@ public class MarkdownFormatter {
                                                 java.util.Map<String, Style> styles) throws BadLocationException {
         // Early exit optimization: if line has no markdown syntax, insert as plain text
         if (!hasMarkdown(line)) {
-            doc.insertString(doc.getLength(), line, baseStyle);
+            // Ensure extremely long unbroken words get break opportunities so JTextPane can wrap them
+            String safe = insertBreaksForLongWords(line, 30);
+            doc.insertString(doc.getLength(), safe, baseStyle);
             return;
         }
         
@@ -144,12 +146,18 @@ public class MarkdownFormatter {
             // Insert plain text before this element
             if (elem.start >= lastEnd && elem.start > last) {
                 String before = line.substring(last, elem.start);
+                before = insertBreaksForLongWords(before, 30);
                 doc.insertString(doc.getLength(), before, baseStyle);
             }
             
             if (elem.start >= lastEnd) {
                 SimpleAttributeSet style = createStyleForElement(elem, baseStyle);
-                doc.insertString(doc.getLength(), elem.text, style);
+                String textToInsert = elem.text;
+                // Don't insert breaks inside inline code elements
+                if (!"inlineCode".equals(elem.type)) {
+                    textToInsert = insertBreaksForLongWords(textToInsert, 30);
+                }
+                doc.insertString(doc.getLength(), textToInsert, style);
                 last = elem.end;
                 lastEnd = elem.end;
             }
@@ -158,8 +166,34 @@ public class MarkdownFormatter {
         // Insert remaining text
         if (last < line.length()) {
             String after = line.substring(last);
+            after = insertBreaksForLongWords(after, 30);
             doc.insertString(doc.getLength(), after, baseStyle);
         }
+    }
+
+    /**
+     * Insert zero-width space break opportunities into very long unbroken tokens.
+     * This helps Swing's text wrapping when encountering long words without natural break points.
+     */
+    private static String insertBreaksForLongWords(String s, int maxChunk) {
+        if (s == null || s.length() <= maxChunk) return s;
+        StringBuilder out = new StringBuilder(s.length() + s.length() / maxChunk + 4);
+        int run = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            out.append(c);
+            if (Character.isWhitespace(c)) {
+                run = 0;
+            } else {
+                run++;
+                if (run >= maxChunk) {
+                    // Insert zero-width space as a soft break
+                    out.append('\u200B');
+                    run = 0;
+                }
+            }
+        }
+        return out.toString();
     }
     
     /**

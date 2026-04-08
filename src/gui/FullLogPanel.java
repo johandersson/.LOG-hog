@@ -149,6 +149,8 @@ public class FullLogPanel extends LogPanel {
         timestampClickHandler = new TimestampClickHandler(fullLogPane, this::openEntryForEditing);
 
         JScrollPane scroll = new JScrollPane(fullLogPane);
+        // Prevent horizontal scrolling by forcing wrapping in the text pane
+        scroll.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         add(scroll, BorderLayout.CENTER);
 

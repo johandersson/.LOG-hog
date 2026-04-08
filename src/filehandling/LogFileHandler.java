@@ -692,7 +692,7 @@ public class LogFileHandler implements LogFileOperations {
         Files.copy(filePath, backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
         // Decrypt stream-to-temp file to avoid holding full plaintext in heap
-        Path temp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), "loghog-decrypt-", ".tmp");
+        Path temp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), "loghog-decrypt-", ".tmp", true);
         try {
             try (java.io.InputStream encIn = Files.newInputStream(filePath)) {
                 encryptionManager.withDecryptedStream(encIn, encryptionManager.getPassword(), encryptionManager.getSalt(), (decIn) -> {
@@ -723,7 +723,7 @@ public class LogFileHandler implements LogFileOperations {
         if (hasHeader) {
             Files.move(temp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         } else {
-            Path temp2 = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), "loghog-decrypt-final-", ".tmp");
+            Path temp2 = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), "loghog-decrypt-final-", ".tmp", true);
             try (java.io.BufferedWriter bw = Files.newBufferedWriter(temp2, java.nio.charset.StandardCharsets.UTF_8)) {
                 bw.write(".LOG\n\n");
                 try (java.io.InputStream in2 = Files.newInputStream(temp);

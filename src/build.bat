@@ -32,9 +32,8 @@ if %errorlevel% neq 0 (
 REM Create the JAR file in the src/build directory (single artifact)
 if not exist "%~dp0build" mkdir "%~dp0build"
 REM Include compiled classes, resource directory and any top-level text resources
-REM Generate a date stamp for the build (YYYYMMDD) and include it in the jar filename
-for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd"') do set "BUILD_DATE=%%i"
-set "JAR_NAME=loghog-%BUILD_DATE%.jar"
+REM Use a stable jar filename (no date suffix)
+set "JAR_NAME=loghog.jar"
 jar cvfm "%~dp0build\%JAR_NAME%" manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class main/*.class services/*.class utils/*.class resources/ *.txt resources/*
 popd
 echo Production build completed: %~dp0build\%JAR_NAME%

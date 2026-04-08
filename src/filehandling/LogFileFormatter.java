@@ -249,6 +249,7 @@ public class LogFileFormatter {
                     } else {
                         // Write directly to file
                         Files.write(logPath, formatted);
+                        try { encryption.CryptoUtils.setOwnerOnlyPermissions(logPath); } catch (Exception ignored) {}
                     }
 
                     // Clear any pending writes that might overwrite our formatted content

@@ -80,14 +80,22 @@ public class PasswordDialog extends JDialog {
 
         centerPanel.add(topPanel, BorderLayout.NORTH);
 
-        passwordField = new JPasswordField(20);
-        passwordField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        // Make the password field larger to avoid clipped text on some platforms
+        passwordField = new JPasswordField(32);
+        passwordField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         passwordField.setBackground(Color.WHITE);
-        passwordField.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        passwordField.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        // Provide a reasonable preferred / minimum size so the field has enough horizontal and vertical space
+        java.awt.Dimension pref = new java.awt.Dimension(420, 44);
+        passwordField.setPreferredSize(pref);
+        passwordField.setMinimumSize(new java.awt.Dimension(200, 44));
+        passwordField.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 60));
 
         toggleButton = new StandardButton("", new Color(0xE0E0E0), new Color(0xB0B0B0));
         toggleButton.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         toggleButton.setToolTipText(UIStrings.TOOLTIP_SHOW_PASSWORD);
+        // Ensure toggle button height matches the password field so it doesn't force clipping
+        toggleButton.setPreferredSize(new java.awt.Dimension(44, 44));
         toggleButton.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mousePressed(java.awt.event.MouseEvent e) {

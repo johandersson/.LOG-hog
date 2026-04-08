@@ -318,6 +318,7 @@ public class BackupManager {
             }
 
             Files.copy(logPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
+            try { setOwnerOnlyPermissions(backupPath); } catch (Exception ignored) {}
 
             // After copy, check for tampering
             try {
@@ -333,6 +334,7 @@ public class BackupManager {
             byte[] data = Files.readAllBytes(backupPath);
             byte[] hmac = HmacUtils.computeHmacSha256(key, data);
             Files.write(backupPath, hmac, StandardOpenOption.APPEND);
+            try { setOwnerOnlyPermissions(backupPath); } catch (Exception ignored) {}
             SecurityEventLogger.log("BackupCreated", "Backup file created and HMAC appended: " + backupPath);
 
             if (progressDialog != null) {

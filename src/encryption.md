@@ -349,7 +349,7 @@ Current implementation uses PBKDF2 with per-user random salt and AES/GCM for set
 ### Cryptographic Standards
 - **NIST SP 800-38D**: GCM mode specification
 - **NIST SP 800-132**: PBKDF2 recommendations
-- **FIPS 140-2**: Cryptographic module validation
+- Uses FIPS-approved algorithms (AES-GCM, HMAC-SHA256, PBKDF2WithHmacSHA256). Note: formal FIPS certification requires a validated crypto provider and environment; this project uses standard, widely-accepted algorithms but does not imply module certification.
 
 ### Security Frameworks
 - **OWASP**: Secure coding practices followed

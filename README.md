@@ -5,6 +5,10 @@
 ## Security
 **Security Rating: 9.5/10** — Strong defaults (AES-256-GCM, PBKDF2-600,000), progressive delays, enforced password strength, atomic encrypted writes, and minimal in-memory exposure. All major vulnerabilities addressed; see [src/encryption.md](src/encryption.md) for details.
 
+**File Permissions & Temp Files:**
+- **Owner-only permissions:** .LOG-hog attempts to set owner-only file permissions (`rw-------`) on newly created or modified plaintext and backup files where the platform supports POSIX file permissions. On non-POSIX platforms (Windows), the code falls back to best-effort Java owner-only file flags. See `utils/SecureTempFiles` and `encryption.CryptoUtils.setOwnerOnlyPermissions()` for implementation details.
+- **Crash cleanup:** Temporary files created for streaming encryption/decryption are marked for best-effort deletion on JVM shutdown and tracked via a shutdown hook to reduce leftover plaintext after crashes.
+
 **🔒 Oracle Secure Coding Guidelines Conformance** - .LOG-hog has been hardened to conform to [Oracle's Secure Coding Guidelines for Java SE](https://www.oracle.com/java/technologies/javase/seccodeguide.html), addressing all CRITICAL, HIGH, and MEDIUM priority security requirements:
 - ✅ **Information Disclosure Prevention**: Generic error messages without internal details
 - ✅ **Immutable Static Fields**: Prevented runtime state corruption
