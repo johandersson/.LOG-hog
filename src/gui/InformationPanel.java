@@ -37,7 +37,6 @@ import javax.swing.border.EmptyBorder;
 import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 import markdown.MarkdownStyle;
-import utils.Log;
 
 public class InformationPanel extends JPanel {
     private String fileName;
@@ -104,19 +103,11 @@ public class InformationPanel extends JPanel {
             @Override
             protected void done() {
                 try {
-                        String informationTextToDisplay = get();
-                        if (informationTextToDisplay == null) informationTextToDisplay = "";
-                        // LICENSE is plain text and can be large; render it as raw text in a monospaced font
-                        if (fileName != null && fileName.equalsIgnoreCase("LICENSE.md")) {
-                            textPane.setFont(new java.awt.Font(MarkdownStyle.FONT_FAMILY_MONOSPACED, java.awt.Font.PLAIN, MarkdownStyle.FONT_SIZE_DEFAULT));
-                            textPane.setText(informationTextToDisplay);
-                            textPane.setCaretPosition(0);
-                        } else {
-                            java.util.List<String> lines = informationTextToDisplay.lines().toList();
-                            MarkdownRenderer.renderMarkdownDirect(textPane, lines);
-                            LinkHandler.addLinkListeners(textPane);
-                            textPane.setCaretPosition(0);
-                        }
+                    String informationTextToDisplay = get();
+                    java.util.List<String> lines = informationTextToDisplay == null ? java.util.List.of() : informationTextToDisplay.lines().toList();
+                    MarkdownRenderer.renderMarkdownDirect(textPane, lines);
+                    LinkHandler.addLinkListeners(textPane);
+                    textPane.setCaretPosition(0);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                 } catch (java.util.concurrent.ExecutionException ee) {

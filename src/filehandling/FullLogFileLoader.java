@@ -189,11 +189,72 @@ public class FullLogFileLoader {
             uiSubset.addAll(toRender.subList(start, toRender.size()));
             // Show informational note after the rendered entries so it appears at the bottom
             uiSubset.add(infoEntry);
-            MarkdownRenderer.renderMarkdownFromEntries(textPane, uiSubset, scrollToBottom);
+            // Try to assemble document from per-entry cache when available to avoid
+            // repeated entry-level rendering. Falls back to full renderer when cache
+            // is unavailable.
+            if (!assembleDocumentFromPerEntryCache(data, uiSubset, scrollToBottom)) {
+                MarkdownRenderer.renderMarkdownFromEntries(textPane, uiSubset, scrollToBottom);
+            }
         } else {
-            MarkdownRenderer.renderMarkdownFromEntries(textPane, toRender, scrollToBottom);
+            if (!assembleDocumentFromPerEntryCache(data, toRender, scrollToBottom)) {
+                MarkdownRenderer.renderMarkdownFromEntries(textPane, toRender, scrollToBottom);
+            }
         }
         LinkHandler.addLinkListeners(textPane);
+    }
+
+    /**
+     * Attempt to build the displayed document by assembling per-entry cached
+     * StyledDocuments stored in ParsedLogData.perEntryDocCache. Returns true
+     * when successful; false if any entry is missing from the cache and the
+     * caller should fall back to MarkdownRenderer.
+     */
+    private boolean assembleDocumentFromPerEntryCache(ParsedLogData data, List<List<String>> entriesToRender, boolean scrollToBottom) {
+        if (data == null || entriesToRender == null) return false;
+        // Quick-path: require a non-empty per-entry cache
+        synchronized (data.perEntryDocCache) {
+            if (data.perEntryDocCache.isEmpty()) return false;
+            try {
+                javax.swing.text.DefaultStyledDocument target = new javax.swing.text.DefaultStyledDocument();
+                boolean first = true;
+                for (List<String> entry : entriesToRender) {
+                    if (!first) {
+                        String separator = filehandling.LogFileFormat.INTERNAL_LINE_SEPARATOR.repeat(filehandling.LogFileFormat.DISPLAY_ENTRY_SEPARATOR_BLANKS);
+                        javax.swing.text.SimpleAttributeSet sepAttrs = new javax.swing.text.SimpleAttributeSet();
+                        target.insertString(target.getLength(), separator, sepAttrs);
+                    }
+                    first = false;
+
+                    String key = entry.isEmpty() ? "" : entry.get(0).trim();
+                    java.lang.ref.SoftReference<javax.swing.text.StyledDocument> ref = data.perEntryDocCache.get(key);
+                    if (ref == null) return false;
+                    javax.swing.text.StyledDocument src = ref.get();
+                    if (src == null) return false;
+
+                    // Copy content from src into target preserving attributes
+                    int len = src.getLength();
+                    int pos = 0;
+                    while (pos < len) {
+                        javax.swing.text.Element elem = src.getCharacterElement(pos);
+                        int start = elem.getStartOffset();
+                        int end = elem.getEndOffset();
+                        if (end > len) end = len;
+                        String text = src.getText(start, end - start);
+                        javax.swing.text.AttributeSet attrs = elem.getAttributes();
+                        javax.swing.text.SimpleAttributeSet copy = new javax.swing.text.SimpleAttributeSet(attrs);
+                        target.insertString(target.getLength(), text, copy);
+                        pos = end;
+                    }
+                }
+
+                textPane.setDocument(target);
+                textPane.setCaretPosition(scrollToBottom ? target.getLength() : 0);
+                return true;
+            } catch (Exception e) {
+                // On any failure, bail out and let caller fall back to MarkdownRenderer
+                return false;
+            }
+        }
     }
 
     /**
@@ -202,6 +263,26 @@ public class FullLogFileLoader {
     private ParsedLogData loadAndProcessLogFileInternal(Path logPath, boolean scrollToBottom) throws Exception {
         // Reference parameters for diagnostics and to avoid unused-parameter warnings
         utils.Log.debug(() -> "loadAndProcessLogFileInternal: " + (logPath != null ? logPath.toString() : "(null)") + " scroll=" + scrollToBottom);
+        // Fast path: if we have cached parsed data and the file hasn't changed
+        // since last parse, and there are no pending writes, reuse the cache
+        // to avoid expensive re-parsing and markdown rendering.
+        try {
+            long lm = 0L;
+            if (logPath != null && Files.exists(logPath)) {
+                try {
+                    lm = Files.getLastModifiedTime(logPath).toMillis();
+                } catch (Exception ignored) {
+                    lm = 0L;
+                }
+            }
+            synchronized (cacheLock) {
+                if (this.cachedParsedData != null && this.cachedLastModified == lm && !logFileHandler.hasPendingWrites()) {
+                    return this.cachedParsedData;
+                }
+            }
+        } catch (Exception ignored) {
+            // If anything goes wrong determining the cache validity, continue with full parse
+        }
         // Use streaming parsing when possible to avoid allocating large intermediate lists
         List<List<String>> entriesToRender;
         if (logFileHandler.isEncrypted()) {
@@ -223,7 +304,38 @@ public class FullLogFileLoader {
             }
             // Add display suffixes for duplicate timestamps
             entriesToRender = addDisplaySuffixes(entriesToRender);
-            return new ParsedLogData(allEntries, entriesToRender);
+            // Cache parsed data for later lookups (e.g., getEntryContent)
+            long lm = 0L;
+            try {
+                Path p = logPath;
+                if (p != null && Files.exists(p)) lm = Files.getLastModifiedTime(p).toMillis();
+            } catch (Exception ignored) {}
+            synchronized (cacheLock) {
+                ParsedLogData pd = new ParsedLogData(allEntries, entriesToRender);
+                // Build per-entry rendered documents for UI-sized sets to speed up
+                // subsequent re-renders. Limit to avoid excess memory use.
+                try {
+                    if (entriesToRender != null && entriesToRender.size() <= ResourceLimits.MAX_ENTRIES_TO_RENDER_UI) {
+                        synchronized (pd.perEntryDocCache) {
+                            for (List<String> entry : entriesToRender) {
+                                if (entry == null || entry.isEmpty()) continue;
+                                String key = entry.get(0).trim();
+                                // Avoid rebuilding if already present
+                                if (pd.perEntryDocCache.containsKey(key)) continue;
+                                try {
+                                    javax.swing.text.StyledDocument doc = MarkdownRenderer.buildDocumentFromEntries(java.util.List.of(entry), null);
+                                    pd.perEntryDocCache.put(key, new java.lang.ref.SoftReference<>(doc));
+                                } catch (Exception ignored) {
+                                    // If building an entry doc fails, skip caching it
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+                this.cachedParsedData = pd;
+                this.cachedLastModified = lm;
+            }
+            return this.cachedParsedData;
         } else {
             try (var stream = logFileHandler.getLinesStreamed()) {
                 java.util.stream.Stream<String> cleaned = stream.map(LogFileHandler::removeSecureMarker);
@@ -251,7 +363,33 @@ public class FullLogFileLoader {
                 }
                 // Add display suffixes for duplicate timestamps
                 entriesToRender = addDisplaySuffixes(entriesToRender);
-                return new ParsedLogData((int)Math.min(total, Integer.MAX_VALUE), entriesToRender);
+                // Cache parsed data for later lookups
+                long lm = 0L;
+                try {
+                    Path p = logPath;
+                    if (p != null && Files.exists(p)) lm = Files.getLastModifiedTime(p).toMillis();
+                } catch (Exception ignored) {}
+                ParsedLogData pd = new ParsedLogData((int)Math.min(total, Integer.MAX_VALUE), entriesToRender);
+                try {
+                    if (entriesToRender != null && entriesToRender.size() <= ResourceLimits.MAX_ENTRIES_TO_RENDER_UI) {
+                        synchronized (pd.perEntryDocCache) {
+                            for (List<String> entry : entriesToRender) {
+                                if (entry == null || entry.isEmpty()) continue;
+                                String key = entry.get(0).trim();
+                                if (pd.perEntryDocCache.containsKey(key)) continue;
+                                try {
+                                    javax.swing.text.StyledDocument doc = MarkdownRenderer.buildDocumentFromEntries(java.util.List.of(entry), null);
+                                    pd.perEntryDocCache.put(key, new java.lang.ref.SoftReference<>(doc));
+                                } catch (Exception ignored) {}
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+                synchronized (cacheLock) {
+                    this.cachedParsedData = pd;
+                    this.cachedLastModified = lm;
+                }
+                return pd;
             }
         }
     }

@@ -1,6 +1,10 @@
 package filehandling;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.lang.ref.SoftReference;
+import javax.swing.text.StyledDocument;
 
 /**
  * Data container for parsed log file information.
@@ -32,6 +36,13 @@ public class ParsedLogData {
         this.entriesToRender = entriesToRender;
         this.totalEntryCount = totalEntryCount;
     }
+
+    /**
+     * Optional per-entry rendered document cache keyed by the display timestamp
+     * (e.g. "12:34 2024-05-20 (1)"). Stored as SoftReference to avoid
+     * holding large documents in memory permanently.
+     */
+    public final Map<String, SoftReference<StyledDocument>> perEntryDocCache = new HashMap<>();
 
     /**
      * Gets the total number of entries in the log file.

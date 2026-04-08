@@ -115,29 +115,75 @@ public class ActionHandler {
             return;
         }
         String selectedItem = logList.getSelectedValue();
-        if (selectedItem == null) return;
+        // If nothing is selected (edge cases when jumping from Full Log), try to
+        // identify the entry by matching current editor text to list contents.
+        if (selectedItem == null) {
+            String currentText = logListPanel.getEntryArea().getText();
+            if (currentText == null || currentText.isBlank()) {
+                DialogHelper.showEntryNotFound(editor);
+                return;
+            }
+            // Try to find an entry with identical content (trimmed comparison)
+            for (int i = 0; i < listModel.getSize(); i++) {
+                String candidate = listModel.getElementAt(i);
+                try {
+                    String rawTs = logFileHandler.getRawTimestamp(candidate);
+                    String content = logFileHandler.loadEntry(rawTs);
+                    if (content != null && content.trim().equals(currentText.trim())) {
+                        selectedItem = candidate;
+                        logList.setSelectedIndex(i);
+                        logList.ensureIndexIsVisible(i);
+                        break;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+            if (selectedItem == null) {
+                // Try to use the timestamp remembered when opening from Full Log
+                String remembered = editor.getCurrentEditedDisplayTimestamp();
+                if (remembered != null && !remembered.isBlank()) {
+                    selectedItem = remembered;
+                } else {
+                    DialogHelper.showEntryNotFound(editor);
+                    return;
+                }
+            }
+        }
 
         // selectedItem contains display timestamp (may include suffix like " (1)")
         // updateEntry handles parsing to find correct occurrence in file
         logFileHandler.updateEntry(selectedItem, logListPanel.getEntryArea().getText());
 
+        // Make a final copy for use inside the async lambda (must be effectively final)
+        final String selectedCopy = selectedItem;
+
         // Flush writes asynchronously to avoid blocking UI on large files
         logFileHandler.flushPendingWritesAsync(() -> {
-            // Preserve the selection after reloading by finding the updated item
+            // Do NOT reload the entire entry list (this would reset filters).
+            // Instead, reselect the updated item in the existing model when possible.
             try {
-                editor.loadLogEntries();
-                // Find and reselect the updated item
+                boolean reselected = false;
                 for (int i = 0; i < listModel.getSize(); i++) {
-                    if (selectedItem.equals(listModel.getElementAt(i))) {
-                        logList.setSelectedIndex(i);
-                        logList.ensureIndexIsVisible(i);
+                    if (selectedCopy.equals(listModel.getElementAt(i))) {
+                        final int selIndex = i;
+                        SwingUtilities.invokeLater(() -> {
+                            logList.setSelectedIndex(selIndex);
+                            logList.ensureIndexIsVisible(selIndex);
+                        });
+                        reselected = true;
                         break;
                     }
                 }
+                if (!reselected) {
+                    // If the item is no longer present (rare), fall back to reloading safely
+                    try {
+                        editor.loadLogEntries();
+                    } catch (Exception ignore) {}
+                }
             } catch (Exception e) {
-                // Security: Don't expose internal error details
-                logFileHandler.showErrorDialog("<html><b>🔄 Reload Failed</b><br><br>Unable to reload log entries after update.<br><br><i>Tip: The update may have succeeded, but the list couldn't refresh.</i></html>");
+                // If anything goes wrong, avoid resetting filters; just show a toast
             }
+            // Refresh Full Log view to reflect updated content
             fullLogPanel.loadFullLog();
             SystemTrayMenu.updateRecentLogsMenu();
             Toast.showToast(editor, "Entry updated successfully!");

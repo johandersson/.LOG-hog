@@ -121,24 +121,25 @@ public class MarkdownRenderer {
         DefaultStyledDocument doc = new DefaultStyledDocument();
         Map<String, Style> styles = createStyles(doc);
         try {
-            // For direct renderings (help/about/license), render the entire content as a single
-            // entry using the robust entry renderer. This avoids subtle truncation bugs in
-            // the compact renderer while preserving markdown features.
+            // Filter out extra blank lines to reduce line breaks in help text
+            // Be more aggressive - limit to maximum 1 consecutive blank line
             List<String> filteredLines = new ArrayList<>();
             int consecutiveBlanks = 0;
             for (String line : lines) {
                 boolean isBlank = line.isBlank();
                 if (isBlank) {
                     consecutiveBlanks++;
-                    // Allow only 1 consecutive blank line to keep help text compact
-                    if (consecutiveBlanks <= 1) filteredLines.add(line);
+                    // Allow only 1 consecutive blank line
+                    if (consecutiveBlanks <= 1) {
+                        filteredLines.add(line);
+                    }
                 } else {
                     consecutiveBlanks = 0;
                     filteredLines.add(line);
                 }
             }
-            // Render using the entry renderer which handles headings, lists and code blocks
-            MarkdownEntryRenderer.renderEntry(filteredLines, new MarkdownRenderingContext(doc, styles));
+            // Render with compact spacing for help/about text
+            renderCompactEntry(filteredLines, new MarkdownRenderingContext(doc, styles));
         } catch (BadLocationException e) {
             throw new RuntimeException("Error rendering markdown", e);
         }

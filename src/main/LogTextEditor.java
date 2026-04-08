@@ -123,6 +123,18 @@ public class LogTextEditor extends JFrame {
     private boolean autoLockEnabled;
     private int autoLockTimeoutSeconds = 900; // Default 15 minutes
 
+    // Remember the display timestamp currently shown in the entry editor when
+    // the selection in the Log List is not present (e.g., opened from Full Log)
+    private String currentEditedDisplayTimestamp = null;
+
+    public void setCurrentEditedDisplayTimestamp(String ts) {
+        this.currentEditedDisplayTimestamp = ts;
+    }
+
+    public String getCurrentEditedDisplayTimestamp() {
+        return this.currentEditedDisplayTimestamp;
+    }
+
     public boolean isLocked() {
         synchronized (lockObject) {
             return isLocked;
@@ -264,8 +276,11 @@ public class LogTextEditor extends JFrame {
         if (timestamp != null && !timestamp.isBlank()) {
             String content = logFileHandler.loadEntry(timestamp);
             logListPanel.getEntryArea().setText(content);
+            // Remember the timestamp shown in the editor
+            setCurrentEditedDisplayTimestamp(timestamp);
         } else {
             logListPanel.getEntryArea().setText("");
+            setCurrentEditedDisplayTimestamp(null);
         }
     }
 

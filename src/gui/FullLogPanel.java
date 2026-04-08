@@ -521,6 +521,20 @@ public class FullLogPanel extends LogPanel {
             logList.setSelectedIndex(matchIndex);
             logList.ensureIndexIsVisible(matchIndex);
             SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+            // Verify selection shortly after to guard against other async model updates
+            javax.swing.Timer verifyTimer1 = new javax.swing.Timer(80, ev -> {
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        if (logList.getSelectedIndex() != matchIndex && matchIndex >= 0 && matchIndex < listModel.getSize()) {
+                            logList.clearSelection();
+                            logList.setSelectedIndex(matchIndex);
+                            logList.ensureIndexIsVisible(matchIndex);
+                        }
+                    } catch (Exception ignored) {}
+                });
+            });
+            verifyTimer1.setRepeats(false);
+            verifyTimer1.start();
             return;
         }
 
@@ -541,15 +555,108 @@ public class FullLogPanel extends LogPanel {
                 progress.close();
                 
                 // Now search for and select the entry with content matching
-                int idx = findMatchingEntry(listModel, rawTimestamp, finalContent);
-                if (idx >= 0) {
-                    logList.setSelectedIndex(idx);
-                    logList.ensureIndexIsVisible(idx);
-                    SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
-                } else {
-                    // Entry not found after filter adjustment
-                    DialogHelper.showEntryNotFound(FullLogPanel.this);
-                }
+                    int idx = findMatchingEntry(listModel, rawTimestamp, finalContent);
+                    if (idx >= 0) {
+                        final int sel = idx;
+                        // Ensure selection happens on EDT after model update
+                        SwingUtilities.invokeLater(() -> {
+                            try {
+                                logList.clearSelection();
+                                logList.setSelectedIndex(sel);
+                                logList.ensureIndexIsVisible(sel);
+                                // Populate entry editor area with the content we got from Full Log
+                                try {
+                                    String displayTs = listModel.getElementAt(sel);
+                                    String content = fileLoader.getEntryContent(displayTs);
+                                    if (content == null || content.isBlank()) content = finalContent;
+                                    logListPanel.getEntryArea().setText(content == null ? "" : content);
+                                    editor.setCurrentEditedDisplayTimestamp(displayTs);
+                                } catch (Exception ignored) {
+                                    logListPanel.getEntryArea().setText(finalContent == null ? "" : finalContent);
+                                }
+                                logListPanel.getEntryArea().requestFocusInWindow();
+                            } catch (Exception e) {
+                                // If selection fails for any reason, show not-found dialog as fallback
+                                DialogHelper.showEntryNotFound(FullLogPanel.this);
+                            }
+                        });
+                        // Re-assert selection after a short delay in case model is modified
+                        javax.swing.Timer verifyTimer2 = new javax.swing.Timer(100, ev -> {
+                            SwingUtilities.invokeLater(() -> {
+                                try {
+                                    if (logList.getSelectedIndex() != sel && sel >= 0 && sel < listModel.getSize()) {
+                                        logList.clearSelection();
+                                        logList.setSelectedIndex(sel);
+                                        logList.ensureIndexIsVisible(sel);
+                                    }
+                                } catch (Exception ignored) {}
+                            });
+                        });
+                        verifyTimer2.setRepeats(false);
+                        verifyTimer2.start();
+                    } else {
+                        // Attempt more robust matching strategies before giving up
+                        int fallbackIdx = -1;
+                        // 1) Try base timestamp match (ignore any " (n)" suffix)
+                        for (int i = 0; i < listModel.getSize(); i++) {
+                            String el = listModel.getElementAt(i);
+                            if (el == null) continue;
+                            String base = el.replaceAll(" \\([0-9]+\\)$", "").trim();
+                            if (base.equals(rawTimestamp)) { fallbackIdx = i; break; }
+                        }
+                        // 2) Try substring or contains match
+                        if (fallbackIdx < 0) {
+                            for (int i = 0; i < listModel.getSize(); i++) {
+                                String el = listModel.getElementAt(i);
+                                if (el != null && el.contains(rawTimestamp)) { fallbackIdx = i; break; }
+                            }
+                        }
+                        // 3) As last resort, try content match (slower)
+                        if (fallbackIdx < 0 && finalContent != null) {
+                            String normTarget = finalContent.trim().replaceAll("\\s+", " ");
+                            for (int i = 0; i < listModel.getSize(); i++) {
+                                String el = listModel.getElementAt(i);
+                                try {
+                                    String entryContent = logFileHandler.loadEntry(logFileHandler.getRawTimestamp(el));
+                                    if (entryContent != null) {
+                                        String norm = entryContent.trim().replaceAll("\\s+", " ");
+                                        if (norm.equals(normTarget)) { fallbackIdx = i; break; }
+                                    }
+                                } catch (Exception ignored) {}
+                            }
+                        }
+
+                        if (fallbackIdx >= 0) {
+                            final int sel = fallbackIdx;
+                            SwingUtilities.invokeLater(() -> {
+                                logList.clearSelection();
+                                logList.setSelectedIndex(sel);
+                                logList.ensureIndexIsVisible(sel);
+                                String displayTs = listModel.getElementAt(sel);
+                                String content = fileLoader.getEntryContent(displayTs);
+                                if (content == null || content.isBlank()) content = finalContent;
+                                logListPanel.getEntryArea().setText(content == null ? "" : content);
+                                editor.setCurrentEditedDisplayTimestamp(displayTs);
+                                logListPanel.getEntryArea().requestFocusInWindow();
+                            });
+                            // Re-assert selection after a short delay in case model is modified
+                            javax.swing.Timer verifyTimer3 = new javax.swing.Timer(100, ev -> {
+                                SwingUtilities.invokeLater(() -> {
+                                    try {
+                                        if (logList.getSelectedIndex() != sel && sel >= 0 && sel < listModel.getSize()) {
+                                            logList.clearSelection();
+                                            logList.setSelectedIndex(sel);
+                                            logList.ensureIndexIsVisible(sel);
+                                        }
+                                    } catch (Exception ignored) {}
+                                });
+                            });
+                            verifyTimer3.setRepeats(false);
+                            verifyTimer3.start();
+                        } else {
+                            DialogHelper.showEntryNotFound(FullLogPanel.this);
+                        }
+                    }
             });
         } else {
             // Fallback: couldn't parse timestamp, try a full reload

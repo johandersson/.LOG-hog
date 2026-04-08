@@ -252,59 +252,65 @@ public class UIInitializer {
                     });
                 }
             } else if (idx == 1) {
-                // Log Entries tab - load only filtered entries (default to current year/month)
-                LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
-                final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
-                showTimer.setRepeats(false);
-                showTimer.start();
-                // Determine default filter: current year and month
-                int currentYear = java.time.Year.now().getValue();
-                int currentMonth = java.time.LocalDate.now().getMonthValue();
+                // Log Entries tab - do not override user's active filter or selection
+                // when switching tabs. Only perform an initial filtered load if the
+                // model is empty (first time view) to avoid resetting filters.
                 DefaultListModel<String> model = editor.getLogListPanel().getListModel();
+                if (model.getSize() > 0) {
+                    // Model already populated — keep existing filter and selection intact
+                    // just ensure the view is updated
+                    SwingUtilities.invokeLater(() -> editor.updateLogListView());
+                } else {
+                    LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
+                    final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+                    showTimer.setRepeats(false);
+                    showTimer.start();
+                    // Determine default filter: current year and month
+                    int currentYear = java.time.Year.now().getValue();
+                    int currentMonth = java.time.LocalDate.now().getMonthValue();
 
-                // Load filtered entries in background then update view on EDT.
-                // If there are no entries for the current month, fall back to
-                // the month/year of the latest entry in the file.
-                Thread loaderThread = new Thread(() -> {
-                    int filterYear = currentYear;
-                    int filterMonth = currentMonth;
-                    try {
-                        editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
+                    // Load filtered entries in background then update view on EDT.
+                    Thread loaderThread = new Thread(() -> {
+                        int filterYear = currentYear;
+                        int filterMonth = currentMonth;
+                        try {
+                            editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
 
-                        if (model.getSize() == 0) {
-                            // Try to find the latest entry and use its month/year
-                            java.util.List<String> recent = editor.getLogFileHandler().getRecentLogEntries(1);
-                            if (!recent.isEmpty()) {
-                                try {
-                                    java.time.LocalDateTime dt = utils.DateHandler.parseTimestamp(recent.get(0));
-                                    filterYear = dt.getYear();
-                                    filterMonth = dt.getMonthValue();
-                                    // reload with fallback filter
-                                    editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
-                                } catch (Exception ignore) {
-                                    // keep original filter if parse fails
+                            if (model.getSize() == 0) {
+                                // Try to find the latest entry and use its month/year
+                                java.util.List<String> recent = editor.getLogFileHandler().getRecentLogEntries(1);
+                                if (!recent.isEmpty()) {
+                                    try {
+                                        java.time.LocalDateTime dt = utils.DateHandler.parseTimestamp(recent.get(0));
+                                        filterYear = dt.getYear();
+                                        filterMonth = dt.getMonthValue();
+                                        // reload with fallback filter
+                                        editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
+                                    } catch (Exception ignore) {
+                                        // keep original filter if parse fails
+                                    }
                                 }
                             }
-                        }
 
-                        int fYear = filterYear;
-                        int fMonth = filterMonth;
-                        SwingUtilities.invokeLater(() -> {
-                            editor.updateLogListView();
-                            // Update the UI controls to reflect the active filter
-                            editor.getLogListPanel().setFilterSelection(fYear, fMonth);
-                        });
-                    } catch (Exception ex) {
-                        SwingUtilities.invokeLater(() -> editor.getLogFileHandler().showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
-                    } finally {
-                        SwingUtilities.invokeLater(() -> {
-                            if (showTimer.isRunning()) showTimer.stop();
-                            progress.close();
-                        });
-                    }
-                }, "LogEntriesFilteredLoader");
-                loaderThread.setDaemon(true);
-                loaderThread.start();
+                            int fYear = filterYear;
+                            int fMonth = filterMonth;
+                            SwingUtilities.invokeLater(() -> {
+                                editor.updateLogListView();
+                                // Update the UI controls to reflect the active filter
+                                editor.getLogListPanel().setFilterSelection(fYear, fMonth);
+                            });
+                        } catch (Exception ex) {
+                            SwingUtilities.invokeLater(() -> editor.getLogFileHandler().showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
+                        } finally {
+                            SwingUtilities.invokeLater(() -> {
+                                if (showTimer.isRunning()) showTimer.stop();
+                                progress.close();
+                            });
+                        }
+                    }, "LogEntriesFilteredLoader");
+                    loaderThread.setDaemon(true);
+                    loaderThread.start();
+                }
             } else if (idx == 3) {
                 editor.getSettingsPanel().loadCurrentSettings();
             } else if (idx == 5) {
