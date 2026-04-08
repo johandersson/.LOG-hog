@@ -36,6 +36,8 @@ import javax.swing.border.EmptyBorder;
 
 import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
+import markdown.MarkdownStyle;
+import utils.Log;
 
 public class InformationPanel extends JPanel {
     private String fileName;
@@ -56,6 +58,8 @@ public class InformationPanel extends JPanel {
         textPane = new JTextPane();
         textPane.setEditable(false);
         textPane.setBackground(Color.WHITE);
+        // Ensure help/about text uses the app's standard font and size to match Full Log
+        textPane.setFont(new java.awt.Font(MarkdownStyle.FONT_FAMILY_DEFAULT, java.awt.Font.PLAIN, MarkdownStyle.FONT_SIZE_DEFAULT));
 
         if (!lazyLoad) {
             loadText();
@@ -66,6 +70,7 @@ public class InformationPanel extends JPanel {
         sp.getViewport().setOpaque(false);
         sp.setBorder(BorderFactory.createEmptyBorder());
         sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        // vertical scrollbar policy left to default (AS_NEEDED)
         add(sp, BorderLayout.CENTER);
 
         // 'tabPanel' parameter is unused, kept for compatibility (PMD fix)
@@ -103,6 +108,13 @@ public class InformationPanel extends JPanel {
                     java.util.List<String> lines = informationTextToDisplay == null ? java.util.List.of() : informationTextToDisplay.lines().toList();
                     MarkdownRenderer.renderMarkdownDirect(textPane, lines);
                     LinkHandler.addLinkListeners(textPane);
+                    // If rendered document appears much smaller than raw text, fallback to raw text
+                    int docLen = textPane.getDocument().getLength();
+                    int rawLen = informationTextToDisplay == null ? 0 : informationTextToDisplay.length();
+                    if (rawLen > 0 && docLen > 0 && docLen < rawLen / 4) {
+                        Log.warn(() -> "Rendered document length (" + docLen + ") is unexpectedly small compared to raw length (" + rawLen + "). Falling back to plain text rendering.");
+                        textPane.setText(informationTextToDisplay);
+                    }
                     textPane.setCaretPosition(0);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();

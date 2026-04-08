@@ -5,7 +5,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 
 **Lightweight & Fast:** .LOG-hog is only ~230 KB (smaller than a photo!) with zero external dependencies. It starts instantly and runs efficiently because it's pure Java code with no extra libraries—making it 100x smaller than typical applications while being ultra-secure and portable.
 
-**✨ .LOG-hog works on Windows, macOS, and Linux!** The program is fully platform-independent, providing automatic timestamp management, encryption, search, and formatting features across all operating systems. You can use any text editor on any platform to view and edit your log files.
+**.LOG-hog works on Windows, macOS, and Linux!** The program is fully platform-independent, providing automatic timestamp management, encryption, search, and formatting features across all operating systems. You can use any text editor on any platform to view and edit your log files.
 
 **Already using .LOG files?** .LOG-hog is designed to work seamlessly with standard .LOG format files. Simply point the program to your log file and start using it right away. You'll get all the powerful enhancements—advanced search, optional encryption, markdown rendering, automated backups, and more—while your file stays a simple text file you can open in Notepad or any text editor.
 
@@ -42,7 +42,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - **Educational Warnings**: Before copying encrypted or full log content, users receive detailed warnings about clipboard security risks and best practices.
 - **Configurable Settings**: Clipboard auto-clear timeout and behavior can be customized in the Settings tab under "Clipboard Security".
 
-**⚠️ Important Security Note**: If .LOG-hog is terminated unexpectedly (system crash, power outage, task manager kill), secure clipboard content may remain accessible. Always use the "Clear Clipboard" option from the system tray after unexpected terminations.
+**Important Security Note**: If .LOG-hog is terminated unexpectedly (system crash, power outage, task manager kill), secure clipboard content may remain accessible. Always use the "Clear Clipboard" option from the system tray after unexpected terminations.
 
 Access clipboard security settings through the system tray icon (right-click the tray icon → "Clipboard Security") or the Settings tab in the main application.
 
@@ -86,6 +86,7 @@ Access clipboard security settings through the system tray icon (right-click the
 - **Password Visibility**: When prompted for your password at startup, you can choose to always show the password in plain text by checking the "Always show password in plain text" box. This setting is saved and will apply to future password prompts.
 - **Security Notes**: Your log file is encrypted using AES with a key derived from your password. The password is only kept in memory while the app runs and is never saved to disk. <span style="color:red">If you forget your password, your data cannot be recovered.</span> In terms of security, AES-GCM is a strong, industry-standard encryption method. As long as you use a strong, unique password and keep it secret, your data is very safe from unauthorized access. .LOG-hog clears passwords from memory immediately after use and adds progressive delays (1-30 seconds) after incorrect password attempts to slow down automated attacks.
 - **Password Guidance**: To maximize security, use a long passphrase (20+ characters) that's random and unique. Avoid dictionary words, patterns (like "Qwerty123!"), or personal details. Use a password manager to generate and store strong passwords. Remember, even with encryption, a weak password can be cracked—treat it like a key to your safe. In terms of security, AES-GCM is a strong, industry-standard encryption method. As long as you use a strong, unique password and keep it secret, your data is very safe from unauthorized access.
+ - **Password Guidance**: To maximize security, use a long passphrase (20+ characters) that's random and unique. Avoid dictionary words, patterns (like "Qwerty123!"), or personal details. Use a password manager to generate and store strong passwords. Remember, even with encryption, a weak password can be cracked—treat it like a key to your safe.
 - **Password Generator**: Access a built-in secure password generator from the Settings tab or password creation dialog. Generate random passwords or memorable passphrases using the EFF Diceware word list. The generator includes real-time strength indication and clipboard integration for easy copying.
 - **Usage**: When encryption is enabled, you'll be prompted for your password each time you start the app. If the password is incorrect, you'll see a clear error message and can retry immediately.
 - **Manual Lock/Unlock**: For immediate security, click the "Lock File" button in the Full Log tab to instantly lock your encrypted log. This clears all decrypted data from memory, empties all views, and disables all editing operations. A lock message will appear in all relevant areas. To unlock, click the "Unlock File" button and re-enter your password.

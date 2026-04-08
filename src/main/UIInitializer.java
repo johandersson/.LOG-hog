@@ -235,7 +235,8 @@ public class UIInitializer {
         tabPane.addTab("Full Log", editor.getFullLogPanel());
         tabPane.addTab("Settings", editor.getSettingsPanel());
         tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help", false, true));
-        tabPane.addTab("About", new InformationPanel(tabPane, "LICENSE.md", "About", true, true));
+        // Load About immediately (no lazy splash gating) so license is always available
+        tabPane.addTab("About", new InformationPanel(tabPane, "LICENSE.md", "About", false, false));
         tabPane.addChangeListener(e -> {
             int idx = tabPane.getSelectedIndex();
             if (idx == 2) {
@@ -307,12 +308,8 @@ public class UIInitializer {
             } else if (idx == 3) {
                 editor.getSettingsPanel().loadCurrentSettings();
             } else if (idx == 5) {
-                ((InformationPanel) tabPane.getComponentAt(5)).unloadText();
-                SplashScreen splash = new SplashScreen();
-                splash.setVisible(true);
-                if (splash.wasOkPressed()) {
-                    ((InformationPanel) tabPane.getComponentAt(5)).loadText();
-                }
+                // Ensure About tab content is loaded immediately without showing the splash
+                ((InformationPanel) tabPane.getComponentAt(5)).loadText();
             } else if (idx == 0) {
                 // Focus the entry text area when switching to the Entry tab
                 SwingUtilities.invokeLater(() -> {
