@@ -940,7 +940,10 @@ public class LogListPanel extends JPanel {
         // Selection listeners - ensure right-click selects the item under cursor
         logList.addMouseListener(new java.awt.event.MouseAdapter() {
             private void handlePopupSelect(java.awt.event.MouseEvent e) {
-                if (e.isPopupTrigger()) {
+                // Some platforms/firewalls may not flag popup triggers consistently.
+                // Also accept explicit right-mouse button clicks to ensure selection
+                // happens before the popup menu is shown.
+                if (e.isPopupTrigger() || SwingUtilities.isRightMouseButton(e)) {
                     int idx = logList.locationToIndex(e.getPoint());
                     if (idx >= 0) {
                         java.awt.Rectangle cell = logList.getCellBounds(idx, idx);
