@@ -3,6 +3,8 @@ package filehandling;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Collections;
 import java.lang.ref.SoftReference;
 import javax.swing.text.StyledDocument;
 
@@ -42,7 +44,24 @@ public class ParsedLogData {
      * (e.g. "12:34 2024-05-20 (1)"). Stored as SoftReference to avoid
      * holding large documents in memory permanently.
      */
-    public final Map<String, SoftReference<StyledDocument>> perEntryDocCache = new HashMap<>();
+    private static final int DEFAULT_PER_ENTRY_CACHE_SIZE = 200;
+
+    /**
+     * A bounded LRU cache for per-entry rendered documents. Uses access-order
+     * LinkedHashMap and is wrapped with Collections.synchronizedMap for thread
+     * safety since rendering and GC may access it from different threads.
+     * Entries are stored as SoftReferences so the JVM can reclaim memory under
+     * pressure.
+     */
+    public final Map<String, SoftReference<StyledDocument>> perEntryDocCache =
+            Collections.synchronizedMap(new LinkedHashMap<String, SoftReference<StyledDocument>>(DEFAULT_PER_ENTRY_CACHE_SIZE, 0.75f, true) {
+                private static final long serialVersionUID = 1L;
+
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, SoftReference<StyledDocument>> eldest) {
+                    return size() > DEFAULT_PER_ENTRY_CACHE_SIZE;
+                }
+            });
 
     /**
      * Gets the total number of entries in the log file.
