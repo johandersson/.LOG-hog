@@ -146,7 +146,9 @@ public class MarkdownEntryProcessor {
     }
 
     private void renderCodeLine(String line) throws BadLocationException {
-        context.insertString(line, context.getCodeStyle());
+        // Insert soft-breaks to allow wrapping of very long tokens inside code blocks
+        String safe = MarkdownFormatter.insertBreaksForLongWords(line, 30);
+        context.insertString(safe, context.getCodeStyle());
         context.insertLineSeparator();
     }
 

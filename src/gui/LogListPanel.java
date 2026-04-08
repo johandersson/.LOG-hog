@@ -156,37 +156,7 @@ public class LogListPanel extends JPanel {
         yearCombo = new JComboBox<>(initial);
 
         // Populate actual years off the EDT to avoid blocking the UI on large files or encrypted files
-        new SwingWorker<java.util.List<Integer>, Void>() {
-            @Override
-            protected java.util.List<Integer> doInBackground() throws Exception {
-                try {
-                    return logFileHandler.getAvailableYears(0); // 0 => no cap
-                } catch (Exception e) {
-                    return java.util.List.of();
-                }
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    java.util.List<Integer> yearsList = get();
-                    if (yearsList != null && !yearsList.isEmpty()) {
-                        Integer[] yearsArr = yearsList.toArray(new Integer[0]);
-                        // Update combo model without triggering filter/search events
-                        boolean prevSuppress = suppressFilterEvents;
-                        suppressFilterEvents = true;
-                        try {
-                            yearCombo.setModel(new javax.swing.DefaultComboBoxModel<>(yearsArr));
-                            yearCombo.setSelectedItem(yearsArr[0]);
-                        } finally {
-                            suppressFilterEvents = prevSuppress;
-                        }
-                    }
-                } catch (Exception ignored) {
-                    // keep current year fallback
-                }
-            }
-        }.execute();
+        refreshAvailableYearsAsync();
         // Most recent year is already selected by initial combo model (current year)
         dateFilterPanel.add(yearCombo);
 
@@ -280,6 +250,44 @@ public class LogListPanel extends JPanel {
     
     private void applyFilterAndSearch() {
         applyFilter(yearCombo, monthCombo);
+    }
+
+    /**
+     * Refresh the available years from the LogFileHandler on a background thread
+     * and update the combo model on the EDT. Safe to call repeatedly.
+     */
+    public void refreshAvailableYearsAsync() {
+        new SwingWorker<java.util.List<Integer>, Void>() {
+            @Override
+            protected java.util.List<Integer> doInBackground() throws Exception {
+                try {
+                    return logFileHandler.getAvailableYears(0); // 0 => no cap
+                } catch (Exception e) {
+                    return java.util.List.of();
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    java.util.List<Integer> yearsList = get();
+                    if (yearsList != null && !yearsList.isEmpty()) {
+                        Integer[] yearsArr = yearsList.toArray(new Integer[0]);
+                        // Update combo model without triggering filter/search events
+                        boolean prevSuppress = suppressFilterEvents;
+                        suppressFilterEvents = true;
+                        try {
+                            yearCombo.setModel(new javax.swing.DefaultComboBoxModel<>(yearsArr));
+                            yearCombo.setSelectedItem(yearsArr[0]);
+                        } finally {
+                            suppressFilterEvents = prevSuppress;
+                        }
+                    }
+                } catch (Exception ignored) {
+                    // keep current year fallback
+                }
+            }
+        }.execute();
     }
 
     private void applyFilter(JComboBox<Integer> yearCombo, JComboBox<String> monthCombo) {

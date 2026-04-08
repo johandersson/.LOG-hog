@@ -334,6 +334,8 @@ public class UIInitializer {
                 SwingUtilities.invokeLater(() -> {
                     editor.updateLogListView();
                     editor.getLogListPanel().setFilterSelection(fYear, fMonth);
+                    // Ensure the year combo is populated now that entries are parsed
+                    editor.getLogListPanel().refreshAvailableYearsAsync();
                 });
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() -> editor.getLogFileHandler().showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));

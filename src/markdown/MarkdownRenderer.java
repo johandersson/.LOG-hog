@@ -442,7 +442,9 @@ public class MarkdownRenderer {
     }
 
     private static void renderCodeLine(String line, MarkdownRenderingContext context) throws BadLocationException {
-        context.insertString(line, context.getStyle("code"));
+        // Allow long unbroken tokens in code blocks to break by inserting soft-breaks
+        String safe = MarkdownFormatter.insertBreaksForLongWords(line, 30);
+        context.insertString(safe, context.getStyle("code"));
         context.insertLineSeparator();
     }
 

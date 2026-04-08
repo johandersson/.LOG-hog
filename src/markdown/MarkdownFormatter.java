@@ -175,7 +175,7 @@ public class MarkdownFormatter {
      * Insert zero-width space break opportunities into very long unbroken tokens.
      * This helps Swing's text wrapping when encountering long words without natural break points.
      */
-    private static String insertBreaksForLongWords(String s, int maxChunk) {
+    public static String insertBreaksForLongWords(String s, int maxChunk) {
         if (s == null || s.length() <= maxChunk) return s;
         StringBuilder out = new StringBuilder(s.length() + s.length() / maxChunk + 4);
         int run = 0;
