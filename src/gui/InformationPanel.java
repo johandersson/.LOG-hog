@@ -104,18 +104,19 @@ public class InformationPanel extends JPanel {
             @Override
             protected void done() {
                 try {
-                    String informationTextToDisplay = get();
-                    java.util.List<String> lines = informationTextToDisplay == null ? java.util.List.of() : informationTextToDisplay.lines().toList();
-                    MarkdownRenderer.renderMarkdownDirect(textPane, lines);
-                    LinkHandler.addLinkListeners(textPane);
-                    // If rendered document appears much smaller than raw text, fallback to raw text
-                    int docLen = textPane.getDocument().getLength();
-                    int rawLen = informationTextToDisplay == null ? 0 : informationTextToDisplay.length();
-                    if (rawLen > 0 && docLen > 0 && docLen < rawLen / 4) {
-                        Log.warn(() -> "Rendered document length (" + docLen + ") is unexpectedly small compared to raw length (" + rawLen + "). Falling back to plain text rendering.");
-                        textPane.setText(informationTextToDisplay);
-                    }
-                    textPane.setCaretPosition(0);
+                        String informationTextToDisplay = get();
+                        if (informationTextToDisplay == null) informationTextToDisplay = "";
+                        // LICENSE is plain text and can be large; render it as raw text in a monospaced font
+                        if (fileName != null && fileName.equalsIgnoreCase("LICENSE.md")) {
+                            textPane.setFont(new java.awt.Font(MarkdownStyle.FONT_FAMILY_MONOSPACED, java.awt.Font.PLAIN, MarkdownStyle.FONT_SIZE_DEFAULT));
+                            textPane.setText(informationTextToDisplay);
+                            textPane.setCaretPosition(0);
+                        } else {
+                            java.util.List<String> lines = informationTextToDisplay.lines().toList();
+                            MarkdownRenderer.renderMarkdownDirect(textPane, lines);
+                            LinkHandler.addLinkListeners(textPane);
+                            textPane.setCaretPosition(0);
+                        }
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                 } catch (java.util.concurrent.ExecutionException ee) {
