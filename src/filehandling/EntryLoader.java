@@ -560,7 +560,7 @@ public class EntryLoader {
                 for (Map.Entry<String, String> entry : entryContentCache.entrySet()) {
                     String entryTs = entry.getKey();
                     String baseTsEntry = entryTs.replaceAll(" \\([0-9]+\\)$", "");
-                    if (baseTsEntry.equals(baseTsParam) && !timeStamp.contains("(")) {
+                    if (baseTsEntry.equals(baseTsParam)) {
                         return entry.getValue();
                     }
                 }
@@ -607,7 +607,7 @@ public class EntryLoader {
             for (Map.Entry<String, String> entry : entryContentCache.entrySet()) {
                 String entryTs = entry.getKey();
                 String baseTsEntry = entryTs.replaceAll(" \\([0-9]+\\)$", "");
-                if (baseTsEntry.equals(baseTsParam) && !timeStamp.contains("(")) {
+                if (baseTsEntry.equals(baseTsParam)) {
                     return entry.getValue();
                 }
             }
