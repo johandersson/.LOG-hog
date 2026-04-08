@@ -25,11 +25,15 @@ import java.awt.Frame;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.KeyStroke;
+import javax.swing.AbstractAction;
 import javax.swing.SwingConstants;
+import java.awt.event.ActionEvent;
 
 public class PasswordDialog extends JDialog {
     private JPasswordField passwordField;
@@ -96,6 +100,24 @@ public class PasswordDialog extends JDialog {
         });
 
         updateVisibility(false);
+
+        // Bind ESC press/release to peek at the password (show while held)
+        var rootIm = getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+        var rootAm = getRootPane().getActionMap();
+        rootIm.put(KeyStroke.getKeyStroke("pressed ESCAPE"), "peekPressed");
+        rootIm.put(KeyStroke.getKeyStroke("released ESCAPE"), "peekReleased");
+        rootAm.put("peekPressed", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateVisibility(true);
+            }
+        });
+        rootAm.put("peekReleased", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateVisibility(false);
+            }
+        });
 
         var fieldPanel = new JPanel(new BorderLayout(5, 0));
         fieldPanel.setBackground(new Color(0xF7FAFC));
