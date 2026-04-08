@@ -37,4 +37,3 @@ set "JAR_NAME=loghog.jar"
 jar cvfm "%~dp0build\%JAR_NAME%" manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class main/*.class services/*.class utils/*.class resources/ *.txt resources/*
 popd
 echo Production build completed: %~dp0build\%JAR_NAME%
-pause
