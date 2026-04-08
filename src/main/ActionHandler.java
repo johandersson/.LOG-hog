@@ -64,6 +64,11 @@ public class ActionHandler {
     public ActionListener createCopyLogEntryAction() {
         return e -> {
             String selectedItem = logList.getSelectedValue();
+            // Debug: show which item the menu action is attempting to copy
+            try {
+                String dbg = selectedItem == null ? "(no selection)" : selectedItem;
+                Toast.showToast(editor, "Copy action invoked for: " + dbg);
+            } catch (Exception ignored) {}
             if (selectedItem != null) {
                 // Check if file is encrypted and show enhanced warning
                 if (logFileHandler.isEncrypted()) {
