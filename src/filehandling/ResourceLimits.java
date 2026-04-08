@@ -25,9 +25,9 @@ public final class ResourceLimits {
     // Practical UI render cap to keep the Event Dispatch Thread responsive.
     // Rendering more than this number of entries will be delegated to a limited
     // subset so tab switching and UI interactions stay responsive.
-    // Reduced from 6000 to a safer default (styled rendering is heavy).
-    // This protects low-RAM systems from EDT freezes; make configurable later.
-    public static final int MAX_ENTRIES_TO_RENDER_UI = 2_000;
+    // Increased to allow more entries to be rendered in the UI for large logs.
+    // Be cautious: very large values may impact EDT responsiveness on low-RAM systems.
+    public static final int MAX_ENTRIES_TO_RENDER_UI = 12_000;
 
     // Maximum size (in bytes) of a file that is allowed to be decrypted into
     // a single in-memory String. Files larger than this should be streamed
