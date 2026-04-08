@@ -261,7 +261,25 @@ public class LogListPanel extends JPanel {
             @Override
             protected java.util.List<Integer> doInBackground() throws Exception {
                 try {
-                    return logFileHandler.getAvailableYears(0); // 0 => no cap
+                    java.util.List<Integer> years = logFileHandler.getAvailableYears(0); // 0 => no cap
+                    if (years == null || years.isEmpty()) {
+                        // Fast fallback: scan raw lines for timestamp years to avoid returning only current year
+                        try {
+                            java.util.List<String> lines = logFileHandler.getLines();
+                            java.util.LinkedHashSet<Integer> found = new java.util.LinkedHashSet<>();
+                            java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\d{2}:\\d{2} (\\d{4})-\\d{2}-\\d{2}");
+                            for (String L : lines) {
+                                java.util.regex.Matcher m = p.matcher(L);
+                                if (m.find()) {
+                                    try { found.add(Integer.parseInt(m.group(1))); } catch (Exception ignore) {}
+                                }
+                            }
+                            years = new java.util.ArrayList<>(found);
+                        } catch (Exception ignore) {
+                            // ignore fallback failures, return what we have
+                        }
+                    }
+                    return years;
                 } catch (Exception e) {
                     return java.util.List.of();
                 }
