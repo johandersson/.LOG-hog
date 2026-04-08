@@ -55,7 +55,7 @@ import utils.Toast;
  *   <li>System clipboard implementation is trustworthy</li>
  * </ul>
  */
-public class SecureClipboardManager implements ClipboardHandler {
+public class SecureClipboardManager implements ClipboardHandler, java.awt.datatransfer.ClipboardOwner {
     // marker removed (unused) - kept behavior via digest comparison
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, r -> {
         Thread t = new Thread(r);
@@ -69,6 +69,8 @@ public class SecureClipboardManager implements ClipboardHandler {
     private static int timeoutSeconds = 15; // Default 15 seconds (reduced from 30 for tighter security)
     private static boolean autoClearEnabled = true;
     private static byte[] lastCopiedDigest; // Track hash of content we last copied
+    // Track ownership: true when we set clipboard contents and still own it
+    private static volatile boolean weOwnClipboard = false;
 
     private static final SecureClipboardManager INSTANCE = new SecureClipboardManager();
 
@@ -167,15 +169,17 @@ public class SecureClipboardManager implements ClipboardHandler {
 
         try {
             if (clipboard == null) throw new IllegalStateException("Clipboard not available");
-            clipboard.setContents(selection, selection);
-                synchronized (LOCK) {
-                    try {
-                        java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-                        lastCopiedDigest = md.digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    } catch (Exception e) {
-                        lastCopiedDigest = null;
-                    }
+            // Use ClipboardOwner to track ownership instead of relying solely on digest
+            clipboard.setContents(selection, INSTANCE);
+            synchronized (LOCK) {
+                try {
+                    java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+                    lastCopiedDigest = md.digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                } catch (Exception e) {
+                    lastCopiedDigest = null;
                 }
+                weOwnClipboard = true;
+            }
 
             // Show success message
             Component toastParent = parent;
@@ -217,7 +221,7 @@ public class SecureClipboardManager implements ClipboardHandler {
             
                 synchronized (LOCK) {
                     // Clear if we have tracked content (compare hashes instead of storing full text)
-                    if (lastCopiedDigest != null) {
+                    if (lastCopiedDigest != null && weOwnClipboard) {
                         Transferable contents = clipboard.getContents(null);
                         if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
                             String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
@@ -226,10 +230,11 @@ public class SecureClipboardManager implements ClipboardHandler {
                                     java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
                                     byte[] now = md.digest(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                                     if (java.util.Arrays.equals(now, lastCopiedDigest)) {
-                                        // Clear clipboard by setting empty content
+                                        // Clear clipboard by setting empty content and claim no ownership
                                         StringSelection emptySelection = new StringSelection("");
-                                        clipboard.setContents(emptySelection, emptySelection);
+                                        clipboard.setContents(emptySelection, INSTANCE);
                                         lastCopiedDigest = null;
+                                        weOwnClipboard = false;
 
                                         // Cancel any pending clear task
                                         if (clearTask != null) {
@@ -239,6 +244,7 @@ public class SecureClipboardManager implements ClipboardHandler {
                                     } else {
                                         // Clipboard was changed by user - don't clear
                                         lastCopiedDigest = null;
+                                        weOwnClipboard = false;
                                     }
                                 } catch (Exception e) {
                                     // On digest errors, clear tracked value to avoid repeated failures
@@ -288,7 +294,11 @@ public class SecureClipboardManager implements ClipboardHandler {
                                     java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
                                     byte[] now = md.digest(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                                     if (java.util.Arrays.equals(now, oldDigest)) {
-                                        clipboard.setContents(new StringSelection(""), new StringSelection(""));
+                                        // Only clear if we still own the clipboard
+                                        if (weOwnClipboard) {
+                                            clipboard.setContents(new StringSelection(""), INSTANCE);
+                                            weOwnClipboard = false;
+                                        }
                                     }
                                 }
                             }
@@ -322,15 +332,16 @@ public class SecureClipboardManager implements ClipboardHandler {
                 String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
                 // Check if clipboard still contains what we copied by comparing digest
                 if (data == null) return false;
-                try {
-                    java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-                    byte[] now = md.digest(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    synchronized (LOCK) {
-                        return java.util.Arrays.equals(now, lastCopiedDigest);
+                    try {
+                        java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+                        byte[] now = md.digest(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        synchronized (LOCK) {
+                            // Consider secure content only if we still own the clipboard
+                            return weOwnClipboard && java.util.Arrays.equals(now, lastCopiedDigest);
+                        }
+                    } catch (Exception e) {
+                        return false;
                     }
-                } catch (Exception e) {
-                    return false;
-                }
             }
         } catch (IllegalStateException ise) {
             // Clipboard not available
@@ -360,7 +371,7 @@ public class SecureClipboardManager implements ClipboardHandler {
                 clearTask = scheduler.schedule(() -> {
                     SwingUtilities.invokeLater(() -> {
                         if (hasSecureContent()) {
-                            clearSecureClipboard();
+                                    clearSecureClipboard();
                             // Show notification that clipboard was cleared
                             Toast.showToast(null, "Clipboard automatically cleared for security.");
                         }
@@ -386,6 +397,15 @@ public class SecureClipboardManager implements ClipboardHandler {
     /**
      * Shutdown the scheduler (call on application exit).
      */
+    @Override
+    public void lostOwnership(Clipboard clipboard, Transferable contents) {
+        // Clipboard ownership lost: clear internal tracking to avoid clearing other's data
+        synchronized (LOCK) {
+            weOwnClipboard = false;
+            lastCopiedDigest = null;
+        }
+    }
+
     public static void shutdown() {
         scheduler.shutdown();
         try {

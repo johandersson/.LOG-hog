@@ -33,10 +33,10 @@ public final class PathValidator {
     public static boolean isSafeFilePath(Path path) {
         if (path == null) return false;
         try {
-            Path abs = path.toAbsolutePath().normalize();
-            String s = abs.toString();
-            if (s.contains("..")) return false;
-            if (!Files.exists(abs) || !Files.isReadable(abs)) return false;
+            // Resolve to real path (no-follow) to canonicalize symlinks and .. segments
+            Path real = path.toRealPath(java.nio.file.LinkOption.NOFOLLOW_LINKS);
+            // Basic checks: must exist and be readable
+            if (!Files.exists(real) || !Files.isReadable(real)) return false;
             return true;
         } catch (Exception e) {
             return false;
