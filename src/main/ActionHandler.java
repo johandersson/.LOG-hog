@@ -78,11 +78,27 @@ public class ActionHandler {
                 }
 
                 //Copy both timestamp and entry text
-                var rawTs = logFileHandler.getRawTimestamp(selectedItem);
-                String logContent = logFileHandler.loadEntry(rawTs);
-                clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(
-                    selectedItem + "\n\n" + logContent, editor,
-                    "Log entry copied to clipboard securely.");
+                try {
+                    var rawTs = logFileHandler.getRawTimestamp(selectedItem);
+                    String logContent = logFileHandler.loadEntry(rawTs);
+
+                    // Show debug dialog with internal values to help diagnose copy issues
+                    String snippet = "(no content)";
+                    int len = 0;
+                    if (logContent != null && !logContent.isEmpty()) {
+                        len = logContent.length();
+                        snippet = logContent.length() > 200 ? logContent.substring(0, 200) + "..." : logContent;
+                    }
+                    String details = "Raw timestamp: " + rawTs + "<br>Length: " + len + "<br><br>Snippet:<br>" + utils.StringUtils.escapeHtml(snippet);
+                    DialogHelper.showInfo(editor, "Copy Debug", "Preparing to copy entry:", details);
+
+                    clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(
+                        selectedItem + "\n\n" + logContent, editor,
+                        "Log entry copied to clipboard securely.");
+                } catch (Exception ex) {
+                    // If anything goes wrong, show a user-friendly message
+                    DialogHelper.showError(editor, "Copy Failed", "Unable to copy the selected entry.", null);
+                }
             }
         };
     }
