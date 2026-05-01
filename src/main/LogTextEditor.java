@@ -468,9 +468,14 @@ public class LogTextEditor extends JFrame {
                 }
                 if (!dataLoaded) {
                     LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
-                    progressDialog.setStatus("Loading log entries...");
-                    progressDialog.setIndeterminate(true);
-                    progressDialog.show();
+                    // Only show the loading spinner when the file already exists.
+                    // If it's missing, loadLogEntries() will surface the friendly missing-file
+                    // dialog instead — no need to show a spinner at the same time.
+                    if (java.nio.file.Files.exists(logFileHandler.getFilePath())) {
+                        progressDialog.setStatus("Loading log entries...");
+                        progressDialog.setIndeterminate(true);
+                        progressDialog.show();
+                    }
 
                     // Run load in background so dialog can display and UI remains responsive
                     Runnable startupLoad = () -> {
@@ -493,9 +498,11 @@ public class LogTextEditor extends JFrame {
             }
         } else {
             LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
-            progressDialog.setStatus("Loading log entries...");
-            progressDialog.setIndeterminate(true);
-            progressDialog.show();
+            if (java.nio.file.Files.exists(logFileHandler.getFilePath())) {
+                progressDialog.setStatus("Loading log entries...");
+                progressDialog.setIndeterminate(true);
+                progressDialog.show();
+            }
 
             Runnable startupLoad2 = () -> {
                 try {

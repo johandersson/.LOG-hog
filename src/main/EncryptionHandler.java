@@ -100,7 +100,7 @@ public class EncryptionHandler {
                     } catch (Exception ex) {
                         logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist settings after creating new log file.</html>");
                     }
-                    DialogHelper.showInfo(parentFrame, "New File Created", "Not Encrypted", "The new log file is currently unencrypted. You must enable encryption in Settings to encrypt it.");
+                    // Note: DialogHandler already showed the "Not Encrypted" info dialog during file creation
                     return false;
                 } else if (action == DialogHandler.MissingFileAction.COPIED || action == DialogHandler.MissingFileAction.RESTORED) {
                     // If user copied/restored a file into place, fall through and let detector decide

@@ -106,23 +106,23 @@ public class DialogHandler {
         }
 
         String message = String.format(
-            "<html><b>⚠️ Log File Not Found</b><br><br>" +
-            "The log file <b>%s</b> does not exist.<br><br>" +
-            "Would you like to:<br>" +
-            "• <b>Create a new log file</b> (starts fresh)<br>" +
-            "• <b>Browse for log.txt</b> (set as default)<br>" +
-            "• <b>Restore from backup</b> (if available)<br>" +
-            "• <b>Exit and manually fix the issue </b><br></html>",
+            "<html><b>Log file not found</b><br><br>" +
+            "The log file <b>%s</b> could not be found.<br><br>" +
+            "What would you like to do?<br>" +
+            "• <b>Create a new log file</b> — starts fresh<br>" +
+            "• <b>Browse for log.txt</b> — pick an existing file<br>" +
+            "• <b>Restore from backup</b> — if you have one<br>" +
+            "• <b>Exit</b> — close the application<br></html>",
             filePath.getFileName()
         );
 
         Object[] options = {"Create New", "Browse...", "Restore from Backup", "Exit"};
         int choice = DialogHelper.showOptions(
             null,
-            "Log File Missing",
-            "Log File Missing",
+            "Log file not found",
             message,
-            JOptionPane.WARNING_MESSAGE,
+            null,
+            JOptionPane.INFORMATION_MESSAGE,
             options,
             "Create New"
         );
