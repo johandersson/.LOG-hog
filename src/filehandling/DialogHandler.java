@@ -258,9 +258,14 @@ public class DialogHandler {
             // Restore from backup
             lastMissingFileAction = MissingFileAction.RESTORED;
             return showBackupRestoreDialog(filePath, onInvalidateCache);
-        } else {
-            // Exit
+        } else if (choice == 3) {
+            // Exit — user explicitly chose to quit
             lastMissingFileAction = MissingFileAction.EXIT;
+            System.exit(0);
+            return false; // unreachable, satisfies compiler
+        } else {
+            // Dialog dismissed with X (choice == -1) — treat as cancel, don't create a file
+            lastMissingFileAction = MissingFileAction.NONE;
             return false;
         }
     }
