@@ -721,10 +721,6 @@ public class LogTextEditor extends JFrame {
      */
     private void validateLogFileAccess() {
         java.io.File logFile = new java.io.File(logFileHandler.getFilePath().toString());
-        
-        // Missing-file handling is done centrally by DialogHandler.handleMissingLogFile()
-        // which is triggered during loadSettings() → loadLogEntries(). Do NOT add a
-        // separate check here — that causes two dialogs to appear for the same problem.
         if (!logFile.exists()) {
             return;
         }
