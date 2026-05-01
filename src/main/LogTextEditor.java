@@ -722,29 +722,13 @@ public class LogTextEditor extends JFrame {
     private void validateLogFileAccess() {
         java.io.File logFile = new java.io.File(logFileHandler.getFilePath().toString());
         
-        // Check if file exists
+        // Missing-file handling is done centrally by DialogHandler.handleMissingLogFile()
+        // which is triggered during loadSettings() → loadLogEntries(). Do NOT add a
+        // separate check here — that causes two dialogs to appear for the same problem.
         if (!logFile.exists()) {
-            int choice = DialogHelper.showOptions(this,
-                "File Missing",
-                "⚠️ Log File Not Found",
-                "The log file does not exist:<br>" +
-                "<code>" + logFile.getAbsolutePath() + "</code><br><br>Would you like to create a new file or restore from backup?",
-                JOptionPane.WARNING_MESSAGE,
-                new Object[]{"Create New", "Restore from Backup", "Exit"},
-                "Create New");
-
-            if (choice == 0) { // Create New
-                // File will be created on first save
-                return;
-            } else if (choice == 1) { // Restore from Backup
-                logFileHandler.showBackupRestoreDialog();
-            } else { // Exit
-                shutdown();
-                System.exit(0);
-            }
             return;
         }
-        
+
         // Check if file is readable
         if (!logFile.canRead()) {
             DialogHelper.showError(this, "Permission Error", "Cannot Read Log File",
