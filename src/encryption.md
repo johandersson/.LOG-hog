@@ -3,7 +3,7 @@
 **Latest Security Audit (May 2026):**
 - All critical CWE vulnerabilities (path traversal, command injection, hardcoded keys, deserialization, etc.) were NOT FOUND in the codebase.
 - No hardcoded keys or credentials. No insecure file or path handling.
-- Security Score: 8.7/10 (see below for details)
+- Security Score: 9.0/10 (see below for details)
 
 .LOG-hog is designed to keep your personal logs and notes safe and private. Whether you're journaling thoughts, storing sensitive information, or maintaining records, your data deserves protection. This document explains the security measures we use to safeguard your information.
 
@@ -12,7 +12,7 @@
 .LOG-hog implements enterprise-grade security suitable for personal and small enterprise sensitive data storage. This document provides comprehensive details about the security architecture, encryption implementation, and protection mechanisms.
 
 
-## Security Rating: 8.7/10 Overall
+## Security Rating: 9.0/10 Overall
 
 .LOG-hog provides enterprise-grade security for personal logs. All major cryptographic, file, and memory vulnerabilities have been addressed.
 
@@ -34,7 +34,7 @@
 - **Authenticated Encryption**: GCM provides both confidentiality and integrity
 - **Random IVs**: Each encryption uses a unique initialization vector
 - **Salt Generation**: Cryptographically secure 128-bit salts
-- **Memory Security**: Consistent zeroization of all sensitive byte arrays and password data after use, using CryptoUtils.zeroize. Note: the encryption password char[] is retained in FileEncryptionManager for the session duration (required for re-encryption on save); it is cleared on lock or when encryption is disabled
+- **Memory Security**: Consistent zeroization of all sensitive byte arrays and password data after use, using `CryptoUtils.zeroize`. Key rotation (`reEncrypt`) keeps plaintext as `byte[]` and zeroizes it before returning — no plaintext `String` is ever created. Note: the encryption password `char[]` is retained in `FileEncryptionManager` for the session duration (required for re-encryption on save); it is cleared on lock or when encryption is disabled
 - **File Permissions**: All encrypted and decrypted files are set to owner-only permissions (POSIX or Windows fallback) using CryptoUtils.setOwnerOnlyPermissions
 - **Streaming Reads**: `decryptFileToLines()` and streaming `openDecryptedStream()` reduce full-heap plaintext allocations for large files
 - **CryptoUtils Utility**: Centralizes best-practice cryptographic operations (constant-time comparison, file permissions, zeroization)

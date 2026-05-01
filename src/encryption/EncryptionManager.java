@@ -449,6 +449,86 @@ public class EncryptionManager implements encryption.StreamEncryptor {
         return result;
     }
 
+    /** Encrypt from raw bytes (no String conversion, caller zeroizes input). */
+    private byte[] performEncryptionFromBytes(byte[] data, SecretKey key) throws Exception {
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        byte[] iv = new byte[GCM_IV_LENGTH];
+        new SecureRandom().nextBytes(iv);
+        GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        byte[] ciphertext = cipher.doFinal(data);
+        byte[] result = new byte[iv.length + ciphertext.length];
+        System.arraycopy(iv, 0, result, 0, iv.length);
+        System.arraycopy(ciphertext, 0, result, iv.length, ciphertext.length);
+        return result;
+    }
+
+    /** Decrypt to raw bytes without String conversion (caller must zeroize the returned array). */
+    private byte[] performDecryptionRaw(byte[] encryptedData, SecretKey key) throws Exception {
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        byte[] iv = new byte[GCM_IV_LENGTH];
+        System.arraycopy(encryptedData, 0, iv, 0, iv.length);
+        byte[] encrypted = new byte[encryptedData.length - iv.length];
+        System.arraycopy(encryptedData, iv.length, encrypted, 0, encrypted.length);
+        GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        return cipher.doFinal(encrypted);
+    }
+
+    /**
+     * Re-encrypts file data with a new password and salt without ever converting plaintext to String.
+     * The intermediate plaintext byte[] is zeroized before returning.
+     */
+    public byte[] reEncrypt(byte[] data, char[] oldPassword, char[] newPassword, byte[] newSalt) throws EncryptionException {
+        if (data == null || oldPassword == null || newPassword == null || newSalt == null)
+            throw new EncryptionException("Arguments cannot be null");
+        try {
+            // Parse existing header
+            int pos = 0;
+            if (data.length < FILE_MAGIC.length + 3) throw new EncryptionException("Data too short");
+            for (int i = 0; i < FILE_MAGIC.length; i++) {
+                if (data[i] != FILE_MAGIC[i]) throw new EncryptionException("Invalid file format");
+            }
+            pos += FILE_MAGIC.length;
+            pos++; // version byte
+            int saltLen = data[pos++] & 0xFF;
+            if (pos + saltLen > data.length) throw new EncryptionException("Truncated header: missing salt");
+            byte[] oldSalt = new byte[saltLen];
+            System.arraycopy(data, pos, oldSalt, 0, saltLen); pos += saltLen;
+            int ivLen = data[pos++] & 0xFF;
+            if (ivLen != GCM_IV_LENGTH) throw new EncryptionException("Unexpected IV length");
+            byte[] encryptedWithIv = new byte[data.length - pos];
+            System.arraycopy(data, pos, encryptedWithIv, 0, encryptedWithIv.length);
+
+            // Decrypt to raw bytes — never converted to String
+            SecretKey oldKey = deriveKey(oldPassword, oldSalt);
+            byte[] plaintext = performDecryptionRaw(encryptedWithIv, oldKey);
+            try {
+                // Re-encrypt from raw bytes with new key
+                SecretKey newKey = deriveKey(newPassword, newSalt);
+                byte[] reEncrypted = performEncryptionFromBytes(plaintext, newKey);
+                // Build new header
+                int newSaltLen = newSalt.length;
+                int headerLen = FILE_MAGIC.length + 1 + 1 + newSaltLen + 1;
+                byte[] result = new byte[headerLen + reEncrypted.length];
+                int p = 0;
+                System.arraycopy(FILE_MAGIC, 0, result, p, FILE_MAGIC.length); p += FILE_MAGIC.length;
+                result[p++] = FILE_VERSION;
+                result[p++] = (byte)(newSaltLen & 0xFF);
+                System.arraycopy(newSalt, 0, result, p, newSaltLen); p += newSaltLen;
+                result[p++] = (byte)(GCM_IV_LENGTH & 0xFF);
+                System.arraycopy(reEncrypted, 0, result, p, reEncrypted.length);
+                return result;
+            } finally {
+                CryptoUtils.zeroize(plaintext);
+            }
+        } catch (EncryptionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new EncryptionException("Key rotation failed", e);
+        }
+    }
+
     // ...existing code...
 }
 

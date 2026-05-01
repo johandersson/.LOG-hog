@@ -64,7 +64,15 @@ public class PasswordDialog extends JDialog {
         var topPanel = new JPanel(new BorderLayout());
         topPanel.setBackground(new Color(0xF7FAFC));
         var welcomeText = customMessage != null ? customMessage : "Welcome back! Enter your password to unlock your encrypted log.";
-        var welcomeLabel = new JLabel("<html><center>" + welcomeText + "</center></html>", SwingConstants.CENTER);
+        // Wrap in HTML for centering; escape plain-text messages to prevent injection
+        String labelText;
+        if (welcomeText.startsWith("<html>") || welcomeText.startsWith("<HTML>")) {
+            labelText = welcomeText;
+        } else {
+            String escaped = welcomeText.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+            labelText = "<html><center>" + escaped + "</center></html>";
+        }
+        var welcomeLabel = new JLabel(labelText, SwingConstants.CENTER);
         welcomeLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         welcomeLabel.setForeground(new Color(0x2B3A42));
         topPanel.add(welcomeLabel, BorderLayout.NORTH);

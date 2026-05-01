@@ -132,8 +132,14 @@ public class EncryptionHandler {
                 return false;
             }
 
-            byte[] salt = Base64.getDecoder().decode(saltStr);
-            return performPasswordAuthentication(salt, "🔒 Enter Password", true);
+            byte[] salt;
+            try {
+                salt = Base64.getDecoder().decode(saltStr);
+            } catch (IllegalArgumentException e) {
+                DialogHelper.showError(parentFrame, "Corrupt Encryption Metadata", "Invalid Settings", "The stored encryption salt is corrupt or invalid. Please restore from a settings backup.");
+                return false;
+            }
+            return performPasswordAuthentication(salt, "\uD83D\uDD12 Enter Password", true);
         }
         return false;
     }
@@ -144,8 +150,14 @@ public class EncryptionHandler {
      * @return true if unlock was successful, false if cancelled or failed
      */
     public boolean reloadEncryptedLog() {
-        byte[] salt = Base64.getDecoder().decode(settings.getProperty("salt"));
-        return performPasswordAuthentication(salt, "🔓 Unlock File", false);
+        byte[] salt;
+        try {
+            salt = Base64.getDecoder().decode(settings.getProperty("salt"));
+        } catch (IllegalArgumentException | NullPointerException e) {
+            DialogHelper.showError(null, "Corrupt Encryption Metadata", "Invalid Settings", "The stored encryption salt is missing or corrupt. Please restore from a settings backup.");
+            return false;
+        }
+        return performPasswordAuthentication(salt, "\uD83D\uDD13 Unlock File", false);
     }
 
     /**

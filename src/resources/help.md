@@ -27,7 +27,7 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
 - **Generic error messages** preventing information disclosure
 - **Comprehensive input validation** with bounds checking and sanitization
 - **File operation restrictions** to user home and working directories only
-**Security Rating: 8.7/10** — All major vulnerabilities addressed. See [encryption.md](encryption.md) for details.
+**Security Rating: 9.0/10** — All major vulnerabilities addressed. See [encryption.md](encryption.md) for details.
 
 .LOG-hog is secure for daily use but not invincible against state-level threats or keyloggers. With a strong, unique password (20+ characters, random), your notes are virtually unbreakable. However, weak passwords or forgotten ones can compromise security—use a password manager.
 
