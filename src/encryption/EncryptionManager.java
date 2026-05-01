@@ -371,35 +371,6 @@ public class EncryptionManager implements encryption.StreamEncryptor {
     }
 
     @Override
-    public String decryptWithFallback(byte[] data, char... passwordAndSalt) throws EncryptionException {
-        if (passwordAndSalt == null || passwordAndSalt.length < 1) {
-            throw new EncryptionException("Password is required.");
-        }
-        // If 17+ chars, last 16 bytes are salt
-        if (passwordAndSalt.length > 16) {
-            char[] password = new char[passwordAndSalt.length - 16];
-            char[] saltChars = new char[16];
-            System.arraycopy(passwordAndSalt, 0, password, 0, password.length);
-            System.arraycopy(passwordAndSalt, password.length, saltChars, 0, 16);
-            byte[] salt = new byte[16];
-            for (int i = 0; i < 16; i++) salt[i] = (byte) saltChars[i];
-            try {
-                return decrypt(data, password);
-            } catch (EncryptionException e) {
-                try {
-                    javax.crypto.SecretKey key = deriveKey(password, salt);
-                    return performDecryption(data, key);
-                } catch (Exception ex) {
-                    throw e;
-                }
-            }
-        } else {
-            return decrypt(data, passwordAndSalt);
-        }
-    }
-
-    // Remove duplicate declaration
-    @Override
     public java.io.InputStream openDecryptedStream(java.io.InputStream encryptedIn, char[] password, byte[] salt, utils.ProgressCallback progress) throws EncryptionException {
         if (encryptedIn == null) throw new EncryptionException("Input stream cannot be null");
         if (password == null) throw new EncryptionException("Password cannot be null");

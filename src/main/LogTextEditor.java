@@ -111,10 +111,6 @@ public class LogTextEditor extends JFrame {
     private final java.util.Properties settings = new java.util.Properties();
     private final java.nio.file.Path settingsPath = java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
 
-    // Secure settings for sensitive data
-    private SecureSettings secureSettings;
-
-    private String passwordReminder = "";
     private boolean isLocked;
     private final Object lockObject = new Object();
     private BackupManager backupManager;
@@ -165,7 +161,7 @@ public class LogTextEditor extends JFrame {
         // For backward compatibility
         logFileHandler = (LogFileHandler) application.getLogFileOperations();
 
-        // Load settings file FIRST so SecureSettings can use existing salt
+        // Load settings file FIRST so all features can use existing settings
         if (java.nio.file.Files.exists(settingsPath)) {
             try (java.io.InputStream fis = java.nio.file.Files.newInputStream(settingsPath)) {
                 settings.load(fis);
@@ -174,9 +170,6 @@ public class LogTextEditor extends JFrame {
             }
         }
 
-        // Initialize secure settings (must be after settings are loaded)
-        secureSettings = new SecureSettings(settings);
-        
         // Initialize backup manager
         backupManager = new BackupManager(settings);
         backupManager.setParentFrame(this); // Set parent for progress dialogs
@@ -201,7 +194,7 @@ public class LogTextEditor extends JFrame {
             systemInitializer.initializeSystemComponents();
 
             // Initialize encryption handler before loading settings
-            encryptionHandler = new EncryptionHandler(this, logFileHandler, settings, secureSettings,
+            encryptionHandler = new EncryptionHandler(this, logFileHandler, settings,
                 () -> {
                     try {
                         loadLogEntries();
@@ -461,7 +454,6 @@ public class LogTextEditor extends JFrame {
                 String backupDir = settings.getProperty("backupDirectory", "");
                 logFileHandler.setBackupDirectory(backupDir);
                 String enc = settings.getProperty("encrypted");
-                passwordReminder = secureSettings.getDecryptedProperty(settings, "passwordReminder", "");
                 boolean dataLoaded = false;
                 if ("true".equals(enc)) {
                     dataLoaded = encryptionHandler.handleEncryptionSetup();
@@ -684,10 +676,6 @@ public class LogTextEditor extends JFrame {
         logListPanel.setLocked(isLocked);
         fullLogPanel.updateLockButton();
         // Also disable logListPanel if needed, but since listModel is cleared, maybe not necessary
-    }
-
-    public void updatePasswordReminder(String reminder) {
-        this.passwordReminder = reminder;
     }
 
     private void initializeSecureClipboard() {

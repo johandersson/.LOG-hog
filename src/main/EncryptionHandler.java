@@ -46,7 +46,6 @@ public class EncryptionHandler {
     private final Runnable updateUILockStateCallback;
     private final Runnable loadFullLogCallback;
     private final Runnable saveSettingsCallback;
-    private final SecureSettings secureSettings;
 
     /**
      * Constructs an EncryptionHandler with the necessary dependencies.
@@ -54,18 +53,16 @@ public class EncryptionHandler {
      * @param parentFrame the parent JFrame for dialogs
      * @param logFileHandler the LogFileHandler for encryption operations
      * @param settings the application settings
-     * @param secureSettings the SecureSettings for encryption
      * @param loadLogEntriesCallback callback to load log entries
      * @param updateUILockStateCallback callback to update UI lock state
      * @param loadFullLogCallback callback to load full log
      */
-    public EncryptionHandler(JFrame parentFrame, LogFileHandler logFileHandler, Properties settings, SecureSettings secureSettings,
+    public EncryptionHandler(JFrame parentFrame, LogFileHandler logFileHandler, Properties settings,
                            Runnable loadLogEntriesCallback, Runnable updateUILockStateCallback,
                            Runnable loadFullLogCallback, Runnable saveSettingsCallback) {
         this.parentFrame = parentFrame;
         this.logFileHandler = logFileHandler;
         this.settings = settings;
-        this.secureSettings = secureSettings;
         this.loadLogEntriesCallback = loadLogEntriesCallback;
         this.updateUILockStateCallback = updateUILockStateCallback;
         this.loadFullLogCallback = loadFullLogCallback;
@@ -160,18 +157,17 @@ public class EncryptionHandler {
      * @return true if authentication was successful, false if cancelled or failed
      */
     private boolean performPasswordAuthentication(byte[] salt, String dialogTitle, boolean exitOnCancel) {
-        String passwordReminder = secureSettings.getDecryptedProperty(settings, "passwordReminder", "");
         boolean success = false;
         int attempts = 0;
         while (!success) {
             PasswordDialog.PasswordResult result;
             // Ensure the password dialog is shown on the EDT regardless of caller thread
             if (SwingUtilities.isEventDispatchThread()) {
-                result = PasswordDialog.showPasswordDialog(parentFrame, dialogTitle, passwordReminder);
+                result = PasswordDialog.showPasswordDialog(parentFrame, dialogTitle);
             } else {
                 final PasswordDialog.PasswordResult[] holder = new PasswordDialog.PasswordResult[1];
                 try {
-                    SwingUtilities.invokeAndWait(() -> holder[0] = PasswordDialog.showPasswordDialog(parentFrame, dialogTitle, passwordReminder));
+                    SwingUtilities.invokeAndWait(() -> holder[0] = PasswordDialog.showPasswordDialog(parentFrame, dialogTitle));
                 } catch (Exception e) {
                     // If dialog invocation fails, treat as cancel
                     return false;

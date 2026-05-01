@@ -49,7 +49,6 @@ import javax.swing.SpinnerNumberModel;
 import filehandling.LogFileHandler;
 import main.BackupManager;
 import main.LogTextEditor;
-import main.SecureSettings;
 import utils.Toast;
 import main.SecureDeletionUtils;
 
@@ -59,12 +58,10 @@ public class SettingsPanel extends JPanel {
     private final Properties settings;
     private final Path settingsPath;
     private final LogFileHandler logFileHandler;
-    private final SecureSettings secureSettings;
     private final BackupManager backupManager;
 
     private JCheckBox encryptionCheckBox;
     private JButton applyButton;
-    private JTextField reminderField;
     private JLabel statusLabel;
     private JTextField backupDirField;
     // Removed unused private field browseBackupButton (PMD)
@@ -80,7 +77,6 @@ public class SettingsPanel extends JPanel {
         this.settings = settings;
         this.settingsPath = settingsPath;
         this.logFileHandler = logFileHandler;
-        this.secureSettings = new SecureSettings(settings);
         this.backupManager = new BackupManager(settings);
         this.backupManager.setParentFrame(editor); // Set parent for progress dialogs
 
@@ -115,9 +111,6 @@ public class SettingsPanel extends JPanel {
 
         // Auto-backup section
         contentPanel.add(createAutoBackupPanel());
-
-        // Reminder section
-        contentPanel.add(createReminderPanel());
 
         // Splash screen section
         contentPanel.add(createSplashPanel());
@@ -219,21 +212,6 @@ public class SettingsPanel extends JPanel {
         return panel;
     }
 
-    private JPanel createReminderPanel() {
-        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createTitledBorder("Password Reminder"));
-
-        var reminderLabel = new JLabel("Optional reminder (encrypted in settings): ");
-        reminderLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        reminderField = new JTextField(20);
-        reminderField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-
-        panel.add(reminderLabel);
-        panel.add(reminderField);
-        return panel;
-    }
-
     private JPanel createSplashPanel() {
         var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panel.setBackground(Color.WHITE);
@@ -332,7 +310,6 @@ public class SettingsPanel extends JPanel {
     }
 
     public void loadCurrentSettings() {
-        reminderField.setText(secureSettings.getDecryptedProperty(settings, "passwordReminder", ""));
         backupDirField.setText(settings.getProperty("backupDirectory", ""));
         autoBackupCheckBox.setSelected("true".equals(settings.getProperty("autoBackupEnabled", "false")));
         splashOnStartupCheckBox.setSelected("true".equals(settings.getProperty("showSplashOnStartup", "true")));
@@ -378,14 +355,12 @@ public class SettingsPanel extends JPanel {
         }
 
         // Check if any settings actually changed
-        var currentReminder = secureSettings.getDecryptedProperty(settings, "passwordReminder", "");
         var currentBackupDir = settings.getProperty("backupDirectory", "");
         var currentSplashOnStartup = "true".equals(settings.getProperty("showSplashOnStartup", "true"));
         var currentClipboardAutoClear = "true".equals(settings.getProperty("clipboardAutoClear", "true"));
         var currentClipboardTimeout = settings.getProperty("clipboardTimeout", "30");
         var currentAutoLockEnabled = "true".equals(settings.getProperty("autoLockEnabled", "false"));
         int currentAutoLockTimeoutSeconds = Integer.parseInt(settings.getProperty("autoLockTimeout", "900"));
-        var newReminder = reminderField.getText();
         var newBackupDir = backupDirField.getText();
         var newAutoBackupEnabled = autoBackupCheckBox.isSelected();
         var newSplashOnStartup = splashOnStartupCheckBox.isSelected();
@@ -408,13 +383,6 @@ public class SettingsPanel extends JPanel {
 
         // Auto-lock timeout is already validated by spinner bounds (15-1440 minutes)
 
-        // Validate reminder field
-        if (!isValidReminder(newReminder)) {
-            gui.DialogHelper.showError(editor, "Invalid Input", "Password reminder must be less than 200 characters and cannot contain control characters.");
-            loadCurrentSettings(); // Reset to current valid values
-            return;
-        }
-
         // Validate backup directory
         if (!isValidBackupDirectory(newBackupDir)) {
             gui.DialogHelper.showError(editor, "Invalid Input", "Backup directory path is invalid or contains unsafe characters.");
@@ -424,7 +392,7 @@ public class SettingsPanel extends JPanel {
 
         var currentAutoBackupEnabled = "true".equals(settings.getProperty("autoBackupEnabled", "false"));
 
-        var settingsChanged = !currentReminder.equals(newReminder) || !currentBackupDir.equals(newBackupDir) ||
+        var settingsChanged = !currentBackupDir.equals(newBackupDir) ||
                             currentAutoBackupEnabled != newAutoBackupEnabled ||
                             currentSplashOnStartup != newSplashOnStartup ||
                             currentClipboardAutoClear != newClipboardAutoClear ||
@@ -439,8 +407,6 @@ public class SettingsPanel extends JPanel {
         }
 
         // Save settings
-        secureSettings.setEncryptedProperty(settings, "passwordReminder", newReminder);
-        editor.updatePasswordReminder(newReminder);
         settings.setProperty("backupDirectory", newBackupDir);
         
         // If auto-backup is being enabled for the first time, ensure directory is configured
@@ -475,7 +441,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private void enableEncryption() {
-        var pwdResult = PasswordDialog.showPasswordDialog(editor, "Create Password", reminderField.getText(), "<html>Create a strong password for your encrypted log.<br><br><b>Requirements:</b><br>• At least 20 characters<br>• At least one uppercase letter (A-Z)<br>• At least one special character (!@#$%^&* etc.) <i>unless password scores 'Strong'</i><br>• Must score at least 'Good' strength<br><br>Use the <b>Generate</b> button for a secure random password, or create your own.<br><br><b>⚠️ Remember to save your password in a password manager!</b></html>", true);
+        var pwdResult = PasswordDialog.showPasswordDialog(editor, "Create Password", "<html>Create a strong password for your encrypted log.<br><br><b>Requirements:</b><br>• At least 20 characters<br>• At least one uppercase letter (A-Z)<br>• At least one special character (!@#$%^&* etc.) <i>unless password scores 'Strong'</i><br>• Must score at least 'Good' strength<br><br>Use the <b>Generate</b> button for a secure random password, or create your own.<br><br><b>⚠️ Remember to save your password in a password manager!</b></html>", true);
         var pwd = pwdResult.password;
         if (pwd == null) return;
 
@@ -509,7 +475,7 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
-        var confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm new password", reminderField.getText(), "Confirm your new password.");
+        var confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm new password", "Confirm your new password.");
         var confirm = confirmResult.password;
         if (!java.util.Arrays.equals(pwd, confirm)) {
             gui.DialogHelper.showError(editor, "Mismatch", "Passwords do not match");
@@ -900,22 +866,6 @@ public class SettingsPanel extends JPanel {
     }
 
     // Removed unused isValidAutoLockTimeout method (PMD UnusedPrivateMethod)
-
-    private boolean isValidReminder(String reminder) {
-        if (reminder == null) {
-            return true; // Empty reminder is allowed
-        }
-        if (reminder.length() > 200) {
-            return false;
-        }
-        // Check for control characters
-        for (char c : reminder.toCharArray()) {
-            if (Character.isISOControl(c)) {
-                return false;
-            }
-        }
-        return true;
-    }
 
     private boolean isValidBackupDirectory(String path) {
         if (path == null || path.isBlank()) {

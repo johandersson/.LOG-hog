@@ -42,13 +42,11 @@ public class PasswordDialog extends JDialog {
     private JButton cancelButton;
     private char[] password;
     private boolean visible; // default false, no initializer needed
-    private String reminder;
     private String customMessage;
     private PasswordStrengthIndicator strengthIndicator;
 
-    public PasswordDialog(Frame parent, String title, String reminder, String customMessage, boolean showStrength) {
+    public PasswordDialog(Frame parent, String title, String customMessage, boolean showStrength) {
         super(parent, title, true);
-        this.reminder = reminder;
         this.customMessage = customMessage;
         initComponents(showStrength);
         pack();
@@ -70,13 +68,6 @@ public class PasswordDialog extends JDialog {
         welcomeLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         welcomeLabel.setForeground(new Color(0x2B3A42));
         topPanel.add(welcomeLabel, BorderLayout.NORTH);
-
-        if (reminder != null && !reminder.isBlank()) {
-            var reminderLabel = new JLabel("Reminder: " + reminder, SwingConstants.CENTER);
-            reminderLabel.setForeground(new Color(0x5E6A70));
-            reminderLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-            topPanel.add(reminderLabel, BorderLayout.SOUTH);
-        }
 
         centerPanel.add(topPanel, BorderLayout.NORTH);
 
@@ -216,22 +207,22 @@ public class PasswordDialog extends JDialog {
         return password == null ? null : java.util.Arrays.copyOf(password, password.length);
     }
 
-    public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder) {
-        var dialog = new PasswordDialog(parent, title, reminder, null, false);
+    public static PasswordResult showPasswordDialog(Frame parent, String title) {
+        var dialog = new PasswordDialog(parent, title, null, false);
         dialog.setVisible(true);
         char[] pw = dialog.getPassword();
         return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
     }
 
-    public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, String customMessage) {
-        var dialog = new PasswordDialog(parent, title, reminder, customMessage, false);
+    public static PasswordResult showPasswordDialog(Frame parent, String title, String customMessage) {
+        var dialog = new PasswordDialog(parent, title, customMessage, false);
         dialog.setVisible(true);
         char[] pw = dialog.getPassword();
         return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
     }
 
-    public static PasswordResult showPasswordDialog(Frame parent, String title, String reminder, String customMessage, boolean showStrength) {
-        var dialog = new PasswordDialog(parent, title, reminder, customMessage, showStrength);
+    public static PasswordResult showPasswordDialog(Frame parent, String title, String customMessage, boolean showStrength) {
+        var dialog = new PasswordDialog(parent, title, customMessage, showStrength);
         dialog.setVisible(true);
         char[] pw = dialog.getPassword();
         return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));

@@ -20,13 +20,13 @@ public class EncryptionEdgeCaseTest {
     @Test
     void testDecryptWithNullData() {
         assertThrows(EncryptionException.class, () ->
-            encryptionManager.decryptWithFallback(null, "password".toCharArray(), new byte[16]));
+            encryptionManager.decrypt(null, "password".toCharArray()));
     }
 
     @Test
     void testDecryptWithEmptyData() {
         assertThrows(EncryptionException.class, () ->
-            encryptionManager.decryptWithFallback(new byte[0], "password".toCharArray(), new byte[16]));
+            encryptionManager.decrypt(new byte[0], "password".toCharArray()));
     }
 
     @Test
@@ -35,7 +35,7 @@ public class EncryptionEdgeCaseTest {
         for (int length = 1; length < 28; length++) {
             byte[] shortData = new byte[length];
             EncryptionException exception = assertThrows(EncryptionException.class, () ->
-                encryptionManager.decryptWithFallback(shortData, "password".toCharArray(), new byte[16]));
+                encryptionManager.decrypt(shortData, "password".toCharArray()));
             assertTrue(exception.getMessage().contains("damaged") || exception.getMessage().contains("enough data"),
                 "Length " + length + " should throw appropriate error");
         }
@@ -56,7 +56,7 @@ public class EncryptionEdgeCaseTest {
 
             // Should throw exception for wrong password or corrupted data
             assertThrows(EncryptionException.class, () ->
-                encryptionManager.decryptWithFallback(corrupted, "wrongpassword".toCharArray(), salt));
+                encryptionManager.decrypt(corrupted, "wrongpassword".toCharArray()));
         }
     }
 
@@ -73,7 +73,7 @@ public class EncryptionEdgeCaseTest {
         // by mocking or by creating data that would result in invalid UTF-8
 
         // For now, test that valid data works
-        String decrypted = encryptionManager.decryptWithFallback(encrypted, password, salt);
+        String decrypted = encryptionManager.decrypt(encrypted, password);
         assertEquals(testData, decrypted);
     }
 
@@ -129,7 +129,7 @@ public class EncryptionEdgeCaseTest {
         char[] password = "password".toCharArray();
 
         byte[] encrypted = encryptionManager.encrypt(unicodeData, password, salt);
-        String decrypted = encryptionManager.decryptWithFallback(encrypted, password, salt);
+        String decrypted = encryptionManager.decrypt(encrypted, password);
 
         assertEquals(unicodeData, decrypted);
     }
@@ -146,7 +146,7 @@ public class EncryptionEdgeCaseTest {
         char[] password = "password".toCharArray();
 
         byte[] encrypted = encryptionManager.encrypt(largeData.toString(), password, salt);
-        String decrypted = encryptionManager.decryptWithFallback(encrypted, password, salt);
+        String decrypted = encryptionManager.decrypt(encrypted, password);
 
         assertEquals(largeData.toString(), decrypted);
     }
@@ -160,7 +160,7 @@ public class EncryptionEdgeCaseTest {
 
         // Try to decrypt with wrong password
         EncryptionException exception = assertThrows(EncryptionException.class, () ->
-            encryptionManager.decryptWithFallback(encrypted, "wrongpassword".toCharArray(), salt));
+            encryptionManager.decrypt(encrypted, "wrongpassword".toCharArray()));
         assertTrue(exception.getMessage().contains("password") || exception.getMessage().contains("incorrect"));
     }
 
@@ -184,7 +184,7 @@ public class EncryptionEdgeCaseTest {
 
         for (String testData : testCases) {
             byte[] encrypted = encryptionManager.encrypt(testData, password, salt);
-            String decrypted = encryptionManager.decryptWithFallback(encrypted, password, salt);
+            String decrypted = encryptionManager.decrypt(encrypted, password);
             assertEquals(testData, decrypted, "Data integrity failed for: " + testData);
         }
     }

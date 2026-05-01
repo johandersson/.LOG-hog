@@ -90,8 +90,6 @@ public class UIStrings {
     // Messages - Settings validation
     public static final String MSG_INVALID_CLIPBOARD_TIMEOUT = 
         "Clipboard timeout must be a number between 5 and 30 seconds.";
-    public static final String MSG_INVALID_PASSWORD_REMINDER = 
-        "Password reminder must be less than 200 characters and cannot contain control characters.";
     public static final String MSG_INVALID_BACKUP_DIR = 
         "Backup directory path is invalid or contains unsafe characters.";
     public static final String MSG_CLIPBOARD_TIMEOUT_DEFAULT = 

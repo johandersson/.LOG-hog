@@ -1,30 +1,25 @@
 # .LOG-hog Security & Encryption Documentation
 
-**Latest Security Audit (March 2026):**
+**Latest Security Audit (May 2026):**
 - All critical CWE vulnerabilities (path traversal, command injection, hardcoded keys, deserialization, etc.) were NOT FOUND in the codebase.
 - No hardcoded keys or credentials. No insecure file or path handling.
-- Security Score: 9.5/10 (see below for details)
+- Security Score: 8.7/10 (see below for details)
 
 .LOG-hog is designed to keep your personal logs and notes safe and private. Whether you're journaling thoughts, storing sensitive information, or maintaining records, your data deserves protection. This document explains the security measures we use to safeguard your information.
 
 ## Overview
 
-.LOG-hog implements enterprise-grade security suitable for personal and small enterprise sensitive data storage. This document provides comprehensive details about the security architecture, encryption implementation, and protection mechanisms. As of March 2026, the application incorporates additional hardening, including secure file permissions, improved memory zeroization, and a dedicated CryptoUtils utility for best-practice cryptographic operations.
+.LOG-hog implements enterprise-grade security suitable for personal and small enterprise sensitive data storage. This document provides comprehensive details about the security architecture, encryption implementation, and protection mechanisms.
 
 
-## Security Rating: 9.5/10 Overall
+## Security Rating: 8.7/10 Overall
 
-.LOG-hog provides enterprise-grade security for personal logs. All major cryptographic, file, and memory vulnerabilities have been addressed. Recent improvements include:
-- Secure file permissions (owner-only) enforced on all encrypted and decrypted files
-- Dedicated CryptoUtils utility for constant-time comparison, file permission setting, and memory zeroization
-- Consistent zeroization of sensitive byte arrays and password data after use
-- Atomic file writes and secure temporary file handling
-- All major PMD security warnings addressed
+.LOG-hog provides enterprise-grade security for personal logs. All major cryptographic, file, and memory vulnerabilities have been addressed.
 
 ---
 
 
-## 🔐 Cryptography & Encryption: 9.7/10
+## 🔐 Cryptography & Encryption: 9.5/10
 
 ### Technical Implementation
 - **Algorithm**: AES-256-GCM (Galois/Counter Mode)
@@ -39,7 +34,7 @@
 - **Authenticated Encryption**: GCM provides both confidentiality and integrity
 - **Random IVs**: Each encryption uses a unique initialization vector
 - **Salt Generation**: Cryptographically secure 128-bit salts
-- **Memory Security**: Consistent zeroization of all sensitive byte arrays and password data after use, using CryptoUtils.zeroize
+- **Memory Security**: Consistent zeroization of all sensitive byte arrays and password data after use, using CryptoUtils.zeroize. Note: the encryption password char[] is retained in FileEncryptionManager for the session duration (required for re-encryption on save); it is cleared on lock or when encryption is disabled
 - **File Permissions**: All encrypted and decrypted files are set to owner-only permissions (POSIX or Windows fallback) using CryptoUtils.setOwnerOnlyPermissions
 - **Streaming Reads**: `decryptFileToLines()` and streaming `openDecryptedStream()` reduce full-heap plaintext allocations for large files
 - **CryptoUtils Utility**: Centralizes best-practice cryptographic operations (constant-time comparison, file permissions, zeroization)
@@ -135,7 +130,7 @@ The encryption system is highly modular and well-encapsulated, making it suitabl
 
 ---
 
-## 💾 Data Protection: 8/10
+## 💾 Data Protection: 7.0/10
 
 
 ### File Security
@@ -143,7 +138,7 @@ The encryption system is highly modular and well-encapsulated, making it suitabl
 - **Authentication**: GCM prevents tampering detection
 - **Backup Security**: Encryption state preserved in backups
 - **Lock Mechanism**: Immediate memory clearing on lock
-- **File Permissions**: All encrypted and decrypted files are set to owner-only permissions
+- **File Permissions**: Owner-only permissions enforced on POSIX systems (Linux/macOS). On Windows, the JDK `File.setReadable/setWritable` calls used as fallback do not enforce NTFS ACLs — effective restriction to the current user depends on OS-level access control (e.g. separate user accounts)
 
 ### Application Security
 - **Single Instance**: Prevents concurrent access conflicts
@@ -207,6 +202,7 @@ The encryption system is highly modular and well-encapsulated, making it suitabl
 - ⚠️ **Cold Boot Attacks**: Memory recovery before clearing
 - ⚠️ **Social Engineering**: Users could be tricked into revealing passwords
 - ⚠️ **External Process Termination**: Clipboard content remains accessible if app is killed via task manager, system crash, or power outage
+- ⚠️ **Password in Session Memory**: The encryption password is retained in memory throughout the session (needed for save operations); cleared on lock or disable
 
 ---
 
@@ -224,7 +220,7 @@ The encryption system is highly modular and well-encapsulated, making it suitabl
 
 ### Overall Assessment
 **.LOG-hog is highly secure for personal and professional use.**
-All critical CWE vulnerabilities (path traversal, command injection, hardcoded keys, etc.) were NOT FOUND in the latest audit. No legacy/fallback crypto remains. Security is robust for daily use, with only minor risks (e.g., clipboard after forced termination) typical for desktop apps.
+All critical CWE vulnerabilities (path traversal, command injection, hardcoded keys, etc.) were NOT FOUND in the latest audit. Security is robust for daily use, with only minor risks (e.g., clipboard after forced termination) typical for desktop apps.
 
 ---
 
@@ -250,7 +246,8 @@ randomizedDelay = Math.max(1000, randomizedDelay);
 
 ### Memory Security
 - Passwords and sensitive byte arrays cleared with `CryptoUtils.zeroize` or `Arrays.fill`
-- Keys exist only during cryptographic operations
+- Derived AES keys exist only during cryptographic operations
+- The encryption password char[] is retained in `FileEncryptionManager` for the session duration (required to re-encrypt on every save); it is cleared on lock or disable
 - Sensitive data cleared immediately after use
 
 ---
@@ -306,7 +303,7 @@ When deleting sensitive files, LogHog uses a DoD-style 3-pass wipe:
 
 **⚠️ SSD/Flash Storage Note:** Secure file deletion is fundamentally limited on solid-state drives due to wear-leveling and over-provisioned space. Old data may persist in blocks inaccessible to the OS. For maximum security on SSDs, use full-disk encryption (BitLocker, FileVault, LUKS) rather than relying solely on file-level secure deletion.
 
-Note: recent hardening changes ensure encrypted files no longer produce plaintext `.bak` files. When the source file is encrypted, backups are created with the `.bak.enc` suffix and copy the encrypted bytes directly. The `LogFileHandler` and `BackupManager` use same-directory temporary files and atomic moves to avoid leaving partial plaintext files on disk. Legacy plaintext backups are detected and securely deleted when possible.
+When the source file is encrypted, backups are created with the `.bak.enc` suffix and copy the encrypted bytes directly. The `LogFileHandler` and `BackupManager` use same-directory temporary files and atomic moves to avoid leaving partial plaintext files on disk. Any pre-existing plaintext backups are detected and securely deleted.
 
 ### Backup Architecture
 ```java
@@ -320,27 +317,9 @@ if (autoBackupEnabled) {
 
 ---
 
-## ⚙️ Settings Encryption: 9.0/10 (UPDATED)
+## ⚙️ Settings Encryption: N/A (removed)
 
-### Separate Encryption Layer
-- **Purpose**: Defense in depth for application settings
-- **Algorithm**: AES-GCM with per-user random salt and PBKDF2-derived key (migrated from earlier ECB approaches)
-- **Key Generation**: PBKDF2WithHmacSHA256 over a per-user random salt; legacy deterministic-key approaches are deprecated
-- **Scope**: Protects sensitive settings regardless of log encryption status
-
-### Protected Data
-- Password reminders (when set)
-- Future sensitive configuration options
-- User preferences requiring privacy
-
-### Security Benefits
-- **Always Active**: Settings encrypted even in unencrypted mode
-- **Per-user Salt**: Random salt per user removes deterministic-key weakness
-- **Authenticated Encryption**: AES-GCM provides integrity and confidentiality for stored settings
--
-
-### Implementation Details
-Current implementation uses PBKDF2 with per-user random salt and AES/GCM for settings encryption. Salts are stored in settings (base64); each encrypted value is stored as `encrypted:<base64(iv + ciphertext)>`.
+The `SecureSettings` class and the password reminder feature have been removed from the application. No sensitive data is currently stored in settings — all settings values are plain text. If a future feature requires storing sensitive configuration, a settings encryption layer should be reintroduced with a key derived from the log password (not the OS username).
 
 ---
 

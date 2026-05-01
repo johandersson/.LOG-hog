@@ -27,11 +27,6 @@ public class TestableEncryptionManager implements Encryptor {
     }
 
     @Override
-    public String decryptWithFallback(byte[] data, char... passwordAndSalt) throws EncryptionException {
-        return delegate.decryptWithFallback(data, passwordAndSalt);
-    }
-
-    @Override
     public String decryptStream(java.io.InputStream in, char... passwordAndSalt) throws EncryptionException {
         return delegate.decryptStream(in, passwordAndSalt);
     }

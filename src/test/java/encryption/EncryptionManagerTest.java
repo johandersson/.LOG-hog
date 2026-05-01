@@ -40,16 +40,13 @@ public class EncryptionManagerTest {
         String originalText = "Hello, this is a test message for encryption!";
 
         assertDoesNotThrow(() -> {
-            // Derive key from password and salt
-            var key = encryptionManager.deriveKey(testPassword, testSalt);
-
             // Encrypt
-            byte[] encrypted = encryptionManager.encrypt(originalText, key);
+            byte[] encrypted = encryptionManager.encrypt(originalText, testPassword, testSalt);
             assertNotNull(encrypted, "Encrypted data should not be null");
             assertTrue(encrypted.length > originalText.length(), "Encrypted data should be longer than original");
 
             // Decrypt
-            String decrypted = encryptionManager.decryptWithFallback(encrypted, testPassword, testSalt);
+            String decrypted = encryptionManager.decrypt(encrypted, testPassword);
             assertEquals(originalText, decrypted, "Decrypted text should match original");
 
             System.out.println("✅ Basic encrypt/decrypt cycle works perfectly");
@@ -64,19 +61,16 @@ public class EncryptionManagerTest {
         char[] wrongPassword = "wrongPassword".toCharArray();
 
         assertDoesNotThrow(() -> {
-            // Derive key from correct password
-            var key = encryptionManager.deriveKey(testPassword, testSalt);
-
             // Encrypt with correct password
-            byte[] encrypted = encryptionManager.encrypt(message, key);
+            byte[] encrypted = encryptionManager.encrypt(message, testPassword, testSalt);
 
             // Should decrypt with correct password
-            String decrypted = encryptionManager.decryptWithFallback(encrypted, testPassword, testSalt);
+            String decrypted = encryptionManager.decrypt(encrypted, testPassword);
             assertEquals(message, decrypted, "Should decrypt with correct password");
 
             // Should fail with wrong password
             assertThrows(EncryptionException.class, () -> {
-                encryptionManager.decryptWithFallback(encrypted, wrongPassword, testSalt);
+                encryptionManager.decrypt(encrypted, wrongPassword);
             }, "Should fail with wrong password");
 
             System.out.println("✅ Password validation works correctly");
@@ -90,8 +84,7 @@ public class EncryptionManagerTest {
         String message = "Test message";
 
         assertDoesNotThrow(() -> {
-            var key = encryptionManager.deriveKey(testPassword, testSalt);
-            byte[] encrypted = encryptionManager.encrypt(message, key);
+            byte[] encrypted = encryptionManager.encrypt(message, testPassword, testSalt);
 
             // Corrupt the data by changing a byte
             byte[] corrupted = encrypted.clone();
@@ -101,7 +94,7 @@ public class EncryptionManagerTest {
 
             // Should fail to decrypt corrupted data
             assertThrows(EncryptionException.class, () -> {
-                encryptionManager.decryptWithFallback(corrupted, testPassword, testSalt);
+                encryptionManager.decrypt(corrupted, testPassword);
             }, "Should fail with corrupted data");
 
             System.out.println("✅ Corrupted data detected correctly");
@@ -116,7 +109,7 @@ public class EncryptionManagerTest {
         byte[] tooShortData = new byte[10]; // Less than GCM_IV_LENGTH (12)
 
         assertThrows(EncryptionException.class, () -> {
-            encryptionManager.decryptWithFallback(tooShortData, testPassword, testSalt);
+            encryptionManager.decrypt(tooShortData, testPassword);
         }, "Should reject data that's too short");
 
         System.out.println("✅ Too short data rejected with appropriate error message");
@@ -129,9 +122,8 @@ public class EncryptionManagerTest {
         String unicodeText = "Hello 世界! 🌍 Test with émojis: 😀🎉🚀";
 
         assertDoesNotThrow(() -> {
-            var key = encryptionManager.deriveKey(testPassword, testSalt);
-            byte[] encrypted = encryptionManager.encrypt(unicodeText, key);
-            String decrypted = encryptionManager.decryptWithFallback(encrypted, testPassword, testSalt);
+            byte[] encrypted = encryptionManager.encrypt(unicodeText, testPassword, testSalt);
+            String decrypted = encryptionManager.decrypt(encrypted, testPassword);
             assertEquals(unicodeText, decrypted, "Unicode text should be preserved");
 
             System.out.println("✅ Unicode and emoji data handled correctly");

@@ -109,11 +109,10 @@ public class SystemIntegrationTest {
 
         assertDoesNotThrow(() -> {
             // Encrypt the text
-            var key = encryptionManager.deriveKey(password, salt);
-            byte[] encrypted = encryptionManager.encrypt(originalText, key);
+            byte[] encrypted = encryptionManager.encrypt(originalText, password, salt);
 
             // Decrypt it back
-            String decrypted = encryptionManager.decryptWithFallback(encrypted, password, salt);
+            String decrypted = encryptionManager.decrypt(encrypted, password);
 
             // Verify round-trip success
             assertEquals(originalText, decrypted, "Decrypted text should match original");

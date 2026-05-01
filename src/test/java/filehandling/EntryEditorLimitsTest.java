@@ -21,8 +21,7 @@ public class EntryEditorLimitsTest {
                 public javax.crypto.SecretKey deriveKey(char[] password, byte[] salt) { return null; }
                 public byte[] encrypt(String data, char[] password, byte[] salt) { return new byte[0]; }
                 public String decrypt(byte[] data, char[] password) { return ""; }
-                public String decryptWithFallback(byte[] data, char[] password, byte[] salt) { return ""; }
-                public String decryptStream(java.io.InputStream in, char[] password, byte[] salt) { return ""; }
+                public String decryptStream(java.io.InputStream in, char... passwordAndSalt) { return ""; }
             };
             FileEncryptionManager fem = new FileEncryptionManager(tmp, stub);
             FileCache cache = new FileCache();
