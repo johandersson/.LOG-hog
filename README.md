@@ -29,9 +29,6 @@ The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen
   - Comprehensive help documentation
   - GPL3 licensed
 
-## Third-Party Components
-- **EFF Diceware Word List**: Used for secure passphrase generation. Released under Creative Commons Zero (CC0) license (public domain).
-
 ## System Requirements & Footprint
 
 **Minimal System Requirements:**
