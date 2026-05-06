@@ -1,28 +1,13 @@
 # .LOG-hog
 
 **A secure, feature-rich Java Swing logging application that works on Windows, macOS, and Linux.**
-
-## Security
-**Security Rating: 9.5/10** — Strong defaults (AES-256-GCM, PBKDF2-600,000), progressive delays, enforced password strength, atomic encrypted writes, and minimal in-memory exposure. All major vulnerabilities addressed; see [src/encryption.md](src/encryption.md) for details.
-
-**File Permissions & Temp Files:**
-- **Owner-only permissions:** .LOG-hog attempts to set owner-only file permissions (`rw-------`) on newly created or modified plaintext and backup files where the platform supports POSIX file permissions. On non-POSIX platforms (Windows), the code falls back to best-effort Java owner-only file flags. See `utils/SecureTempFiles` and `encryption.CryptoUtils.setOwnerOnlyPermissions()` for implementation details.
-- **Crash cleanup:** Temporary files created for streaming encryption/decryption are marked for best-effort deletion on JVM shutdown and tracked via a shutdown hook to reduce leftover plaintext after crashes.
-
-**🔒 Oracle Secure Coding Guidelines Conformance** - .LOG-hog has been hardened to conform to [Oracle's Secure Coding Guidelines for Java SE](https://www.oracle.com/java/technologies/javase/seccodeguide.html), addressing all CRITICAL, HIGH, and MEDIUM priority security requirements:
-- ✅ **Information Disclosure Prevention**: Generic error messages without internal details
-- ✅ **Immutable Static Fields**: Prevented runtime state corruption
-- ✅ **Defensive Copying**: Protected mutable internal state from external modification
-- ✅ **Resource Management**: File size limits (200MB) and doubled entry render limits (1,200,000 entries, 6,000 for UI) prevent memory exhaustion attacks
-- ✅ **Secure Exception Handling**: All exceptions logged, never swallowed
-- ✅ **Fail-Secure Design**: Empty string on encryption failure, never plaintext fallback
-
-See [src/encryption.md](src/encryption.md) for comprehensive security documentation.
-
 ## Purpose
 The purpose of .LOG-hog is to enable quick note-taking. Upon opening, the screen focuses directly on the editor window for immediate writing. After composing your note, press Ctrl+S or click Save to clear the text field and save the entry into a dated log. This clearing allows you to write a new log entry right away, facilitating rapid and efficient note-taking.
 
 **✨ Works seamlessly on Windows, macOS, and Linux!** Use your favorite text editor on any platform to view and edit your log files. .LOG-hog is inspired by [Windows Notepad's .LOG feature](https://www.howtogeek.com/359463/what-is-a-log-file/) but brings this convenient timestamping concept to all platforms with powerful enhancements like encryption, search, and advanced backup systems.
+
+## Security
+**Security Rating: 9.5/10** — Strong defaults (AES-256-GCM, PBKDF2-600,000), progressive delays, enforced password strength, atomic encrypted writes, and minimal in-memory exposure. All major vulnerabilities addressed; see [src/encryption.md](src/encryption.md) for details.
 
 ## Features
 - Tabbed interface for writing and browsing logs
