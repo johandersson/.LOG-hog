@@ -1,179 +1,131 @@
-# 📘 Welcome to .LOG-hog
+# 📦 .LOG-hog
 
-## Purpose
+**A lightweight, cross-platform Java application for secure and efficient note-taking.**
 
-.LOG-hog is designed for **fast, focused note-taking**.
-
-When the application starts, the editor is immediately focused so you can begin writing without interruption. Press **Ctrl+S** or click **Save** to store your entry as a timestamped log entry and automatically clear the editor for the next note.
-
-This workflow allows rapid, continuous note-taking with minimal friction.
+.LOG-hog runs on **Windows, macOS, and Linux** and provides a fast workflow for creating timestamped log entries, with optional encryption and advanced data handling features.
 
 ***
 
-## ⚡ Lightweight & Cross-Platform
+## 🧠 Purpose
 
-* **Small footprint (\~230 KB)** with no external runtime dependencies
-* Built in **pure Java**, ensuring consistent behavior across platforms
-* Runs on **Windows, macOS, and Linux**
+.LOG-hog is designed for **fast, uninterrupted note-taking**.
 
-The application starts quickly and is designed to be efficient for everyday use.
+On startup, the editor is immediately focused so you can begin writing right away. Press **Ctrl+S** or click **Save** to store the entry with a timestamp. The input field is then cleared automatically, allowing you to continue writing without interruption.
+
+This workflow is optimized for rapid, continuous logging.
 
 ***
 
-## 🗂️ .LOG Format Compatibility
+## 🗂️ Format & Compatibility
 
-.LOG-hog is fully compatible with standard `.LOG` files.
+.LOG-hog works with standard `.LOG` files:
 
-* Open an existing `.LOG` file and continue working immediately
-* Your data remains **plain text by default**, editable in any text editor
-* Advanced features (encryption, search, formatting) are layered on top
+* Files remain **plain text by default**
+* You can open and edit them in any text editor
+* Additional features (encryption, search, formatting) are optional layers
 
-### About the Format
-
-.LOG-hog is inspired by the classic **Notepad `.LOG` behavior**, where timestamps are appended automatically.  
-It extends this concept with:
+Inspired by <https://www.howtogeek.com/359463/what-is-a-log-file/>, .LOG-hog extends it with:
 
 * structured entries
-* search and filtering
+* advanced search and filtering
 * optional encryption
-* backups
+* automatic backups
 * markdown rendering
 
 ***
 
-# 🔐 Security Overview
+## 🔐 Security
 
-.LOG-hog uses **modern cryptographic techniques and secure coding practices** to protect data at rest.
+.LOG-hog uses **modern, well-established cryptographic techniques** and secure coding practices to protect data at rest.
 
-### Key Security Features
+### Highlights
 
 * **AES-256-GCM authenticated encryption**
 * **PBKDF2 (600,000 iterations)** for key derivation
 * Progressive delay on failed password attempts
-* Sensitive data stored in memory as mutable arrays and cleared after use
-* Clipboard auto-clearing for sensitive content
+* No hardcoded keys or credentials
+* Sensitive data cleared from memory after use
 * Optional encrypted backups
-* Secure file handling and path validation
-* Static analysis tools used to detect common vulnerability classes
+* Clipboard auto-clear for sensitive content
+* Static analysis (SpotBugs / FindSecBugs) used to detect common vulnerability classes
 
-👉 See `encryption.md` for detailed technical information.
+👉 See src/encryption.md for full technical details.
 
 ***
 
-## ⚠️ Security Model (Important)
+## ⚠️ Security Model
 
-.LOG-hog is designed to protect:
+.LOG-hog is designed to protect against:
 
-* Local files and backups against unauthorized access
-* Data at rest from offline attacks
+* Unauthorized access to local files or backups
+* Offline attacks on encrypted data
 
 It does **not protect against**:
 
 * Malware or keyloggers
-* Attackers with access to system memory during an active session
-* Clipboard access after unexpected termination
+* System-level compromise
+* Memory access during an active session
 
-👉 Security ultimately depends on:
+👉 Security depends on using:
 
 * a **trusted system**
-* and a **strong password**
+* a **strong, unique password**
 
 ***
 
-## 📋 Clipboard Security
+## ✨ Features
 
-Sensitive data copied from .LOG-hog is protected with:
-
-* **Automatic clearing** after a configurable timeout (default: 15 seconds)
-* Manual "Clear Clipboard" option
-* User warnings when copying sensitive content
-
-### ⚠️ Limitation
-
-If the app is terminated unexpectedly (e.g., crash, forced quit):
-
-* Clipboard contents are **not cleared automatically**
-
-👉 Always manually clear the clipboard after unexpected termination.
-
-***
-
-# ✨ Key Features
-
-* **Tabbed interface** for writing and browsing logs
-* **Quick entry workflow** with automatic timestamps
-* **Advanced search and filtering**
-* **Single-instance enforcement**
-* **Right-click actions** (edit date, delete, copy)
-* **Optional encryption**
-* **Manual lock / unlock**
-* **Backup and restore support**
-* **System tray integration**
+* Tabbed interface for writing and browsing logs
+* Fast entry workflow with automatic timestamps
+* Optional encryption (AES-GCM)
+* Secure password handling with retry delays
+* Built-in password generator (random + passphrase)
+* Clipboard auto-clear for sensitive content
+* Manual lock/unlock
+* Advanced search (case sensitivity, navigation, filtering)
+* Markdown rendering in full log view
+* Info panel (entries, days logged, file size)
+* Automatic and manual backups
+* Single-instance enforcement
+* Right-click editing (delete, timestamp modification)
+* Support for multiple timestamp formats (ISO, US, EU, etc.)
+* System tray integration
+* GPLv3 licensed
 
 ***
 
-# ⌨️ Keyboard Shortcuts
+## ⚙️ System Requirements
 
-* **Ctrl+S** – Save entry
-* **Ctrl+N** – New quick entry
-* **Ctrl+R** – Refresh log
-* **Ctrl+F** – Search
-
-***
-
-# 🔎 Filtering Entries
-
-* **Search bar** for keyword filtering
-* **Date range filtering** for time-based queries
+* **Java 17+**
+* \~25–50 MB RAM
+* \~200 MB free disk space
+* **Supported:** Windows, macOS, Linux
 
 ***
 
-# 🧩 System Tray Features
+## 📦 Footprint
 
-* Quick access to recent entries
-* Add new entries directly
-* Clipboard control (clear sensitive data)
-* Access clipboard security settings
+* Application JAR: \~230 KB
+* No external dependencies
+* Single-file distribution
 
-***
+This results in:
 
-# 💾 Backup and Restore
-
-### Backups
-
-* Manual backup from Settings
-* Optional automatic backups
-* Backups preserve encryption state
-
-### Important Notes
-
-* File overwrite uses best-effort secure deletion
-* On SSDs, deletion is not guaranteed due to hardware behavior
-
-### Restore
-
-Replace your log file manually with a backup file if needed.
+* fast startup
+* easy portability
+* minimal installation complexity
 
 ***
 
-# 🔐 Encryption
+## 🔐 Encryption Notes
 
-### Enabling Encryption
-
-* Enable from the Settings tab
-* Requires a strong password
-* Password is never stored on disk
-
-***
-
-### Security Notes
-
-* Encryption uses **AES-GCM**, a widely used authenticated encryption mode
-* Keys are derived using PBKDF2 with a high iteration count
-* Sensitive data is cleared from memory after use
+* Uses **AES-GCM** for authenticated encryption
+* Keys derived from your password using PBKDF2
+* Password is never written to disk
+* Sensitive memory is cleared after use
 
 ⚠️ **Important:**  
-If you forget your password, your data cannot be recovered.
+If you forget your password, encrypted data cannot be recovered.
 
 ***
 
@@ -181,98 +133,93 @@ If you forget your password, your data cannot be recovered.
 
 * Use **20+ characters**
 * Prefer random or passphrase-based passwords
-* Avoid reuse across services
-* Use a password manager
+* Avoid reuse and predictable patterns
+* Use a password manager where possible
 
 ***
 
-### Password Generator
+## ⚠️ Performance Note
 
-.LOG-hog includes a built-in generator:
-
-* Random passwords
-* Diceware-style passphrases
-* Strength indicator
+When encryption is enabled, loading and saving may be slightly slower due to encryption/decryption operations. During a session, decrypted data may be cached in memory for performance.
 
 ***
 
-### Usage
+## 🛠️ Building from Source
 
-* Password is required on application startup
-* Failed attempts trigger increasing delays
+### Windows
 
-***
-
-### Lock / Unlock
-
-* Lock clears decrypted data from memory
-* Unlock requires password re-entry
-
-***
-
-### Performance Note
-
-Encryption introduces a small delay during loading and saving.  
-Decrypted data is cached in memory for performance during active use.
-
-***
-
-# ✏️ Editing Entries
-
-* **Edit Timestamp** via right-click
-* **Delete Entries** with confirmation
-* **Copy to clipboard** (with auto-clear protection)
-
-***
-
-# 🔗 Links
-
-You can include:
-
-* URLs
-* Local file links
-
-Example:
-
+```bash
+cd src
+build.bat
 ```
-http://example.com
-file:///path/to/file
+
+### Linux / macOS
+
+```bash
+cd src
+chmod +x build.sh
+./build.sh
 ```
 
 ***
 
-# 📝 Markdown Support
+### Manual Build
 
-Supported formatting:
-
-* Headers (`#`)
-* Bold / Italic
-* Links
-* Lists
-* Blockquotes
-* Inline and block code
-
-Rendering applies in the Full Log view.
-
-***
-
-# ⚙️ Performance Notes
-
-* Large logs are partially rendered for responsiveness
-* Use filters to access older entries
+```bash
+cd src
+javac -d . $(find . -name "*.java" ! -path "*/test/*")
+jar cvfm ../build/loghog.jar manifest.txt \
+LogHog.class main/*.class gui/*.class filehandling/*.class \
+clipboard/*.class notepad/*.class browser/*.class \
+encryption/*.class markdown/*.class services/*.class \
+utils/*.class resources/
+```
 
 ***
 
-# 📄 License
+### Run
 
-.LOG-hog is licensed under **GPL v3**.  
+```bash
+java -jar build/loghog.jar
+```
+
+***
+
+## 🧪 Testing
+
+.LOG-hog includes tests using **JUnit 5**.
+
+### Running Tests
+
+* Use `run_tests_simple.bat`
+* Tests output PASS/FAIL results in console
+
+### Notes
+
+* Test classes located in `src/test/java/`
+* JUnit 5 required on classpath
+
+***
+
+## 📚 Documentation
+
+* ARCHITECTURE.md
+* ../javadocs/index.html
+* See help file and CHANGELOG for usage details
+
+***
+
+## 📄 License
+
+Licensed under **GNU GPL v3**.  
 See `LICENSE.md` for details.
 
 ***
 
-# 📦 Repository
+## 🔗 Repository
 
 GitHub:  
 <http://github.com/johandersson/.LOG-hog>
 
 ***
+
