@@ -6,49 +6,25 @@
 
 ***
 
-## 📖 Quick Start for New Developers
+## 📖 Quick Start for Developers
 
-This document describes the internal design of .LOG-hog.
-
-* A **desktop application** for timestamped note-taking
+* Desktop application for timestamped note-taking
 * Written in **Java (JDK 17+)**
-* Uses **AES-256-GCM for optional encryption**
-* Built using **standard Java libraries (no external dependencies)**
-
-***
-
-### What is “Architecture”?
-
-Software architecture describes:
-
-* The main components of the system
-* How they interact
-* How responsibilities are separated
+* Optional encryption using **AES-256-GCM**
+* Uses only standard JDK libraries (no external dependencies)
 
 ***
 
 ## 🏠 System Overview
 
-.LOG-hog follows a **layered architecture**:
-
 
 
 ### Layer Responsibilities
 
-* **UI Layer** – User interface (Swing components)
-* **Application Layer** – Coordinates workflows
-* **Service Layer** – Implements business logic
-* **Data Layer** – File system interaction
-
-***
-
-### Why This Design?
-
-Layering helps:
-
-* isolate responsibilities
-* simplify testing
-* reduce coupling between components
+* UI Layer – Swing interface
+* Application Layer – Coordinates logic
+* Service Layer – Core functionality
+* Data Layer – File system
 
 ***
 
@@ -58,60 +34,31 @@ Layering helps:
 
 ### Responsibilities
 
-| Component             | Description                     |
-| --------------------- | ------------------------------- |
-| **LogHog.java**       | Application entry point         |
-| **LogTextEditor**     | Main UI window                  |
-| **LogFileHandler**    | File I/O and orchestration      |
-| **EncryptionManager** | Encryption and decryption logic |
-| **BackupManager**     | Backup creation and rotation    |
+* LogHog.java – Entry point
+* LogTextEditor – Main UI
+* LogFileHandler – File operations
+* EncryptionManager – Crypto logic
+* BackupManager – Backup handling
 
 ***
 
 ## 🔐 Encryption Workflow
 
-### Save Flow
+### Save
 
 
 
 ***
 
-### Load Flow
+### Load
 
 
-
-***
-
-### Key Concepts
-
-| Term    | Description                               |
-| ------- | ----------------------------------------- |
-| AES-256 | Symmetric encryption algorithm            |
-| GCM     | Provides confidentiality + integrity      |
-| PBKDF2  | Password-based key derivation             |
-| Salt    | Randomized input to prevent reuse attacks |
-| IV      | Unique nonce for encryption operations    |
 
 ***
 
 ## 💾 Backup System
 
-.LOG-hog uses **rotating backups**:
 
-* `.bak`, `.bak.1`, `.bak.2`, etc.
-* Optional timestamped backups
-
-***
-
-### Secure Deletion (Best-effort)
-
-Files are overwritten multiple times before deletion:
-
-1. Random data
-2. Fixed pattern
-3. Zeros
-
-⚠️ **Note:** This approach is not fully reliable on SSDs due to wear-leveling.
 
 ***
 
@@ -123,11 +70,9 @@ Files are overwritten multiple times before deletion:
 
 ## 🔒 Password Handling
 
-* Password required for encrypted logs
-* Progressive delay on failed attempts
-* Maximum attempt limit before restart
-
-This reduces automated brute-force attempts but does not prevent attacks on extracted data.
+* Progressive delays on failure
+* Limited attempts
+* Restart required after limit
 
 ***
 
@@ -144,60 +89,34 @@ src/
 └── resources/
 ```
 
-### Key Modules
-
-* **encryption/** – cryptographic operations
-* **filehandling/** – log parsing and storage
-* **gui/** – user interface
-* **clipboard/** – clipboard handling
-* **utils/** – shared utilities
-
 ***
 
 ## 🎯 Design Patterns
 
-### 1. Singleton
-
-Used for shared services where only one instance is required.
-
-### 2. Factory
-
-Centralizes creation of service objects.
-
-### 3. Observer
-
-Used for UI updates when data changes.
-
-### 4. Facade
-
-Simplifies interaction with complex subsystems (e.g., `LogFileHandler`).
+* Singleton
+* Factory
+* Observer
+* Facade
 
 ***
 
 ## 🔧 Technology Stack
 
-| Area     | Choice                |
-| -------- | --------------------- |
-| Language | Java 17               |
-| UI       | Swing                 |
-| Crypto   | JDK cryptography APIs |
-| Build    | javac / jar           |
+| Area     | Choice      |
+| -------- | ----------- |
+| Language | Java 17     |
+| UI       | Swing       |
+| Crypto   | JDK APIs    |
+| Build    | javac / jar |
 
 ***
 
 ## ⚠️ Security Considerations
 
-.LOG-hog is designed to:
-
-* Protect data at rest
-* Prevent unauthorized file access
-
-Limitations:
-
-* Does not protect against malware or keyloggers
-* Does not protect memory during active sessions
-* Secure deletion is best-effort only
-* Clipboard contents may persist after crashes
+* Protects data at rest
+* Does not protect against malware
+* Memory exposed during session
+* Secure deletion is best-effort
 
 ***
 
@@ -209,19 +128,24 @@ Limitations:
 
 ## 📈 Performance
 
-* Low startup time
-* Moderate memory usage (\~tens of MB)
-* Performance depends on file size and encryption state
+* Fast startup
+* Low memory usage
+* Depends on file size and encryption
 
 ***
 
 ## 📚 Glossary
 
-(kept – already good)
+* AES – encryption algorithm
+* GCM – integrity + encryption
+* PBKDF2 – key derivation
+* IV – initialization vector
+* Salt – random input
+* Swing – UI framework
 
 ***
 
-## 🔗 Documentation
+## 🔗 Related Docs
 
 * encryption.md
 * help.md
@@ -229,4 +153,4 @@ Limitations:
 
 ***
 
-Just say 👍
+*Architecture document v2.0 – April 2026*
