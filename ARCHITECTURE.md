@@ -6,77 +6,103 @@
 
 ***
 
-## 📖 Quick Start for Developers
-
-* Desktop application for timestamped note-taking
-* Written in **Java (JDK 17+)**
-* Optional encryption using **AES-256-GCM**
-* Uses only standard JDK libraries (no external dependencies)
-
-***
-
-## 🏠 System Overview
+## System Overview
 
 
 
-### Layer Responsibilities
+### Layers
 
-* UI Layer – Swing interface
-* Application Layer – Coordinates logic
-* Service Layer – Core functionality
-* Data Layer – File system
+* UI: Swing interface
+* APP: Application coordination
+* SVC: Core services
+* DATA: File system
 
 ***
 
-## 🧩 Core Components
+## Core Components
 
 
 
-### Responsibilities
+### Components
 
-* LogHog.java – Entry point
-* LogTextEditor – Main UI
-* LogFileHandler – File operations
-* EncryptionManager – Crypto logic
-* BackupManager – Backup handling
-
-***
-
-## 🔐 Encryption Workflow
-
-### Save
-
-
+* `LogHog`: entry point
+* `LogTextEditor`: main window
+* `LogFileHandler`: file operations
+* `EncryptionManager`: crypto operations
+* `BackupManager`: backups
 
 ***
 
-### Load
+## Encryption Flow
 
+```mermaid
+flowchart LR
+    user["User / UI"]
+    editor["LogTextEditor"]
+    handler["LogFileHandler"]
+    encrypt["EncryptionManager"]
+    pbkdf2["PBKDF2 (Key Derivation)"]
+    aes["AES-GCM"]
+    storage["File System (DATA)"]
+    backup["BackupManager"]
 
+    user --> editor
+    editor --> handler
+    handler --> encrypt
+    encrypt --> pbkdf2
+    pbkdf2 --> aes
+    aes --> handler
+    handler --> storage
+    handler --> backup
+    backup --> storage
+```
 
 ***
 
-## 💾 Backup System
+## Backup Flow
 
+```mermaid
+flowchart LR
+    handler["LogFileHandler"]
+    backup["BackupManager"]
+    storage["File System"]
+    remote["Remote Backup Storage"]
 
+    handler -->|triggers backup| backup
+    backup -->|reads| storage
+    backup -->|writes| remote
+    backup -->|verifies| handler
+```
 
 ***
 
-## 🚀 Startup Flow
+## Startup Flow
 
+```mermaid
+flowchart TD
+    loghog["LogHog"]
+    config["Config Loader"]
+    keyring["KeyringManager"]
+    services["SVC (Core services)"]
+    ui["LogTextEditor (UI)"]
 
+    loghog --> config
+    config --> keyring
+    keyring --> services
+    services --> ui
+```
 
 ***
 
-## 🔒 Password Handling
+## Password Handling
 
-* Progressive delays on failure
-* Limited attempts
+* Progressive delays after failed attempts
+* Limited retries
 * Restart required after limit
 
 ***
 
-## 📦 Project Structure
+## Project Structure
 
 ```
 src/
@@ -91,7 +117,7 @@ src/
 
 ***
 
-## 🎯 Design Patterns
+## Design Patterns
 
 * Singleton
 * Factory
@@ -100,52 +126,62 @@ src/
 
 ***
 
-## 🔧 Technology Stack
+## Technology Stack
 
-| Area     | Choice      |
-| -------- | ----------- |
-| Language | Java 17     |
-| UI       | Swing       |
-| Crypto   | JDK APIs    |
-| Build    | javac / jar |
+| Area     | Technology |
+| -------- | ---------- |
+| Language | Java 17    |
+| UI       | Swing      |
+| Crypto   | JDK        |
+| Build    | javac      |
 
 ***
 
-## ⚠️ Security Considerations
+## Security Considerations
 
 * Protects data at rest
-* Does not protect against malware
+* No protection against malware
 * Memory exposed during session
 * Secure deletion is best-effort
 
 ***
 
-## 📊 Data Flow
+## Data Flow
 
+```mermaid
+flowchart LR
+    UI["UI: LogTextEditor"]
+    APP["APP: LogHog / Coordinators"]
+    SVC["SVC: EncryptionManager / BackupManager / LogFileHandler"]
+    DATA["DATA: File System"]
 
+    UI --> APP
+    APP --> SVC
+    SVC --> DATA
+    SVC --> APP
+```
 
 ***
 
-## 📈 Performance
+## Performance
 
 * Fast startup
-* Low memory usage
-* Depends on file size and encryption
+* Low memory use
+* Depends on file size
 
 ***
 
-## 📚 Glossary
+## Glossary
 
-* AES – encryption algorithm
-* GCM – integrity + encryption
-* PBKDF2 – key derivation
-* IV – initialization vector
-* Salt – random input
-* Swing – UI framework
+* AES: encryption
+* GCM: integrity + encryption
+* PBKDF2: key derivation
+* IV: initialization vector
+* Salt: random input
 
 ***
 
-## 🔗 Related Docs
+## Documentation
 
 * encryption.md
 * help.md
