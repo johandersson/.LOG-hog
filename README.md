@@ -1,8 +1,8 @@
 # 📦 .LOG-hog
 
-**A lightweight, cross-platform Java application for secure and efficient note-taking.**
+**A lightweight, cross-platform Java application for fast note-taking with built-in protection for your data.**
 
-.LOG-hog runs on **Windows, macOS, and Linux** and provides a fast workflow for creating timestamped log entries, with optional encryption and advanced data handling features.
+.LOG-hog runs on **Windows, macOS, and Linux** and provides a simple, efficient workflow for creating timestamped log entries—while offering stronger privacy controls than typical plain-text logging tools.
 
 ***
 
@@ -24,7 +24,7 @@ This workflow is optimized for rapid, continuous logging.
 * You can open and edit them in any text editor
 * Additional features (encryption, search, formatting) are optional layers
 
-Inspired by <https://www.howtogeek.com/359463/what-is-a-log-file/>, .LOG-hog extends it with:
+Inspired by <https://www.howtogeek.com/359463/what-is-a-log-file/>, .LOG-hog extends this format with:
 
 * structured entries
 * advanced search and filtering
@@ -36,20 +36,29 @@ Inspired by <https://www.howtogeek.com/359463/what-is-a-log-file/>, .LOG-hog ext
 
 ## 🔐 Security
 
-.LOG-hog uses **modern, well-established cryptographic techniques** and secure coding practices to protect data at rest.
+.LOG-hog provides **strong, practical protection for locally stored data**, going beyond what most note-taking apps offer by default.
 
 ### Highlights
 
 * **AES-256-GCM authenticated encryption**
-* **PBKDF2 (600,000 iterations)** for key derivation
+* **PBKDF2 (600,000 iterations)** for password-based key derivation
 * Progressive delay on failed password attempts
 * No hardcoded keys or credentials
 * Sensitive data cleared from memory after use
 * Optional encrypted backups
-* Clipboard auto-clear for sensitive content
+* Clipboard auto-clear to reduce accidental exposure
 * Static analysis (SpotBugs / FindSecBugs) used to detect common vulnerability classes
 
-👉 See src/encryption.md for full technical details.
+👉 See `src/encryption.md` for detailed technical information.
+
+### Why this matters
+
+Most note-taking tools:
+
+* store data entirely in plaintext
+* provide minimal protection against local access
+
+.LOG-hog keeps the simplicity of text files while allowing you to **add meaningful protection when handling sensitive information**.
 
 ***
 
@@ -66,10 +75,10 @@ It does **not protect against**:
 * System-level compromise
 * Memory access during an active session
 
-👉 Security depends on using:
+👉 Security depends on:
 
-* a **trusted system**
-* a **strong, unique password**
+* using a **trusted system**
+* choosing a **strong, unique password**
 
 ***
 
@@ -196,7 +205,7 @@ java -jar build/loghog.jar
 
 ### Notes
 
-* Test classes located in `src/test/java/`
+* Test classes are in `src/test/java/`
 * JUnit 5 required on classpath
 
 ***
@@ -205,7 +214,7 @@ java -jar build/loghog.jar
 
 * ARCHITECTURE.md
 * ../javadocs/index.html
-* See help file and CHANGELOG for usage details
+* See help file and CHANGELOG for details
 
 ***
 
