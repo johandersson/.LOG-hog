@@ -208,7 +208,8 @@ public class LogTextEditor extends JFrame {
                         throw new RuntimeException(e);
                     }
                 },
-                this::saveSettings);
+                this::saveSettings,
+                backupManager);
 
             // Setup key bindings and system components
             setupKeyBindings();
@@ -529,6 +530,7 @@ public class LogTextEditor extends JFrame {
     public void manualLock() {
         synchronized (lockObject) {
             logFileHandler.clearSensitiveData();
+            backupManager.clearInMemoryHmacKey();
             // Clear secure clipboard state when locking to minimize exposure
             try {
                 clipboard.SecureClipboardManager.onLock();

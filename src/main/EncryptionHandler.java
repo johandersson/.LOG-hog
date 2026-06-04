@@ -46,6 +46,7 @@ public class EncryptionHandler {
     private final Runnable updateUILockStateCallback;
     private final Runnable loadFullLogCallback;
     private final Runnable saveSettingsCallback;
+    private final BackupManager backupManager;
 
     /**
      * Constructs an EncryptionHandler with the necessary dependencies.
@@ -56,10 +57,12 @@ public class EncryptionHandler {
      * @param loadLogEntriesCallback callback to load log entries
      * @param updateUILockStateCallback callback to update UI lock state
      * @param loadFullLogCallback callback to load full log
+     * @param backupManager the BackupManager for deriving the session HMAC key
      */
     public EncryptionHandler(JFrame parentFrame, LogFileHandler logFileHandler, Properties settings,
                            Runnable loadLogEntriesCallback, Runnable updateUILockStateCallback,
-                           Runnable loadFullLogCallback, Runnable saveSettingsCallback) {
+                           Runnable loadFullLogCallback, Runnable saveSettingsCallback,
+                           BackupManager backupManager) {
         this.parentFrame = parentFrame;
         this.logFileHandler = logFileHandler;
         this.settings = settings;
@@ -67,6 +70,7 @@ public class EncryptionHandler {
         this.updateUILockStateCallback = updateUILockStateCallback;
         this.loadFullLogCallback = loadFullLogCallback;
         this.saveSettingsCallback = saveSettingsCallback;
+        this.backupManager = backupManager;
     }
 
     /**
@@ -210,6 +214,11 @@ public class EncryptionHandler {
                 try {
                     loadLogEntriesCallback.run();
                     success = true;
+
+                    // Derive the backup HMAC key from credentials so it is never stored in settings.
+                    // The key is only computable with the correct password.
+                    backupManager.deriveAndSetHmacKey(pwd, salt);
+
                     if (!exitOnCancel) {
                         // For reload, update UI state
                         updateUILockStateCallback.run();

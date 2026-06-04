@@ -31,6 +31,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.nio.CharBuffer;
+import java.security.MessageDigest;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
@@ -383,11 +385,61 @@ public class BackupManager {
     private static final String HMAC_KEY_SETTING = "backupHmacKey";
 
     /**
-     * Gets or generates the HMAC key for backup integrity verification.
-     * The key is randomly generated on first use and stored persistently in settings.
-     * This prevents trivial forgery of backup integrity signatures.
+     * Session-only HMAC key derived from the user's password after authentication.
+     * Never persisted to disk — derived fresh each session from password + salt.
+     * When set, this is used instead of (and prevents writing) the stored random key.
+     */
+    private byte[] inMemoryHmacKey = null;
+
+    /**
+     * Derives and stores the backup HMAC key from the user's credentials.
+     * Called after successful password authentication. The key is computed as
+     * SHA-256(password_bytes || salt || "loghog-backup-hmac-v1") so it cannot
+     * be computed without knowing the password — nothing sensitive is stored in settings.
+     */
+    public void deriveAndSetHmacKey(char[] password, byte[] salt) {
+        java.nio.ByteBuffer pwdBuf = java.nio.charset.StandardCharsets.UTF_8
+                .encode(CharBuffer.wrap(password));
+        byte[] pwdBytes = new byte[pwdBuf.remaining()];
+        pwdBuf.get(pwdBytes);
+        try {
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            sha256.update(pwdBytes);
+            sha256.update(salt);
+            sha256.update("loghog-backup-hmac-v1".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            byte[] derived = sha256.digest();
+            clearInMemoryHmacKey();
+            inMemoryHmacKey = derived;
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
+        } finally {
+            java.util.Arrays.fill(pwdBytes, (byte) 0);
+        }
+    }
+
+    /**
+     * Zeros and discards the in-memory HMAC key. Call on file lock.
+     */
+    public void clearInMemoryHmacKey() {
+        if (inMemoryHmacKey != null) {
+            java.util.Arrays.fill(inMemoryHmacKey, (byte) 0);
+            inMemoryHmacKey = null;
+        }
+    }
+
+    /**
+     * Returns the HMAC key to use for backup signing/verification.
+     * Prefers the session-derived key (requires password) over the stored random key.
+     * For unencrypted files where no session key has been set, falls back to the
+     * stored random key so existing unencrypted backups continue to verify.
      */
     private byte[] getOrCreateHmacKey() {
+        if (inMemoryHmacKey != null) {
+            // Return a defensive copy — caller must not hold this reference
+            return java.util.Arrays.copyOf(inMemoryHmacKey, inMemoryHmacKey.length);
+        }
+
+        // Fall back to stored key (unencrypted-file path only)
         String storedKey = settings.getProperty(HMAC_KEY_SETTING);
         if (storedKey != null && !storedKey.isEmpty()) {
             try {
@@ -399,15 +451,12 @@ public class BackupManager {
                 // Invalid base64, regenerate
             }
         }
-        
-        // Generate new random 256-bit key
+
+        // Generate and persist a random key (only reached for unencrypted files)
         byte[] newKey = new byte[32];
         new java.security.SecureRandom().nextBytes(newKey);
-        
-        // Store in settings
         settings.setProperty(HMAC_KEY_SETTING, java.util.Base64.getEncoder().encodeToString(newKey));
         saveSettings();
-        
         return newKey;
     }
 
