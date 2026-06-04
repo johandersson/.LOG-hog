@@ -132,8 +132,27 @@ public class EncryptionHandler {
             // File looks encrypted -> decode the stored salt and authenticate
             saltStr = settings.getProperty("salt");
             if (saltStr == null) {
+                // Settings file may have been lost. Since the LOGH format embeds the salt
+                // in the file header, we can recover it — no data is permanently lost.
+                byte[] recoveredSalt = EncryptionDetector.extractSaltFromHeader(pathNow);
+                if (recoveredSalt != null) {
+                    DialogHelper.showInfo(parentFrame, "Settings File Lost — Recovering",
+                        "<html><b>Your settings file appears to have been lost or reset.</b><br><br>"
+                        + "Don't worry — your encrypted log is still fully accessible.<br>"
+                        + "The encryption metadata has been recovered from the file itself.<br><br>"
+                        + "Please enter your password to unlock and restore access.</html>");
+                    // Persist the recovered salt so subsequent launches work normally
+                    settings.setProperty("salt", Base64.getEncoder().encodeToString(recoveredSalt));
+                    settings.setProperty("encrypted", "true");
+                    try {
+                        if (saveSettingsCallback != null) saveSettingsCallback.run();
+                    } catch (Exception ex) { /* best effort */ }
+                    return performPasswordAuthentication(recoveredSalt, "\uD83D\uDD11 Recover Access", true);
+                }
                 DialogHelper.showError(parentFrame, "Missing Encryption Metadata", "Encrypted File Found",
-                    "The selected log file is encrypted but the application has no encryption metadata (salt).\nPlease restore from a settings backup.");
+                    "The selected log file is encrypted but the application has no encryption metadata (salt),\n"
+                    + "and the salt could not be read from the file header.\n\n"
+                    + "The file may be corrupt. Please restore from a backup.");
                 return false;
             }
 

@@ -85,6 +85,12 @@ MAGIC(4) | VERSION(1) | SALT-LEN | SALT | IV-LEN | IV | CIPHERTEXT
 
 This structured header enables forward compatibility and safe parsing.
 
+The **salt is embedded in every encrypted file**. This makes each file fully self-contained:
+recovering access requires only the file and the correct password — the settings file
+(`loghog_settings.properties`) is not required. If settings are lost or the app is reinstalled,
+.LOG-hog will automatically extract the salt from the file header on next launch and restore
+the settings file.
+
 ***
 
 ### Backup Integrity

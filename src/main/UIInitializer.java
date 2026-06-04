@@ -29,13 +29,10 @@ import java.util.List;
 import javax.swing.Box;
 import javax.swing.DefaultListModel;
 import javax.swing.BoxLayout;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JProgressBar;
 import javax.swing.JTabbedPane;
-import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
@@ -74,17 +71,13 @@ public class UIInitializer {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
                 try {
-                    showSecurityProgressDialog(editor);
                     // Clean shutdown of all background processes
                     editor.shutdown();
                     // Dispose the window
                     editor.dispose();
-                    // Clean up before exit
+                    // Clear sensitive data before exit
                     clipboard.SecureClipboardManager.clearSecureClipboard();
                     editor.getLogFileHandler().clearSensitiveData();
-                    // Clear UI text areas
-                    editor.getLogListPanel().getEntryArea().setText("");
-                    editor.getFullLogPanel().getFullLogPane().setText("");
                 } finally {
                     // Always exit, even if cleanup throws
                     System.exit(0);
@@ -373,32 +366,4 @@ public class UIInitializer {
         });
     }
 
-    private void showSecurityProgressDialog(JFrame parent) {
-        var dialog = new JDialog(parent, "Securing Data", true);
-        dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-        dialog.setLayout(new BorderLayout());
-        dialog.add(new JLabel("Securing sensitive data before exit...", SwingConstants.CENTER), BorderLayout.CENTER);
-        var progressBar = new JProgressBar(0, 100);
-        progressBar.setIndeterminate(true);
-        dialog.add(progressBar, BorderLayout.SOUTH);
-        dialog.setSize(300, 100);
-        dialog.setLocationRelativeTo(parent);
-
-        // Show dialog (non-modal) then perform delay off the EDT so UI stays responsive
-        dialog.setModal(false);
-        SwingUtilities.invokeLater(() -> dialog.setVisible(true));
-        Thread delayThread = new Thread(() -> {
-            try {
-                Thread.sleep(3000); // 3 seconds delay
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            SwingUtilities.invokeLater(() -> {
-                dialog.setVisible(false);
-                dialog.dispose();
-            });
-        }, "SecurityDelayCloser");
-        delayThread.setDaemon(true);
-        delayThread.start();
-    }
 }

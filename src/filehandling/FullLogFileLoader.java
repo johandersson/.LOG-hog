@@ -107,6 +107,31 @@ public class FullLogFileLoader {
     public ParsedLogData parseLogFile(Path logPath, boolean scrollToBottom) throws Exception {
         return loadAndProcessLogFileInternal(logPath, scrollToBottom);
     }
+
+    /**
+     * Removes the Notepad compatibility header (.LOG line and any leading blank entries)
+     * from the parsed entry list before display.
+     */
+    private List<List<String>> removeNotepadHeader(List<List<String>> entries) {
+        if (entries == null || entries.isEmpty()) return entries;
+        List<List<String>> filtered = new ArrayList<>(entries.size());
+        for (List<String> entry : entries) {
+            if (!isNotepadHeaderEntry(entry)) {
+                filtered.add(entry);
+            }
+        }
+        return filtered;
+    }
+
+    /** Returns true if the entry consists only of blank lines or the ".LOG" marker. */
+    private boolean isNotepadHeaderEntry(List<String> entry) {
+        if (entry == null || entry.isEmpty()) return true;
+        for (String line : entry) {
+            String t = line.trim();
+            if (!t.isEmpty() && !t.equals(".LOG")) return false;
+        }
+        return true;
+    }
     
     public void fallbackReadRaw(Path chosen) {
         try {
@@ -289,7 +314,7 @@ public class FullLogFileLoader {
             // Encrypted files use cached lines already
             List<String> lines = logFileHandler.getLines();
             lines = lines.stream().map(LogFileHandler::removeSecureMarker).collect(Collectors.toList());
-            List<List<String>> allEntries = LogParser.parseEntriesForFullLog(lines);
+            List<List<String>> allEntries = removeNotepadHeader(LogParser.parseEntriesForFullLog(lines));
             if (allEntries.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
                 // Select the most recent entries (tail) and keep chronological order (oldest->newest)
                 int start = Math.max(0, allEntries.size() - ResourceLimits.MAX_ENTRIES_TO_RENDER);
@@ -348,6 +373,8 @@ public class FullLogFileLoader {
                     chrono.addAll(limited);
                     java.util.Collections.reverse(chrono);
                 }
+                // Remove Notepad compatibility header (.LOG line) before display
+                chrono = removeNotepadHeader(chrono);
 
                 if (total > ResourceLimits.MAX_ENTRIES_TO_RENDER) {
                     int start = Math.max(0, chrono.size() - ResourceLimits.MAX_ENTRIES_TO_RENDER);

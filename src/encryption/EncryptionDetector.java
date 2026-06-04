@@ -17,6 +17,7 @@
 
 package encryption;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -52,6 +53,36 @@ public class EncryptionDetector {
             }
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Extracts the salt embedded in the header of a LOGH encrypted file.
+     * <p>
+     * LOGH format: {@code MAGIC(4) | VERSION(1) | SALT_LEN(1) | SALT(N) | IV_LEN(1) | IV(12) | CIPHERTEXT}
+     * <p>
+     * This is used for disaster-recovery when the settings file has been lost: the salt
+     * stored in the file header is sufficient (together with the user's password) to
+     * decrypt the file without any information from {@code loghog_settings.properties}.
+     *
+     * @param filePath path to the LOGH encrypted file
+     * @return the raw salt bytes, or {@code null} if the file is not a valid LOGH file
+     *         or if the header cannot be read
+     */
+    public static byte[] extractSaltFromHeader(Path filePath) {
+        try {
+            if (!hasMagicHeader(filePath)) return null;
+            try (var in = Files.newInputStream(filePath)) {
+                // Skip magic (4 bytes) and version (1 byte)
+                if (in.skip(5) < 5) return null;
+                int saltLen = in.read();
+                if (saltLen <= 0 || saltLen > 64) return null; // sanity-check
+                byte[] salt = new byte[saltLen];
+                if (in.readNBytes(salt, 0, saltLen) != saltLen) return null;
+                return salt;
+            }
+        } catch (IOException e) {
+            return null;
         }
     }
 

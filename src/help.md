@@ -173,7 +173,22 @@ Replace your log file manually with a backup file if needed.
 * Sensitive data is cleared from memory after use
 
 ⚠️ **Important:**  
-If you forget your password, your data cannot be recovered.
+If you forget your password, your data **cannot** be recovered.  
+Your password is the only thing that cannot be recovered — write it down and store it safely.
+
+***
+
+### File Self-Containment and Recovery
+
+Your encrypted log file is **self-contained**: the encryption metadata (salt) is embedded  
+directly in the file header. This means:
+
+* If you lose your `loghog_settings.properties` file, your data is **not** permanently lost
+* .LOG-hog will automatically recover the salt from the file when you next open it
+* You only need your **password** and the encrypted **.logh file** to regain full access
+* Reinstalling the app or moving the file to a new machine works seamlessly
+
+The only unrecoverable scenario is losing your password.
 
 ***
 

@@ -407,13 +407,8 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
     }
 
     public static void shutdown() {
-        scheduler.shutdown();
-        try {
-            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
-                scheduler.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            scheduler.shutdownNow();
-        }
+        // Cancel pending tasks immediately — clipboard has already been explicitly cleared
+        // by UIInitializer.windowClosing() before this is called, so we don't need to wait.
+        scheduler.shutdownNow();
     }
 }
