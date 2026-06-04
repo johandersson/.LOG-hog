@@ -576,21 +576,28 @@ public class EntryLoader {
             // Parse all entries
             var allEntries = LogParser.parseAllEntries(lines);
 
-            // Rebuild cache
+            // Rebuild cache with occurrence-indexed display keys so that duplicate
+            // timestamps (e.g. "14:30 2025-01-15", "14:30 2025-01-15 (1)", …) each
+            // map to their own content, matching exactly what the list model shows.
             entryContentCache.clear();
-            var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$");
-            
+            var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}$");
+            Map<String, Integer> occCount = new HashMap<>();
             for (List<String> entry : allEntries) {
-                if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
-                    String entryTs = entry.get(0).trim();
-                    // PMD: Suppress warning - StringBuilder is required per entry
-                    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
-                    StringBuilder content = new StringBuilder();
-                    for (int i = 1; i < entry.size(); i++) {
-                        content.append(entry.get(i)).append('\n');
-                    }
-                    entryContentCache.put(entryTs, content.toString().trim());
+                if (entry.isEmpty()) continue;
+                // Strip any existing suffix to get the canonical raw timestamp
+                String rawTs = entry.get(0).trim().replaceAll(" \\(\\d+\\)$", "");
+                if (!tsPattern.matcher(rawTs).matches()) continue;
+                // Assign display key: first occurrence has no suffix, subsequent ones get (1), (2), …
+                int occ = occCount.getOrDefault(rawTs, 0);
+                occCount.put(rawTs, occ + 1);
+                @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+                String displayTs = occ > 0 ? rawTs + " (" + occ + ")" : rawTs;
+                @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+                StringBuilder content = new StringBuilder();
+                for (int i = 1; i < entry.size(); i++) {
+                    content.append(entry.get(i)).append('\n');
                 }
+                entryContentCache.put(displayTs, content.toString().trim());
             }
             
             updateCacheTimestamp();
