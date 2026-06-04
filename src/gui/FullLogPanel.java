@@ -499,11 +499,10 @@ public class FullLogPanel extends LogPanel {
         DefaultListModel<String> listModel = logListPanel.getListModel();
         JList<String> logList = logListPanel.getLogList();
 
-        // Strip display suffix to get raw timestamp for matching
-        // Full log and log list may have different (n) numbering due to sort order
+        // Strip suffix only for date-parsing purposes (year/month filter).
         String rawTimestamp = timestamp.replaceAll(" \\(\\d+\\)$", "").trim();
         
-        // Get the entry content from Full Log for content-based matching (handles duplicates)
+        // Get the entry content from Full Log for content-based fallback matching
         String fullLogContent = fileLoader.getEntryContent(timestamp);
 
         // Parse the timestamp to get year and month for filter adjustment
@@ -517,8 +516,8 @@ public class FullLogPanel extends LogPanel {
             // If parsing fails, try raw selection without filter change
         }
 
-        // Try to select the entry immediately if present in current list
-        int matchIndex = findMatchingEntry(listModel, rawTimestamp, fullLogContent);
+        // Pass full display timestamp (including suffix) so occurrence index is used directly
+        int matchIndex = findMatchingEntry(listModel, timestamp, fullLogContent);
         if (matchIndex >= 0) {
             logList.setSelectedIndex(matchIndex);
             logList.ensureIndexIsVisible(matchIndex);
@@ -557,7 +556,7 @@ public class FullLogPanel extends LogPanel {
                 progress.close();
                 
                 // Now search for and select the entry with content matching
-                    int idx = findMatchingEntry(listModel, rawTimestamp, finalContent);
+                    int idx = findMatchingEntry(listModel, timestamp, finalContent);
                     if (idx >= 0) {
                         final int sel = idx;
                         // Ensure selection happens on EDT after model update
@@ -675,10 +674,18 @@ public class FullLogPanel extends LogPanel {
      * @param targetContent The content to match (from Full Log), or null to match first by timestamp
      * @return Index of matching entry, or -1 if not found
      */
-    private int findMatchingEntry(DefaultListModel<String> listModel, String rawTimestamp, String targetContent) {
+    private int findMatchingEntry(DefaultListModel<String> listModel, String displayTimestamp, String targetContent) {
+        // Derive raw timestamp and occurrence index from the display timestamp.
+        // The occurrence index is the canonical locator for duplicate timestamps —
+        // it directly maps to the Nth candidate in list-model order.
+        String rawTimestamp = displayTimestamp.replaceAll(" \\(\\d+\\)$", "").trim();
+        java.util.regex.Matcher occMatcher =
+            java.util.regex.Pattern.compile(" \\((\\d+)\\)$").matcher(displayTimestamp.trim());
+        int occurrenceIdx = occMatcher.find() ? Integer.parseInt(occMatcher.group(1)) : 0;
+
         java.util.List<Integer> candidates = new java.util.ArrayList<>();
         
-        // First pass: find all entries with matching raw timestamp
+        // Collect all list-model entries whose raw timestamp matches
         for (int i = 0; i < listModel.getSize(); i++) {
             String entry = listModel.getElementAt(i);
             if (entry != null) {
@@ -689,29 +696,32 @@ public class FullLogPanel extends LogPanel {
             }
         }
         
-        if (candidates.isEmpty()) {
-            return -1;
+        if (candidates.isEmpty()) return -1;
+        if (candidates.size() == 1) return candidates.get(0);
+
+        // Use the occurrence index directly — reliable even when entries share identical content.
+        // candidates is collected in list-model order, and the list model stores entries in
+        // increasing suffix order (no-suffix = idx 0, (1) = idx 1, …), so candidates.get(N)
+        // is exactly the entry with suffix N.
+        if (occurrenceIdx >= 0 && occurrenceIdx < candidates.size()) {
+            return candidates.get(occurrenceIdx);
         }
-        
-        // If only one match or no content to compare, return first match
-        if (candidates.size() == 1 || targetContent == null) {
-            return candidates.get(0);
-        }
-        
-        // Multiple matches - use content comparison to find the correct one
-        for (int idx : candidates) {
-            String displayTimestamp = listModel.getElementAt(idx);
-            try {
-                String entryContent = logFileHandler.loadEntry(displayTimestamp);
-                if (entryContent != null && entryContent.trim().equals(targetContent.trim())) {
-                    return idx;
+
+        // Fallback: content comparison (for edge cases where occurrence index is out of range)
+        if (targetContent != null) {
+            for (int idx : candidates) {
+                String ts = listModel.getElementAt(idx);
+                try {
+                    String entryContent = logFileHandler.loadEntry(ts);
+                    if (entryContent != null && entryContent.trim().equals(targetContent.trim())) {
+                        return idx;
+                    }
+                } catch (Exception e) {
+                    // Skip entries that fail to load
                 }
-            } catch (Exception e) {
-                // Skip entries that fail to load
             }
         }
         
-        // Content match failed, return first timestamp match as fallback
         return candidates.get(0);
     }
 
@@ -720,8 +730,6 @@ public class FullLogPanel extends LogPanel {
      */
     private void fallbackFullReload(String timestamp, String targetContent, LogListPanel logListPanel, 
                                     DefaultListModel<String> listModel, JList<String> logList) {
-        // Strip display suffix for matching
-        String rawTs = timestamp.replaceAll(" \\(\\d+\\)$", "").trim();
         LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
         final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
         showTimer.setRepeats(false);
@@ -731,7 +739,7 @@ public class FullLogPanel extends LogPanel {
             try {
                 editor.loadLogEntries();
                 SwingUtilities.invokeLater(() -> {
-                    int idx = findMatchingEntry(listModel, rawTs, targetContent);
+                    int idx = findMatchingEntry(listModel, timestamp, targetContent);
                     if (idx >= 0) {
                         logList.setSelectedIndex(idx);
                         logList.ensureIndexIsVisible(idx);
