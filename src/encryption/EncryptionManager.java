@@ -231,36 +231,6 @@ public class EncryptionManager implements encryption.StreamEncryptor {
         }
     }
 
-    @Override
-    public String decryptStream(java.io.InputStream in, char... passwordAndSalt) throws EncryptionException {
-        // Remove duplicate implementation. Use openDecryptedStream for actual stream decryption.
-        char[] password;
-        byte[] salt = null;
-        if (passwordAndSalt != null && passwordAndSalt.length > 16) {
-            password = new char[passwordAndSalt.length - 16];
-            char[] saltChars = new char[16];
-            System.arraycopy(passwordAndSalt, 0, password, 0, password.length);
-            System.arraycopy(passwordAndSalt, password.length, saltChars, 0, 16);
-            salt = new byte[16];
-            for (int i = 0; i < 16; i++) salt[i] = (byte) saltChars[i];
-        } else {
-            password = passwordAndSalt;
-        }
-        try (java.io.InputStream dec = openDecryptedStream(in, password, salt, null)) {
-            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-            byte[] buffer = new byte[4096];
-            int n;
-            while ((n = dec.read(buffer)) != -1) {
-                baos.write(buffer, 0, n);
-            }
-            return new String(baos.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
-        } catch (EncryptionException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new EncryptionException("Unable to open decrypted stream.", e);
-        }
-    }
-
     /**
      * Convenience helper: open a decrypted InputStream and pass it to the given consumer.
      * Ensures the stream is closed after the consumer returns.

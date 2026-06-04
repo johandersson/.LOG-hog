@@ -25,9 +25,4 @@ public class TestableEncryptionManager implements Encryptor {
     public String decrypt(byte[] data, char... password) throws EncryptionException {
         return delegate.decrypt(data, password);
     }
-
-    @Override
-    public String decryptStream(java.io.InputStream in, char... passwordAndSalt) throws EncryptionException {
-        return delegate.decryptStream(in, passwordAndSalt);
-    }
 }
