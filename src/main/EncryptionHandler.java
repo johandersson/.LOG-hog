@@ -179,9 +179,18 @@ public class EncryptionHandler {
         try {
             salt = Base64.getDecoder().decode(settings.getProperty("salt"));
         } catch (IllegalArgumentException | NullPointerException e) {
-            DialogHelper.showError(null, "Corrupt Encryption Metadata", "Invalid Settings",
-                "The stored encryption salt is missing or corrupt. Please restore from a settings backup.");
-            return false;
+            // Salt missing from settings — try to recover from the file header
+            byte[] recovered = EncryptionDetector.extractSaltFromHeader(logFileHandler.getFilePath());
+            if (recovered != null) {
+                settings.setProperty("salt", Base64.getEncoder().encodeToString(recovered));
+                try { if (saveSettingsCallback != null) saveSettingsCallback.run(); } catch (Exception ignored) {}
+                salt = recovered;
+            } else {
+                DialogHelper.showError(null, "Corrupt Encryption Metadata", "Invalid Settings",
+                    "The stored encryption salt is missing or corrupt and could not be recovered from the file.\n"
+                    + "Please restore from a backup.");
+                return false;
+            }
         }
         return performPasswordAuthentication(salt, "\uD83D\uDD13 Unlock File", false);
     }

@@ -35,8 +35,7 @@ public class DateHandler {
     public static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
 
     // International timestamp patterns (for log files written on different locales).
-    // These are checked only as fallbacks in parseTimestamp(); isTimestamp() still uses
-    // the primary pattern so that entry-header detection stays fast and unambiguous.
+    // Checked by both isTimestamp() and parseTimestamp() as fallbacks after the primary format.
     private static final List<DateTimeFormatter> INTERNATIONAL_FORMATTERS = List.of(
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT),  // ISO reversed
         DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.ROOT),  // European slash
