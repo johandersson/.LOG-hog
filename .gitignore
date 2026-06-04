@@ -57,6 +57,13 @@ copilot_instructions.md
 ### Test and Coverage Files ###
 jacoco.exec
 
+# Generated source lists (contain machine-specific absolute paths)
+src/build/sources.lst
+src/build/*.lst
+
+# One-off maintenance scripts
+scripts/
+
 # PMD / static-analysis outputs
 /build/pmd-report/
 /build/tools/pmd/
