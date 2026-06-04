@@ -493,6 +493,10 @@ public class SettingsPanel extends JPanel {
         }
         final char[] confirmedPwd = confirm;
 
+        // Snapshot the settings values needed by the background thread.
+        // Properties is not thread-safe; reading it off the EDT is a data race.
+        final String backupDirSnapshot = settings.getProperty("backupDirectory", "");
+
         // Run encryption off the EDT to keep the UI responsive and show progress.
         statusLabel.setText("Encrypting...");
         statusLabel.setForeground(Color.BLUE);
@@ -516,10 +520,9 @@ public class SettingsPanel extends JPanel {
 
                     // Save settings backup
                     if (java.nio.file.Files.exists(settingsPath)) {
-                        String backupDir = settings.getProperty("backupDirectory", "");
                         java.nio.file.Path backupSettingsPath;
-                        if (backupDir != null && !backupDir.isEmpty()) {
-                            java.nio.file.Path backupDirPath = java.nio.file.Paths.get(backupDir);
+                        if (backupDirSnapshot != null && !backupDirSnapshot.isEmpty()) {
+                            java.nio.file.Path backupDirPath = java.nio.file.Paths.get(backupDirSnapshot);
                             java.nio.file.Files.createDirectories(backupDirPath);
                             backupSettingsPath = backupDirPath.resolve(settingsPath.getFileName().toString() + ".bak");
                         } else {
