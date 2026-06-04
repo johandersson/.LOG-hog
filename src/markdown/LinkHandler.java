@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,7 +80,7 @@ public class LinkHandler {
                 }
             }
         } catch (Exception ex) {
-            showLinkError(pane, "Failed to open link: " + ex.getMessage());
+            showLinkError(pane, "Failed to open link.");
         }
     }
 
@@ -144,17 +144,21 @@ public class LinkHandler {
             return;
         }
 
+        // Only allow http and https to prevent custom-protocol abuse (ftp:, javascript:, steam:, etc.)
+        String finalHref = href;
+        if (!href.matches("^[a-zA-Z][a-zA-Z0-9+.-]*:.*")) {
+            finalHref = "http://" + href;
+        }
+        if (!security.PathValidator.isSafeHttpUrl(finalHref)) {
+            showLinkError(pane, "Only HTTP and HTTPS links are supported.");
+            return;
+        }
         try {
-            String finalHref = href;
-            if (!href.matches("^[a-zA-Z][a-zA-Z0-9+.-]*:.*")) {
-                finalHref = "http://" + href;
-            }
             Desktop.getDesktop().browse(java.net.URI.create(finalHref));
         } catch (java.io.IOException ioEx) {
-            // Security: Don't expose internal error details
             showLinkError(pane, "Unable to open URL. Check your internet connection and browser settings.");
         } catch (Exception ex) {
-            showLinkError(pane, "Invalid URL format: " + href);
+            showLinkError(pane, "Invalid or unsupported URL format.");
         }
     }
 

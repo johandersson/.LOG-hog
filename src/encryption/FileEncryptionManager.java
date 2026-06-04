@@ -51,7 +51,7 @@ public class FileEncryptionManager {
                  // Create secure temp file in the same directory to allow atomic move
                  String prefix = filePath.getFileName().toString();
                  Path tmp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), prefix + "-", ".tmp", true);
-                 try (var in = new utils.LinesInputStream(lines, LogFileFormat.INTERNAL_LINE_SEPARATOR, java.nio.charset.StandardCharsets.UTF_8);
+                 try (var in = new utils.LinesInputStream(toEncrypt, LogFileFormat.INTERNAL_LINE_SEPARATOR, java.nio.charset.StandardCharsets.UTF_8);
                      var out = Files.newOutputStream(tmp)) {
 
                     progressDialog = new gui.LoadingProgressDialog(null, "Encrypting");
@@ -89,7 +89,7 @@ public class FileEncryptionManager {
                 }
             } else {
                 // Fallback: build string and encrypt
-                String full = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, lines);
+                String full = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, toEncrypt);
                 progressDialog = new gui.LoadingProgressDialog(null, "Encrypting");
                 progressDialog.setStatus("Encrypting file...");
                 progressDialog.setIndeterminate(true);
@@ -220,8 +220,8 @@ public class FileEncryptionManager {
         try {
             // Try to stream encryption when the encryptor supports it to allow progress reporting
             if (encryptor instanceof StreamEncryptor) {
-                 Path tmp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), filePath.getFileName().toString() + "-", ".tmp");
-                 try (var in = new java.io.ByteArrayInputStream(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                 Path tmp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), filePath.getFileName().toString() + "-", ".tmp", true);
+                 try (var in = new java.io.ByteArrayInputStream(toEncrypt.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                      var out = Files.newOutputStream(tmp)) {
 
 
@@ -251,6 +251,8 @@ public class FileEncryptionManager {
                     java.nio.file.Files.move(tmp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
                 } catch (java.nio.file.AtomicMoveNotSupportedException amnse) {
                     java.nio.file.Files.move(tmp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                } finally {
+                    try { if (tmp != null && Files.exists(tmp)) Files.deleteIfExists(tmp); } catch (Exception ignored) {}
                 }
             } else {
                 // Fallback to byte[] API with indeterminate progress
@@ -329,12 +331,9 @@ public class FileEncryptionManager {
                 return decrypted;
             }
         } finally {
-            // Clear sensitive data
+            // Clear the local password copy only. Do NOT zero this.salt — it is not
+            // secret (stored in settings) and must survive for subsequent re-encryptions.
             Arrays.fill(pwd, '\0');
-            if (salt != null) {
-                Arrays.fill(salt, (byte) 0);
-                salt = null;
-            }
         }
     }
 

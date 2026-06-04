@@ -64,7 +64,7 @@ public class AsyncSaver {
                 if (onComplete != null) onComplete.run();
             });
         }, "loghog-save-thread");
-        t.setDaemon(true);
+        t.setDaemon(false);
         t.start();
     }
 
@@ -112,7 +112,7 @@ public class AsyncSaver {
 
             if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
         }, "loghog-flush-thread");
-        t2.setDaemon(true);
+        t2.setDaemon(false);
         t2.start();
     }
 }

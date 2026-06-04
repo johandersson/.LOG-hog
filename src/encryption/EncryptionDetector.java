@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,98 +17,42 @@
 
 package encryption;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Utility class for detecting encrypted files and managing backup security.
+ * Utility class for detecting encrypted files.
  * Provides methods to determine if a file contains encrypted data.
  */
 public class EncryptionDetector {
 
-    private static final int MIN_ENCRYPTED_FILE_SIZE = 12 + 16; // GCM IV + GCM Tag minimum
-    private static final int SALT_SIZE = 16;
-
     /**
-     * Determines if a file appears to contain encrypted data.
-     * This is a heuristic check based on file structure and content patterns.
+     * Returns true if the file is an encrypted LogHog file.
+     * Delegates to {@link #hasMagicHeader(Path)} — every file encrypted by this
+     * application carries the LOGH magic header.
      *
      * @param filePath Path to the file to check
-     * @return true if the file appears to be encrypted, false otherwise
+     * @return true if the file is a LogHog encrypted file, false otherwise
      */
     public static boolean isFileEncrypted(Path filePath) {
-        try {
-            if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
-                return false;
-            }
-
-            long fileSize = Files.size(filePath);
-            if (fileSize < MIN_ENCRYPTED_FILE_SIZE) {
-                return false; // Too small to be encrypted
-            }
-
-            byte[] data = Files.readAllBytes(filePath);
-
-            // Check if it starts with a salt (16 bytes)
-            if (data.length >= SALT_SIZE) {
-                // If it starts with what looks like a salt, it might be encrypted
-                // We can't verify the salt without the actual salt value, so we use heuristics
-                return appearsToBeEncrypted(data);
-            }
-
-            return false;
-        } catch (IOException e) {
-            // If we can't read the file, assume it's not encrypted for safety
-            return false;
-        }
+        return hasMagicHeader(filePath);
     }
 
     /**
-     * Heuristic check to determine if data appears to be encrypted.
-     * This checks for patterns typical of encrypted data.
+     * Returns true if the file starts with the LOGH magic header.
      */
-    private static boolean appearsToBeEncrypted(byte[] data) {
-        // Encrypted files typically have random-looking byte patterns
-        // Check if the data has high entropy (not plain text patterns)
-
-        if (data.length < MIN_ENCRYPTED_FILE_SIZE) {
+    public static boolean hasMagicHeader(Path filePath) {
+        try {
+            if (!Files.exists(filePath) || Files.size(filePath) < 6) return false;
+            byte[] header = new byte[4];
+            try (var in = Files.newInputStream(filePath)) {
+                return in.read(header) == 4
+                    && header[0] == 'L' && header[1] == 'O'
+                    && header[2] == 'G' && header[3] == 'H';
+            }
+        } catch (Exception e) {
             return false;
         }
-
-        // Check for common plain text patterns that would indicate unencrypted data
-        String startOfFile = new String(data, 0, Math.min(100, data.length));
-        if (startOfFile.startsWith(".LOG")) {
-            return false; // Plain text log file
-        }
-
-        // Check for very low entropy (repeated patterns) which might indicate plain text
-        // or very high entropy which indicates encryption
-        double entropy = calculateEntropy(data, Math.min(256, data.length));
-
-        // High entropy suggests encryption, low entropy suggests plain text
-        // Encrypted data typically has entropy > 7.5 bits per byte
-        return entropy > 7.0;
-    }
-
-
-    private static double calculateEntropy(byte[] data, int sampleSize) {
-        int[] counts = new int[256];
-        int total = Math.min(sampleSize, data.length);
-
-        for (int i = 0; i < total; i++) {
-            counts[data[i] & 0xFF]++;
-        }
-
-        double entropy = 0.0;
-        for (int count : counts) {
-            if (count > 0) {
-                double p = (double) count / total;
-                entropy -= p * (Math.log(p) / Math.log(2));
-            }
-        }
-
-        return entropy;
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -483,19 +483,6 @@ public class BackupManager {
             
             // Create new backup (encrypted files are copied as .bak.enc)
             Files.copy(logPath, bakPath, StandardCopyOption.REPLACE_EXISTING);
-
-            // If the file is encrypted, attempt to securely delete any legacy plaintext backups
-            if (isEncrypted) {
-                try {
-                    // Look for legacy .bak files and remove them securely
-                    for (int i = 0; i < MAX_NUMBERED_BACKUPS; i++) {
-                        Path legacy = Paths.get(backupDirPath.toString(), logPath.getFileName().toString() + ".bak" + (i == 0 ? "" : "." + i));
-                        if (Files.exists(legacy)) {
-                            SecureDeletionUtils.wipeFile(legacy);
-                        }
-                    }
-                } catch (Exception ignored) {}
-            }
             
         } catch (Exception e) {
             // Don't fail the save operation if backup fails

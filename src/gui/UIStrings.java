@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ public class UIStrings {
     
     // Tooltips and hints
     public static final String TOOLTIP_CLICK_EDIT = "Click to edit this entry";
-    public static final String TOOLTIP_SHOW_PASSWORD = "Show password";
+    public static final String TOOLTIP_SHOW_PASSWORD = "Show password (or hold ESC)";
     public static final String TOOLTIP_HIDE_PASSWORD = "Hide password";
     
     // Button labels

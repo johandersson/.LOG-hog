@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -301,10 +301,9 @@ public class EntryLoader {
                         entryContentCache.put(displayTs, content.toString().trim());
                         elementsToAdd.add(displayTs);
                         timestamps.add(displayTs);
-                    } else {
-                        entryContentCache.put(rawTs, content.toString().trim());
-                        elementsToAdd.add(rawTs);
                     }
+                    // Non-timestamp entries (e.g. the .LOG header, preamble text) are
+                    // intentionally NOT added to the list — only real dated entries belong there.
                 }
             }
             

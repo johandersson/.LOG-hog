@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -125,10 +125,11 @@ public class EncryptionHandler {
                 return false;
             }
 
-            // File looks encrypted -> ensure we have a salt to attempt decryption
+            // File looks encrypted -> decode the stored salt and authenticate
             saltStr = settings.getProperty("salt");
             if (saltStr == null) {
-                DialogHelper.showError(parentFrame, "Missing Encryption Metadata", "Encrypted File Found", "The selected log file appears encrypted but the application has no encryption metadata (salt).\nPlease import settings or restore a settings backup.");
+                DialogHelper.showError(parentFrame, "Missing Encryption Metadata", "Encrypted File Found",
+                    "The selected log file is encrypted but the application has no encryption metadata (salt).\nPlease restore from a settings backup.");
                 return false;
             }
 
@@ -136,7 +137,8 @@ public class EncryptionHandler {
             try {
                 salt = Base64.getDecoder().decode(saltStr);
             } catch (IllegalArgumentException e) {
-                DialogHelper.showError(parentFrame, "Corrupt Encryption Metadata", "Invalid Settings", "The stored encryption salt is corrupt or invalid. Please restore from a settings backup.");
+                DialogHelper.showError(parentFrame, "Corrupt Encryption Metadata", "Invalid Settings",
+                    "The stored encryption salt is corrupt or invalid. Please restore from a settings backup.");
                 return false;
             }
             return performPasswordAuthentication(salt, "\uD83D\uDD12 Enter Password", true);
@@ -154,7 +156,8 @@ public class EncryptionHandler {
         try {
             salt = Base64.getDecoder().decode(settings.getProperty("salt"));
         } catch (IllegalArgumentException | NullPointerException e) {
-            DialogHelper.showError(null, "Corrupt Encryption Metadata", "Invalid Settings", "The stored encryption salt is missing or corrupt. Please restore from a settings backup.");
+            DialogHelper.showError(null, "Corrupt Encryption Metadata", "Invalid Settings",
+                "The stored encryption salt is missing or corrupt. Please restore from a settings backup.");
             return false;
         }
         return performPasswordAuthentication(salt, "\uD83D\uDD13 Unlock File", false);

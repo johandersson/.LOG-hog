@@ -196,6 +196,14 @@ If you forget your password, your data cannot be recovered.
 
 ***
 
+### Password Dialog
+
+* Type your password in the masked field
+* Click the **eye button** (or hold **ESC**) to peek at the password while typing — release to re-mask it
+* Press **Enter** to confirm, **Cancel** to abort
+
+***
+
 ### Usage
 
 * Password is required on application startup
@@ -205,8 +213,9 @@ If you forget your password, your data cannot be recovered.
 
 ### Lock / Unlock
 
-* Lock clears decrypted data from memory
+* Lock clears decrypted data from memory and disables all editing operations
 * Unlock requires password re-entry
+* Unlock from any view: click the **Unlock** link in the locked entry or log list area, or use the **Unlock File** button in the Full Log tab
 
 ***
 

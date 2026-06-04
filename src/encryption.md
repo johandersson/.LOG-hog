@@ -1,6 +1,6 @@
 # 🔐 .LOG-hog Security & Encryption Documentation
 
-## Security Review Status (May 2026)
+## Security Review Status (June 2026)
 
 * No critical CWE-class vulnerabilities (e.g., path traversal, command injection, insecure deserialization, hardcoded credentials) were identified during internal code review and static analysis.
 * No hardcoded keys or credentials present.
@@ -60,8 +60,9 @@ It does **not** protect against:
   128-bit cryptographically secure random salts.
 
 * **Memory Handling**  
-  Sensitive data (passwords, keys, plaintext) stored in mutable arrays and explicitly cleared (`CryptoUtils.zeroize`) after use.  
-  No plaintext `String` objects are created.
+  Sensitive data (passwords, keys) stored in mutable arrays and explicitly cleared (`CryptoUtils.zeroize`) after use.  
+  The primary **streaming path** processes plaintext via streams and avoids creating a full plaintext `byte[]` in one allocation; intermediate plaintext byte arrays are zeroized before the method returns.  
+  The legacy **in-memory fallback path** (used for small files) handles plaintext as Java `String` objects, which are immutable and cannot be zeroed from memory — this is a known JVM limitation with no general workaround.
 
 * **Session Password Handling**  
   The encryption password (`char[]`) is retained in memory during an active session to enable re-encryption on save operations.  

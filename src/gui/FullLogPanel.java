@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -379,7 +379,7 @@ public class FullLogPanel extends LogPanel {
         fullLogPane.setText("");
         fullLogPane.clearHighlights();
         fullLogPane.setContentType("text/plain");
-        fullLogPane.setText("File locked. Press Unlock file in Full log view to unlock it again.");
+        fullLogPane.setText("File locked. Use the Unlock File button to unlock.");
         fullLogPane.setForeground(Color.GRAY);
         fullLogPathLabel.setText("Log file: (locked)");
         updateButtonStates(true);

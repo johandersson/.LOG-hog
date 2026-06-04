@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ public class LogListPanel extends JPanel {
     private final LogFileHandler logFileHandler;
     private final LogTextEditor editor;
     private final JScrollPane entryScroll;
-    private final JLabel lockLabel;
+    private final JPanel lockPanel;
     private final JPanel entryContainer;
     private final HighlightableTextPane previewPane;
     private final JScrollPane previewScrollPane;
@@ -102,7 +102,7 @@ public class LogListPanel extends JPanel {
         this.logList = logList;
         this.entryArea = new UndoRedoTextArea();
         this.entryScroll = new JScrollPane(entryArea);
-        this.lockLabel = new JLabel("File locked. Press Unlock file in Full log view to unlock it again.", SwingConstants.CENTER);
+        this.lockPanel = buildLockPanel(editor);
         this.entryContainer = new JPanel(new BorderLayout());
         this.previewPane = new HighlightableTextPane();
         this.previewScrollPane = new JScrollPane(previewPane);
@@ -636,7 +636,7 @@ public class LogListPanel extends JPanel {
         var formattingPanel = new FormattingPanel(entryArea);
         entryContainer.add(formattingPanel, BorderLayout.NORTH);
 
-        lockLabel.setForeground(Color.GRAY);
+        lockPanel.setOpaque(false);
         // Initially not added
 
         split.setLeftComponent(listScroll);
@@ -1024,6 +1024,27 @@ public class LogListPanel extends JPanel {
         }
     }
 
+    private static JPanel buildLockPanel(LogTextEditor ed) {
+        JPanel outer = new JPanel(new java.awt.GridBagLayout());
+        outer.setOpaque(false);
+        JPanel inner = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 0));
+        inner.setOpaque(false);
+        JLabel staticLbl = new JLabel("File locked.");
+        staticLbl.setForeground(Color.GRAY);
+        JLabel unlockLbl = new JLabel("<html><u><font color='#1a73e8'>Unlock</font></u></html>");
+        unlockLbl.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        unlockLbl.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                ed.manualUnlock();
+            }
+        });
+        inner.add(staticLbl);
+        inner.add(unlockLbl);
+        outer.add(inner);
+        return outer;
+    }
+
     public DefaultListModel<String> getListModel() {
         return listModel;
     }
@@ -1122,9 +1143,9 @@ public class LogListPanel extends JPanel {
             } else {
                 entryContainer.remove(entryScroll);
             }
-            entryContainer.add(lockLabel, BorderLayout.CENTER);
+            entryContainer.add(lockPanel, BorderLayout.CENTER);
         } else {
-            entryContainer.remove(lockLabel);
+            entryContainer.remove(lockPanel);
             entryContainer.add(entryScroll, BorderLayout.CENTER);
         }
         entryContainer.revalidate();

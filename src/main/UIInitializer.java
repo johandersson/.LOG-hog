@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -286,6 +286,7 @@ public class UIInitializer {
     }
 
     private void handleLogEntriesTabSelection() {
+        if (editor.isLocked()) return;
         // Log Entries tab - do not override user's active filter or selection
         // when switching tabs. Only perform an initial filtered load if the
         // model is empty (first time view) to avoid resetting filters.
@@ -313,6 +314,15 @@ public class UIInitializer {
             int filterYear = currentYear;
             int filterMonth = currentMonth;
             try {
+                // If the file has an encrypted header but the app isn't set up for encryption,
+                // abort immediately so we don't surface confusing binary-parse errors.
+                java.nio.file.Path logPath = editor.getLogFileHandler().getFilePath();
+                if (encryption.EncryptionDetector.hasMagicHeader(logPath) && !editor.getLogFileHandler().isEncrypted()) {
+                    // Encrypted file detected while encryption is not configured — bail silently;
+                    // the startup flow should have already prompted for a password.
+                    return;
+                }
+
                 editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
 
                 if (model.getSize() == 0) {
@@ -332,13 +342,18 @@ public class UIInitializer {
                 int fYear = filterYear;
                 int fMonth = filterMonth;
                 SwingUtilities.invokeLater(() -> {
+                    if (editor.isLocked()) return;
                     editor.updateLogListView();
                     editor.getLogListPanel().setFilterSelection(fYear, fMonth);
                     // Ensure the year combo is populated now that entries are parsed
                     editor.getLogListPanel().refreshAvailableYearsAsync();
                 });
             } catch (Exception ex) {
-                SwingUtilities.invokeLater(() -> editor.getLogFileHandler().showErrorDialog("<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
+                SwingUtilities.invokeLater(() -> {
+                    if (!editor.isLocked()) {
+                        editor.getLogFileHandler().showErrorDialog("<html><b>\uD83D\uDD04 Load Failed</b><br><br>Unable to load log entries.</html>");
+                    }
+                });
             } finally {
                 SwingUtilities.invokeLater(() -> {
                     if (showTimer.isRunning()) showTimer.stop();

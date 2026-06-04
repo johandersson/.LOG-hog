@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ public class EntryPanel extends JPanel {
     private final LogTextEditor editor;
     private final JButton saveBtn;
     private final JButton previewBtn;
-    private final JLabel lockLabel;
+    private final JPanel lockPanel;
     private final JScrollPane scrollPane;
     private final JScrollPane previewScrollPane;
     private final JPanel textContainer;
@@ -60,7 +60,7 @@ public class EntryPanel extends JPanel {
         this.textArea = new UndoRedoTextArea();
         this.saveBtn = new AccentButton("Save");
         this.previewBtn = new AccentButton("Preview");
-        this.lockLabel = new JLabel("File locked. Press Unlock file in Full log view to unlock it again.", SwingConstants.CENTER);
+        this.lockPanel = buildLockPanel(editor);
         this.scrollPane = new JScrollPane(textArea);
         this.previewPane = new HighlightableTextPane();
         this.previewScrollPane = new JScrollPane(previewPane);
@@ -101,8 +101,6 @@ public class EntryPanel extends JPanel {
                 editor.saveLogEntry();
             }
         });
-
-        lockLabel.setForeground(Color.GRAY);
 
         var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
         bottom.setBackground(Color.WHITE);
@@ -152,6 +150,27 @@ public class EntryPanel extends JPanel {
         LinkHandler.addLinkListeners(previewPane);
     }
 
+    private static JPanel buildLockPanel(LogTextEditor ed) {
+        JPanel outer = new JPanel(new java.awt.GridBagLayout());
+        outer.setOpaque(false);
+        JPanel inner = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 0));
+        inner.setOpaque(false);
+        JLabel staticLbl = new JLabel("File locked.");
+        staticLbl.setForeground(Color.GRAY);
+        JLabel unlockLbl = new JLabel("<html><u><font color='#1a73e8'>Unlock</font></u></html>");
+        unlockLbl.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        unlockLbl.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                ed.manualUnlock();
+            }
+        });
+        inner.add(staticLbl);
+        inner.add(unlockLbl);
+        outer.add(inner);
+        return outer;
+    }
+
     public JTextArea getTextArea() {
         return textArea;
     }
@@ -167,9 +186,9 @@ public class EntryPanel extends JPanel {
                 togglePreview();
             }
             remove(textContainer);
-            add(lockLabel, BorderLayout.CENTER);
+            add(lockPanel, BorderLayout.CENTER);
         } else {
-            remove(lockLabel);
+            remove(lockPanel);
             add(textContainer, BorderLayout.CENTER);
         }
         revalidate();

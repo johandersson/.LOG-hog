@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -475,14 +475,23 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
-        var confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm new password", "Confirm your new password.");
-        var confirm = confirmResult.password;
-        if (!java.util.Arrays.equals(pwd, confirm)) {
-            gui.DialogHelper.showError(editor, "Mismatch", "Passwords do not match");
-            java.util.Arrays.fill(pwd, '\0');
+        // Loop confirm dialog until passwords match or user cancels
+        char[] confirm = null;
+        while (true) {
+            var confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm new password", "Confirm your new password.");
+            if (confirmResult.password == null) {
+                java.util.Arrays.fill(pwd, '\0');
+                return;
+            }
+            confirm = confirmResult.password;
+            if (java.util.Arrays.equals(pwd, confirm)) {
+                break;
+            }
+            gui.DialogHelper.showError(editor, "Mismatch", "Passwords do not match. Please try again.");
             java.util.Arrays.fill(confirm, '\0');
-            return;
+            confirm = null;
         }
+        final char[] confirmedPwd = confirm;
 
         // Run encryption off the EDT to keep the UI responsive and show progress.
         statusLabel.setText("Encrypting...");
@@ -498,13 +507,14 @@ public class SettingsPanel extends JPanel {
         // Run encryption in background and then refresh parsed entries in a separate worker
         new javax.swing.SwingWorker<List<String>, Void>() {
             private Exception error;
+            private byte[] saltBytesResult;
 
             @Override
             protected List<String> doInBackground() {
                 try {
                     logFileHandler.enableEncryption(pwd);
 
-                    // Save settings backup and update properties
+                    // Save settings backup
                     if (java.nio.file.Files.exists(settingsPath)) {
                         String backupDir = settings.getProperty("backupDirectory", "");
                         java.nio.file.Path backupSettingsPath;
@@ -518,11 +528,8 @@ public class SettingsPanel extends JPanel {
                         java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                     }
 
-                    var saltBytes = logFileHandler.getSalt();
-                    var saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
-                    settings.setProperty("encrypted", "true");
-                    settings.setProperty("salt", saltBase64);
-                    saveSettings();
+                    // Store salt — settings update happens in done() on the EDT after success
+                    saltBytesResult = logFileHandler.getSalt();
 
                     // Compute parsed entries off-EDT to avoid blocking UI when updating list model
                     List<List<String>> parsed = logFileHandler.getParsedEntries();
@@ -551,6 +558,12 @@ public class SettingsPanel extends JPanel {
                     } else {
                         try {
                             List<String> elements = get();
+
+                            // Encryption succeeded — NOW persist settings on the EDT
+                            var saltBase64 = Base64.getEncoder().encodeToString(saltBytesResult);
+                            settings.setProperty("encrypted", "true");
+                            settings.setProperty("salt", saltBase64);
+                            saveSettings();
 
                             // Update list model on EDT in a single batch
                             javax.swing.SwingUtilities.invokeLater(() -> {
@@ -586,7 +599,7 @@ public class SettingsPanel extends JPanel {
                 } finally {
                     // Ensure sensitive data cleared
                     java.util.Arrays.fill(pwd, '\0');
-                    java.util.Arrays.fill(confirm, '\0');
+                    java.util.Arrays.fill(confirmedPwd, '\0');
                     // Keep the checkbox disabled when encrypted
                     encryptionCheckBox.setEnabled(false);
                 }

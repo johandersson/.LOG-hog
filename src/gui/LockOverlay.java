@@ -46,7 +46,6 @@ public class LockOverlay extends JPanel {
                 public void mouseClicked(java.awt.event.MouseEvent e) {
                     SwingUtilities.invokeLater(() -> {
                         try {
-                            owner.getTabPane().setSelectedIndex(2);
                             owner.manualUnlock();
                         } catch (Exception ignored) {}
                     });

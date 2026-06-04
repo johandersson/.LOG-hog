@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,7 +56,6 @@ public class LogTextEditor extends JFrame {
     private final Application application;
     private final JList<String> logList = new JList<>();
 
-    // For backward compatibility - delegate to application
     private LogFileHandler logFileHandler;
     LogFileHandler getLogFileHandler() {
         return logFileHandler;
@@ -158,7 +157,6 @@ public class LogTextEditor extends JFrame {
         java.nio.file.Path logFilePath = java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt");
         application = new Application(logFilePath);
 
-        // For backward compatibility
         logFileHandler = (LogFileHandler) application.getLogFileOperations();
 
         // Load settings file FIRST so all features can use existing settings
@@ -456,6 +454,13 @@ public class LogTextEditor extends JFrame {
                 String enc = settings.getProperty("encrypted");
                 boolean dataLoaded = false;
                 if ("true".equals(enc)) {
+                    dataLoaded = encryptionHandler.handleEncryptionSetup();
+                } else if (java.nio.file.Files.exists(logFileHandler.getFilePath())
+                           && encryption.EncryptionDetector.hasMagicHeader(logFileHandler.getFilePath())) {
+                    // Mismatch: settings say unencrypted but the file has the LOGH encrypted header.
+                    // Auto-correct settings and route through the normal auth flow to prevent
+                    // loading binary ciphertext as plain text (which causes double error dialogs).
+                    settings.setProperty("encrypted", "true");
                     dataLoaded = encryptionHandler.handleEncryptionSetup();
                 }
                 if (!dataLoaded) {

@@ -13,7 +13,7 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /*
- * Copyright (C) 2025 Johan Andersson
+ * Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,10 +36,9 @@ import javax.crypto.spec.SecretKeySpec;
  * <h2>Security Properties</h2>
  * <ul>
  *   <li><b>Encryption Algorithm:</b> AES/GCM with 256-bit key and 128-bit authentication tag</li>
- *   <li><b>Key Derivation:</b> PBKDF2 with 600,000 iterations (65,536 for legacy compatibility)</li>
+ *   <li><b>Key Derivation:</b> PBKDF2 with 600,000 iterations </li>
  *   <li><b>IV Generation:</b> Cryptographically secure random 96-bit IV for each encryption operation</li>
  *   <li><b>Authenticated Encryption:</b> GCM provides both confidentiality and integrity</li>
- *   <li><b>Integer Overflow Protection:</b> Uses Math.addExact() for array size calculations</li>
  * </ul>
  *
  * <h2>Security Assumptions</h2>
@@ -68,10 +67,9 @@ import javax.crypto.spec.SecretKeySpec;
  * <h2>Security Properties</h2>
  * <ul>
  *   <li><b>Encryption Algorithm:</b> AES/GCM with 256-bit key and 128-bit authentication tag</li>
- *   <li><b>Key Derivation:</b> PBKDF2 with 600,000 iterations (65,536 for legacy compatibility)</li>
+ *   <li><b>Key Derivation:</b> PBKDF2 with 600,000 iterations </li>
  *   <li><b>IV Generation:</b> Cryptographically secure random 96-bit IV for each encryption operation</li>
  *   <li><b>Authenticated Encryption:</b> GCM provides both confidentiality and integrity</li>
- *   <li><b>Integer Overflow Protection:</b> Uses Math.addExact() for array size calculations</li>
  * </ul>
  *
  * <h2>Security Assumptions</h2>
@@ -442,11 +440,15 @@ public class EncryptionManager implements encryption.StreamEncryptor {
         GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
         cipher.init(Cipher.ENCRYPT_MODE, key, spec);
         byte[] plaintext = data.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        byte[] ciphertext = cipher.doFinal(plaintext);
-        byte[] result = new byte[iv.length + ciphertext.length];
-        System.arraycopy(iv, 0, result, 0, iv.length);
-        System.arraycopy(ciphertext, 0, result, iv.length, ciphertext.length);
-        return result;
+        try {
+            byte[] ciphertext = cipher.doFinal(plaintext);
+            byte[] result = new byte[iv.length + ciphertext.length];
+            System.arraycopy(iv, 0, result, 0, iv.length);
+            System.arraycopy(ciphertext, 0, result, iv.length, ciphertext.length);
+            return result;
+        } finally {
+            CryptoUtils.zeroize(plaintext);
+        }
     }
 
     /** Encrypt from raw bytes (no String conversion, caller zeroizes input). */
