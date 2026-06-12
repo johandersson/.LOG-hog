@@ -24,7 +24,7 @@ This workflow is optimized for rapid, continuous logging.
 * You can open and edit them in any text editor
 * Additional features (encryption, search, formatting) are optional layers
 
-Inspired by <https://www.howtogeek.com/359463/what-is-a-log-file/>, .LOG-hog extends this format with:
+Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.com/258545/how-to-use-notepad-to-create-a-dated-log-or-journal-file/) .LOG-hog extends this format with:
 
 * structured entries
 * advanced search and filtering
