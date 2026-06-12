@@ -122,6 +122,19 @@ public class PasswordDialog extends JDialog {
         passwordField.setMinimumSize(new java.awt.Dimension(200, 44));
         passwordField.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 60));
 
+        // In PasswordDialog.initComponents(), after creating passwordField:
+        try {
+            if (passwordField.getDocument() instanceof AbstractDocument) {
+                // SECURITY: Limit password to reasonable length
+                // Even though PBKDF2 supports longer passwords, practical limits prevent DoS
+                ((AbstractDocument) passwordField.getDocument()).setDocumentFilter(
+                    new LengthLimitFilter(InputLimits.FIELD_MAX_CHARS)
+                );
+            }
+        } catch (Exception ignore) {
+        }
+        
+
         toggleButton = new StandardButton("", new Color(0xE0E0E0), new Color(0xB0B0B0));
         toggleButton.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         toggleButton.setToolTipText(UIStrings.TOOLTIP_SHOW_PASSWORD);
