@@ -129,7 +129,7 @@ public class MarkdownRenderer {
                 boolean isBlank = line.isBlank();
                 if (isBlank) {
                     consecutiveBlanks++;
-                    if (consecutiveBlanks <= 2) {
+                    if (consecutiveBlanks <= 1) {
                         filteredLines.add(line);
                     }
                 } else {
