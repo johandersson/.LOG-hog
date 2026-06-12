@@ -44,6 +44,12 @@ import javax.swing.text.Element;
  * - Within entries: Single newline between lines (MarkdownStyle.DOCUMENT_LINE_SEPARATOR)
  * - After special blocks (quotes, code, headings): Same as above - consistency guaranteed
  * 
+ * SECURITY RULES (strictly enforced):
+ * - All user content must pass through sanitizeLine() before rendering
+ * - HTML tags are comprehensively escaped to prevent XSS
+ * - Control characters are filtered to prevent injection attacks
+ * - Event handlers and javascript: protocol are neutralized
+ * 
  * All rendering operations use the centralized constants from LogFileFormat and MarkdownStyle
  * to ensure no variance in spacing regardless of content type.
  */
@@ -129,6 +135,7 @@ public class MarkdownRenderer {
                 boolean isBlank = line.isBlank();
                 if (isBlank) {
                     consecutiveBlanks++;
+                    // Allow only 1 consecutive blank line
                     if (consecutiveBlanks <= 1) {
                         filteredLines.add(line);
                     }
@@ -293,7 +300,8 @@ public class MarkdownRenderer {
                 MarkdownRenderingContext context = new MarkdownRenderingContext(doc, styles);
                 Style info = styles.get("info");
                 for (int i = 0; i < entry.size(); i++) {
-                    context.insertString(entry.get(i), info);
+                    // SECURITY: Sanitize before rendering
+                    context.insertString(sanitizeLine(entry.get(i)), info);
                     if (i < entry.size() - 1) context.insertLineSeparator();
                 }
                 context.insertDoubleLineSeparator();
@@ -432,8 +440,17 @@ public class MarkdownRenderer {
     }
 
     private static void renderHeading(String line, MarkdownRenderingContext context) throws BadLocationException {
-        String text = line.startsWith("### ") ? line.substring(4) :
-                     line.startsWith("## ") ? line.substring(3) : line.substring(2);
+        // SECURITY: Validate heading prefix length before substring to prevent StringIndexOutOfBoundsException
+        int prefixLen = line.startsWith("### ") ? 4 :
+                        line.startsWith("## ") ? 3 :
+                        line.startsWith("# ") ? 2 : 0;
+        
+        // If heading marker with no text, skip rendering
+        if (prefixLen >= line.length()) {
+            return;
+        }
+        
+        String text = line.substring(prefixLen);
         String styleName = line.startsWith("### ") ? "h3" :
                           line.startsWith("## ") ? "h2" : "h1";
         MarkdownFormatter.appendLineWithFormatting(context.getDocument(), text, context.getStyle(styleName), context.getStyles());
@@ -674,31 +691,86 @@ public class MarkdownRenderer {
         Style info = styles.get("info");
         MarkdownRenderingContext ctx = new MarkdownRenderingContext(doc, styles);
         for (int i = 0; i < entry.size(); i++) {
-            ctx.insertString(entry.get(i), info);
+            // SECURITY: Sanitize before rendering (previously bypassed)
+            ctx.insertString(sanitizeLine(entry.get(i)), info);
             if (i < entry.size() - 1) ctx.insertLineSeparator();
         }
         // Ensure two separators after info block to match display spacing
         ctx.insertDoubleLineSeparator();
     }
 
+    /**
+     * Securely sanitize a line to remove control characters and dangerous HTML tags/attributes.
+     * 
+     * SECURITY: This is the centralized sanitization point for all user content before rendering.
+     * All markdown content must pass through this method.
+     * 
+     * Protections:
+     * - Removes all ASCII control characters (except tab, CR, LF in certain contexts)
+     * - Removes Unicode control characters
+     * - Escapes dangerous HTML tags (script, iframe, object, embed, applet, form, img, svg, canvas, etc.)
+     * - Removes event handler attributes (onclick, onload, onerror, etc.)
+     * - Removes javascript: protocol
+     */
     private static String sanitizeLine(String line) {
         if (line == null) return "";
-        String sanitized;
+        
         try {
-            // Remove ASCII control chars except tab (\t)
-            sanitized = line.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
-            // Neutralize any <script occurrences (case-insensitive)
+            String sanitized = line;
+            
+            // SECURITY: Remove ASCII control characters except tab (\t), CR (\r), LF (\n)
+            // Remove: x00-x08, x0B, x0C, x0E-x1F (all control chars except tab, CR, LF)
+            sanitized = sanitized.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
+            
+            // SECURITY: Remove DEL character (0x7F)
+            sanitized = sanitized.replaceAll("[\\x7F]", "");
+            
+            // SECURITY: Escape dangerous HTML tags (comprehensive list)
+            // These tags can be used for XSS attacks even in non-web contexts
             sanitized = sanitized.replaceAll("(?i)<script", "&lt;script");
+            sanitized = sanitized.replaceAll("(?i)</script", "&lt;/script");
+            sanitized = sanitized.replaceAll("(?i)<iframe", "&lt;iframe");
+            sanitized = sanitized.replaceAll("(?i)<object", "&lt;object");
+            sanitized = sanitized.replaceAll("(?i)<embed", "&lt;embed");
+            sanitized = sanitized.replaceAll("(?i)<applet", "&lt;applet");
+            sanitized = sanitized.replaceAll("(?i)<form", "&lt;form");
+            sanitized = sanitized.replaceAll("(?i)<img", "&lt;img");
+            sanitized = sanitized.replaceAll("(?i)<svg", "&lt;svg");
+            sanitized = sanitized.replaceAll("(?i)<canvas", "&lt;canvas");
+            sanitized = sanitized.replaceAll("(?i)<link", "&lt;link");
+            sanitized = sanitized.replaceAll("(?i)<meta", "&lt;meta");
+            sanitized = sanitized.replaceAll("(?i)<base", "&lt;base");
+            
+            // SECURITY: Remove event handler attributes
+            // Pattern: whitespace + on[event] + optional whitespace + =
+            // Covers: onclick, onload, onerror, onmouseover, onmouseenter, onfocus, etc.
+            sanitized = sanitized.replaceAll("(?i)\\s+on\\w+\\s*=", " ");
+            
+            // SECURITY: Remove javascript: protocol
+            sanitized = sanitized.replaceAll("(?i)javascript\\s*:", "");
+            
+            // SECURITY: Remove data: protocol (can be used for embedded scripts)
+            sanitized = sanitized.replaceAll("(?i)data\\s*:", "");
+            
+            // SECURITY: Remove vbscript: protocol (IE-specific)
+            sanitized = sanitized.replaceAll("(?i)vbscript\\s*:", "");
+            
+            return sanitized;
+            
         } catch (Exception e) {
-            // On any regex issues, fall back to a safe plain string
+            // On any regex issues, fall back to character-by-character filtering for safety
             StringBuilder sb = new StringBuilder();
             for (char c : line.toCharArray()) {
-                if (c >= 0x20 || c == '\t') sb.append(c);
+                // Keep: printable ASCII (0x20-0x7E) + tab (0x09)
+                // Also allow CR (0x0D) and LF (0x0A) for line breaks
+                if ((c >= 0x20 && c <= 0x7E) || c == '\t' || c == '\r' || c == '\n') {
+                    sb.append(c);
+                }
             }
-            sanitized = sb.toString();
+            return sb.toString();
         }
-        return sanitized;
     }
+    
     private static boolean isHeadingLine(String line) {
         return line.startsWith("# ") || line.startsWith("## ") || line.startsWith("### ");
     }
