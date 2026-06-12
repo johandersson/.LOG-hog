@@ -128,7 +128,7 @@ public class PasswordDialog extends JDialog {
                 // SECURITY: Limit password to reasonable length
                 // Even though PBKDF2 supports longer passwords, practical limits prevent DoS
                 ((AbstractDocument) passwordField.getDocument()).setDocumentFilter(
-                    new LengthLimitFilter(InputLimits.FIELD_MAX_CHARS)
+                    new LengthLimitFilter(InputLimits.PASSWORD_MAX_CHARS)
                 );
             }
         } catch (Exception ignore) {
