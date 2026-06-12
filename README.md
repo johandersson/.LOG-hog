@@ -12,7 +12,7 @@
 
 On startup, the editor is immediately focused so you can begin writing right away. Press **Ctrl+S** or click **Save** to store the entry with a timestamp. The input field is then cleared automatically, allowing you to continue writing without interruption.
 
-This workflow is optimized for rapid, continuous logging.
+This workflow is optimized for rapid, continuous logging/writing a diary or just quick notes.
 
 ***
 
