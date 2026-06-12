@@ -36,7 +36,7 @@ import javax.swing.SwingConstants;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-
+import javax.swing.text.AbstractDocument;
 /**
  * Secure password dialog with automatic memory cleanup.
  * 
