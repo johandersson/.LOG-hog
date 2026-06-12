@@ -34,7 +34,19 @@ import javax.swing.KeyStroke;
 import javax.swing.AbstractAction;
 import javax.swing.SwingConstants;
 import java.awt.event.ActionEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
+/**
+ * Secure password dialog with automatic memory cleanup.
+ * 
+ * SECURITY NOTES:
+ * - Passwords are stored as char[] to allow secure zeroing (not String)
+ * - Dialog automatically clears all password data when closed (ESC, X button, Cancel, Alt+F4)
+ * - JPasswordField document is explicitly cleared on disposal
+ * - PasswordResult supports AutoCloseable for try-with-resources cleanup
+ * - All copies are made and returned to prevent exposure of internal buffers
+ */
 public class PasswordDialog extends JDialog {
     private JPasswordField passwordField;
     private JButton toggleButton;
@@ -49,6 +61,26 @@ public class PasswordDialog extends JDialog {
         super(parent, title, true);
         this.customMessage = customMessage;
         initComponents(showStrength);
+        
+        // SECURITY: Set close operation to dispose to ensure cleanup
+        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        
+        // SECURITY: Add window listener to clear password data when dialog closes
+        // This handles ESC, X button, Alt+F4, and other window close events
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                // Called after window is closed
+                clearAllPasswordData();
+            }
+            
+            @Override
+            public void windowClosing(WindowEvent e) {
+                // Called when user tries to close (before actual close)
+                clearAllPasswordData();
+            }
+        });
+        
         pack();
         setLocationRelativeTo(parent);
     }
@@ -210,8 +242,45 @@ public class PasswordDialog extends JDialog {
         passwordField.requestFocusInWindow();
     }
 
+    /**
+     * Securely clears all password data from memory.
+     * Called when dialog is closed/disposed to ensure no sensitive data remains in the GUI.
+     * SECURITY: This method zeros both the internal password field and the JPasswordField document.
+     */
+    private void clearAllPasswordData() {
+        // Clear internal password field first
+        if (password != null) {
+            java.util.Arrays.fill(password, '\0');
+            password = null;
+        }
+        
+        // Clear the JPasswordField document to remove password from the GUI buffer
+        if (passwordField != null) {
+            try {
+                int len = passwordField.getDocument().getLength();
+                if (len > 0) {
+                    passwordField.getDocument().remove(0, len);
+                }
+                passwordField.setText("");
+            } catch (Exception ignored) {
+                // If already disposed or other error, silently ignore
+            }
+        }
+    }
+
+    /**
+     * Override dispose to ensure all password data is cleared before disposal.
+     * SECURITY: Always clear sensitive data before object is garbage collected.
+     */
+    @Override
+    public void dispose() {
+        clearAllPasswordData();
+        super.dispose();
+    }
+
     public char[] getPassword() {
         // Return a copy to avoid exposing internal array
+        // Caller is responsible for zeroing the returned array when done
         return password == null ? null : java.util.Arrays.copyOf(password, password.length);
     }
 
@@ -219,6 +288,7 @@ public class PasswordDialog extends JDialog {
         var dialog = new PasswordDialog(parent, title, null, false);
         dialog.setVisible(true);
         char[] pw = dialog.getPassword();
+        dialog.dispose(); // Explicitly dispose to trigger cleanup
         return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
     }
 
@@ -226,6 +296,7 @@ public class PasswordDialog extends JDialog {
         var dialog = new PasswordDialog(parent, title, customMessage, false);
         dialog.setVisible(true);
         char[] pw = dialog.getPassword();
+        dialog.dispose(); // Explicitly dispose to trigger cleanup
         return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
     }
 
@@ -233,15 +304,48 @@ public class PasswordDialog extends JDialog {
         var dialog = new PasswordDialog(parent, title, customMessage, showStrength);
         dialog.setVisible(true);
         char[] pw = dialog.getPassword();
+        dialog.dispose(); // Explicitly dispose to trigger cleanup
         return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
     }
 
-    public static class PasswordResult {
+    /**
+     * Secure password result holder with support for explicit cleanup.
+     * SECURITY: Implements AutoCloseable to support try-with-resources pattern.
+     * Example usage:
+     *   try (PasswordResult result = PasswordDialog.showPasswordDialog(...)) {
+     *       char[] pwd = result.password;
+     *       // Use password...
+     *   } // Password automatically cleared here
+     */
+    public static class PasswordResult implements AutoCloseable {
         public final char[] password;
+        private boolean cleared = false;
 
         public PasswordResult(char... password) {
             // Always store a copy to avoid exposing mutable array
             this.password = password == null ? null : java.util.Arrays.copyOf(password, password.length);
+        }
+        
+        /**
+         * Securely clears the password from memory.
+         * Should be called by the consumer when done using the password.
+         * Safe to call multiple times; subsequent calls are no-ops.
+         * SECURITY: Once called, the password array is zeroed and cannot be recovered.
+         */
+        public void clearPassword() {
+            if (!cleared && password != null) {
+                java.util.Arrays.fill(password, '\0');
+                cleared = true;
+            }
+        }
+        
+        /**
+         * AutoCloseable support for try-with-resources cleanup.
+         * Ensures password is cleared even if an exception occurs.
+         */
+        @Override
+        public void close() {
+            clearPassword();
         }
     }
 }
