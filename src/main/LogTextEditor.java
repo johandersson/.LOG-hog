@@ -631,9 +631,6 @@ public class LogTextEditor extends JFrame {
             if (!isLocked && autoLockEnabled) {
                 SwingUtilities.invokeLater(() -> {
                     manualLock();
-                    DialogHelper.showInfo(this, "Auto-Lock", "File Auto-Locked",
-                        "The file has been locked due to inactivity.<br><br>" +
-                        "Press Unlock in Full log view to unlock it again.");
                 });
             }
         });
