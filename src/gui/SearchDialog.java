@@ -180,4 +180,18 @@ public class SearchDialog extends JDialog {
         findNextBtn.setEnabled(hasMatches);
         findPrevBtn.setEnabled(hasMatches);
     }
+
+    public void clearSearchState() {
+        searchField.setText("");
+        matchCountLabel.setText("No matches");
+        updateButtons(false);
+        lastQuery = null;
+        lastWholeWord = false;
+        lastCaseSensitive = false;
+        lastMatchCount = 0;
+        textPane.clearHighlights();
+        if (isVisible()) {
+            setVisible(false);
+        }
+    }
 }

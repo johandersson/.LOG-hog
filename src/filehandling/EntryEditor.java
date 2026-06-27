@@ -309,11 +309,10 @@ public class EntryEditor {
         List<String> normalized = LogFileFormat.normalizeSpacing(sortedLines);
 
         if (encrypted) {
-            cache.updateCachedLines(normalized);
             if (backupManager != null) {
                 backupManager.createNumberedBackup();
             }
-            encryptionManager.encryptFileFromLines(cache.getCachedLines());
+            encryptionManager.encryptFileFromLines(normalized);
         } else {
             if (backupManager != null) {
                 backupManager.createNumberedBackup();

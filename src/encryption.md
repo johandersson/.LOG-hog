@@ -65,8 +65,7 @@ It does **not** protect against:
   The legacy **in-memory fallback path** (used for small files) handles plaintext as Java `String` objects, which are immutable and cannot be zeroed from memory — this is a known JVM limitation with no general workaround.
 
 * **Session Password Handling**  
-  The encryption password (`char[]`) is retained in memory during an active session to enable re-encryption on save operations.  
-  It is cleared on lock or when encryption is disabled.
+  The raw password is not retained for the active session. A derived session key is kept in memory for re-encryption and is cleared on lock or when encryption is disabled.
 
 * **Streaming Decryption**  
   Large files are processed in streams to avoid full in-memory plaintext allocation.
@@ -226,7 +225,8 @@ AES_KEY_LENGTH = 256
 
 * Sensitive arrays zeroized after use
 * AES keys exist only during operations
-* Session password retained temporarily for usability
+* Raw password not retained after unlock
+* Derived session key retained temporarily for usability
 * Cleared on lock or shutdown
 
 ***

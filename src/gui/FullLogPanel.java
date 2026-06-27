@@ -228,6 +228,13 @@ public class FullLogPanel extends LogPanel {
         formatButton.setEnabled(!editor.isLocked());
     }
 
+    public void clearSearch() {
+        fullLogPane.clearHighlights();
+        if (searchDialog != null) {
+            searchDialog.clearSearchState();
+        }
+    }
+
     private void updateButtonStates(boolean locked) {
         copyFullLogButton.setEnabled(!locked);
         openInNotepadButton.setEnabled(!locked);

@@ -84,7 +84,7 @@ import javax.crypto.spec.SecretKeySpec;
  * <h2>Thread Safety</h2>
  * <p>This class is thread-safe. The singleton instance can be safely used from multiple threads.</p>
  */
-public class EncryptionManager implements encryption.StreamEncryptor {
+public class EncryptionManager implements SessionKeyEncryptor {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
@@ -188,6 +188,26 @@ public class EncryptionManager implements encryption.StreamEncryptor {
     }
 
     @Override
+    public byte[] encrypt(String data, SecretKey sessionKey, byte[] salt) throws EncryptionException {
+        if (data == null) {
+            throw new EncryptionException("Data to encrypt cannot be null.");
+        }
+        if (sessionKey == null) {
+            throw new EncryptionException("Session key cannot be null.");
+        }
+        if (salt == null) {
+            throw new EncryptionException("Salt cannot be null.");
+        }
+
+        try {
+            byte[] encrypted = performEncryption(data, sessionKey);
+            return buildEncryptedPayload(encrypted, salt);
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to encrypt your data. Please try again or contact support if the problem persists.", e);
+        }
+    }
+
+    @Override
     public void encryptStream(java.io.InputStream in, java.io.OutputStream out, char[] password, byte[] salt, utils.ProgressCallback progress) throws EncryptionException {
         if (in == null) throw new EncryptionException("Input stream cannot be null");
         if (out == null) throw new EncryptionException("Output stream cannot be null");
@@ -211,6 +231,47 @@ public class EncryptionManager implements encryption.StreamEncryptor {
             out.write(iv);
 
             // Wrap output in CipherOutputStream - use try-with-resources
+            try (java.io.BufferedInputStream bin = new java.io.BufferedInputStream(in);
+                 javax.crypto.CipherOutputStream cos = new javax.crypto.CipherOutputStream(out, cipher)) {
+                byte[] buf = new byte[8192];
+                int n;
+                long total = -1;
+                try {
+                    if (in instanceof java.io.ByteArrayInputStream) {
+                        total = bin.available();
+                    }
+                } catch (Exception ignored) {}
+                if (progress != null && total > 0) progress.setTotalBytes(total + 0);
+                while ((n = bin.read(buf)) != -1) {
+                    cos.write(buf, 0, n);
+                }
+            }
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to encrypt stream.", e);
+        }
+    }
+
+    @Override
+    public void encryptStream(java.io.InputStream in, java.io.OutputStream out, SecretKey sessionKey, byte[] salt, utils.ProgressCallback progress) throws EncryptionException {
+        if (in == null) throw new EncryptionException("Input stream cannot be null");
+        if (out == null) throw new EncryptionException("Output stream cannot be null");
+        if (sessionKey == null) throw new EncryptionException("Session key cannot be null");
+        if (salt == null) throw new EncryptionException("Salt cannot be null");
+
+        try {
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            new SecureRandom().nextBytes(iv);
+            GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+            cipher.init(Cipher.ENCRYPT_MODE, sessionKey, spec);
+
+            out.write(FILE_MAGIC);
+            out.write(FILE_VERSION);
+            out.write((byte) (salt.length & 0xFF));
+            out.write(salt);
+            out.write((byte) (iv.length & 0xFF));
+            out.write(iv);
+
             try (java.io.BufferedInputStream bin = new java.io.BufferedInputStream(in);
                  javax.crypto.CipherOutputStream cos = new javax.crypto.CipherOutputStream(out, cipher)) {
                 byte[] buf = new byte[8192];
@@ -339,6 +400,24 @@ public class EncryptionManager implements encryption.StreamEncryptor {
     }
 
     @Override
+    public String decrypt(byte[] data, SecretKey sessionKey) throws EncryptionException {
+        if (data == null) {
+            throw new EncryptionException("Data to decrypt cannot be null.");
+        }
+        if (sessionKey == null) {
+            throw new EncryptionException("Session key cannot be null.");
+        }
+        try {
+            byte[] encrypted = extractEncryptedPayload(data);
+            return performDecryption(encrypted, sessionKey);
+        } catch (EncryptionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to decrypt your data. Please check your password and try again.", e);
+        }
+    }
+
+    @Override
     public java.io.InputStream openDecryptedStream(java.io.InputStream encryptedIn, char[] password, byte[] salt, utils.ProgressCallback progress) throws EncryptionException {
         if (encryptedIn == null) throw new EncryptionException("Input stream cannot be null");
         if (password == null) throw new EncryptionException("Password cannot be null");
@@ -401,6 +480,106 @@ public class EncryptionManager implements encryption.StreamEncryptor {
         } catch (Exception e) {
             throw new EncryptionException("Unable to open decrypted stream.", e);
         }
+    }
+
+    @Override
+    public java.io.InputStream openDecryptedStream(java.io.InputStream encryptedIn, SecretKey sessionKey, utils.ProgressCallback progress) throws EncryptionException {
+        if (encryptedIn == null) throw new EncryptionException("Input stream cannot be null");
+        if (sessionKey == null) throw new EncryptionException("Session key cannot be null");
+        try {
+            java.io.BufferedInputStream bin = new java.io.BufferedInputStream(encryptedIn);
+
+            bin.mark(32);
+            byte[] magicCheck = new byte[FILE_MAGIC.length];
+            int magicRead = bin.read(magicCheck);
+            boolean hasHeader = (magicRead == FILE_MAGIC.length);
+            if (hasHeader) {
+                for (int i = 0; i < FILE_MAGIC.length; i++) {
+                    if (magicCheck[i] != FILE_MAGIC[i]) {
+                        hasHeader = false;
+                        break;
+                    }
+                }
+            }
+
+            if (hasHeader) {
+                int version = bin.read() & 0xFF;
+                int saltLen = bin.read() & 0xFF;
+                if (saltLen <= 0 || saltLen > 64) {
+                    throw new EncryptionException("Invalid salt length in header: " + saltLen);
+                }
+                byte[] headerSalt = new byte[saltLen];
+                int gotSalt = bin.read(headerSalt);
+                if (gotSalt != saltLen) {
+                    throw new EncryptionException("Truncated header: missing salt");
+                }
+                int ivLen = bin.read() & 0xFF;
+                if (ivLen != GCM_IV_LENGTH) {
+                    throw new EncryptionException("Unexpected IV length in header: " + ivLen);
+                }
+            } else {
+                bin.reset();
+            }
+
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            int got = bin.read(iv);
+            if (got != GCM_IV_LENGTH) {
+                throw new EncryptionException("Encrypted data missing IV or is corrupted.");
+            }
+            GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+            cipher.init(Cipher.DECRYPT_MODE, sessionKey, spec);
+            return new javax.crypto.CipherInputStream(bin, cipher);
+        } catch (EncryptionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new EncryptionException("Unable to open decrypted stream.", e);
+        }
+    }
+
+    private byte[] buildEncryptedPayload(byte[] encrypted, byte[] salt) {
+        int ivLen = GCM_IV_LENGTH;
+        int saltLen = salt.length;
+        int headerLen = FILE_MAGIC.length + 1 + 1 + saltLen + 1 + ivLen;
+        byte[] result = new byte[headerLen + (encrypted.length - ivLen)];
+        int pos = 0;
+        System.arraycopy(FILE_MAGIC, 0, result, pos, FILE_MAGIC.length); pos += FILE_MAGIC.length;
+        result[pos++] = FILE_VERSION;
+        result[pos++] = (byte) (saltLen & 0xFF);
+        System.arraycopy(salt, 0, result, pos, saltLen); pos += saltLen;
+        result[pos++] = (byte) (ivLen & 0xFF);
+        System.arraycopy(encrypted, 0, result, pos, ivLen); pos += ivLen;
+        System.arraycopy(encrypted, ivLen, result, pos, encrypted.length - ivLen);
+        return result;
+    }
+
+    private byte[] extractEncryptedPayload(byte[] data) throws EncryptionException {
+        int pos = 0;
+        boolean hasHeader = false;
+        if (data.length >= FILE_MAGIC.length + 1) {
+            hasHeader = true;
+            for (int i = 0; i < FILE_MAGIC.length; i++) {
+                if (data[i] != FILE_MAGIC[i]) {
+                    hasHeader = false;
+                    break;
+                }
+            }
+        }
+        if (!hasHeader) {
+            throw new EncryptionException("Unsupported or legacy encrypted data format. Only current format is supported.");
+        }
+
+        pos += FILE_MAGIC.length;
+        int version = data[pos++] & 0xFF;
+        utils.Log.debug(() -> "Decrypting data with header version: " + version);
+        int saltLen = data[pos++] & 0xFF;
+        if (saltLen < 0 || pos + saltLen > data.length) throw new EncryptionException("Truncated header: missing salt");
+        pos += saltLen;
+        int ivLen = data[pos++] & 0xFF;
+        if (ivLen != GCM_IV_LENGTH) throw new EncryptionException("Unexpected IV length in header");
+        byte[] encrypted = new byte[data.length - pos];
+        System.arraycopy(data, pos, encrypted, 0, encrypted.length);
+        return encrypted;
     }
     // Helper for encrypt(String, ...)
     private byte[] performEncryption(String data, SecretKey key) throws Exception {

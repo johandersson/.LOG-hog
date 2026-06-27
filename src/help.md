@@ -237,7 +237,7 @@ The only unrecoverable scenario is losing your password.
 ### Performance Note
 
 Encryption introduces a small delay during loading and saving.  
-Decrypted data is cached in memory for performance during active use.
+Decrypted data is read on demand; active UI state and pending edits may still keep plaintext in memory during use.
 
 ***
 

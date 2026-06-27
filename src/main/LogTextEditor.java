@@ -676,6 +676,10 @@ public class LogTextEditor extends JFrame {
         periodicBackupTimer.start();
     }
     private void updateUILockState() {
+        if (isLocked) {
+            logListPanel.clearSearch();
+            fullLogPanel.clearSearch();
+        }
         entryPanel.setLocked(isLocked);
         logListPanel.setLocked(isLocked);
         fullLogPanel.updateLockButton();

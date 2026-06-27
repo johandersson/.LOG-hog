@@ -90,10 +90,9 @@ public class AsyncSaver {
             try {
                 List<String> pendingLines = cache.getPendingLines();
                     if (encryptionManager.isEncrypted()) {
-                        cache.updateCachedLines(pendingLines);
                         if (backupManager != null) backupManager.createNumberedBackup();
                         if (encryptionManager != null) {
-                            encryptionManager.encryptFileFromLines(cache.getCachedLines());
+                            encryptionManager.encryptFileFromLines(pendingLines);
                         }
                 } else {
                     if (backupManager != null) backupManager.createNumberedBackup();

@@ -98,6 +98,7 @@ flowchart TD
 
 * Progressive delays after failed attempts
 * Limited retries
+* Raw password not retained after unlock
 * Restart required after limit
 
 ***
@@ -141,7 +142,7 @@ src/
 
 * Protects data at rest
 * No protection against malware
-* Memory exposed during session
+* Memory exposure reduced, but still possible during active session
 * Secure deletion is best-effort
 
 ***

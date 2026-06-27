@@ -149,7 +149,7 @@ If you forget your password, encrypted data cannot be recovered.
 
 ## ⚠️ Performance Note
 
-When encryption is enabled, loading and saving may be slightly slower due to encryption/decryption operations. During a session, decrypted data may be cached in memory for performance.
+When encryption is enabled, loading and saving may be slightly slower due to encryption/decryption operations. The app avoids keeping a general decrypted read cache, but active UI state and pending edits may still keep plaintext in memory during use.
 
 ***
 

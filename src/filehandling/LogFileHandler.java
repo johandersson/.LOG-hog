@@ -246,8 +246,6 @@ public class LogFileHandler implements LogFileOperations {
             List<String> updatedLines = entryEditor.updateEntry(rawTs, occurrence, newText, lines);
 
             // Use write-back cache for performance
-            // Update cache immediately so UI reflects formatted content
-            cache.updateCachedLines(updatedLines);
             cache.invalidateEntryCache();
             // Also set pending lines so write-back will flush to disk
             cache.setPendingLines(updatedLines);
@@ -286,12 +284,11 @@ public class LogFileHandler implements LogFileOperations {
         try {
             List<String> pendingLines = cache.getPendingLines();
             if (encryptionManager.isEncrypted()) {
-                cache.updateCachedLines(pendingLines);
                 // Create numbered backup before encryption
                 if (backupManager != null) {
                     backupManager.createNumberedBackup();
                 }
-                encryptionManager.encryptFileFromLines(cache.getCachedLines());
+                encryptionManager.encryptFileFromLines(pendingLines);
             } else {
                 // Create numbered backup before writing
                 if (backupManager != null) {
@@ -360,12 +357,11 @@ public class LogFileHandler implements LogFileOperations {
             if (!found) return;
 
             if (encryptionManager.isEncrypted()) {
-                cache.updateCachedLines(lines);
                 // Create numbered backup before encryption
                 if (backupManager != null) {
                     backupManager.createNumberedBackup();
                 }
-                encryptionManager.encryptFileFromLines(cache.getCachedLines());
+                encryptionManager.encryptFileFromLines(lines);
             } else {
                 // Create numbered backup before writing
                 if (backupManager != null) {
@@ -493,14 +489,7 @@ public class LogFileHandler implements LogFileOperations {
         }
         
         if (encryptionManager.isEncrypted()) {
-            List<String> cachedLines = cache.getCachedLines();
-            if (cachedLines.isEmpty()) {
-                // Use streaming decrypt-to-lines when available to avoid large allocations
-                List<String> decryptedLines = encryptionManager.decryptFileToLines();
-                cachedLines = new ArrayList<>(decryptedLines);
-                cache.updateCachedLines(cachedLines);
-            }
-            return cachedLines;
+            return encryptionManager.decryptFileToLines();
         } else {
             // Try UTF-8 first, fall back to ISO-8859-1 if invalid bytes are found
             List<String> lines;
@@ -551,16 +540,17 @@ public class LogFileHandler implements LogFileOperations {
         
         this.salt = encryptor.generateSalt();
         List<String> lines = readAllLinesSafe(filePath);
-        // Preserve .LOG header in encrypted files (don't remove it)
-        String fullText = String.join(LogFileFormat.INTERNAL_LINE_SEPARATOR, lines);
-        // Ensure .LOG header is present
-        if (!fullText.startsWith(".LOG")) {
-            fullText = ".LOG\n\n" + fullText;
+        if (lines.isEmpty() || !".LOG".equalsIgnoreCase(lines.get(0).trim())) {
+            List<String> withHeader = new ArrayList<>();
+            withHeader.add(".LOG");
+            withHeader.add("");
+            withHeader.addAll(lines);
+            lines = withHeader;
         }
         // Do NOT write an unencrypted plaintext backup. Instead set up encryption
         // and write the encrypted file, then create an encrypted backup copy.
         encryptionManager.setEncryption(pwd, this.salt);
-        encryptionManager.encryptFile(fullText);
+        encryptionManager.encryptFileFromLines(lines);
         // Create an encrypted backup copy to preserve previous state without leaving plaintext on disk
         try {
             Path backupPathEnc = getBackupPath(filePath.getFileName().toString() + ".bak.enc");
@@ -568,7 +558,7 @@ public class LogFileHandler implements LogFileOperations {
         } catch (Exception ignored) {
             // Don't fail encryption if backup copy can't be created
         }
-        cache.updateCachedLines(new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1))));
+        cache.clearCachedLines();
         encrypted = true;
         // Notify UI that encryption state changed and cached parsed data should be invalidated
         notifyCacheInvalidationListeners();
@@ -695,7 +685,7 @@ public class LogFileHandler implements LogFileOperations {
         Path temp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), "loghog-decrypt-", ".tmp", true);
         try {
             try (java.io.InputStream encIn = Files.newInputStream(filePath)) {
-                encryptionManager.withDecryptedStream(encIn, encryptionManager.getPassword(), encryptionManager.getSalt(), (decIn) -> {
+                encryptionManager.withDecryptedStream(encIn, (decIn) -> {
                     try (java.io.OutputStream out = Files.newOutputStream(temp, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
                         byte[] buf = new byte[8192];
                         int r;
