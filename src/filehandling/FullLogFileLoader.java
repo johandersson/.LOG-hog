@@ -301,7 +301,7 @@ public class FullLogFileLoader {
                 }
             }
             synchronized (cacheLock) {
-                if (this.cachedParsedData != null && this.cachedLastModified == lm && !logFileHandler.hasPendingWrites()) {
+                if (!logFileHandler.isEncrypted() && this.cachedParsedData != null && this.cachedLastModified == lm && !logFileHandler.hasPendingWrites()) {
                     return this.cachedParsedData;
                 }
             }
@@ -335,32 +335,34 @@ public class FullLogFileLoader {
                 Path p = logPath;
                 if (p != null && Files.exists(p)) lm = Files.getLastModifiedTime(p).toMillis();
             } catch (Exception ignored) {}
-            synchronized (cacheLock) {
-                ParsedLogData pd = new ParsedLogData(allEntries, entriesToRender);
-                // Build per-entry rendered documents for UI-sized sets to speed up
-                // subsequent re-renders. Limit to avoid excess memory use.
-                try {
-                    if (entriesToRender != null && entriesToRender.size() <= ResourceLimits.MAX_ENTRIES_TO_RENDER_UI) {
-                        synchronized (pd.perEntryDocCache) {
-                            for (List<String> entry : entriesToRender) {
-                                if (entry == null || entry.isEmpty()) continue;
-                                String key = entry.get(0).trim();
-                                // Avoid rebuilding if already present
-                                if (pd.perEntryDocCache.containsKey(key)) continue;
-                                try {
-                                    javax.swing.text.StyledDocument doc = MarkdownRenderer.buildDocumentFromEntries(java.util.List.of(entry), null);
-                                    pd.perEntryDocCache.put(key, new java.lang.ref.SoftReference<>(doc));
-                                } catch (Exception ignored) {
-                                    // If building an entry doc fails, skip caching it
+            ParsedLogData pd = new ParsedLogData(allEntries, entriesToRender);
+            if (!logFileHandler.isEncrypted()) {
+                synchronized (cacheLock) {
+                    // Build per-entry rendered documents for UI-sized sets to speed up
+                    // subsequent re-renders. Limit to avoid excess memory use.
+                    try {
+                        if (entriesToRender != null && entriesToRender.size() <= ResourceLimits.MAX_ENTRIES_TO_RENDER_UI) {
+                            synchronized (pd.perEntryDocCache) {
+                                for (List<String> entry : entriesToRender) {
+                                    if (entry == null || entry.isEmpty()) continue;
+                                    String key = entry.get(0).trim();
+                                    // Avoid rebuilding if already present
+                                    if (pd.perEntryDocCache.containsKey(key)) continue;
+                                    try {
+                                        javax.swing.text.StyledDocument doc = MarkdownRenderer.buildDocumentFromEntries(java.util.List.of(entry), null);
+                                        pd.perEntryDocCache.put(key, new java.lang.ref.SoftReference<>(doc));
+                                    } catch (Exception ignored) {
+                                        // If building an entry doc fails, skip caching it
+                                    }
                                 }
                             }
                         }
-                    }
-                } catch (Exception ignored) {}
-                this.cachedParsedData = pd;
-                this.cachedLastModified = lm;
+                    } catch (Exception ignored) {}
+                    this.cachedParsedData = pd;
+                    this.cachedLastModified = lm;
+                }
             }
-            return this.cachedParsedData;
+            return pd;
         } else {
             try (var stream = logFileHandler.getLinesStreamed()) {
                 java.util.stream.Stream<String> cleaned = stream.map(LogFileHandler::removeSecureMarker);
@@ -412,9 +414,11 @@ public class FullLogFileLoader {
                         }
                     }
                 } catch (Exception ignored) {}
-                synchronized (cacheLock) {
-                    this.cachedParsedData = pd;
-                    this.cachedLastModified = lm;
+                if (!logFileHandler.isEncrypted()) {
+                    synchronized (cacheLock) {
+                        this.cachedParsedData = pd;
+                        this.cachedLastModified = lm;
+                    }
                 }
                 return pd;
             }
@@ -446,7 +450,7 @@ public class FullLogFileLoader {
                 lastModified = Files.getLastModifiedTime(logPath).toMillis();
             }
             synchronized (cacheLock) {
-                if (cachedParsedData != null && cachedLastModified == lastModified && !logFileHandler.hasPendingWrites()) {
+                if (!logFileHandler.isEncrypted() && cachedParsedData != null && cachedLastModified == lastModified && !logFileHandler.hasPendingWrites()) {
                     allEntries = cachedParsedData.allEntries;
                 }
             }
@@ -498,7 +502,7 @@ public class FullLogFileLoader {
                 lastModified = Files.getLastModifiedTime(logPath).toMillis();
             }
             synchronized (cacheLock) {
-                if (cachedParsedData != null && cachedLastModified == lastModified && !logFileHandler.hasPendingWrites()) {
+                if (!logFileHandler.isEncrypted() && cachedParsedData != null && cachedLastModified == lastModified && !logFileHandler.hasPendingWrites()) {
                     allEntries = cachedParsedData.allEntries;
                 }
             }

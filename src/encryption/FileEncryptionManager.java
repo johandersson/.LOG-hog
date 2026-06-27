@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import filehandling.LogFileFormat;
 import utils.ProgressCallback;
@@ -18,7 +19,7 @@ public class FileEncryptionManager {
 
     private final Path filePath;
     private final Encryptor encryptor;
-    private SecretKey sessionKey;
+    private byte[] sessionKeyBytes;
     private byte[] salt;
     private boolean encrypted;
 
@@ -87,7 +88,13 @@ public class FileEncryptionManager {
 
     public void setEncryption(char[] pwd, byte[] slt) throws EncryptionException {
         clearSessionKey();
-        this.sessionKey = encryptor.deriveKey(pwd, slt);
+        SecretKey derivedKey = encryptor.deriveKey(pwd, slt);
+        byte[] encoded = derivedKey.getEncoded();
+        if (encoded == null || encoded.length == 0) {
+            throw new EncryptionException("Unable to derive a usable session key.");
+        }
+        this.sessionKeyBytes = encoded.clone();
+        CryptoUtils.zeroize(encoded);
         this.salt = slt.clone();
         this.encrypted = true;
     }
@@ -255,22 +262,18 @@ public class FileEncryptionManager {
     }
 
     private SecretKey requireSessionKey() {
-        if (!encrypted || sessionKey == null) {
+        if (!encrypted || sessionKeyBytes == null) {
             throw new IllegalStateException("Encryption not set up");
         }
-        return sessionKey;
+        return new SecretKeySpec(sessionKeyBytes, "AES");
     }
 
     private void clearSessionKey() {
-        if (this.sessionKey == null) {
+        if (this.sessionKeyBytes == null) {
             return;
         }
-        try {
-            byte[] encoded = this.sessionKey.getEncoded();
-            CryptoUtils.zeroize(encoded);
-        } catch (Exception ignored) {
-        }
-        this.sessionKey = null;
+        CryptoUtils.zeroize(this.sessionKeyBytes);
+        this.sessionKeyBytes = null;
     }
 
     private void finishTempWrite(Path tmp, boolean completed) throws Exception {

@@ -382,12 +382,10 @@ public class BackupManager {
         }
     }
 
-    private static final String HMAC_KEY_SETTING = "backupHmacKey";
-
     /**
      * Session-only HMAC key derived from the user's password after authentication.
-     * Never persisted to disk — derived fresh each session from password + salt.
-     * When set, this is used instead of (and prevents writing) the stored random key.
+        * Never persisted to disk — derived fresh each session from password + salt.
+        * For unencrypted files, a random in-memory session key is generated on first use.
      */
     private byte[] inMemoryHmacKey = null;
 
@@ -429,9 +427,9 @@ public class BackupManager {
 
     /**
      * Returns the HMAC key to use for backup signing/verification.
-     * Prefers the session-derived key (requires password) over the stored random key.
-     * For unencrypted files where no session key has been set, falls back to the
-     * stored random key so existing unencrypted backups continue to verify.
+     * Prefers the session-derived key (requires password).
+     * For unencrypted files where no session key has been set, uses a random
+     * in-memory session key instead of persisting one to settings.
      */
     private byte[] getOrCreateHmacKey() {
         if (inMemoryHmacKey != null) {
@@ -439,25 +437,11 @@ public class BackupManager {
             return java.util.Arrays.copyOf(inMemoryHmacKey, inMemoryHmacKey.length);
         }
 
-        // Fall back to stored key (unencrypted-file path only)
-        String storedKey = settings.getProperty(HMAC_KEY_SETTING);
-        if (storedKey != null && !storedKey.isEmpty()) {
-            try {
-                byte[] decoded = java.util.Base64.getDecoder().decode(storedKey);
-                if (decoded.length == 32) {
-                    return decoded;
-                }
-            } catch (IllegalArgumentException e) {
-                // Invalid base64, regenerate
-            }
-        }
-
-        // Generate and persist a random key (only reached for unencrypted files)
+        // Generate a random in-memory key for the current session (unencrypted-file path)
         byte[] newKey = new byte[32];
         new java.security.SecureRandom().nextBytes(newKey);
-        settings.setProperty(HMAC_KEY_SETTING, java.util.Base64.getEncoder().encodeToString(newKey));
-        saveSettings();
-        return newKey;
+        inMemoryHmacKey = newKey;
+        return java.util.Arrays.copyOf(inMemoryHmacKey, inMemoryHmacKey.length);
     }
 
     /**

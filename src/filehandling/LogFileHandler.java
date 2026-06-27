@@ -633,6 +633,10 @@ public class LogFileHandler implements LogFileOperations {
             return new ArrayList<>();
         }
 
+        if (encryptionManager.isEncrypted()) {
+            return LogParser.parseAllEntries(getLines());
+        }
+
         long currentModified = Files.getLastModifiedTime(filePath).toMillis();
         if (cache.getCachedEntries() == null || currentModified > cache.getCachedEntriesLastModified()) {
             List<String> lines = getLines();
