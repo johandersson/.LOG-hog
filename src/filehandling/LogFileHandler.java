@@ -612,7 +612,11 @@ public class LogFileHandler implements LogFileOperations {
         }
         for (Runnable r : copy) {
             try {
-                javax.swing.SwingUtilities.invokeLater(r);
+                if (javax.swing.SwingUtilities.isEventDispatchThread()) {
+                    r.run();
+                } else {
+                    javax.swing.SwingUtilities.invokeLater(r);
+                }
             } catch (Exception ignore) {}
         }
     }

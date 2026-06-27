@@ -86,7 +86,7 @@ public class FullLogPanel extends LogPanel {
         this.fullLogPane = new HighlightableTextPane();
         this.fileLoader = new FullLogFileLoader(logFileHandler, fullLogPane);
         // Register listener so FullLogFileLoader cache and markdown caches are invalidated when filehandler updates
-        this.cacheInvalidationListener = () -> SwingUtilities.invokeLater(() -> {
+        this.cacheInvalidationListener = () -> {
             fileLoader.invalidateCache();
             // Invalidate markdown renderer caches so document-level and entry-level caches are cleared
             markdown.MarkdownRenderer.invalidateAllCaches();
@@ -97,7 +97,7 @@ public class FullLogPanel extends LogPanel {
                     loadFullLogNoScroll(null);
                 }
             } catch (Exception ignored) {}
-        });
+        };
         this.logFileHandler.addCacheInvalidationListener(this.cacheInvalidationListener);
         this.fullLogPathLabel = new JLabel("Log file: (not loaded)");
         this.lockFileButton = new AccentButton(editor.isLocked() ? "Unlock File" : "Lock File");
