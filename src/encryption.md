@@ -62,7 +62,7 @@ It does **not** protect against:
 * **Memory Handling**  
   Sensitive data (passwords, keys) stored in mutable arrays and explicitly cleared (`CryptoUtils.zeroize`) after use.  
   The primary **streaming path** processes plaintext via streams and avoids creating a full plaintext `byte[]` in one allocation; intermediate plaintext byte arrays are zeroized before the method returns.  
-  The legacy **in-memory fallback path** (used for small files) handles plaintext as Java `String` objects, which are immutable and cannot be zeroed from memory — this is a known JVM limitation with no general workaround.
+  Some helper paths still materialize plaintext as Java `String` objects, which are immutable and cannot be zeroed from memory — this remains a JVM limitation.
 
 * **Session Password Handling**  
   The raw password is not retained for the active session. A derived session key is kept in memory for re-encryption and is cleared on lock or when encryption is disabled.
