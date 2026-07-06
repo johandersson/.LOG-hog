@@ -13,7 +13,7 @@ import filehandling.EntryLoader;
 public class DuplicateTest {
 
     public static void main(String[] args) throws Exception {
-        System.out.println("=== Duplicate and Numbering Test ===\n");
+        testsupport.TestLog.out("=== Duplicate and Numbering Test ===\n");
 
         // Test 1: Save multiple entries at same time, no encryption
         testNoEncryptionDuplicates();
@@ -27,11 +27,11 @@ public class DuplicateTest {
         // Test 4: Load after encryption enable on existing duplicates
         testEnableEncryptionOnDuplicates();
 
-        System.out.println("=== All tests completed ===");
+        testsupport.TestLog.out("=== All tests completed ===");
     }
 
     private static void testNoEncryptionDuplicates() throws Exception {
-        System.out.println("Test 1: Multiple entries at same time, no encryption");
+        testsupport.TestLog.out("Test 1: Multiple entries at same time, no encryption");
         Path testFile = Files.createTempFile("loghog_dup_test1", ".txt");
         LogFileHandler.setTestFilePath(testFile);
 
@@ -48,27 +48,27 @@ public class DuplicateTest {
         listModel.clear();
         entryLoader.loadLogEntries(listModel);
 
-        System.out.println("Loaded entries: " + listModel.size());
+        testsupport.TestLog.out("Loaded entries: " + listModel.size());
         for (int i = 0; i < listModel.size(); i++) {
-            System.out.println("  " + listModel.get(i));
+            testsupport.TestLog.out("  " + listModel.get(i));
         }
 
         // Check file content
         List<String> lines = Files.readAllLines(testFile);
-        System.out.println("File lines: " + lines.size());
+        testsupport.TestLog.out("File lines: " + lines.size());
         for (String line : lines) {
             if (!line.trim().isEmpty()) {
-                System.out.println("  '" + line + "'");
+                testsupport.TestLog.out("  '" + line + "'");
             }
         }
 
         // Cleanup
         Files.deleteIfExists(testFile);
-        System.out.println("Test 1 passed\n");
+        testsupport.TestLog.out("Test 1 passed\n");
     }
 
     private static void testEncryptionDuplicates() throws Exception {
-        System.out.println("Test 2: Multiple entries at same time, with encryption");
+        testsupport.TestLog.out("Test 2: Multiple entries at same time, with encryption");
         Path testFile = Files.createTempFile("loghog_dup_test2", ".txt");
         LogFileHandler.setTestFilePath(testFile);
 
@@ -88,18 +88,18 @@ public class DuplicateTest {
         listModel.clear();
         entryLoader.loadLogEntries(listModel);
 
-        System.out.println("Loaded entries: " + listModel.size());
+        testsupport.TestLog.out("Loaded entries: " + listModel.size());
         for (int i = 0; i < listModel.size(); i++) {
-            System.out.println("  " + listModel.get(i));
+            testsupport.TestLog.out("  " + listModel.get(i));
         }
 
         // Cleanup
         Files.deleteIfExists(testFile);
-        System.out.println("Test 2 passed\n");
+        testsupport.TestLog.out("Test 2 passed\n");
     }
 
     private static void testDifferentTimes() throws Exception {
-        System.out.println("Test 3: Entries at different times");
+        testsupport.TestLog.out("Test 3: Entries at different times");
         Path testFile = Files.createTempFile("loghog_dup_test3", ".txt");
         LogFileHandler.setTestFilePath(testFile);
 
@@ -116,18 +116,18 @@ public class DuplicateTest {
         listModel.clear();
         entryLoader.loadLogEntries(listModel);
 
-        System.out.println("Loaded entries: " + listModel.size());
+        testsupport.TestLog.out("Loaded entries: " + listModel.size());
         for (int i = 0; i < listModel.size(); i++) {
-            System.out.println("  " + listModel.get(i));
+            testsupport.TestLog.out("  " + listModel.get(i));
         }
 
         // Cleanup
         Files.deleteIfExists(testFile);
-        System.out.println("Test 3 passed\n");
+        testsupport.TestLog.out("Test 3 passed\n");
     }
 
     private static void testEnableEncryptionOnDuplicates() throws Exception {
-        System.out.println("Test 4: Enable encryption on existing duplicate timestamps");
+        testsupport.TestLog.out("Test 4: Enable encryption on existing duplicate timestamps");
         Path testFile = Files.createTempFile("loghog_dup_test4", ".txt");
         LogFileHandler.setTestFilePath(testFile);
 
@@ -149,13 +149,13 @@ public class DuplicateTest {
         listModel.clear();
         entryLoader.loadLogEntries(listModel);
 
-        System.out.println("Loaded entries: " + listModel.size());
+        testsupport.TestLog.out("Loaded entries: " + listModel.size());
         for (int i = 0; i < listModel.size(); i++) {
-            System.out.println("  " + listModel.get(i));
+            testsupport.TestLog.out("  " + listModel.get(i));
         }
 
         // Cleanup
         Files.deleteIfExists(testFile);
-        System.out.println("Test 4 passed\n");
+        testsupport.TestLog.out("Test 4 passed\n");
     }
 }

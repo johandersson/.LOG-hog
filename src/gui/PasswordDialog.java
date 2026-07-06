@@ -47,7 +47,8 @@ import javax.swing.text.AbstractDocument;
  * - PasswordResult supports AutoCloseable for try-with-resources cleanup
  * - All copies are made and returned to prevent exposure of internal buffers
  */
-public class PasswordDialog extends JDialog {
+public final class PasswordDialog extends JDialog {
+    private static final long serialVersionUID = 1L;
     private JPasswordField passwordField;
     private JButton toggleButton;
     private JButton okButton;

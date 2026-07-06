@@ -238,9 +238,9 @@ public class UIInitializer {
         tabPane.addTab("Log Entries", editor.getLogListPanel());
         tabPane.addTab("Full Log", editor.getFullLogPanel());
         tabPane.addTab("Settings", editor.getSettingsPanel());
-        tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help", false, true));
+        tabPane.addTab("Help", new InformationPanel("help.md", "Help", false, true));
         // Load About immediately (no lazy splash gating) so license is always available
-        tabPane.addTab("About", new InformationPanel(tabPane, "LICENSE.md", "About", false, false));
+        tabPane.addTab("About", new InformationPanel("LICENSE.md", "About", false, false));
 
         tabPane.addChangeListener(new javax.swing.event.ChangeListener() {
             @Override

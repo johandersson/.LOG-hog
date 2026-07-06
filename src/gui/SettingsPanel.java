@@ -25,12 +25,15 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
@@ -52,7 +55,22 @@ import main.LogTextEditor;
 import utils.Toast;
 import main.SecureDeletionUtils;
 
-public class SettingsPanel extends JPanel {
+public final class SettingsPanel extends JPanel {
+    private static final long serialVersionUID = 1L;
+    private static final String VALUE_TRUE = "true";
+    private static final String VALUE_FALSE = "false";
+    private static final String KEY_ENCRYPTED = "encrypted";
+    private static final String KEY_SALT = "salt";
+    private static final String KEY_BACKUP_DIRECTORY = "backupDirectory";
+    private static final String KEY_AUTO_BACKUP_ENABLED = "autoBackupEnabled";
+    private static final String KEY_SHOW_SPLASH = "showSplashOnStartup";
+    private static final String KEY_CLIPBOARD_AUTO_CLEAR = "clipboardAutoClear";
+    private static final String KEY_CLIPBOARD_TIMEOUT = "clipboardTimeout";
+    private static final String KEY_AUTO_LOCK_ENABLED = "autoLockEnabled";
+    private static final String KEY_AUTO_LOCK_TIMEOUT = "autoLockTimeout";
+    private static final String BACKUP_EXTENSION = ".bak";
+    private static final String OS_WINDOWS = "windows";
+    private static final String FONT_UI = "Segoe UI";
     // Removed unused private method rotateEncryptionKey (PMD)
     private final LogTextEditor editor;
     private final Properties settings;
@@ -95,13 +113,7 @@ public class SettingsPanel extends JPanel {
         // Encryption section
         contentPanel.add(createEncryptionPanel());
 
-        // Decrypt section: only show if encryption is not enabled OR (encryption enabled AND log.txt exists)
-        boolean encryptionEnabled = "true".equals(settings.getProperty("encrypted"));
-        java.nio.file.Path logPath = logFileHandler.getFilePath();
-        boolean logExists = java.nio.file.Files.exists(logPath);
-        if (!encryptionEnabled || (encryptionEnabled && logExists)) {
-            contentPanel.add(createDecryptPanel());
-        }
+        // Encrypted-only policy: decryption UI is intentionally removed.
 
         // Backup section
         contentPanel.add(createBackupPanel());
@@ -144,29 +156,13 @@ public class SettingsPanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createTitledBorder("Encryption"));
 
-        encryptionCheckBox = new JCheckBox("Enable encryption");
+        encryptionCheckBox = new JCheckBox("Encryption is required (always enabled)");
         encryptionCheckBox.setBackground(Color.WHITE);
-        encryptionCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        encryptionCheckBox.setSelected("true".equals(settings.getProperty("encrypted")));
+        encryptionCheckBox.setFont(new Font(FONT_UI, Font.PLAIN, 13));
+        encryptionCheckBox.setSelected(true);
+        encryptionCheckBox.setEnabled(false);
 
         panel.add(encryptionCheckBox);
-        return panel;
-    }
-
-    private JPanel createDecryptPanel() {
-        var panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createTitledBorder("Decrypt File"));
-
-        var decryptButton = new StandardButton("Decrypt Log File", new Color(0xE0E0E0), new Color(0xB0B0B0));
-        decryptButton.addActionListener(e -> decryptLogFile());
-
-        var decryptWarning = new JLabel("<html><b>Warning:</b> This will permanently decrypt your log file and store it in plain text.</html>");
-        decryptWarning.setForeground(Color.RED);
-        decryptWarning.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-
-        panel.add(decryptButton);
-        panel.add(decryptWarning);
         return panel;
     }
 
@@ -187,9 +183,9 @@ public class SettingsPanel extends JPanel {
         panel.setBorder(BorderFactory.createTitledBorder("Backup Directory"));
 
         var backupDirLabel = new JLabel("Default backup directory: ");
-        backupDirLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        backupDirLabel.setFont(new Font(FONT_UI, Font.PLAIN, 13));
         backupDirField = new JTextField(20);
-        backupDirField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        backupDirField.setFont(new Font(FONT_UI, Font.PLAIN, 13));
         var browseBackupButton = new StandardButton("Browse...", new Color(0xE0E0E0), new Color(0xB0B0B0));
         browseBackupButton.addActionListener(e -> browseBackupDirectory());
 
@@ -206,7 +202,7 @@ public class SettingsPanel extends JPanel {
 
         autoBackupCheckBox = new JCheckBox("Enable automatic periodic backup (every 30 minutes when file changes)");
         autoBackupCheckBox.setBackground(Color.WHITE);
-        autoBackupCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        autoBackupCheckBox.setFont(new Font(FONT_UI, Font.PLAIN, 13));
 
         panel.add(autoBackupCheckBox);
         return panel;
@@ -219,8 +215,8 @@ public class SettingsPanel extends JPanel {
 
         splashOnStartupCheckBox = new JCheckBox("Show splash screen on startup");
         splashOnStartupCheckBox.setBackground(Color.WHITE);
-        splashOnStartupCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        splashOnStartupCheckBox.setSelected("true".equals(settings.getProperty("showSplashOnStartup", "true")));
+        splashOnStartupCheckBox.setFont(new Font(FONT_UI, Font.PLAIN, 13));
+        splashOnStartupCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_SHOW_SPLASH, VALUE_TRUE)));
 
         panel.add(splashOnStartupCheckBox);
         return panel;
@@ -233,14 +229,14 @@ public class SettingsPanel extends JPanel {
 
         clipboardAutoClearCheckBox = new JCheckBox("Auto-clear clipboard after copying");
         clipboardAutoClearCheckBox.setBackground(Color.WHITE);
-        clipboardAutoClearCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        clipboardAutoClearCheckBox.setSelected("true".equals(settings.getProperty("clipboardAutoClear", "true")));
+        clipboardAutoClearCheckBox.setFont(new Font(FONT_UI, Font.PLAIN, 13));
+        clipboardAutoClearCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_CLIPBOARD_AUTO_CLEAR, VALUE_TRUE)));
 
         var timeoutLabel = new JLabel("Timeout (seconds): ");
-        timeoutLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        timeoutLabel.setFont(new Font(FONT_UI, Font.PLAIN, 13));
         clipboardTimeoutField = new JTextField(5);
-        clipboardTimeoutField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        clipboardTimeoutField.setText(settings.getProperty("clipboardTimeout", "30"));
+        clipboardTimeoutField.setFont(new Font(FONT_UI, Font.PLAIN, 13));
+        clipboardTimeoutField.setText(settings.getProperty(KEY_CLIPBOARD_TIMEOUT, "30"));
 
         panel.add(clipboardAutoClearCheckBox);
         panel.add(timeoutLabel);
@@ -255,14 +251,14 @@ public class SettingsPanel extends JPanel {
 
         autoLockCheckBox = new JCheckBox("Lock file after inactivity");
         autoLockCheckBox.setBackground(Color.WHITE);
-        autoLockCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        autoLockCheckBox.setSelected("true".equals(settings.getProperty("autoLockEnabled", "false")));
+        autoLockCheckBox.setFont(new Font(FONT_UI, Font.PLAIN, 13));
+        autoLockCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_AUTO_LOCK_ENABLED, VALUE_FALSE)));
 
         var timeoutLabel = new JLabel("Timeout (minutes): ");
-        timeoutLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        timeoutLabel.setFont(new Font(FONT_UI, Font.PLAIN, 13));
         
         // Get timeout in seconds and convert to minutes, default is 15 minutes (900 seconds)
-        int timeoutSeconds = Integer.parseInt(settings.getProperty("autoLockTimeout", "900"));
+        int timeoutSeconds = Integer.parseInt(settings.getProperty(KEY_AUTO_LOCK_TIMEOUT, "900"));
         int timeoutMinutes = timeoutSeconds / 60;
         
         // Spinner: min=15, max=1440 (24 hours), step=5, initial=timeoutMinutes
@@ -273,7 +269,7 @@ public class SettingsPanel extends JPanel {
             5      // step: 5 minutes
         );
         autoLockTimeoutSpinner = new JSpinner(spinnerModel);
-        autoLockTimeoutSpinner.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        autoLockTimeoutSpinner.setFont(new Font(FONT_UI, Font.PLAIN, 13));
         ((JSpinner.DefaultEditor) autoLockTimeoutSpinner.getEditor()).getTextField().setColumns(5);
 
         panel.add(autoLockCheckBox);
@@ -303,22 +299,22 @@ public class SettingsPanel extends JPanel {
 
         statusLabel = new JLabel("");
         statusLabel.setForeground(Color.BLUE);
-        statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        statusLabel.setFont(new Font(FONT_UI, Font.PLAIN, 13));
 
         panel.add(statusLabel);
         return panel;
     }
 
     public void loadCurrentSettings() {
-        backupDirField.setText(settings.getProperty("backupDirectory", ""));
-        autoBackupCheckBox.setSelected("true".equals(settings.getProperty("autoBackupEnabled", "false")));
-        splashOnStartupCheckBox.setSelected("true".equals(settings.getProperty("showSplashOnStartup", "true")));
-        clipboardAutoClearCheckBox.setSelected("true".equals(settings.getProperty("clipboardAutoClear", "true")));
-        clipboardTimeoutField.setText(settings.getProperty("clipboardTimeout", "30"));
-        autoLockCheckBox.setSelected("true".equals(settings.getProperty("autoLockEnabled", "false")));
+        backupDirField.setText(settings.getProperty(KEY_BACKUP_DIRECTORY, ""));
+        autoBackupCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_AUTO_BACKUP_ENABLED, VALUE_FALSE)));
+        splashOnStartupCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_SHOW_SPLASH, VALUE_TRUE)));
+        clipboardAutoClearCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_CLIPBOARD_AUTO_CLEAR, VALUE_TRUE)));
+        clipboardTimeoutField.setText(settings.getProperty(KEY_CLIPBOARD_TIMEOUT, "30"));
+        autoLockCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_AUTO_LOCK_ENABLED, VALUE_FALSE)));
         
         // Load auto-lock timeout in minutes
-        int timeoutSeconds = Integer.parseInt(settings.getProperty("autoLockTimeout", "900"));
+        int timeoutSeconds = Integer.parseInt(settings.getProperty(KEY_AUTO_LOCK_TIMEOUT, "900"));
         int timeoutMinutes = timeoutSeconds / 60;
         
         // Check if timeout is outside valid range and alert user
@@ -332,35 +328,26 @@ public class SettingsPanel extends JPanel {
         }
         autoLockTimeoutSpinner.setValue(timeoutMinutes);
         
-        var isEncrypted = "true".equals(settings.getProperty("encrypted"));
-        encryptionCheckBox.setSelected(isEncrypted);
-        encryptionCheckBox.setEnabled(!isEncrypted); // Disable if already encrypted
+        encryptionCheckBox.setSelected(true);
+        encryptionCheckBox.setEnabled(false);
     }
 
     private void applySettings() {
-        var enable = encryptionCheckBox.isSelected();
-        var currentEnc = settings.getProperty("encrypted");
+        var currentEnc = settings.getProperty(KEY_ENCRYPTED);
 
-        // Check if encryption setting changed
-        if (enable && !"true".equals(currentEnc)) {
-            // Enabling encryption
+        // Encrypted-only policy: always require encryption and bootstrap if not enabled yet.
+        if (!VALUE_TRUE.equals(currentEnc)) {
             enableEncryption();
-            return; // enableEncryption handles its own saving
-        } else if (!enable && "true".equals(currentEnc)) {
-            // User unchecked the box but file is still encrypted
-            statusLabel.setText("Use the 'Decrypt Log File' button to decrypt the file.");
-            statusLabel.setForeground(Color.ORANGE);
-            encryptionCheckBox.setSelected(true); // Keep it checked until they decrypt
             return;
         }
 
         // Check if any settings actually changed
-        var currentBackupDir = settings.getProperty("backupDirectory", "");
-        var currentSplashOnStartup = "true".equals(settings.getProperty("showSplashOnStartup", "true"));
-        var currentClipboardAutoClear = "true".equals(settings.getProperty("clipboardAutoClear", "true"));
-        var currentClipboardTimeout = settings.getProperty("clipboardTimeout", "30");
-        var currentAutoLockEnabled = "true".equals(settings.getProperty("autoLockEnabled", "false"));
-        int currentAutoLockTimeoutSeconds = Integer.parseInt(settings.getProperty("autoLockTimeout", "900"));
+        var currentBackupDir = settings.getProperty(KEY_BACKUP_DIRECTORY, "");
+        var currentSplashOnStartup = VALUE_TRUE.equals(settings.getProperty(KEY_SHOW_SPLASH, VALUE_TRUE));
+        var currentClipboardAutoClear = VALUE_TRUE.equals(settings.getProperty(KEY_CLIPBOARD_AUTO_CLEAR, VALUE_TRUE));
+        var currentClipboardTimeout = settings.getProperty(KEY_CLIPBOARD_TIMEOUT, "30");
+        var currentAutoLockEnabled = VALUE_TRUE.equals(settings.getProperty(KEY_AUTO_LOCK_ENABLED, VALUE_FALSE));
+        int currentAutoLockTimeoutSeconds = Integer.parseInt(settings.getProperty(KEY_AUTO_LOCK_TIMEOUT, "900"));
         var newBackupDir = backupDirField.getText();
         var newAutoBackupEnabled = autoBackupCheckBox.isSelected();
         var newSplashOnStartup = splashOnStartupCheckBox.isSelected();
@@ -390,7 +377,7 @@ public class SettingsPanel extends JPanel {
             return;
         }
 
-        var currentAutoBackupEnabled = "true".equals(settings.getProperty("autoBackupEnabled", "false"));
+        var currentAutoBackupEnabled = VALUE_TRUE.equals(settings.getProperty(KEY_AUTO_BACKUP_ENABLED, VALUE_FALSE));
 
         var settingsChanged = !currentBackupDir.equals(newBackupDir) ||
                             currentAutoBackupEnabled != newAutoBackupEnabled ||
@@ -407,19 +394,19 @@ public class SettingsPanel extends JPanel {
         }
 
         // Save settings
-        settings.setProperty("backupDirectory", newBackupDir);
+        settings.setProperty(KEY_BACKUP_DIRECTORY, newBackupDir);
         
         // If auto-backup is being enabled for the first time, ensure directory is configured
         if (newAutoBackupEnabled && !currentAutoBackupEnabled) {
             backupManager.ensureBackupDirectoryConfigured();
         }
         
-        settings.setProperty("autoBackupEnabled", newAutoBackupEnabled ? "true" : "false");
-        settings.setProperty("showSplashOnStartup", newSplashOnStartup ? "true" : "false");
-        settings.setProperty("clipboardAutoClear", newClipboardAutoClear ? "true" : "false");
-        settings.setProperty("clipboardTimeout", newClipboardTimeout);
-        settings.setProperty("autoLockEnabled", newAutoLockEnabled ? "true" : "false");
-        settings.setProperty("autoLockTimeout", String.valueOf(newAutoLockTimeoutSeconds));
+        settings.setProperty(KEY_AUTO_BACKUP_ENABLED, newAutoBackupEnabled ? VALUE_TRUE : VALUE_FALSE);
+        settings.setProperty(KEY_SHOW_SPLASH, newSplashOnStartup ? VALUE_TRUE : VALUE_FALSE);
+        settings.setProperty(KEY_CLIPBOARD_AUTO_CLEAR, newClipboardAutoClear ? VALUE_TRUE : VALUE_FALSE);
+        settings.setProperty(KEY_CLIPBOARD_TIMEOUT, newClipboardTimeout);
+        settings.setProperty(KEY_AUTO_LOCK_ENABLED, newAutoLockEnabled ? VALUE_TRUE : VALUE_FALSE);
+        settings.setProperty(KEY_AUTO_LOCK_TIMEOUT, String.valueOf(newAutoLockTimeoutSeconds));
         saveSettings();
 
         // Update secure clipboard settings immediately
@@ -476,7 +463,7 @@ public class SettingsPanel extends JPanel {
         }
 
         // Loop confirm dialog until passwords match or user cancels
-        char[] confirm = null;
+        char[] confirm;
         while (true) {
             var confirmResult = PasswordDialog.showPasswordDialog(editor, "Confirm new password", "Confirm your new password.");
             if (confirmResult.password == null) {
@@ -489,13 +476,12 @@ public class SettingsPanel extends JPanel {
             }
             gui.DialogHelper.showError(editor, "Mismatch", "Passwords do not match. Please try again.");
             java.util.Arrays.fill(confirm, '\0');
-            confirm = null;
         }
         final char[] confirmedPwd = confirm;
 
         // Snapshot the settings values needed by the background thread.
         // Properties is not thread-safe; reading it off the EDT is a data race.
-        final String backupDirSnapshot = settings.getProperty("backupDirectory", "");
+        final String backupDirSnapshot = settings.getProperty(KEY_BACKUP_DIRECTORY, "");
 
         // Run encryption off the EDT to keep the UI responsive and show progress.
         statusLabel.setText("Encrypting...");
@@ -514,6 +500,7 @@ public class SettingsPanel extends JPanel {
             private byte[] saltBytesResult;
 
             @Override
+            @SuppressWarnings("PMD.AvoidCatchingGenericException")
             protected List<String> doInBackground() {
                 try {
                     logFileHandler.enableEncryption(pwd);
@@ -524,9 +511,9 @@ public class SettingsPanel extends JPanel {
                         if (backupDirSnapshot != null && !backupDirSnapshot.isEmpty()) {
                             java.nio.file.Path backupDirPath = java.nio.file.Paths.get(backupDirSnapshot);
                             java.nio.file.Files.createDirectories(backupDirPath);
-                            backupSettingsPath = backupDirPath.resolve(settingsPath.getFileName().toString() + ".bak");
+                            backupSettingsPath = backupDirPath.resolve(settingsPath.getFileName().toString() + BACKUP_EXTENSION);
                         } else {
-                            backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
+                            backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + BACKUP_EXTENSION);
                         }
                         java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                     }
@@ -564,8 +551,8 @@ public class SettingsPanel extends JPanel {
 
                             // Encryption succeeded — NOW persist settings on the EDT
                             var saltBase64 = Base64.getEncoder().encodeToString(saltBytesResult);
-                            settings.setProperty("encrypted", "true");
-                            settings.setProperty("salt", saltBase64);
+                            settings.setProperty(KEY_ENCRYPTED, VALUE_TRUE);
+                            settings.setProperty(KEY_SALT, saltBase64);
                             saveSettings();
 
                             // Update list model on EDT in a single batch
@@ -576,7 +563,9 @@ public class SettingsPanel extends JPanel {
                                     listModel.removeAllElements();
                                     for (String el : elements) listModel.addElement(el);
                                     editor.updateLogListView();
-                                } catch (Exception ignore) {}
+                                } catch (RuntimeException ignore) {
+                                    Log.warn(() -> "Unable to refresh log list model after encryption.");
+                                }
                             });
 
                             // Ask FullLogPanel to reload (it uses its own SwingWorker internally)
@@ -592,7 +581,13 @@ public class SettingsPanel extends JPanel {
 
                             // Perform automatic backup after successful encryption
                             performAutomaticBackup();
-                        } catch (Exception ex2) {
+                        } catch (InterruptedException ex2) {
+                            Thread.currentThread().interrupt();
+                            progressDialog.close();
+                            JOptionPane.showMessageDialog(editor, "Encryption succeeded but UI refresh was interrupted: " + ex2.getMessage(), "Warning", JOptionPane.WARNING_MESSAGE);
+                            statusLabel.setText("Encryption completed but settings update was interrupted.");
+                            statusLabel.setForeground(Color.ORANGE);
+                        } catch (ExecutionException ex2) {
                             progressDialog.close();
                             JOptionPane.showMessageDialog(editor, "Encryption succeeded but saving settings failed: " + ex2.getMessage(), "Warning", JOptionPane.WARNING_MESSAGE);
                             statusLabel.setText("Encryption completed but settings update failed.");
@@ -658,8 +653,8 @@ public class SettingsPanel extends JPanel {
                     for (Path backup : unencryptedBackups) {
                         try {
                             SecureDeletionUtils.wipeFile(backup);
-                        } catch (Exception e) {
-                            Log.error("Failed to securely delete backup: " + backup, e);
+                        } catch (java.io.IOException e) {
+                            Log.error(() -> "Failed to securely delete backup: " + backup, e);
                         }
                     }
 
@@ -672,7 +667,7 @@ public class SettingsPanel extends JPanel {
                 });
             }
 
-        } catch (Exception e) {
+        } catch (java.io.IOException e) {
             // Silently ignore cleanup errors to not disrupt the encryption success
             Log.error("Error during backup cleanup", e);
         }
@@ -707,17 +702,17 @@ public class SettingsPanel extends JPanel {
             chooser.setCurrentDirectory(new java.io.File(backupDir));
         }
         var date = LocalDate.now().toString();
-        chooser.setSelectedFile(new java.io.File("loghog-backup-" + date + ".txt"));
+        chooser.setSelectedFile(new java.io.File("loghog-backup-" + date + ".enc"));
         var filter = new javax.swing.filechooser.FileFilter() {
             @Override
             public boolean accept(java.io.File f) {
                 if (f.isDirectory()) return true;
                 var name = f.getName();
-                return name.startsWith("loghog-backup-") && name.endsWith(".txt");
+                return name.startsWith("loghog-backup-") && name.endsWith(".enc");
             }
             @Override
             public String getDescription() {
-                return "LogHog backup files (*.txt)";
+                return "LogHog encrypted backup files (*.enc)";
             }
         };
         chooser.setFileFilter(filter);
@@ -732,7 +727,8 @@ public class SettingsPanel extends JPanel {
                     if (Files.exists(backupPath)) {
                         SecureDeletionUtils.wipeFile(backupPath);
                     }
-                    Files.copy(Paths.get(System.getProperty("user.home"), "log.txt"), backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    Path encryptedLogPath = logFileHandler.getFilePath();
+                    Files.copy(encryptedLogPath, backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
                     var settingsSource = Paths.get(System.getProperty("user.home"), "settings.ini");
                     if (Files.exists(settingsSource)) {
@@ -745,7 +741,7 @@ public class SettingsPanel extends JPanel {
                     } else {
                         javax.swing.SwingUtilities.invokeLater(() -> statusLabel.setText("Backup saved to: " + backupPath.toString()));
                     }
-                } catch (Exception ex) {
+                } catch (java.io.IOException ex) {
                     javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(editor, "Backup failed. Please check file permissions and try again."));
                 }
             });
@@ -755,117 +751,11 @@ public class SettingsPanel extends JPanel {
     private void saveSettings() {
         try (var fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
-        } catch (Exception e) {
+        } catch (java.io.IOException e) {
             gui.DialogHelper.showError(editor, "Error", "Error saving settings. Please check file permissions and try again.");
         }
     }
 
-    private void decryptLogFile() {
-        // Prevent decrypt dialog if log.txt is missing and encryption is enabled
-        java.nio.file.Path logPath = logFileHandler.getFilePath();
-        boolean encryptionEnabled = "true".equals(settings.getProperty("encrypted"));
-        if (encryptionEnabled && !java.nio.file.Files.exists(logPath)) {
-            JOptionPane.showMessageDialog(editor, "Cannot decrypt: log.txt file not found.", "Missing log.txt", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        if (!logFileHandler.isEncrypted()) {
-            gui.DialogHelper.showInfo(editor, "Not Encrypted", "The log file is not currently encrypted.");
-            return;
-        }
-
-        if (!showDecryptionWarning()) {
-            return;
-        }
-
-        try {
-            // Decrypt the file
-            logFileHandler.disableEncryption();
-
-            // Backup settings file before modifying
-            backupSettingsFile();
-
-            // Update settings - but save BEFORE clearing in case something goes wrong
-            var oldEncrypted = settings.getProperty("encrypted");
-            var oldSalt = settings.getProperty("salt");
-
-            updateSettingsForDecryption();
-
-            // Verify decryption worked by trying to read the file
-            verifyDecryptionSuccess(oldEncrypted, oldSalt);
-
-            // Update UI and show success
-            updateUIAfterSuccessfulDecryption();
-            showDecryptionSuccessMessage();
-
-        } catch (Exception ex) {
-            handleDecryptionError(ex);
-        }
-    }
-
-    private boolean showDecryptionWarning() {
-        // Ask for confirmation using the simplified DialogHelper.confirm API
-        return gui.DialogHelper.confirm(editor,
-            "Decrypt Log File - Security Warning",
-            "WARNING: Security Risk",
-            "This will permanently decrypt your log file and save it as plain text.<br>" +
-            "Anyone with access to your computer will be able to read the file.<br><br>" +
-            "A backup of the encrypted file will be saved as log.txt.bak.enc<br><br> " +
-            "Are you sure you want to proceed?</html>");
-    }
-
-    private void backupSettingsFile() {
-        if (java.nio.file.Files.exists(settingsPath)) {
-            var backupSettingsPath = settingsPath.resolveSibling(settingsPath.getFileName().toString() + ".bak");
-            try {
-                java.nio.file.Files.copy(settingsPath, backupSettingsPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            } catch (Exception e) {
-                // Silently ignore backup failures
-            }
-        }
-    }
-
-    private void updateSettingsForDecryption() {
-        settings.setProperty("encrypted", "false");
-        settings.remove("salt");
-        saveSettings();
-    }
-
-    private void verifyDecryptionSuccess(String oldEncrypted, String oldSalt) throws Exception {
-        try {
-            editor.loadLogEntries();
-        } catch (Exception verifyEx) {
-            // Rollback settings
-            settings.setProperty("encrypted", oldEncrypted);
-            if (oldSalt != null) {
-                settings.setProperty("salt", oldSalt);
-            }
-            saveSettings();
-            throw new Exception("Decryption verification failed: " + verifyEx.getMessage(), verifyEx);
-        }
-    }
-
-    private void updateUIAfterSuccessfulDecryption() {
-        encryptionCheckBox.setSelected(false);
-        statusLabel.setText("File decrypted successfully. Encryption disabled.");
-        statusLabel.setForeground(new Color(0, 128, 0)); // Green
-        editor.getFullLogPanel().loadFullLog();
-
-        // Perform automatic backup after successful decryption
-        performAutomaticBackup();
-    }
-
-    private void showDecryptionSuccessMessage() {
-        JOptionPane.showMessageDialog(editor,
-            "Log file has been decrypted successfully.\nA backup of the encrypted file was saved as log.txt.bak.enc",
-            "Decryption Complete",
-            JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void handleDecryptionError(Exception ex) {
-        gui.DialogHelper.showError(editor, "Error", "Decryption failed: " + ex.getMessage());
-        statusLabel.setText("Decryption failed.");
-        statusLabel.setForeground(Color.RED);
-    }
 
     private boolean isValidClipboardTimeout(String timeoutStr) {
         if (timeoutStr == null || timeoutStr.isBlank()) {
@@ -891,11 +781,11 @@ public class SettingsPanel extends JPanel {
             // Check if it's a valid path
             java.nio.file.Paths.get(path);
             // Check for dangerous characters that could be used for path traversal
-            if (path.contains("..") || path.contains("\\") && !System.getProperty("os.name").toLowerCase().contains("windows")) {
+            if (path.contains("..") || path.contains("\\") && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains(OS_WINDOWS)) {
                 return false;
             }
             return true;
-        } catch (Exception e) {
+        } catch (InvalidPathException e) {
             return false;
         }
     }

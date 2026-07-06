@@ -103,11 +103,6 @@ public class FullLogFileLoader {
         }
     }
 
-    /** Compatibility overload: parse log file and return parsed data while honoring scroll flag. */
-    public ParsedLogData parseLogFile(Path logPath, boolean scrollToBottom) throws Exception {
-        return loadAndProcessLogFileInternal(logPath, scrollToBottom);
-    }
-
     /**
      * Removes the Notepad compatibility header (.LOG line and any leading blank entries)
      * from the parsed entry list before display.
@@ -165,22 +160,6 @@ public class FullLogFileLoader {
         ParsedLogData data = loadAndProcessLogFileInternal(logPath, scrollToBottom);
         MarkdownRenderer.renderMarkdownFromEntries(textPane, data.entriesToRender, scrollToBottom);
         LinkHandler.addLinkListeners(textPane);
-    }
-
-    /**
-     * Loads and processes the log file, returning the parsed data for reuse.
-     * This optimized version allows callers to reuse the parsed entries for statistics.
-     * @param logPath Path to the log file
-     * @param scrollToBottom whether to scroll to bottom after loading
-     * @return ParsedLogData containing all entries and entries to render
-     * @throws Exception if loading fails
-     */
-    public ParsedLogData loadAndProcessLogFileWithData(Path logPath, boolean scrollToBottom) throws Exception {
-        // For compatibility: parse then render on current thread
-        ParsedLogData data = loadAndProcessLogFileInternal(logPath, scrollToBottom);
-        MarkdownRenderer.renderMarkdownFromEntries(textPane, data.entriesToRender, scrollToBottom);
-        LinkHandler.addLinkListeners(textPane);
-        return data;
     }
 
     /**

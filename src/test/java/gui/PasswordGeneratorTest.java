@@ -14,7 +14,7 @@ public class PasswordGeneratorTest {
 
     @Test
     void testGeneratePasswordBasic() {
-        System.out.println("🧪 Testing basic password generation...");
+        testsupport.TestLog.out("🧪 Testing basic password generation...");
 
         String password = PasswordGenerator.generatePassword(12);
 
@@ -28,12 +28,12 @@ public class PasswordGeneratorTest {
                       "Password should only contain valid characters: " + c);
         }
 
-        System.out.println("✅ Basic password generation works correctly");
+        testsupport.TestLog.out("✅ Basic password generation works correctly");
     }
 
     @Test
     void testGeneratePasswordDifferentLengths() {
-        System.out.println("🧪 Testing password generation with different lengths...");
+        testsupport.TestLog.out("🧪 Testing password generation with different lengths...");
 
         // Test various lengths
         int[] lengths = {1, 8, 16, 32, 64, 128};
@@ -44,12 +44,12 @@ public class PasswordGeneratorTest {
                         "Password should be length " + length);
         }
 
-        System.out.println("✅ Password generation with different lengths works correctly");
+        testsupport.TestLog.out("✅ Password generation with different lengths works correctly");
     }
 
     @Test
     void testGeneratePasswordEdgeCases() {
-        System.out.println("🧪 Testing password generation edge cases...");
+        testsupport.TestLog.out("🧪 Testing password generation edge cases...");
 
         // Test minimum length
         String minPassword = PasswordGenerator.generatePassword(1);
@@ -59,12 +59,12 @@ public class PasswordGeneratorTest {
         String largePassword = PasswordGenerator.generatePassword(1000);
         assertEquals(1000, largePassword.length(), "Should handle large lengths");
 
-        System.out.println("✅ Password generation edge cases handled correctly");
+        testsupport.TestLog.out("✅ Password generation edge cases handled correctly");
     }
 
     @Test
     void testGeneratePasswordUniqueness() {
-        System.out.println("🧪 Testing password uniqueness...");
+        testsupport.TestLog.out("🧪 Testing password uniqueness...");
 
         Set<String> passwords = new HashSet<>();
 
@@ -78,12 +78,12 @@ public class PasswordGeneratorTest {
         assertTrue(passwords.size() > 90,
                   "Should generate mostly unique passwords, got " + passwords.size() + " unique out of 100");
 
-        System.out.println("✅ Password uniqueness verified");
+        testsupport.TestLog.out("✅ Password uniqueness verified");
     }
 
     @Test
     void testGeneratePassphraseBasic() {
-        System.out.println("🧪 Testing basic passphrase generation...");
+        testsupport.TestLog.out("🧪 Testing basic passphrase generation...");
 
         String passphrase = PasswordGenerator.generatePassphrase(3);
 
@@ -100,12 +100,12 @@ public class PasswordGeneratorTest {
             assertTrue(word.length() > 0, "Each word should be non-empty");
         }
 
-        System.out.println("✅ Basic passphrase generation works correctly");
+        testsupport.TestLog.out("✅ Basic passphrase generation works correctly");
     }
 
     @Test
     void testGeneratePassphraseDifferentWordCounts() {
-        System.out.println("🧪 Testing passphrase generation with different word counts...");
+        testsupport.TestLog.out("🧪 Testing passphrase generation with different word counts...");
 
         int[] wordCounts = {1, 2, 4, 6, 8, 12};
 
@@ -116,12 +116,12 @@ public class PasswordGeneratorTest {
                         "Passphrase should have " + count + " words");
         }
 
-        System.out.println("✅ Passphrase generation with different word counts works correctly");
+        testsupport.TestLog.out("✅ Passphrase generation with different word counts works correctly");
     }
 
     @Test
     void testGeneratePassphraseWordContent() {
-        System.out.println("🧪 Testing passphrase word content...");
+        testsupport.TestLog.out("🧪 Testing passphrase word content...");
 
         String passphrase = PasswordGenerator.generatePassphrase(5);
         String[] words = passphrase.split(" ");
@@ -135,12 +135,12 @@ public class PasswordGeneratorTest {
                       "Words should only contain letters: " + word);
         }
 
-        System.out.println("✅ Passphrase word content validated");
+        testsupport.TestLog.out("✅ Passphrase word content validated");
     }
 
     @Test
     void testGeneratePassphraseUniqueness() {
-        System.out.println("🧪 Testing passphrase uniqueness...");
+        testsupport.TestLog.out("🧪 Testing passphrase uniqueness...");
 
         Set<String> passphrases = new HashSet<>();
 
@@ -154,12 +154,12 @@ public class PasswordGeneratorTest {
         assertTrue(passphrases.size() > 40,
                   "Should generate mostly unique passphrases, got " + passphrases.size() + " unique out of 50");
 
-        System.out.println("✅ Passphrase uniqueness verified");
+        testsupport.TestLog.out("✅ Passphrase uniqueness verified");
     }
 
     @Test
     void testGeneratePassphraseEdgeCases() {
-        System.out.println("🧪 Testing passphrase generation edge cases...");
+        testsupport.TestLog.out("🧪 Testing passphrase generation edge cases...");
 
         // Test single word
         String singleWord = PasswordGenerator.generatePassphrase(1);
@@ -170,12 +170,12 @@ public class PasswordGeneratorTest {
         String[] words = manyWords.split(" ");
         assertEquals(20, words.length, "Should handle large word counts");
 
-        System.out.println("✅ Passphrase generation edge cases handled correctly");
+        testsupport.TestLog.out("✅ Passphrase generation edge cases handled correctly");
     }
 
     @Test
     void testPasswordVsPassphraseCharacteristics() {
-        System.out.println("🧪 Testing password vs passphrase characteristics...");
+        testsupport.TestLog.out("🧪 Testing password vs passphrase characteristics...");
 
         String password = PasswordGenerator.generatePassword(16);
         String passphrase = PasswordGenerator.generatePassphrase(4);
@@ -197,12 +197,12 @@ public class PasswordGeneratorTest {
         // Passphrase should be more readable (contain spaces)
         assertTrue(passphrase.contains(" "), "Passphrase should contain spaces between words");
 
-        System.out.println("✅ Password vs passphrase characteristics validated");
+        testsupport.TestLog.out("✅ Password vs passphrase characteristics validated");
     }
 
     @Test
     void testRepeatedGenerationConsistency() {
-        System.out.println("🧪 Testing repeated generation consistency...");
+        testsupport.TestLog.out("🧪 Testing repeated generation consistency...");
 
         // Generate the same type multiple times - should work without issues
         for (int i = 0; i < 10; i++) {
@@ -215,12 +215,12 @@ public class PasswordGeneratorTest {
             assertEquals(2, passphrase.split(" ").length, "Passphrase should have correct word count");
         }
 
-        System.out.println("✅ Repeated generation consistency verified");
+        testsupport.TestLog.out("✅ Repeated generation consistency verified");
     }
 
     @Test
     void testWordListLoading() {
-        System.out.println("🧪 Testing word list loading...");
+        testsupport.TestLog.out("🧪 Testing word list loading...");
 
         // Generate a passphrase to trigger word list loading
         String passphrase = PasswordGenerator.generatePassphrase(2);
@@ -232,6 +232,6 @@ public class PasswordGeneratorTest {
         String passphrase2 = PasswordGenerator.generatePassphrase(2);
         assertNotNull(passphrase2, "Second passphrase should also work");
 
-        System.out.println("✅ Word list loading works correctly");
+        testsupport.TestLog.out("✅ Word list loading works correctly");
     }
 }

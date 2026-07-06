@@ -43,7 +43,8 @@ import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 import utils.UndoRedoTextArea;
 
-public class EntryPanel extends JPanel {
+public final class EntryPanel extends JPanel {
+    private static final long serialVersionUID = 1L;
     private final JTextArea textArea;
     private final LogTextEditor editor;
     private final JButton saveBtn;

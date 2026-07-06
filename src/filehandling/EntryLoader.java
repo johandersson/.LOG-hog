@@ -554,7 +554,7 @@ public class EntryLoader {
                     return cached;
                 }
                 
-                // Try without suffix for backward compatibility
+                // Try without suffix when caller provides a raw timestamp.
                 String baseTsParam = timeStamp.trim().replaceAll(" \\([0-9]+\\)$", "");
                 for (Map.Entry<String, String> entry : entryContentCache.entrySet()) {
                     String entryTs = entry.getKey();

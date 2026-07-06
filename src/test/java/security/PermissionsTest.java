@@ -22,15 +22,15 @@ public class PermissionsTest {
             try {
                 Set<PosixFilePermission> perms = Files.getPosixFilePermissions(tmp);
                 ok = perms.contains(PosixFilePermission.OWNER_READ) && perms.contains(PosixFilePermission.OWNER_WRITE);
-                System.out.println("POSIX perms: " + perms);
+                testsupport.TestLog.out("POSIX perms: " + perms);
             } catch (UnsupportedOperationException e) {
                 // Non-POSIX (Windows) fallback - ensure file is readable/writable and owner-only calls didn't throw
                 File f = tmp.toFile();
-                System.out.println("Windows fallback permissions: readable=" + f.canRead() + " writable=" + f.canWrite());
+                testsupport.TestLog.out("Windows fallback permissions: readable=" + f.canRead() + " writable=" + f.canWrite());
                 ok = f.canRead() && f.canWrite();
             }
 
-            System.out.println(ok ? "PASS: Owner-only permissions appear applied" : "FAIL: Owner-only permissions not verified");
+            testsupport.TestLog.out(ok ? "PASS: Owner-only permissions appear applied" : "FAIL: Owner-only permissions not verified");
         } finally {
             if (tmp != null) try { Files.deleteIfExists(tmp); } catch (Exception ignored) {}
         }

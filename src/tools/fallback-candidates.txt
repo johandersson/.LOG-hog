@@ -1,0 +1,180 @@
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\clipboard\SecureClipboardManager.java:285: // Also attempt to clear clipboard contents if they match the previously tracked digest
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\encryption\CryptoUtils.java:19: * Best effort: works on Unix, ignored on Windows.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\encryption\EncryptionDetector.java:66: * This is used for disaster-recovery when the settings file has been lost: the salt
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\encryption\EncryptionManager.java:359: // Implement varargs interface methods for compatibility
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\encryption\EncryptionManager.java:393: throw new EncryptionException("Unsupported or legacy encrypted data format. Only current format is supported.");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\encryption\EncryptionManager.java:569: throw new EncryptionException("Unsupported or legacy encrypted data format. Only current format is supported.");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\DialogHandler.java:33: * Handles user dialogs for file operations and error recovery.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\DialogHandler.java:76: * Shows error dialog with recovery options including backup restore.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\DialogHandler.java:78: public static void showErrorDialogWithRecovery(String message, String title, Runnable onRestoreBackup) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\DialogHandler.java:447: // best effort
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\EntryEditor.java:106: // For new files, ensure .LOG header exists for Notepad compatibility
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\EntryEditor.java:163: // skip old body lines
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\EntryEditor.java:173: * Updates an existing log entry (legacy - updates first occurrence).
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\EntryEditor.java:211: // Get raw timestamp (without any old suffix that might exist in file)
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\EntryEditor.java:260: * This maintains Notepad .LOG compatibility.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\EntryLoader.java:114: * This prevents memory forensics from recovering sensitive log content.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\EntryLoader.java:183: return; // User cancelled or couldn't recover
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\EntryLoader.java:282: // Strip any existing suffix from file (for backwards compatibility)
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\EntryLoader.java:343: "You can reformat the file or use LogHog's export feature for compatibility.</html>";
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\EntryLoader.java:542: // Already sorted in previous step
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\EntryLoader.java:557: // Try without suffix for backward compatibility
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\FullLogFileLoader.java:72: // Strip any existing suffix from old files
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\FullLogFileLoader.java:98: /** Compatibility: invalidate internal caches used by this loader. */
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\FullLogFileLoader.java:106: /** Compatibility overload: parse log file and return parsed data while honoring scroll flag. */
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\FullLogFileLoader.java:112: * Removes the Notepad compatibility header (.LOG line and any leading blank entries)
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\FullLogFileLoader.java:136: public void fallbackReadRaw(Path chosen) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\FullLogFileLoader.java:179: // For compatibility: parse then render on current thread
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\FullLogFileLoader.java:378: // Remove Notepad compatibility header (.LOG line) before display
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileFormatter.java:177: * @deprecated Use LogFileFormat.normalizeSpacing() instead
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileFormatter.java:179: @Deprecated
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:48: // For testing only - deprecated, use constructor instead
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:49: @Deprecated
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:51: // This method is deprecated. Use constructor injection instead.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:52: // Keeping for backward compatibility but this violates immutability.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:70: // Default constructor for backward compatibility
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:180: showErrorDialogWithRecovery(errorMsg, "Save Error");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:344: // Strip any old suffix from file for matching
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:380: // Fallback: just update the model directly
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:456: // Fallback: direct file read (shouldn't happen in practice)
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:507: // Keep .LOG in unencrypted files for Notepad compatibility
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:554: // Create an encrypted backup copy to preserve previous state without leaving plaintext on disk
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:594: * Remove a previously registered cache invalidation listener.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:628: // Method intentionally left blank for production. Parameter required for interface compatibility.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:968: * Shows error dialog with recovery options including backup restore.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:970: public void showErrorDialogWithRecovery(String message, String title) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\LogFileHandler.java:971: DialogHandler.showErrorDialogWithRecovery(message, title, this::showBackupRestoreDialog);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\filehandling\StreamProcessor.java:89: // Keep the old method for compatibility (heavier)
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FormattingPanel.java:38: // Bold button
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FormattingPanel.java:42: boldBtn.setToolTipText("Bold (Ctrl+B)");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:245: // Legacy method, now handled by SearchDialog
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:315: * Compatibility overload allowing callers to request a load and receive a callback when started.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:405: fallbackReadRaw(logPath);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:415: private void fallbackReadRaw(Path chosen) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:416: fileLoader.fallbackReadRaw(chosen);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:512: // Get the entry content from Full Log for content-based fallback matching
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:587: // If selection fails for any reason, show not-found dialog as fallback
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:607: int fallbackIdx = -1;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:613: if (base.equals(rawTimestamp)) { fallbackIdx = i; break; }
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:616: if (fallbackIdx < 0) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:619: if (el != null && el.contains(rawTimestamp)) { fallbackIdx = i; break; }
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:623: if (fallbackIdx < 0 && finalContent != null) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:631: if (norm.equals(normTarget)) { fallbackIdx = i; break; }
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:637: if (fallbackIdx >= 0) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:638: final int sel = fallbackIdx;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:670: // Fallback: couldn't parse timestamp, try a full reload
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:671: fallbackFullReload(timestamp, fullLogContent, logListPanel, listModel, logList);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:717: // Fallback: content comparison (for edge cases where occurrence index is out of range)
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:736: * Fallback method when timestamp parsing fails - loads all entries and tries to find the entry.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:738: private void fallbackFullReload(String timestamp, String targetContent, LogListPanel logListPanel,
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\FullLogPanel.java:765: }, "FallbackEntryLoader");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\InformationPanel.java:75: // 'tabPanel' parameter is unused, kept for compatibility (PMD fix)
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\LogListPanel.java:266: // Fast fallback: scan raw lines for timestamp years to avoid returning only current year
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\LogListPanel.java:279: // ignore fallback failures, return what we have
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\LogListPanel.java:305: // keep current year fallback
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\LogStatistics.java:45: * Creates statistics from raw lines (fallback for cases where entries aren't pre-parsed).
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\NavItem.java:85: label.setFont(label.getFont().deriveFont(active ? Font.BOLD : Font.PLAIN, 13f));
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\PasswordDialog.java:227: // Fallback to setText if document manipulation fails
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\PasswordDialog.java:346: * SECURITY: Once called, the password array is zeroed and cannot be recovered.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\PasswordGenerator.java:47: // Fallback words if dict.txt not found
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SearchDialog.java:88: findPrevBtn = new AccentButton("Find Previous");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SearchDialog.java:89: findPrevBtn.addActionListener(e -> findPrevious());
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SearchDialog.java:109: TooltipHelper.enableTooltipOnDisabled(findPrevBtn, "Find previous occurrence");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SearchDialog.java:165: private void findPrevious() {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SettingsPanel.java:589: // will we offer cleanup of old unencrypted backups.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SettingsPanel.java:634: message.append("<html><b>Security Notice: Old Unencrypted Backups Found</b><br><br>")
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SettingsPanel.java:644: + "<b>Recommendation:</b> Delete these old backups to prevent data exposure.<br>"
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SettingsPanel.java:645: + "You can keep them if you need them for recovery purposes.<br><br>"
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SettingsPanel.java:649: "Clean Up Old Backups",
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SettingsPanel.java:650: "Security Notice: Old Unencrypted Backups Found",
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SettingsPanel.java:653: new String[]{"Delete old unencrypted backups", "Keep them"},
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SettingsPanel.java:654: "Delete old unencrypted backups");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SettingsPanel.java:657: UiTaskRunner.runModalBackgroundTask(editor, "Cleaning Old Backups", "Deleting old backups...", () -> {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SettingsPanel.java:668: "Old unencrypted backup files have been securely deleted.",
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SplashEntryLoader.java:54: // Some builds may package resources at the jar root; try fallback
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SplashEntryLoader.java:77: // Fallback to hardcoded entries (all under 55 chars)
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\SplashEntryLoader.java:140: // Fallback to hardcoded entries
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\TimestampClickHandler.java:250: // Fallback positioning (use safe getter)
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\gui\UIStrings.java:28: public static final String TOOLTIP_SHOW_PASSWORD = "Show password (or hold ESC)";
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:55: private static final long SHOW_PROGRESS_THRESHOLD = 1024 * 1024; // Show progress for files > 1MB
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:283: if (fileSize > SHOW_PROGRESS_THRESHOLD && parentFrame != null) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:358: // Rotate old backups asynchronously to avoid blocking
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:390: private byte[] legacyInMemoryHmacKey = null;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:395: * SHA-256(password_bytes || salt || "loghog-backup-hmac-v1") so it cannot
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:400: byte[] derivedLegacy = BackupKeyDerivation.deriveLegacyV1(password, salt);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:403: legacyInMemoryHmacKey = derivedLegacy;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:414: if (legacyInMemoryHmacKey != null) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:415: java.util.Arrays.fill(legacyInMemoryHmacKey, (byte) 0);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:416: legacyInMemoryHmacKey = null;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:428: // Return a defensive copy — caller must not hold this reference
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:451: if (!hmacMatch && legacyInMemoryHmacKey != null) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:452: byte[] legacyKey = java.util.Arrays.copyOf(legacyInMemoryHmacKey, legacyInMemoryHmacKey.length);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:453: hmacMatch = HmacUtils.verifyHmacSha256(legacyKey, backupData, backupHmac);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:495: // Securely delete oldest backup to prevent recovery
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:507: // Move previous backup to numbered slot (.bak -> .bak.1 or .bak.enc -> .bak.enc.1)
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\BackupManager.java:608: // Fallback to user home
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:136: // in the file header, we can recover it — no data is permanently lost.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:137: byte[] recoveredSalt = EncryptionDetector.extractSaltFromHeader(pathNow);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:138: if (recoveredSalt.length > 0) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:139: DialogHelper.showInfo(parentFrame, "Settings File Lost — Recovering",
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:142: + "The encryption metadata has been recovered from the file itself.<br><br>"
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:144: // Persist the recovered salt so subsequent launches work normally
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:145: settings.setProperty("salt", Base64.getEncoder().encodeToString(recoveredSalt));
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:149: } catch (Exception ex) { /* best effort */ }
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:150: return performPasswordAuthentication(recoveredSalt, "\uD83D\uDD11 Recover Access", true);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:182: // Salt missing from settings — try to recover from the file header
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:183: byte[] recovered = EncryptionDetector.extractSaltFromHeader(logFileHandler.getFilePath());
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:184: if (recovered.length > 0) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:185: settings.setProperty("salt", Base64.getEncoder().encodeToString(recovered));
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:187: salt = recovered;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\EncryptionHandler.java:190: "The stored encryption salt is missing or corrupt and could not be recovered from the file.\n"
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\SecureDeletionUtils.java:21: *       the logical address, leaving old data in spare/retired blocks</li>
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\SecureDeletionUtils.java:25: *       to the OS but may contain old data</li>
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\SecurityAlertDispatcher.java:47: // best effort
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\SingleInstanceManager.java:102: // Best effort
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\main\UIInitializer.java:191: JLabel ver = new JLabel("v1.0");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\LinkHandler.java:100: // Fallback: try to extract path manually
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\MarkdownRenderer.java:354: boolean previousWasBlank = false;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\MarkdownRenderer.java:371: previousWasBlank = false;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\MarkdownRenderer.java:377: previousWasBlank = false;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\MarkdownRenderer.java:380: previousWasBlank = false;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\MarkdownRenderer.java:383: if (!previousWasBlank) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\MarkdownRenderer.java:387: previousWasBlank = true;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\MarkdownRenderer.java:391: previousWasBlank = false;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\MarkdownRenderer.java:394: previousWasBlank = false;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\MarkdownRenderer.java:397: previousWasBlank = false;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\MarkdownRenderer.java:400: previousWasBlank = false;
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\MarkdownRenderer.java:663: // Fallback to direct rendering if building/inserting segments fails
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\markdown\MarkdownRenderer.java:694: // SECURITY: Sanitize before rendering (previously bypassed)
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\notepad\NotepadOpener.java:52: // Platform-specific fallbacks
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\security\BackupKeyDerivation.java:15: * <p>Supports a stronger PBKDF2-based derivation (v2) and a legacy SHA-256 derivation
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\security\BackupKeyDerivation.java:16: * for backward compatibility with previously generated backup signatures.</p>
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\security\BackupKeyDerivation.java:23: private static final byte[] CONTEXT_V1 = "loghog-backup-hmac-v1".getBytes(StandardCharsets.UTF_8);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\security\BackupKeyDerivation.java:53: public static byte[] deriveLegacyV1(char[] password, byte[] salt) {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\security\BackupKeyDerivation.java:66: sha256.update(CONTEXT_V1);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\security\BackupKeyDerivation.java:69: throw new IllegalStateException("Unable to derive legacy backup key", e);
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\security\SecurityFilePolicy.java:28: // Best-effort fallback below.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\services\ServiceFactory.java:53: // Combined service for backward compatibility
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\encryption\EncryptionEdgeCaseTest.java:80: // Legacy fallback tests removed: legacy key derivation/encrypt removed
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\encryption\EncryptionManagerTest.java:151: // Legacy key derivation test removed: no legacy support.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\filehandling\FileHandlingJUnitTest.java:176: assertTrue(decryptedContent.contains("This is an old entry from 2023"), "Decrypted content should contain original entries");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\filehandling\FileHandlingJUnitTest.java:214: assertTrue(decryptedContent.contains("This is an old entry from 2023"), "Decrypted content should contain original entries");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\filehandling\FileHandlingJUnitTest.java:247: "This is an old entry from 2023"
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\filehandling\FileHandlingTest.java:1185: testsupport.TestLog.out("Test: Decrypting old encrypted files should add .LOG header...");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\filehandling\FileHandlingTest.java:1201: "This is an entry from old encrypted file",
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\filehandling\FileHandlingTest.java:1204: "This is an old entry from 2024"
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\filehandling\FileHandlingTest.java:1369: "This is an old entry from 2023"
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\integration\SystemIntegrationTest.java:217: void testErrorRecoveryScenarios() {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\integration\SystemIntegrationTest.java:218: testsupport.TestLog.out("🧪 Testing error recovery scenarios...");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\integration\SystemIntegrationTest.java:237: testsupport.TestLog.out("✅ Error recovery scenarios handled correctly");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\main\BackupManagerTest.java:71: // Test fallback to user home
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\main\SingleInstanceManagerTest.java:42: // Release any existing locks from previous tests
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\security\PermissionsTest.java:27: // Non-POSIX (Windows) fallback - ensure file is readable/writable and owner-only calls didn't throw
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\security\PermissionsTest.java:29: testsupport.TestLog.out("Windows fallback permissions: readable=" + f.canRead() + " writable=" + f.canWrite());
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\utils\TooltipHelperTest.java:157: void testComponentTypeCompatibility() {
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\utils\TooltipHelperTest.java:158: testsupport.TestLog.out("🧪 Testing component type compatibility...");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\test\java\utils\TooltipHelperTest.java:178: testsupport.TestLog.out("✅ Component type compatibility works correctly");
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\utils\DateHandler.java:38: // Checked by both isTimestamp() and parseTimestamp() as fallbacks after the primary format.
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\utils\SecureTempFiles.java:58: // Fallback for non-POSIX filesystems
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\utils\Toast.java:66: // Fallback: center on primary screen
+C:\Users\Johan\Desktop\code-work\loghog\.LOG-hog\src\utils\WindowDragger.java:48: // Component not showing or event has no screen coordinates; fallback to current frame location

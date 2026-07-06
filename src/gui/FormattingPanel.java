@@ -21,7 +21,8 @@ import java.awt.*;
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
 
-public class FormattingPanel extends JPanel {
+public final class FormattingPanel extends JPanel {
+    private static final long serialVersionUID = 1L;
     private final JTextComponent targetComponent;
 
     public FormattingPanel(JTextComponent targetComponent) {

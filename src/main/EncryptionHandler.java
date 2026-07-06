@@ -92,16 +92,17 @@ public class EncryptionHandler {
                 // Inspect what the user did and act accordingly
                 DialogHandler.MissingFileAction action = DialogHandler.getLastMissingFileAction();
                 if (action == DialogHandler.MissingFileAction.CREATED) {
-                    // New file created -> clear encryption state (in-memory)
-                    settings.setProperty("encrypted", "false");
-                    settings.remove("salt");
-                    // Persist the cleared settings immediately
+                    settings.setProperty("encrypted", "true");
                     try {
                         if (saveSettingsCallback != null) saveSettingsCallback.run();
                     } catch (Exception ex) {
-                        logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist settings after creating new log file.</html>");
+                        logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist secure settings after log file creation.</html>");
                     }
-                    // Note: DialogHandler already showed the "Not Encrypted" info dialog during file creation
+                    DialogHelper.showWarning(parentFrame,
+                        "Encrypted-Only Policy",
+                        "Encrypted File Required",
+                        "A plain log file cannot be used in encrypted-only mode.<br><br>" +
+                        "Please initialize or restore an encrypted log file to continue.");
                     return false;
                 } else if (action == DialogHandler.MissingFileAction.COPIED || action == DialogHandler.MissingFileAction.RESTORED) {
                     // If user copied/restored a file into place, fall through and let detector decide
@@ -117,15 +118,18 @@ public class EncryptionHandler {
 
             boolean looksEncrypted = EncryptionDetector.isFileEncrypted(pathNow);
             if (!looksEncrypted) {
-                // File is plain text -> clear encryption state
-                settings.setProperty("encrypted", "false");
-                settings.remove("salt");
-                // Persist the cleared settings
+                settings.setProperty("encrypted", "true");
+                // Persist secure state
                 try {
                     if (saveSettingsCallback != null) saveSettingsCallback.run();
                 } catch (Exception ex) {
-                    logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist settings after detecting an unencrypted log file.</html>");
+                    logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist secure settings after detecting a non-encrypted log file.</html>");
                 }
+                DialogHelper.showError(parentFrame,
+                    "Encrypted File Required",
+                    "Encrypted-Only Policy",
+                    "The selected log file is not encrypted.<br><br>" +
+                    "Please restore an encrypted log file backup.");
                 return false;
             }
 
@@ -135,7 +139,7 @@ public class EncryptionHandler {
                 // Settings file may have been lost. Since the LOGH format embeds the salt
                 // in the file header, we can recover it — no data is permanently lost.
                 byte[] recoveredSalt = EncryptionDetector.extractSaltFromHeader(pathNow);
-                if (recoveredSalt != null) {
+                if (recoveredSalt.length > 0) {
                     DialogHelper.showInfo(parentFrame, "Settings File Lost — Recovering",
                         "<html><b>Your settings file appears to have been lost or reset.</b><br><br>"
                         + "Don't worry — your encrypted log is still fully accessible.<br>"
@@ -181,7 +185,7 @@ public class EncryptionHandler {
         } catch (IllegalArgumentException | NullPointerException e) {
             // Salt missing from settings — try to recover from the file header
             byte[] recovered = EncryptionDetector.extractSaltFromHeader(logFileHandler.getFilePath());
-            if (recovered != null) {
+            if (recovered.length > 0) {
                 settings.setProperty("salt", Base64.getEncoder().encodeToString(recovered));
                 try { if (saveSettingsCallback != null) saveSettingsCallback.run(); } catch (Exception ignored) {}
                 salt = recovered;

@@ -22,7 +22,7 @@ public class FileHandlingTest {
     private DefaultListModel<String> listModel;
 
     public static void main(String[] args) throws Exception {
-        System.out.println("=== FileHandling Test Suite ===\n");
+        testsupport.TestLog.out("=== FileHandling Test Suite ===\n");
 
         FileHandlingTest test = new FileHandlingTest();
         test.runAllTests();
@@ -80,7 +80,7 @@ public class FileHandlingTest {
             testEncryptedFileMaintainsLogThroughCycles();
             testLoadEntryAfterEncryptionUnlock();
 
-            System.out.println("\n=== All FileHandling tests completed successfully! ===");
+            testsupport.TestLog.out("\n=== All FileHandling tests completed successfully! ===");
 
         } finally {
             // Cleanup
@@ -110,40 +110,40 @@ public class FileHandlingTest {
     // ===== TEST METHODS =====
 
     private void testLoadLogEntriesEmptyFile() throws Exception {
-        System.out.println("Test: EntryLoader should load empty list when file doesn't exist...");
+        testsupport.TestLog.out("Test: EntryLoader should load empty list when file doesn't exist...");
         entryLoader.loadLogEntries(listModel);
         if (listModel.getSize() == 0) {
-            System.out.println("✓ PASS");
+            testsupport.TestLog.out("✓ PASS");
         } else {
-            System.out.println("✗ FAIL: Expected empty list, got " + listModel.getSize() + " items");
+            testsupport.TestLog.out("✗ FAIL: Expected empty list, got " + listModel.getSize() + " items");
         }
     }
 
     private void testLoadLogEntriesWithData() throws Exception {
-        System.out.println("Test: EntryLoader should load entries from file...");
+        testsupport.TestLog.out("Test: EntryLoader should load entries from file...");
         createTestLogFile();
         entryLoader.loadLogEntries(listModel);
 
         if (listModel.getSize() > 0) {
-            System.out.println("✓ PASS: Loaded " + listModel.getSize() + " entries");
+            testsupport.TestLog.out("✓ PASS: Loaded " + listModel.getSize() + " entries");
 
             // Check sorting (most recent first)
             if (listModel.getSize() >= 2) {
                 LocalDateTime first = DateHandler.parseTimestamp(listModel.getElementAt(0));
                 LocalDateTime second = DateHandler.parseTimestamp(listModel.getElementAt(1));
                 if (first.isAfter(second) || first.isEqual(second)) {
-                    System.out.println("✓ PASS: Entries are properly sorted");
+                    testsupport.TestLog.out("✓ PASS: Entries are properly sorted");
                 } else {
-                    System.out.println("✗ FAIL: Entries are not properly sorted");
+                    testsupport.TestLog.out("✗ FAIL: Entries are not properly sorted");
                 }
             }
         } else {
-            System.out.println("✗ FAIL: No entries loaded");
+            testsupport.TestLog.out("✗ FAIL: No entries loaded");
         }
     }
 
     private void testLoadFilteredEntries() throws Exception {
-        System.out.println("Test: EntryLoader should filter entries by year and month...");
+        testsupport.TestLog.out("Test: EntryLoader should filter entries by year and month...");
         createTestLogFile();
 
         LocalDateTime now = LocalDateTime.now();
@@ -162,14 +162,14 @@ public class FileHandlingTest {
         }
 
         if (allCorrectMonth) {
-            System.out.println("✓ PASS: All entries are from current month");
+            testsupport.TestLog.out("✓ PASS: All entries are from current month");
         } else {
-            System.out.println("✗ FAIL: Some entries are not from current month");
+            testsupport.TestLog.out("✗ FAIL: Some entries are not from current month");
         }
     }
 
     private void testFilterModelByYearMonth() throws Exception {
-        System.out.println("Test: EntryLoader should filter model by year and month...");
+        testsupport.TestLog.out("Test: EntryLoader should filter model by year and month...");
         createTestLogFile();
         entryLoader.loadLogEntries(listModel);
 
@@ -186,19 +186,19 @@ public class FileHandlingTest {
         }
 
         if (allCorrectMonth) {
-            System.out.println("✓ PASS: Filtered model contains only current month entries");
+            testsupport.TestLog.out("✓ PASS: Filtered model contains only current month entries");
         } else {
-            System.out.println("✗ FAIL: Filtered model contains entries from other months");
+            testsupport.TestLog.out("✗ FAIL: Filtered model contains entries from other months");
         }
     }
 
     private void testLoadEntry() throws Exception {
-        System.out.println("Test: EntryLoader should load specific entry by timestamp...");
+        testsupport.TestLog.out("Test: EntryLoader should load specific entry by timestamp...");
         createTestLogFile();
 
         entryLoader.loadLogEntries(listModel);
         if (listModel.getSize() == 0) {
-            System.out.println("✗ FAIL: No entries to test loading");
+            testsupport.TestLog.out("✗ FAIL: No entries to test loading");
             return;
         }
 
@@ -206,29 +206,29 @@ public class FileHandlingTest {
         String entry = entryLoader.loadEntry(timestamp);
 
         if (entry != null && !entry.isEmpty()) {
-            System.out.println("✓ PASS: Entry loaded successfully");
+            testsupport.TestLog.out("✓ PASS: Entry loaded successfully");
             if (!entry.contains(timestamp.trim())) {
-                System.out.println("✓ PASS: Entry content excludes timestamp line");
+                testsupport.TestLog.out("✓ PASS: Entry content excludes timestamp line");
             } else {
-                System.out.println("✗ FAIL: Entry content includes timestamp line");
+                testsupport.TestLog.out("✗ FAIL: Entry content includes timestamp line");
             }
         } else {
-            System.out.println("✗ FAIL: Entry content is empty");
+            testsupport.TestLog.out("✗ FAIL: Entry content is empty");
         }
     }
 
     private void testLoadEntryNonExistent() {
-        System.out.println("Test: EntryLoader should return empty string for non-existent entry...");
+        testsupport.TestLog.out("Test: EntryLoader should return empty string for non-existent entry...");
         String entry = entryLoader.loadEntry("99:99 9999-99-99");
         if ("".equals(entry)) {
-            System.out.println("✓ PASS: Correctly returned empty string");
+            testsupport.TestLog.out("✓ PASS: Correctly returned empty string");
         } else {
-            System.out.println("✗ FAIL: Should return empty string for non-existent entry");
+            testsupport.TestLog.out("✗ FAIL: Should return empty string for non-existent entry");
         }
     }
 
     private void testLoadEntryWithDuplicateSuffix() throws Exception {
-        System.out.println("Test: EntryLoader should load entry with duplicate timestamp suffix...");
+        testsupport.TestLog.out("Test: EntryLoader should load entry with duplicate timestamp suffix...");
         // Create entries that will have duplicate timestamps
         LocalDateTime now = LocalDateTime.now();
         String timestamp = String.format("%02d:%02d %04d-%02d-%02d",
@@ -249,49 +249,49 @@ public class FileHandlingTest {
         Files.write(testFilePath, testData);
 
         entryLoader.loadLogEntries(listModel);
-        System.out.println("Display timestamps:");
+        testsupport.TestLog.out("Display timestamps:");
         for (int i = 0; i < listModel.getSize(); i++) {
-            System.out.println("  " + i + ": '" + listModel.getElementAt(i) + "'");
+            testsupport.TestLog.out("  " + i + ": '" + listModel.getElementAt(i) + "'");
         }
 
         if (listModel.getSize() < 3) {
-            System.out.println("✗ FAIL: Should have at least 3 entries");
+            testsupport.TestLog.out("✗ FAIL: Should have at least 3 entries");
             return;
         }
 
         boolean allLoaded = true;
         for (int i = 0; i < listModel.getSize(); i++) {
             String displayTimestamp = listModel.getElementAt(i);
-            System.out.println("Loading: '" + displayTimestamp + "'");
+            testsupport.TestLog.out("Loading: '" + displayTimestamp + "'");
             String content = entryLoader.loadEntry(displayTimestamp);
-            System.out.println("  Content length: " + content.length());
+            testsupport.TestLog.out("  Content length: " + content.length());
             if (content == null || content.isEmpty()) {
                 allLoaded = false;
-                System.out.println("  ✗ FAIL: Empty content");
+                testsupport.TestLog.out("  ✗ FAIL: Empty content");
                 break;
             }
             if (content.contains(displayTimestamp.trim())) {
                 allLoaded = false;
-                System.out.println("  ✗ FAIL: Content contains timestamp");
+                testsupport.TestLog.out("  ✗ FAIL: Content contains timestamp");
                 break;
             }
-            System.out.println("  ✓ OK");
+            testsupport.TestLog.out("  ✓ OK");
         }
 
         if (allLoaded) {
-            System.out.println("✓ PASS: All entries with duplicate suffixes loaded correctly");
+            testsupport.TestLog.out("✓ PASS: All entries with duplicate suffixes loaded correctly");
         } else {
-            System.out.println("✗ FAIL: Some entries with duplicate suffixes failed to load");
+            testsupport.TestLog.out("✗ FAIL: Some entries with duplicate suffixes failed to load");
         }
     }
 
     private void testLoadEntryRawVsDisplayTimestamp() throws Exception {
-        System.out.println("Test: EntryLoader should handle raw vs display timestamp consistency...");
+        testsupport.TestLog.out("Test: EntryLoader should handle raw vs display timestamp consistency...");
         createTestLogFile();
 
         entryLoader.loadLogEntries(listModel);
         if (listModel.getSize() == 0) {
-            System.out.println("✗ FAIL: No entries to test");
+            testsupport.TestLog.out("✗ FAIL: No entries to test");
             return;
         }
 
@@ -302,49 +302,49 @@ public class FileHandlingTest {
         String content2 = entryLoader.loadEntry(rawTimestamp);
 
         if (content1 != null && content2 != null && content1.equals(content2)) {
-            System.out.println("✓ PASS: Both display and raw timestamps work for loading");
+            testsupport.TestLog.out("✓ PASS: Both display and raw timestamps work for loading");
         } else {
-            System.out.println("✗ FAIL: Display and raw timestamps return different content");
+            testsupport.TestLog.out("✗ FAIL: Display and raw timestamps return different content");
         }
     }
 
     private void testGetRecentLogEntries() throws Exception {
-        System.out.println("Test: EntryLoader should get recent log entries...");
+        testsupport.TestLog.out("Test: EntryLoader should get recent log entries...");
         createTestLogFile();
 
         List<String> recent = entryLoader.getRecentLogEntries(5);
         if (recent != null && recent.size() <= 5) {
-            System.out.println("✓ PASS: Got " + recent.size() + " recent entries");
+            testsupport.TestLog.out("✓ PASS: Got " + recent.size() + " recent entries");
 
             if (recent.size() >= 2) {
                 LocalDateTime current = DateHandler.parseTimestamp(recent.get(0));
                 LocalDateTime next = DateHandler.parseTimestamp(recent.get(1));
                 if (current.isAfter(next) || current.isEqual(next)) {
-                    System.out.println("✓ PASS: Recent entries are properly sorted");
+                    testsupport.TestLog.out("✓ PASS: Recent entries are properly sorted");
                 } else {
-                    System.out.println("✗ FAIL: Recent entries are not properly sorted");
+                    testsupport.TestLog.out("✗ FAIL: Recent entries are not properly sorted");
                 }
             }
         } else {
-            System.out.println("✗ FAIL: getRecentLogEntries returned null or too many entries");
+            testsupport.TestLog.out("✗ FAIL: getRecentLogEntries returned null or too many entries");
         }
     }
 
     private void testLoadEntryNullEmpty() {
-        System.out.println("Test: EntryLoader should handle null and empty timestamps gracefully...");
+        testsupport.TestLog.out("Test: EntryLoader should handle null and empty timestamps gracefully...");
         String result1 = entryLoader.loadEntry(null);
         String result2 = entryLoader.loadEntry("");
         String result3 = entryLoader.loadEntry("   ");
 
         if ("".equals(result1) && "".equals(result2) && "".equals(result3)) {
-            System.out.println("✓ PASS: Correctly handled null and empty timestamps");
+            testsupport.TestLog.out("✓ PASS: Correctly handled null and empty timestamps");
         } else {
-            System.out.println("✗ FAIL: Should return empty string for null/empty timestamps");
+            testsupport.TestLog.out("✗ FAIL: Should return empty string for null/empty timestamps");
         }
     }
 
     private void testLoadEntryComplexContent() throws Exception {
-        System.out.println("Test: EntryLoader should load entries with complex content...");
+        testsupport.TestLog.out("Test: EntryLoader should load entries with complex content...");
         List<String> testData = Arrays.asList(
             "14:30 2025-12-18",
             "Entry with multiple lines",
@@ -360,7 +360,7 @@ public class FileHandlingTest {
 
         entryLoader.loadLogEntries(listModel);
         if (listModel.getSize() != 1) {
-            System.out.println("✗ FAIL: Should have exactly 1 entry");
+            testsupport.TestLog.out("✗ FAIL: Should have exactly 1 entry");
             return;
         }
 
@@ -372,14 +372,14 @@ public class FileHandlingTest {
             loadedContent.contains("quotes") &&
             loadedContent.contains("empty line above") &&
             loadedContent.contains("after empty line")) {
-            System.out.println("✓ PASS: Complex content loaded correctly");
+            testsupport.TestLog.out("✓ PASS: Complex content loaded correctly");
         } else {
-            System.out.println("✗ FAIL: Complex content not loaded correctly");
+            testsupport.TestLog.out("✗ FAIL: Complex content not loaded correctly");
         }
     }
 
     private void testLoadEntryEncrypted() throws Exception {
-        System.out.println("Test: EntryLoader should load entry correctly when encrypted...");
+        testsupport.TestLog.out("Test: EntryLoader should load entry correctly when encrypted...");
         // Ensure clean state
         try {
             logFileHandler.disableEncryption();
@@ -393,7 +393,7 @@ public class FileHandlingTest {
         listModel.clear();
         entryLoader.loadLogEntries(listModel);
         if (listModel.getSize() == 0) {
-            System.out.println("✗ FAIL: No entries loaded with encryption");
+            testsupport.TestLog.out("✗ FAIL: No entries loaded with encryption");
             return;
         }
 
@@ -401,9 +401,9 @@ public class FileHandlingTest {
         String content = entryLoader.loadEntry(timestamp);
 
         if (content != null && !content.isEmpty() && !content.contains(timestamp.trim())) {
-            System.out.println("✓ PASS: Entry loaded correctly with encryption");
+            testsupport.TestLog.out("✓ PASS: Entry loaded correctly with encryption");
         } else {
-            System.out.println("✗ FAIL: Entry not loaded correctly with encryption");
+            testsupport.TestLog.out("✗ FAIL: Entry not loaded correctly with encryption");
         }
 
         try {
@@ -414,62 +414,62 @@ public class FileHandlingTest {
     }
 
     private void testTimestampHandling() throws Exception {
-        System.out.println("Test: LogFileHandler should correctly handle raw vs display timestamps...");
+        testsupport.TestLog.out("Test: LogFileHandler should correctly handle raw vs display timestamps...");
         String displayTs1 = "14:30 2025-12-18";
         String rawTs1 = logFileHandler.getRawTimestamp(displayTs1);
         if (displayTs1.equals(rawTs1)) {
-            System.out.println("✓ PASS: Simple timestamp handled correctly");
+            testsupport.TestLog.out("✓ PASS: Simple timestamp handled correctly");
         } else {
-            System.out.println("✗ FAIL: Simple timestamp not handled correctly");
+            testsupport.TestLog.out("✗ FAIL: Simple timestamp not handled correctly");
         }
 
         String displayTs2 = "14:30 2025-12-18 (1)";
         String rawTs2 = logFileHandler.getRawTimestamp(displayTs2);
         if ("14:30 2025-12-18".equals(rawTs2)) {
-            System.out.println("✓ PASS: Timestamp with suffix (1) handled correctly");
+            testsupport.TestLog.out("✓ PASS: Timestamp with suffix (1) handled correctly");
         } else {
-            System.out.println("✗ FAIL: Timestamp with suffix (1) not handled correctly");
+            testsupport.TestLog.out("✗ FAIL: Timestamp with suffix (1) not handled correctly");
         }
 
         String displayTs3 = "14:30 2025-12-18 (5)";
         String rawTs3 = logFileHandler.getRawTimestamp(displayTs3);
         if ("14:30 2025-12-18".equals(rawTs3)) {
-            System.out.println("✓ PASS: Timestamp with suffix (5) handled correctly");
+            testsupport.TestLog.out("✓ PASS: Timestamp with suffix (5) handled correctly");
         } else {
-            System.out.println("✗ FAIL: Timestamp with suffix (5) not handled correctly");
+            testsupport.TestLog.out("✗ FAIL: Timestamp with suffix (5) not handled correctly");
         }
 
         String noSuffix = "14:30 2025-12-18";
         String rawNoSuffix = logFileHandler.getRawTimestamp(noSuffix);
         if (noSuffix.equals(rawNoSuffix)) {
-            System.out.println("✓ PASS: Timestamp without suffix handled correctly");
+            testsupport.TestLog.out("✓ PASS: Timestamp without suffix handled correctly");
         } else {
-            System.out.println("✗ FAIL: Timestamp without suffix not handled correctly");
+            testsupport.TestLog.out("✗ FAIL: Timestamp without suffix not handled correctly");
         }
 
         String empty = "";
         String rawEmpty = logFileHandler.getRawTimestamp(empty);
         if ("".equals(rawEmpty)) {
-            System.out.println("✓ PASS: Empty string handled correctly");
+            testsupport.TestLog.out("✓ PASS: Empty string handled correctly");
         } else {
-            System.out.println("✗ FAIL: Empty string not handled correctly");
+            testsupport.TestLog.out("✗ FAIL: Empty string not handled correctly");
         }
 
         String nullInput = null;
         try {
             String rawNull = logFileHandler.getRawTimestamp(nullInput);
             if (rawNull == null) {
-                System.out.println("✓ PASS: Null input handled correctly");
+                testsupport.TestLog.out("✓ PASS: Null input handled correctly");
             } else {
-                System.out.println("✗ FAIL: Null input not handled correctly");
+                testsupport.TestLog.out("✗ FAIL: Null input not handled correctly");
             }
         } catch (Exception e) {
-            System.out.println("✓ PASS: Null input handled correctly (exception caught)");
+            testsupport.TestLog.out("✓ PASS: Null input handled correctly (exception caught)");
         }
     }
 
     private void testSaveText() throws Exception {
-        System.out.println("Test: LogFileHandler should save text and create timestamp...");
+        testsupport.TestLog.out("Test: LogFileHandler should save text and create timestamp...");
         // Ensure clean state
         try {
             logFileHandler.disableEncryption();
@@ -482,21 +482,21 @@ public class FileHandlingTest {
         logFileHandler.saveText(testText, listModel);
 
         if (Files.exists(testFilePath) && listModel.getSize() == 1) {
-            System.out.println("✓ PASS: Text saved and list model updated");
+            testsupport.TestLog.out("✓ PASS: Text saved and list model updated");
 
             List<String> lines = Files.readAllLines(testFilePath);
             if (lines.size() > 0 && lines.get(0).matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}.*") && lines.contains(testText)) {
-                System.out.println("✓ PASS: File contains timestamp and text");
+                testsupport.TestLog.out("✓ PASS: File contains timestamp and text");
             } else {
-                System.out.println("✗ FAIL: File does not contain expected timestamp and text");
+                testsupport.TestLog.out("✗ FAIL: File does not contain expected timestamp and text");
             }
         } else {
-            System.out.println("✗ FAIL: File not created or list model not updated");
+            testsupport.TestLog.out("✗ FAIL: File not created or list model not updated");
         }
     }
 
     private void testSaveTextEmpty() throws Exception {
-        System.out.println("Test: LogFileHandler should not save empty text...");
+        testsupport.TestLog.out("Test: LogFileHandler should not save empty text...");
         // Ensure clean state
         try {
             logFileHandler.disableEncryption();
@@ -509,14 +509,14 @@ public class FileHandlingTest {
         logFileHandler.saveText(null, listModel);
 
         if (!Files.exists(testFilePath) && listModel.getSize() == 0) {
-            System.out.println("✓ PASS: Empty text not saved");
+            testsupport.TestLog.out("✓ PASS: Empty text not saved");
         } else {
-            System.out.println("✗ FAIL: Empty text was saved");
+            testsupport.TestLog.out("✗ FAIL: Empty text was saved");
         }
     }
 
     private void testSaveTextDuplicateTimestamps() throws Exception {
-        System.out.println("Test: LogFileHandler should handle duplicate timestamps...");
+        testsupport.TestLog.out("Test: LogFileHandler should handle duplicate timestamps...");
         // Ensure clean state
         try {
             logFileHandler.disableEncryption();
@@ -531,7 +531,7 @@ public class FileHandlingTest {
         logFileHandler.saveText(testText2, listModel);
 
         if (listModel.getSize() == 2) {
-            System.out.println("✓ PASS: Both entries saved");
+            testsupport.TestLog.out("✓ PASS: Both entries saved");
 
             List<String> lines = Files.readAllLines(testFilePath);
             boolean foundFirst = false, foundSecond = false;
@@ -540,22 +540,22 @@ public class FileHandlingTest {
                 if (line.contains(testText2)) foundSecond = true;
             }
             if (foundFirst && foundSecond) {
-                System.out.println("✓ PASS: Both entries found in file");
+                testsupport.TestLog.out("✓ PASS: Both entries found in file");
             } else {
-                System.out.println("✗ FAIL: One or both entries missing from file");
+                testsupport.TestLog.out("✗ FAIL: One or both entries missing from file");
             }
         } else {
-            System.out.println("✗ FAIL: Expected 2 entries, got " + listModel.getSize());
+            testsupport.TestLog.out("✗ FAIL: Expected 2 entries, got " + listModel.getSize());
         }
     }
 
     private void testUpdateEntry() throws Exception {
-        System.out.println("Test: LogFileHandler should update existing entry...");
+        testsupport.TestLog.out("Test: LogFileHandler should update existing entry...");
         String originalText = "Original text";
         logFileHandler.saveText(originalText, listModel);
 
         if (listModel.getSize() != 1) {
-            System.out.println("✗ FAIL: Initial save failed");
+            testsupport.TestLog.out("✗ FAIL: Initial save failed");
             return;
         }
 
@@ -571,19 +571,19 @@ public class FileHandlingTest {
         }
 
         if (hasUpdated && !hasOriginal) {
-            System.out.println("✓ PASS: Entry updated correctly");
+            testsupport.TestLog.out("✓ PASS: Entry updated correctly");
         } else {
-            System.out.println("✗ FAIL: Entry not updated correctly");
+            testsupport.TestLog.out("✗ FAIL: Entry not updated correctly");
         }
     }
 
     private void testChangeTimestamp() throws Exception {
-        System.out.println("Test: LogFileHandler should change timestamp...");
+        testsupport.TestLog.out("Test: LogFileHandler should change timestamp...");
         String testText = "Test entry";
         logFileHandler.saveText(testText, listModel);
 
         if (listModel.getSize() != 1) {
-            System.out.println("✗ FAIL: Initial save failed");
+            testsupport.TestLog.out("✗ FAIL: Initial save failed");
             return;
         }
 
@@ -593,26 +593,26 @@ public class FileHandlingTest {
         logFileHandler.changeTimestamp(oldTimestamp, newTimestamp, listModel);
 
         if (listModel.getSize() == 1 && newTimestamp.equals(listModel.getElementAt(0))) {
-            System.out.println("✓ PASS: Timestamp changed in list model");
+            testsupport.TestLog.out("✓ PASS: Timestamp changed in list model");
 
             List<String> lines = Files.readAllLines(testFilePath);
             if (lines.contains(newTimestamp)) {
-                System.out.println("✓ PASS: New timestamp found in file");
+                testsupport.TestLog.out("✓ PASS: New timestamp found in file");
             } else {
-                System.out.println("✗ FAIL: New timestamp not found in file");
+                testsupport.TestLog.out("✗ FAIL: New timestamp not found in file");
             }
         } else {
-            System.out.println("✗ FAIL: Timestamp not changed in list model");
+            testsupport.TestLog.out("✗ FAIL: Timestamp not changed in list model");
         }
     }
 
     private void testDeleteEntry() throws Exception {
-        System.out.println("Test: LogFileHandler should delete entry...");
+        testsupport.TestLog.out("Test: LogFileHandler should delete entry...");
         logFileHandler.saveText("First entry", listModel);
         logFileHandler.saveText("Second entry", listModel);
 
         if (listModel.getSize() != 2) {
-            System.out.println("✗ FAIL: Initial saves failed");
+            testsupport.TestLog.out("✗ FAIL: Initial saves failed");
             return;
         }
 
@@ -620,7 +620,7 @@ public class FileHandlingTest {
         logFileHandler.deleteEntry(timestampToDelete, listModel);
 
         if (listModel.getSize() == 1 && !timestampToDelete.equals(listModel.getElementAt(0))) {
-            System.out.println("✓ PASS: Entry deleted from list model");
+            testsupport.TestLog.out("✓ PASS: Entry deleted from list model");
 
             List<String> lines = Files.readAllLines(testFilePath);
             boolean foundDeleted = false;
@@ -631,22 +631,22 @@ public class FileHandlingTest {
                 }
             }
             if (!foundDeleted) {
-                System.out.println("✓ PASS: Entry deleted from file");
+                testsupport.TestLog.out("✓ PASS: Entry deleted from file");
             } else {
-                System.out.println("✗ FAIL: Entry still found in file");
+                testsupport.TestLog.out("✗ FAIL: Entry still found in file");
             }
         } else {
-            System.out.println("✗ FAIL: Entry not deleted from list model");
+            testsupport.TestLog.out("✗ FAIL: Entry not deleted from list model");
         }
     }
 
     private void testGetLines() throws Exception {
-        System.out.println("Test: LogFileHandler should get lines from file...");
+        testsupport.TestLog.out("Test: LogFileHandler should get lines from file...");
         createTestLogFile();
 
         List<String> lines = logFileHandler.getLines();
         if (lines != null && lines.size() > 0) {
-            System.out.println("✓ PASS: Got " + lines.size() + " lines");
+            testsupport.TestLog.out("✓ PASS: Got " + lines.size() + " lines");
 
             boolean hasLogHeader = false;
             for (String line : lines) {
@@ -656,22 +656,22 @@ public class FileHandlingTest {
                 }
             }
             if (hasLogHeader) {
-                System.out.println("✓ PASS: .LOG header preserved");
+                testsupport.TestLog.out("✓ PASS: .LOG header preserved");
             } else {
-                System.out.println("✗ FAIL: .LOG header not found");
+                testsupport.TestLog.out("✗ FAIL: .LOG header not found");
             }
         } else {
-            System.out.println("✗ FAIL: No lines returned");
+            testsupport.TestLog.out("✗ FAIL: No lines returned");
         }
     }
 
     private void testGetParsedEntries() throws Exception {
-        System.out.println("Test: LogFileHandler should parse entries correctly...");
+        testsupport.TestLog.out("Test: LogFileHandler should parse entries correctly...");
         createTestLogFile();
 
         List<List<String>> entries = logFileHandler.getParsedEntries();
         if (entries != null && entries.size() > 0) {
-            System.out.println("✓ PASS: Parsed " + entries.size() + " entries");
+            testsupport.TestLog.out("✓ PASS: Parsed " + entries.size() + " entries");
 
             boolean allValid = true;
             for (List<String> entry : entries) {
@@ -681,29 +681,29 @@ public class FileHandlingTest {
                 }
             }
             if (allValid) {
-                System.out.println("✓ PASS: All entries have valid timestamps");
+                testsupport.TestLog.out("✓ PASS: All entries have valid timestamps");
             } else {
-                System.out.println("✗ FAIL: Some entries have invalid timestamps");
+                testsupport.TestLog.out("✗ FAIL: Some entries have invalid timestamps");
             }
         } else {
-            System.out.println("✗ FAIL: No entries parsed");
+            testsupport.TestLog.out("✗ FAIL: No entries parsed");
         }
     }
 
     private void testFileOperationsWithNonExistentFile() {
-        System.out.println("Test: LogFileHandler should handle file operations gracefully with non-existent file...");
+        testsupport.TestLog.out("Test: LogFileHandler should handle file operations gracefully with non-existent file...");
         try {
             logFileHandler.deleteEntry("nonexistent", listModel);
             logFileHandler.changeTimestamp("old", "new", listModel);
             logFileHandler.updateEntry("nonexistent", "new text");
-            System.out.println("✓ PASS: File operations handled gracefully");
+            testsupport.TestLog.out("✓ PASS: File operations handled gracefully");
         } catch (Exception e) {
-            System.out.println("✗ FAIL: File operations threw exception: " + e.getMessage());
+            testsupport.TestLog.out("✗ FAIL: File operations threw exception: " + e.getMessage());
         }
     }
 
     private void testLoadEntriesWithWrongLogHeader() throws Exception {
-        System.out.println("Test: EntryLoader should handle files with .LOG1 instead of .LOG...");
+        testsupport.TestLog.out("Test: EntryLoader should handle files with .LOG1 instead of .LOG...");
         List<String> testData = Arrays.asList(
             ".LOG1",
             "",
@@ -718,17 +718,17 @@ public class FileHandlingTest {
         try {
             entryLoader.loadLogEntries(listModel);
             if (listModel.getSize() > 0) {
-                System.out.println("✓ PASS: Entries loaded despite wrong header");
+                testsupport.TestLog.out("✓ PASS: Entries loaded despite wrong header");
             } else {
-                System.out.println("✗ FAIL: No entries loaded with wrong header");
+                testsupport.TestLog.out("✗ FAIL: No entries loaded with wrong header");
             }
         } catch (Exception e) {
-            System.out.println("✗ FAIL: Exception thrown with wrong header: " + e.getMessage());
+            testsupport.TestLog.out("✗ FAIL: Exception thrown with wrong header: " + e.getMessage());
         }
     }
 
     private void testLoadEntriesWithLogHeaderInWrongPosition() throws Exception {
-        System.out.println("Test: EntryLoader should handle files with .LOG header in wrong position...");
+        testsupport.TestLog.out("Test: EntryLoader should handle files with .LOG header in wrong position...");
         LocalDateTime now = LocalDateTime.now();
         String timestamp1 = String.format("%02d:%02d %04d-%02d-%02d",
             now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
@@ -750,17 +750,17 @@ public class FileHandlingTest {
         try {
             entryLoader.loadLogEntries(listModel);
             if (listModel.getSize() >= 1) {
-                System.out.println("✓ PASS: Entries loaded despite misplaced header");
+                testsupport.TestLog.out("✓ PASS: Entries loaded despite misplaced header");
             } else {
-                System.out.println("✗ FAIL: No entries loaded with misplaced header");
+                testsupport.TestLog.out("✗ FAIL: No entries loaded with misplaced header");
             }
         } catch (Exception e) {
-            System.out.println("✗ FAIL: Exception thrown with misplaced header: " + e.getMessage());
+            testsupport.TestLog.out("✗ FAIL: Exception thrown with misplaced header: " + e.getMessage());
         }
     }
 
     private void testLoadEntriesWithLogHeaderAfterContent() throws Exception {
-        System.out.println("Test: EntryLoader should handle files with .LOG header after content...");
+        testsupport.TestLog.out("Test: EntryLoader should handle files with .LOG header after content...");
         LocalDateTime now = LocalDateTime.now();
         String timestamp = String.format("%02d:%02d %04d-%02d-%02d",
             now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
@@ -777,14 +777,14 @@ public class FileHandlingTest {
 
         try {
             entryLoader.loadLogEntries(listModel);
-            System.out.println("✓ PASS: Handled .LOG header after content gracefully");
+            testsupport.TestLog.out("✓ PASS: Handled .LOG header after content gracefully");
         } catch (Exception e) {
-            System.out.println("✗ FAIL: Exception thrown with header after content: " + e.getMessage());
+            testsupport.TestLog.out("✗ FAIL: Exception thrown with header after content: " + e.getMessage());
         }
     }
 
     private void testLoadEntriesWithCaseVariationsOfLog() throws Exception {
-        System.out.println("Test: EntryLoader should handle files with case variations of .LOG...");
+        testsupport.TestLog.out("Test: EntryLoader should handle files with case variations of .LOG...");
         LocalDateTime now = LocalDateTime.now();
         String timestamp = String.format("%02d:%02d %04d-%02d-%02d",
             now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
@@ -803,14 +803,14 @@ public class FileHandlingTest {
 
         try {
             entryLoader.loadLogEntries(listModel);
-            System.out.println("✓ PASS: Handled case variations of .LOG gracefully");
+            testsupport.TestLog.out("✓ PASS: Handled case variations of .LOG gracefully");
         } catch (Exception e) {
-            System.out.println("✗ FAIL: Exception thrown with case variations: " + e.getMessage());
+            testsupport.TestLog.out("✗ FAIL: Exception thrown with case variations: " + e.getMessage());
         }
     }
 
     private void testLoadEntriesWithLogHeaderWithWhitespace() throws Exception {
-        System.out.println("Test: EntryLoader should handle files with .LOG header with whitespace...");
+        testsupport.TestLog.out("Test: EntryLoader should handle files with .LOG header with whitespace...");
         LocalDateTime now = LocalDateTime.now();
         String timestamp = String.format("%02d:%02d %04d-%02d-%02d",
             now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
@@ -829,14 +829,14 @@ public class FileHandlingTest {
 
         try {
             entryLoader.loadLogEntries(listModel);
-            System.out.println("✓ PASS: Handled .LOG with whitespace gracefully");
+            testsupport.TestLog.out("✓ PASS: Handled .LOG with whitespace gracefully");
         } catch (Exception e) {
-            System.out.println("✗ FAIL: Exception thrown with whitespace in header: " + e.getMessage());
+            testsupport.TestLog.out("✗ FAIL: Exception thrown with whitespace in header: " + e.getMessage());
         }
     }
 
     private void testLoadEntriesWithMultipleLogHeadersDifferentPositions() throws Exception {
-        System.out.println("Test: EntryLoader should handle files with multiple .LOG headers in different positions...");
+        testsupport.TestLog.out("Test: EntryLoader should handle files with multiple .LOG headers in different positions...");
         LocalDateTime now = LocalDateTime.now();
         String timestamp1 = String.format("%02d:%02d %04d-%02d-%02d",
             now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
@@ -861,14 +861,14 @@ public class FileHandlingTest {
 
         try {
             entryLoader.loadLogEntries(listModel);
-            System.out.println("✓ PASS: Handled multiple headers in different positions gracefully");
+            testsupport.TestLog.out("✓ PASS: Handled multiple headers in different positions gracefully");
         } catch (Exception e) {
-            System.out.println("✗ FAIL: Exception thrown with multiple headers: " + e.getMessage());
+            testsupport.TestLog.out("✗ FAIL: Exception thrown with multiple headers: " + e.getMessage());
         }
     }
 
     private void testLoadEntriesWithLogHeaderNotAtBeginning() throws Exception {
-        System.out.println("Test: EntryLoader should handle files with .LOG header not at the very beginning...");
+        testsupport.TestLog.out("Test: EntryLoader should handle files with .LOG header not at the very beginning...");
         LocalDateTime now = LocalDateTime.now();
         String timestamp = String.format("%02d:%02d %04d-%02d-%02d",
             now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
@@ -887,14 +887,14 @@ public class FileHandlingTest {
 
         try {
             entryLoader.loadLogEntries(listModel);
-            System.out.println("✓ PASS: Handled .LOG header not at beginning gracefully");
+            testsupport.TestLog.out("✓ PASS: Handled .LOG header not at beginning gracefully");
         } catch (Exception e) {
-            System.out.println("✗ FAIL: Exception thrown with header not at beginning: " + e.getMessage());
+            testsupport.TestLog.out("✗ FAIL: Exception thrown with header not at beginning: " + e.getMessage());
         }
     }
 
     private void testBehaviorWhenLogHeaderMissingOrMisplaced() throws Exception {
-        System.out.println("Test: Demonstrate what happens when .LOG is missing or misplaced...");
+        testsupport.TestLog.out("Test: Demonstrate what happens when .LOG is missing or misplaced...");
         LocalDateTime now = LocalDateTime.now();
         String timestamp1 = String.format("%02d:%02d %04d-%02d-%02d",
             now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
@@ -959,14 +959,14 @@ public class FileHandlingTest {
         int endHeaderCount = listModel.getSize();
 
         if (normalCount == noHeaderCount && normalCount == middleHeaderCount && normalCount == endHeaderCount && normalCount >= 1) {
-            System.out.println("✓ PASS: All scenarios work the same and load entries");
+            testsupport.TestLog.out("✓ PASS: All scenarios work the same and load entries");
         } else {
-            System.out.println("✗ FAIL: Different scenarios behave differently");
+            testsupport.TestLog.out("✗ FAIL: Different scenarios behave differently");
         }
     }
 
     private void testLoadEntriesWithMultipleLogHeaders() throws Exception {
-        System.out.println("Test: EntryLoader should handle files with multiple .LOG headers...");
+        testsupport.TestLog.out("Test: EntryLoader should handle files with multiple .LOG headers...");
         LocalDateTime now = LocalDateTime.now();
         String timestamp = String.format("%02d:%02d %04d-%02d-%02d",
             now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
@@ -986,14 +986,14 @@ public class FileHandlingTest {
 
         try {
             entryLoader.loadLogEntries(listModel);
-            System.out.println("✓ PASS: Handled multiple .LOG headers gracefully");
+            testsupport.TestLog.out("✓ PASS: Handled multiple .LOG headers gracefully");
         } catch (Exception e) {
-            System.out.println("✗ FAIL: Exception thrown with multiple headers: " + e.getMessage());
+            testsupport.TestLog.out("✗ FAIL: Exception thrown with multiple headers: " + e.getMessage());
         }
     }
 
     private void testLoadEntriesWithLogInContent() throws Exception {
-        System.out.println("Test: EntryLoader should handle files with .LOG in middle of content...");
+        testsupport.TestLog.out("Test: EntryLoader should handle files with .LOG in middle of content...");
         LocalDateTime now = LocalDateTime.now();
         String timestamp = String.format("%02d:%02d %04d-%02d-%02d",
             now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
@@ -1013,14 +1013,14 @@ public class FileHandlingTest {
 
         try {
             entryLoader.loadLogEntries(listModel);
-            System.out.println("✓ PASS: Handled .LOG in content gracefully");
+            testsupport.TestLog.out("✓ PASS: Handled .LOG in content gracefully");
         } catch (Exception e) {
-            System.out.println("✗ FAIL: Exception thrown with .LOG in content: " + e.getMessage());
+            testsupport.TestLog.out("✗ FAIL: Exception thrown with .LOG in content: " + e.getMessage());
         }
     }
 
     private void testLoadEntriesWithMalformedTimestamps() throws Exception {
-        System.out.println("Test: EntryLoader should handle files with malformed timestamps...");
+        testsupport.TestLog.out("Test: EntryLoader should handle files with malformed timestamps...");
         LocalDateTime now = LocalDateTime.now();
         String validTimestamp = String.format("%02d:%02d %04d-%02d-%02d",
             now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
@@ -1042,17 +1042,17 @@ public class FileHandlingTest {
         try {
             entryLoader.loadLogEntries(listModel);
             if (listModel.getSize() >= 1) {
-                System.out.println("✓ PASS: Handled malformed timestamps and loaded valid entries");
+                testsupport.TestLog.out("✓ PASS: Handled malformed timestamps and loaded valid entries");
             } else {
-                System.out.println("✗ FAIL: No entries loaded despite valid timestamp");
+                testsupport.TestLog.out("✗ FAIL: No entries loaded despite valid timestamp");
             }
         } catch (Exception e) {
-            System.out.println("✗ FAIL: Exception thrown with malformed timestamps: " + e.getMessage());
+            testsupport.TestLog.out("✗ FAIL: Exception thrown with malformed timestamps: " + e.getMessage());
         }
     }
 
     private void testLoadEntriesWithoutLogHeader() throws Exception {
-        System.out.println("Test: EntryLoader should handle files without .LOG header...");
+        testsupport.TestLog.out("Test: EntryLoader should handle files without .LOG header...");
         LocalDateTime now = LocalDateTime.now();
         String timestamp = String.format("%02d:%02d %04d-%02d-%02d",
             now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
@@ -1068,39 +1068,39 @@ public class FileHandlingTest {
 
         try {
             entryLoader.loadLogEntries(listModel);
-            System.out.println("✓ PASS: Handled missing header gracefully");
+            testsupport.TestLog.out("✓ PASS: Handled missing header gracefully");
         } catch (Exception e) {
-            System.out.println("✗ FAIL: Exception thrown without header: " + e.getMessage());
+            testsupport.TestLog.out("✗ FAIL: Exception thrown without header: " + e.getMessage());
         }
     }
 
     private void testLoadEntriesEmptyFile() throws Exception {
-        System.out.println("Test: EntryLoader should handle empty files...");
+        testsupport.TestLog.out("Test: EntryLoader should handle empty files...");
         Files.write(testFilePath, new byte[0]);
 
         entryLoader.loadLogEntries(listModel);
         if (listModel.getSize() == 0) {
-            System.out.println("✓ PASS: Empty file handled correctly");
+            testsupport.TestLog.out("✓ PASS: Empty file handled correctly");
         } else {
-            System.out.println("✗ FAIL: Empty file should result in empty list");
+            testsupport.TestLog.out("✗ FAIL: Empty file should result in empty list");
         }
     }
 
     private void testLoadEntriesOnlyHeader() throws Exception {
-        System.out.println("Test: EntryLoader should handle files with only .LOG header...");
+        testsupport.TestLog.out("Test: EntryLoader should handle files with only .LOG header...");
         List<String> testData = Arrays.asList(".LOG");
         Files.write(testFilePath, testData);
 
         entryLoader.loadLogEntries(listModel);
         if (listModel.getSize() == 0) {
-            System.out.println("✓ PASS: File with only header handled correctly");
+            testsupport.TestLog.out("✓ PASS: File with only header handled correctly");
         } else {
-            System.out.println("✗ FAIL: File with only header should result in empty list");
+            testsupport.TestLog.out("✗ FAIL: File with only header should result in empty list");
         }
     }
 
     private void testGetLinesWithMalformedFile() throws Exception {
-        System.out.println("Test: LogFileHandler should handle malformed files in getLines...");
+        testsupport.TestLog.out("Test: LogFileHandler should handle malformed files in getLines...");
         List<String> testData = Arrays.asList(
             ".LOG1",
             "",
@@ -1113,14 +1113,14 @@ public class FileHandlingTest {
 
         List<String> lines = logFileHandler.getLines();
         if (lines != null && lines.size() > 0 && lines.contains(".LOG1")) {
-            System.out.println("✓ PASS: Malformed file handled without crashing");
+            testsupport.TestLog.out("✓ PASS: Malformed file handled without crashing");
         } else {
-            System.out.println("✗ FAIL: Malformed file caused issues");
+            testsupport.TestLog.out("✗ FAIL: Malformed file caused issues");
         }
     }
 
     private void testGetParsedEntriesWithMalformedData() throws Exception {
-        System.out.println("Test: LogFileHandler should handle getParsedEntries with malformed data...");
+        testsupport.TestLog.out("Test: LogFileHandler should handle getParsedEntries with malformed data...");
         List<String> testData = Arrays.asList(
             ".LOG",
             "",
@@ -1137,14 +1137,14 @@ public class FileHandlingTest {
 
         List<List<String>> entries = logFileHandler.getParsedEntries();
         if (entries != null && entries.size() >= 1) {
-            System.out.println("✓ PASS: Malformed data parsed without crashing");
+            testsupport.TestLog.out("✓ PASS: Malformed data parsed without crashing");
         } else {
-            System.out.println("✗ FAIL: Malformed data caused parsing to fail");
+            testsupport.TestLog.out("✗ FAIL: Malformed data caused parsing to fail");
         }
     }
 
     private void testEncryptedFilePreservesLogHeader() throws Exception {
-        System.out.println("Test: Encrypted files should preserve .LOG header...");
+        testsupport.TestLog.out("Test: Encrypted files should preserve .LOG header...");
         // Ensure clean state
         try {
             logFileHandler.disableEncryption();
@@ -1166,12 +1166,12 @@ public class FileHandlingTest {
                 }
             }
             if (hasLogHeader) {
-                System.out.println("✓ PASS: Encrypted file preserves .LOG header");
+                testsupport.TestLog.out("✓ PASS: Encrypted file preserves .LOG header");
             } else {
-                System.out.println("✗ FAIL: Encrypted file missing .LOG header");
+                testsupport.TestLog.out("✗ FAIL: Encrypted file missing .LOG header");
             }
         } else {
-            System.out.println("✗ FAIL: No lines returned from encrypted file");
+            testsupport.TestLog.out("✗ FAIL: No lines returned from encrypted file");
         }
 
         try {
@@ -1182,7 +1182,7 @@ public class FileHandlingTest {
     }
 
     private void testDecryptOldEncryptedFileAddsLogHeader() throws Exception {
-        System.out.println("Test: Decrypting old encrypted files should add .LOG header...");
+        testsupport.TestLog.out("Test: Decrypting old encrypted files should add .LOG header...");
         // Ensure clean state
         try {
             logFileHandler.disableEncryption();
@@ -1210,14 +1210,14 @@ public class FileHandlingTest {
 
         List<String> lines = Files.readAllLines(testFilePath);
         if (lines.size() > 0 && ".LOG".equals(lines.get(0).trim().toUpperCase())) {
-            System.out.println("✓ PASS: .LOG header added during decryption");
+            testsupport.TestLog.out("✓ PASS: .LOG header added during decryption");
         } else {
-            System.out.println("✗ FAIL: .LOG header not added during decryption");
+            testsupport.TestLog.out("✗ FAIL: .LOG header not added during decryption");
         }
     }
 
     private void testEntryLoaderFiltersLogFromEncryptedFiles() throws Exception {
-        System.out.println("Test: EntryLoader should filter .LOG from UI for encrypted files...");
+        testsupport.TestLog.out("Test: EntryLoader should filter .LOG from UI for encrypted files...");
         // Ensure clean state
         try {
             logFileHandler.disableEncryption();
@@ -1241,12 +1241,12 @@ public class FileHandlingTest {
                 }
             }
             if (!hasLogHeader) {
-                System.out.println("✓ PASS: .LOG filtered from UI for encrypted files");
+                testsupport.TestLog.out("✓ PASS: .LOG filtered from UI for encrypted files");
             } else {
-                System.out.println("✗ FAIL: .LOG not filtered from UI for encrypted files");
+                testsupport.TestLog.out("✗ FAIL: .LOG not filtered from UI for encrypted files");
             }
         } else {
-            System.out.println("✗ FAIL: No entries loaded for encrypted file");
+            testsupport.TestLog.out("✗ FAIL: No entries loaded for encrypted file");
         }
 
         try {
@@ -1257,7 +1257,7 @@ public class FileHandlingTest {
     }
 
     private void testEncryptedFileMaintainsLogThroughCycles() throws Exception {
-        System.out.println("Test: Encrypted files should maintain .LOG through save/load cycles...");
+        testsupport.TestLog.out("Test: Encrypted files should maintain .LOG through save/load cycles...");
         // Ensure clean state
         try {
             logFileHandler.disableEncryption();
@@ -1280,12 +1280,12 @@ public class FileHandlingTest {
                 }
             }
             if (hasLogHeader) {
-                System.out.println("✓ PASS: .LOG header maintained through multiple saves");
+                testsupport.TestLog.out("✓ PASS: .LOG header maintained through multiple saves");
             } else {
-                System.out.println("✗ FAIL: .LOG header lost during multiple saves");
+                testsupport.TestLog.out("✗ FAIL: .LOG header lost during multiple saves");
             }
         } else {
-            System.out.println("✗ FAIL: No lines returned after multiple saves");
+            testsupport.TestLog.out("✗ FAIL: No lines returned after multiple saves");
         }
 
         try {
@@ -1296,7 +1296,7 @@ public class FileHandlingTest {
     }
 
     private void testLoadEntryAfterEncryptionUnlock() throws Exception {
-        System.out.println("Test: EntryLoader should load entry correctly after encryption unlock...");
+        testsupport.TestLog.out("Test: EntryLoader should load entry correctly after encryption unlock...");
         // Ensure clean state
         try {
             logFileHandler.disableEncryption();
@@ -1307,14 +1307,14 @@ public class FileHandlingTest {
 
         entryLoader.loadLogEntries(listModel);
         if (listModel.getSize() == 0) {
-            System.out.println("✗ FAIL: No entries to test");
+            testsupport.TestLog.out("✗ FAIL: No entries to test");
             return;
         }
 
         String originalTimestamp = listModel.getElementAt(0);
         String originalContent = entryLoader.loadEntry(originalTimestamp);
         if (originalContent == null || originalContent.isEmpty()) {
-            System.out.println("✗ FAIL: Could not load original content");
+            testsupport.TestLog.out("✗ FAIL: Could not load original content");
             return;
         }
 
@@ -1323,7 +1323,7 @@ public class FileHandlingTest {
         listModel.clear();
         entryLoader.loadLogEntries(listModel);
         if (listModel.getSize() == 0) {
-            System.out.println("✗ FAIL: No entries after encryption");
+            testsupport.TestLog.out("✗ FAIL: No entries after encryption");
             return;
         }
 
@@ -1333,9 +1333,9 @@ public class FileHandlingTest {
         if (originalTimestamp.equals(encryptedTimestamp) &&
             originalContent != null && encryptedContent != null &&
             originalContent.equals(encryptedContent)) {
-            System.out.println("✓ PASS: Content preserved through encryption cycle");
+            testsupport.TestLog.out("✓ PASS: Content preserved through encryption cycle");
         } else {
-            System.out.println("✗ FAIL: Content not preserved through encryption cycle");
+            testsupport.TestLog.out("✗ FAIL: Content not preserved through encryption cycle");
         }
 
         try {

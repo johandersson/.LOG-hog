@@ -43,12 +43,27 @@ import javax.swing.SwingUtilities;
 import gui.DialogHelper;
 import gui.LoadingProgressDialog;
 import security.BackupKeyDerivation;
+import utils.SafeExecution;
 
 /**
  * Manages automatic and manual backups of log files.
  * Provides secure backup operations with configurable settings.
  */
 public class BackupManager {
+    private static final String PROP_BACKUP_DIRECTORY = "backupDirectory";
+    private static final String PROP_BACKUP_DIRECTORY_CONFIGURED = "backupDirectoryConfigured";
+    private static final String PROP_AUTO_BACKUP_ENABLED = "autoBackupEnabled";
+    private static final String PROP_AUTO_BACKUP_INTERVAL = "autoBackupInterval";
+    private static final String BOOL_TRUE = "true";
+    private static final String BOOL_FALSE = "false";
+    private static final String PROP_USER_HOME = "user.home";
+    private static final int OPTION_CONFIGURE_DIRECTORY = 0;
+    private static final int OPTION_USE_HOME_DIRECTORY = 1;
+    private static final int LOGH_MAGIC_SIZE = 4;
+    private static final int HMAC_SIZE_BYTES = 32;
+    private static final String AUTO_BACKUP_PREFIX = "loghog-auto-backup-";
+    private static final String ENCRYPTED_BACKUP_EXTENSION = ".enc";
+
     private final Properties settings;
     private static final int MAX_NUMBERED_BACKUPS = 5;
     private static final int MAX_AUTO_BACKUPS = 10;
@@ -73,11 +88,11 @@ public class BackupManager {
      * Should be called once on first use of auto-backup feature.
      */
     public void ensureBackupDirectoryConfigured() {
-        String backupDir = settings.getProperty("backupDirectory", "");
-        String configuredFlag = settings.getProperty("backupDirectoryConfigured", "false");
+        String backupDir = settings.getProperty(PROP_BACKUP_DIRECTORY, "");
+        String configuredFlag = settings.getProperty(PROP_BACKUP_DIRECTORY_CONFIGURED, BOOL_FALSE);
         
         // If already configured (either explicitly set or user made a choice), skip
-        if (!backupDir.isEmpty() || "true".equals(configuredFlag)) {
+        if (!backupDir.isEmpty() || BOOL_TRUE.equals(configuredFlag)) {
             return;
         }
         
@@ -91,7 +106,7 @@ public class BackupManager {
      * Shows a dialog prompting user to configure backup directory.
      */
     private void showBackupDirectorySetupDialog() {
-        String homeDir = System.getProperty("user.home");
+        String homeDir = System.getProperty(PROP_USER_HOME);
         String message = String.format(
             "<html><b>Backup Directory Not Configured</b><br><br>" +
             "You haven't set up a backup directory yet.<br><br>" +
@@ -114,11 +129,11 @@ public class BackupManager {
             options[0]
         );
 
-        if (choice == 0) { // Configure Directory
+        if (choice == OPTION_CONFIGURE_DIRECTORY) { // Configure Directory
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
             fileChooser.setDialogTitle("Select Backup Directory");
-            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+            fileChooser.setCurrentDirectory(new File(System.getProperty(PROP_USER_HOME)));
 
             int result = fileChooser.showDialog(parentFrame, "Select");
 
@@ -140,8 +155,8 @@ public class BackupManager {
                     return;
                 }
 
-                settings.setProperty("backupDirectory", dirPath);
-                settings.setProperty("backupDirectoryConfigured", "true");
+                settings.setProperty(PROP_BACKUP_DIRECTORY, dirPath);
+                settings.setProperty(PROP_BACKUP_DIRECTORY_CONFIGURED, BOOL_TRUE);
                 saveSettings();
 
                 DialogHelper.showInfo(
@@ -152,9 +167,9 @@ public class BackupManager {
                     "You can change this later in Settings."
                 );
             }
-        } else if (choice == 1) { // Use Home Directory
-            settings.setProperty("backupDirectory", homeDir);
-            settings.setProperty("backupDirectoryConfigured", "true");
+        } else if (choice == OPTION_USE_HOME_DIRECTORY) { // Use Home Directory
+            settings.setProperty(PROP_BACKUP_DIRECTORY, homeDir);
+            settings.setProperty(PROP_BACKUP_DIRECTORY_CONFIGURED, BOOL_TRUE);
             saveSettings();
         }
     }
@@ -164,14 +179,14 @@ public class BackupManager {
      */
     private void saveSettings() {
         try {
-            Path settingsPath = Paths.get(System.getProperty("user.home"), ".loghog", "settings.properties");
+            Path settingsPath = Paths.get(System.getProperty(PROP_USER_HOME), ".loghog", "settings.properties");
             Files.createDirectories(settingsPath.getParent());
             try (java.io.OutputStream out = java.nio.file.Files.newOutputStream(settingsPath)) {
                 settings.store(out, "LogHog Settings");
             }
             // Attempt to restrict settings file permissions to the current user only
             setOwnerOnlyPermissions(settingsPath);
-        } catch (Exception e) {
+        } catch (IOException | SecurityException e) {
             // Security: Don't log exception details to console
         }
     }
@@ -190,7 +205,7 @@ public class BackupManager {
             f.setReadable(true, true);
             f.setWritable(true, true);
             f.setExecutable(false, true);
-        } catch (Exception ignored) {
+        } catch (IOException | SecurityException ignored) {
             // Best-effort only
         }
     }
@@ -215,7 +230,7 @@ public class BackupManager {
             if (Files.exists(logPath) && Files.size(logPath) > 0) {
                 performAutomaticBackup();
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             // Silently fail - don't block startup
         }
     }
@@ -246,7 +261,7 @@ public class BackupManager {
                 lastBackupTime = currentTime;
                 lastFileModified = currentModified;
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             // Silently fail
         }
     }
@@ -312,30 +327,22 @@ public class BackupManager {
 
             // Tamper detection: check if log file has been externally modified
             TamperDetector tamperDetector = new TamperDetector();
-            try {
-                tamperDetector.recordBaseline(logPath);
-            } catch (Exception e) {
-                // Silent fail, continue
-            }
+            SafeExecution.run(() -> tamperDetector.recordBaseline(logPath));
 
             Files.copy(logPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
-            try { setOwnerOnlyPermissions(backupPath); } catch (Exception ignored) {}
+            SafeExecution.run(() -> setOwnerOnlyPermissions(backupPath));
 
             // After copy, check for tampering
-            try {
-                if (tamperDetector.isTampered(logPath)) {
-                    SecurityEventLogger.log("TamperDetected", "Log file was modified during backup: " + logPath);
-                }
-            } catch (Exception e) {
-                // Silent fail
+            if (SafeExecution.testOrFalse(() -> tamperDetector.isTampered(logPath))) {
+                SecurityEventLogger.log("TamperDetected", "Log file was modified during backup: " + logPath);
             }
 
             // Compute and append HMAC for integrity verification
-            byte[] key = getOrCreateHmacKey();
+                byte[] key = getSessionHmacKeyOrThrow();
             byte[] data = Files.readAllBytes(backupPath);
             byte[] hmac = HmacUtils.computeHmacSha256(key, data);
             Files.write(backupPath, hmac, StandardOpenOption.APPEND);
-            try { setOwnerOnlyPermissions(backupPath); } catch (Exception ignored) {}
+            SafeExecution.run(() -> setOwnerOnlyPermissions(backupPath));
             SecurityEventLogger.log("BackupCreated", "Backup file created and HMAC appended: " + backupPath);
 
             if (progressDialog != null) {
@@ -360,7 +367,7 @@ public class BackupManager {
             t.setDaemon(true);
             t.start();
 
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             // Security: Don't log exception details to console
             // Don't show UI errors for automatic backups
         } finally {
@@ -384,23 +391,17 @@ public class BackupManager {
     /**
      * Session-only HMAC key derived from the user's password after authentication.
         * Never persisted to disk — derived fresh each session from password + salt.
-        * For unencrypted files, a random in-memory session key is generated on first use.
      */
     private byte[] inMemoryHmacKey = null;
-    private byte[] legacyInMemoryHmacKey = null;
 
     /**
      * Derives and stores the backup HMAC key from the user's credentials.
-     * Called after successful password authentication. The key is computed as
-     * SHA-256(password_bytes || salt || "loghog-backup-hmac-v1") so it cannot
-     * be computed without knowing the password — nothing sensitive is stored in settings.
+     * Called after successful password authentication.
      */
     public void deriveAndSetHmacKey(char[] password, byte[] salt) {
         byte[] derivedV2 = BackupKeyDerivation.deriveV2(password, salt);
-        byte[] derivedLegacy = BackupKeyDerivation.deriveLegacyV1(password, salt);
         clearInMemoryHmacKey();
         inMemoryHmacKey = derivedV2;
-        legacyInMemoryHmacKey = derivedLegacy;
     }
 
     /**
@@ -411,27 +412,17 @@ public class BackupManager {
             java.util.Arrays.fill(inMemoryHmacKey, (byte) 0);
             inMemoryHmacKey = null;
         }
-        if (legacyInMemoryHmacKey != null) {
-            java.util.Arrays.fill(legacyInMemoryHmacKey, (byte) 0);
-            legacyInMemoryHmacKey = null;
-        }
     }
 
     /**
-     * Returns the HMAC key to use for backup signing/verification.
-     * Prefers the session-derived key (requires password).
-     * For unencrypted files where no session key has been set, uses a random
-     * in-memory session key instead of persisting one to settings.
+     * Returns the session-derived HMAC key.
+     * In encrypted-only mode, backups require successful authentication.
      */
-    private byte[] getOrCreateHmacKey() {
-        if (inMemoryHmacKey != null) {
-            // Return a defensive copy — caller must not hold this reference
-            return java.util.Arrays.copyOf(inMemoryHmacKey, inMemoryHmacKey.length);
+    private byte[] getSessionHmacKeyOrThrow() {
+        if (inMemoryHmacKey == null) {
+            throw new IllegalStateException("Backup HMAC key unavailable until the encrypted file is unlocked.");
         }
-
-        // Generate a random in-memory key for the current session (unencrypted-file path)
-        byte[] newKey = BackupKeyDerivation.randomSessionKey();
-        inMemoryHmacKey = newKey;
+        // Return a defensive copy — caller must not hold this reference
         return java.util.Arrays.copyOf(inMemoryHmacKey, inMemoryHmacKey.length);
     }
 
@@ -442,18 +433,14 @@ public class BackupManager {
         try {
             byte[] orig = Files.readAllBytes(original);
             byte[] backupAll = Files.readAllBytes(backup);
-            if (backupAll.length < 32) return false;
-            byte[] backupData = java.util.Arrays.copyOf(backupAll, backupAll.length - 32);
-            byte[] backupHmac = java.util.Arrays.copyOfRange(backupAll, backupAll.length - 32, backupAll.length);
-            byte[] key = getOrCreateHmacKey();
+            if (backupAll.length < HMAC_SIZE_BYTES) return false;
+            byte[] backupData = java.util.Arrays.copyOf(backupAll, backupAll.length - HMAC_SIZE_BYTES);
+            byte[] backupHmac = java.util.Arrays.copyOfRange(backupAll, backupAll.length - HMAC_SIZE_BYTES, backupAll.length);
+            byte[] key = getSessionHmacKeyOrThrow();
             boolean sizeMatch = orig.length == backupData.length;
             boolean hmacMatch = HmacUtils.verifyHmacSha256(key, backupData, backupHmac);
-            if (!hmacMatch && legacyInMemoryHmacKey != null) {
-                byte[] legacyKey = java.util.Arrays.copyOf(legacyInMemoryHmacKey, legacyInMemoryHmacKey.length);
-                hmacMatch = HmacUtils.verifyHmacSha256(legacyKey, backupData, backupHmac);
-            }
             return sizeMatch && hmacMatch;
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             return false;
         }
     }
@@ -472,12 +459,12 @@ public class BackupManager {
             // Determine if the log file is encrypted by inspecting header magic
             boolean isEncrypted = false;
             try (java.io.InputStream in = Files.newInputStream(logPath)) {
-                byte[] hdr = new byte[4];
+                byte[] hdr = new byte[LOGH_MAGIC_SIZE];
                 int r = in.read(hdr);
-                if (r == 4) {
+                if (r == LOGH_MAGIC_SIZE) {
                     isEncrypted = hdr[0] == 'L' && hdr[1] == 'O' && hdr[2] == 'G' && hdr[3] == 'H';
                 }
-            } catch (Exception ignored) {}
+            }
 
             // Get backup directory
             String backupDir = getAutoBackupDirectory();
@@ -512,7 +499,7 @@ public class BackupManager {
             // Create new backup (encrypted files are copied as .bak.enc)
             Files.copy(logPath, bakPath, StandardCopyOption.REPLACE_EXISTING);
             
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             // Don't fail the save operation if backup fails
             // Security: Don't log exception details to console
         }
@@ -532,7 +519,7 @@ public class BackupManager {
      * Checks if automatic backup is enabled.
      */
     public boolean isAutoBackupEnabled() {
-        return "true".equals(settings.getProperty("autoBackupEnabled", "false"));
+        return BOOL_TRUE.equals(settings.getProperty(PROP_AUTO_BACKUP_ENABLED, BOOL_FALSE));
     }
 
     /**
@@ -549,12 +536,12 @@ public class BackupManager {
             
             // Find all auto backup files
             List<Path> backups = Files.list(backupDirPath)
-                .filter(p -> p.getFileName().toString().startsWith("loghog-auto-backup-"))
+                .filter(p -> p.getFileName().toString().startsWith(AUTO_BACKUP_PREFIX))
                 .sorted(Comparator.comparing(p -> {
                     try {
                         return Files.getLastModifiedTime(p);
                     } catch (IOException e) {
-                        return null;
+                        return java.nio.file.attribute.FileTime.fromMillis(0L);
                     }
                 }))
                 .collect(Collectors.toList());
@@ -562,29 +549,11 @@ public class BackupManager {
             // Securely delete oldest backups if we exceed the limit
             while (backups.size() > MAX_AUTO_BACKUPS) {
                 Path oldest = backups.remove(0);
-                try {
-                    SecureDeletionUtils.wipeFile(oldest);
-                } catch (Exception e) {
-                    // If secure delete fails, log the error but don't crash
-                    // Security: Don't expose details to console
-                }
+                SafeExecution.run(() -> SecureDeletionUtils.wipeFile(oldest));
             }
             
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             // Silently fail rotation
-        }
-    }
-    
-    /**
-     * Verifies a backup was created successfully by checking size.
-     * Fast check without reading entire file content.
-     */
-    private boolean verifyBackup(Path original, Path backup) {
-        try {
-            return Files.exists(backup) && 
-                   Files.size(backup) == Files.size(original);
-        } catch (Exception e) {
-            return false;
         }
     }
     
@@ -593,7 +562,7 @@ public class BackupManager {
      */
     private int getBackupIntervalMinutes() {
         try {
-            return Integer.parseInt(settings.getProperty("autoBackupInterval", "30"));
+            return Integer.parseInt(settings.getProperty(PROP_AUTO_BACKUP_INTERVAL, "30"));
         } catch (NumberFormatException e) {
             return 30; // Default 30 minutes
         }
@@ -603,10 +572,10 @@ public class BackupManager {
      * Gets the configured auto-backup directory.
      */
     public String getAutoBackupDirectory() {
-        String backupDir = settings.getProperty("backupDirectory", "");
+        String backupDir = settings.getProperty(PROP_BACKUP_DIRECTORY, "");
         if (backupDir.isEmpty()) {
             // Fallback to user home
-            backupDir = System.getProperty("user.home");
+            backupDir = System.getProperty(PROP_USER_HOME);
         }
         return backupDir;
     }
@@ -617,7 +586,7 @@ public class BackupManager {
     private Path createBackupPath() {
         String backupDir = getAutoBackupDirectory();
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
-        String filename = "loghog-auto-backup-" + timestamp + ".txt";
+        String filename = AUTO_BACKUP_PREFIX + timestamp + ENCRYPTED_BACKUP_EXTENSION;
         return Paths.get(backupDir, filename);
     }
 
@@ -625,7 +594,7 @@ public class BackupManager {
      * Gets the path to the log file.
      */
     private Path getLogFilePath() {
-        return Paths.get(System.getProperty("user.home"), "log.txt");
+        return Paths.get(System.getProperty(PROP_USER_HOME), "log.txt");
     }
 
     /**

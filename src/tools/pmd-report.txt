@@ -1,0 +1,1294 @@
+.\LogHog.java:28:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\LogHog.java:38:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\LogHog.java:45:	AvoidLiteralsInIfCondition:	Avoid using literals such as "Windows" in if statements
+.\LogHog.java:51:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\LogHogOptimizationTest.java:15:	TestClassWithoutTestCases:	The class 'LogHogOptimizationTest' might be a test class, but it contains no test cases.
+.\LogHogOptimizationTest.java:60:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\LogHogOptimizationTest.java:65:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\LogHogOptimizationTest.java:161:	CompareObjectsWithEquals:	Use equals() to compare object references.
+.\LogHogOptimizationTest.java:169:	CompareObjectsWithEquals:	Use equals() to compare object references.
+.\browser\BrowserOpener.java:35:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\ClipboardException.java:6:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\clipboard\ClipboardSecurityTest.java:13:	TestClassWithoutTestCases:	The class 'ClipboardSecurityTest' might be a test class, but it contains no test cases.
+.\clipboard\ClipboardSecurityTest.java:52:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\ClipboardSecurityWarner.java:44:	AvoidDuplicateLiterals:	The String literal "</body></html>" appears 5 times in this file; the first occurrence is on line 44
+.\clipboard\ClipboardSecurityWarner.java:88:	AvoidDuplicateLiterals:	The String literal "text/html" appears 4 times in this file; the first occurrence is on line 88
+.\clipboard\ClipboardSecurityWarner.java:127:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\ClipboardSecurityWarner.java:197:	EmptyCatchBlock:	Avoid empty catch blocks
+.\clipboard\ClipboardSecurityWarner.java:197:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\ClipboardSecurityWarner.java:210:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\SecureClipboardManager.java:88:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\SecureClipboardManager.java:123:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\clipboard\SecureClipboardManager.java:176:	AvoidDuplicateLiterals:	The String literal "SHA-256" appears 4 times in this file; the first occurrence is on line 176
+.\clipboard\SecureClipboardManager.java:178:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\SecureClipboardManager.java:179:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\clipboard\SecureClipboardManager.java:209:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\SecureClipboardManager.java:236:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\clipboard\SecureClipboardManager.java:242:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\clipboard\SecureClipboardManager.java:246:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\clipboard\SecureClipboardManager.java:249:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\SecureClipboardManager.java:251:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\clipboard\SecureClipboardManager.java:254:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\clipboard\SecureClipboardManager.java:259:	EmptyCatchBlock:	Avoid empty catch blocks
+.\clipboard\SecureClipboardManager.java:261:	EmptyCatchBlock:	Avoid empty catch blocks
+.\clipboard\SecureClipboardManager.java:263:	EmptyCatchBlock:	Avoid empty catch blocks
+.\clipboard\SecureClipboardManager.java:265:	EmptyCatchBlock:	Avoid empty catch blocks
+.\clipboard\SecureClipboardManager.java:265:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\SecureClipboardManager.java:280:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\clipboard\SecureClipboardManager.java:283:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\clipboard\SecureClipboardManager.java:306:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\SecureClipboardManager.java:308:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\SecureClipboardManager.java:342:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\SecureClipboardManager.java:346:	EmptyCatchBlock:	Avoid empty catch blocks
+.\clipboard\SecureClipboardManager.java:348:	EmptyCatchBlock:	Avoid empty catch blocks
+.\clipboard\SecureClipboardManager.java:350:	EmptyCatchBlock:	Avoid empty catch blocks
+.\clipboard\SecureClipboardManager.java:352:	EmptyCatchBlock:	Avoid empty catch blocks
+.\clipboard\SecureClipboardManager.java:352:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\SecureClipboardManager.java:380:	EmptyCatchBlock:	Avoid empty catch blocks
+.\clipboard\SecureClipboardManager.java:380:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\clipboard\SecureClipboardManager.java:405:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\encryption\CryptoUtils.java:44:	UseVarargs:	Consider using varargs for methods or constructors which take an array the last parameter.
+.\encryption\EncryptionDetector.java:54:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionDetector.java:74:	ReturnEmptyCollectionRatherThanNull:	Return an empty collection rather than null.
+.\encryption\EncryptionDetector.java:77:	AvoidLiteralsInIfCondition:	Avoid using literals such as 5 in if statements
+.\encryption\EncryptionDetector.java:77:	ReturnEmptyCollectionRatherThanNull:	Return an empty collection rather than null.
+.\encryption\EncryptionDetector.java:79:	ReturnEmptyCollectionRatherThanNull:	Return an empty collection rather than null.
+.\encryption\EncryptionDetector.java:81:	ReturnEmptyCollectionRatherThanNull:	Return an empty collection rather than null.
+.\encryption\EncryptionDetector.java:85:	ReturnEmptyCollectionRatherThanNull:	Return an empty collection rather than null.
+.\encryption\EncryptionException.java:6:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\encryption\EncryptionManager.java:109:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:125:	AvoidLiteralsInIfCondition:	Avoid using literals such as 16 in if statements
+.\encryption\EncryptionManager.java:131:	HardCodedCryptoKey:	Do not use hard coded encryption keys
+.\encryption\EncryptionManager.java:140:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:146:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:176:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:177:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:179:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:185:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:205:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:212:	AvoidDuplicateLiterals:	The String literal "Input stream cannot be null" appears 4 times in this file; the first occurrence is on line 212
+.\encryption\EncryptionManager.java:243:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:245:	AssignmentInOperand:	Avoid assignment to n in operand
+.\encryption\EncryptionManager.java:249:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:284:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:286:	AssignmentInOperand:	Avoid assignment to n in operand
+.\encryption\EncryptionManager.java:290:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:303:	AvoidCatchingGenericException:	Avoid catching RuntimeException in try-catch block
+.\encryption\EncryptionManager.java:307:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:323:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:352:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:380:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:382:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:383:	AvoidDuplicateLiterals:	The String literal "Truncated header: missing salt" appears 5 times in this file; the first occurrence is on line 383
+.\encryption\EncryptionManager.java:386:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:397:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:415:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:445:	UnusedLocalVariable:	Avoid unused local variables such as 'version'.
+.\encryption\EncryptionManager.java:480:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:506:	UnusedLocalVariable:	Avoid unused local variables such as 'version'.
+.\encryption\EncryptionManager.java:535:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\EncryptionManager.java:547:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:548:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:550:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:573:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:575:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:578:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:645:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:649:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\encryption\EncryptionManager.java:667:	AssignmentInOperand:	Avoid assignment to p in operand
+.\encryption\EncryptionManager.java:668:	AssignmentInOperand:	Avoid assignment to p in operand
+.\encryption\EncryptionManager.java:670:	AssignmentInOperand:	Avoid assignment to p in operand
+.\encryption\EncryptionManager.java:678:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\FileEncryptionManager.java:105:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\encryption\FileEncryptionManager.java:118:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\FileEncryptionManager.java:129:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\FileEncryptionManager.java:136:	ReturnEmptyCollectionRatherThanNull:	Return an empty collection rather than null.
+.\encryption\FileEncryptionManager.java:153:	AssignmentInOperand:	Avoid assignment to line in operand
+.\encryption\FileEncryptionManager.java:168:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\encryption\FileEncryptionManager.java:182:	AssignmentInOperand:	Avoid assignment to r in operand
+.\encryption\FileEncryptionManager.java:208:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\encryption\FileEncryptionManager.java:217:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\FileEncryptionManager.java:230:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\encryption\TestableEncryptionManager.java:6:	TestClassWithoutTestCases:	The class 'TestableEncryptionManager' might be a test class, but it contains no test cases.
+.\filehandling\AsyncSaver.java:42:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\AsyncSaver.java:42:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\AsyncSaver.java:46:	UnusedLocalVariable:	Avoid unused local variables such as 'ts'.
+.\filehandling\AsyncSaver.java:46:	UnusedAssignment:	The initializer for variable 'ts' is never used (overwritten on line 49)
+.\filehandling\AsyncSaver.java:49:	UnusedAssignment:	The value assigned to variable 'ts' is never used
+.\filehandling\AsyncSaver.java:51:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\AsyncSaver.java:58:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\AsyncSaver.java:58:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\AsyncSaver.java:86:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\AsyncSaver.java:86:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\AsyncSaver.java:100:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\AsyncSaver.java:103:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\AsyncSaver.java:108:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\AsyncSaver.java:108:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\DialogHandler.java:59:	AvoidDuplicateLiterals:	The String literal "</b>" appears 6 times in this file; the first occurrence is on line 59
+.\filehandling\DialogHandler.java:79:	UnusedLocalVariable:	Avoid unused local variables such as 'options'.
+.\filehandling\DialogHandler.java:132:	UnusedAssignment:	The value assigned to field 'lastMissingFileAction' is never used (overwritten on lines 142, 228, 255, 259 and 264)
+.\filehandling\DialogHandler.java:145:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\DialogHandler.java:149:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\filehandling\DialogHandler.java:191:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\DialogHandler.java:230:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\DialogHandler.java:253:	AvoidLiteralsInIfCondition:	Avoid using literals such as 2 in if statements
+.\filehandling\DialogHandler.java:257:	AvoidLiteralsInIfCondition:	Avoid using literals such as 3 in if statements
+.\filehandling\DialogHandler.java:260:	DoNotTerminateVM:	System.exit() should not be used in J2EE/JEE apps
+.\filehandling\DialogHandler.java:325:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\DialogHandler.java:377:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\DialogHandler.java:388:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\DialogHandler.java:392:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\DialogHandler.java:423:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\DialogHandler.java:446:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryEditor.java:71:	AvoidDuplicateLiterals:	The String literal "\r?\n" appears 4 times in this file; the first occurrence is on line 71
+.\filehandling\EntryEditor.java:104:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryEditor.java:111:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryEditor.java:134:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\EntryEditor.java:134:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryEditor.java:283:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\EntryEditor.java:283:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryEditor.java:323:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryLoader.java:86:	LooseCoupling:	Avoid using implementation types like 'LinkedHashSet'; use the interface instead
+.\filehandling\EntryLoader.java:119:	UnusedLocalVariable:	Avoid unused local variables such as 'entry'.
+.\filehandling\EntryLoader.java:131:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\filehandling\EntryLoader.java:143:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\filehandling\EntryLoader.java:159:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryLoader.java:172:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryLoader.java:240:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\EntryLoader.java:240:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryLoader.java:286:	UnnecessaryWarningSuppression:	Unnecessary @SuppressWarnings annotation
+.\filehandling\EntryLoader.java:328:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryLoader.java:335:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryLoader.java:338:	AvoidInstanceofChecksInCatchClause:	An instanceof check is being performed on the caught exception. Create a separate catch clause for DateTimeParseException.
+.\filehandling\EntryLoader.java:380:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryLoader.java:460:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryLoader.java:485:	AvoidLiteralsInIfCondition:	Avoid using literals such as ".LOG" in if statements
+.\filehandling\EntryLoader.java:510:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\EntryLoader.java:510:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryLoader.java:539:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryLoader.java:558:	AvoidDuplicateLiterals:	The String literal " \\([0-9]+\\)$" appears 4 times in this file; the first occurrence is on line 558
+.\filehandling\EntryLoader.java:593:	UnnecessaryWarningSuppression:	Unnecessary @SuppressWarnings annotation
+.\filehandling\EntryLoader.java:595:	UnnecessaryWarningSuppression:	Unnecessary @SuppressWarnings annotation
+.\filehandling\EntryLoader.java:622:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryLoader.java:715:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntryLoader.java:727:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\EntrySorter.java:51:	AvoidLiteralsInIfCondition:	Avoid using literals such as ".LOG" in if statements
+.\filehandling\EntrySorter.java:91:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\FileCache.java:86:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\filehandling\FileCache.java:120:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\filehandling\FileCache.java:130:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\filehandling\FileCache.java:155:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\filehandling\FullLogFileLoader.java:101:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\filehandling\FullLogFileLoader.java:131:	LiteralsFirstInComparisons:	Position literals first in String comparisons
+.\filehandling\FullLogFileLoader.java:148:	RelianceOnDefaultCharset:	Specify a character set instead of relying on the default charset
+.\filehandling\FullLogFileLoader.java:278:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\FullLogFileLoader.java:299:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\FullLogFileLoader.java:308:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\FullLogFileLoader.java:337:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\FullLogFileLoader.java:354:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\FullLogFileLoader.java:360:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\FullLogFileLoader.java:400:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\FullLogFileLoader.java:412:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\FullLogFileLoader.java:416:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\FullLogFileLoader.java:457:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\FullLogFileLoader.java:458:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\filehandling\FullLogFileLoader.java:509:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\FullLogFileLoader.java:510:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\filehandling\FullLogFileLoader.java:554:	AvoidLiteralsInIfCondition:	Avoid using literals such as 2 in if statements
+.\filehandling\FullLogFileLoader.java:557:	AvoidLiteralsInIfCondition:	Avoid using literals such as 2 in if statements
+.\filehandling\FullLogFileLoader.java:563:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\FullLogFileLoader.java:582:	AvoidLiteralsInIfCondition:	Avoid using literals such as 2 in if statements
+.\filehandling\FullLogFileLoader.java:585:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\filehandling\FullLogFileLoader.java:590:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\FullLogFileLoader.java:617:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\filehandling\LogEntrySearcher.java:134:	AssignmentInOperand:	Avoid assignment to index in operand
+.\filehandling\LogFileException.java:6:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\filehandling\LogFileFormatter.java:73:	AvoidLiteralsInIfCondition:	Avoid using literals such as ".LOG" in if statements
+.\filehandling\LogFileFormatter.java:102:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\LogFileFormatter.java:102:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileFormatter.java:156:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\filehandling\LogFileFormatter.java:252:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileFormatter.java:286:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:105:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:119:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:166:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:181:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:215:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:262:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:298:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:304:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:371:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:379:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:388:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:432:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:461:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:543:	AvoidDuplicateLiterals:	The String literal ".LOG" appears 5 times in this file; the first occurrence is on line 543
+.\filehandling\LogFileHandler.java:558:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:620:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\LogFileHandler.java:620:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:700:	AssignmentInOperand:	Avoid assignment to r in operand
+.\filehandling\LogFileHandler.java:703:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:708:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:710:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:731:	AssignmentInOperand:	Avoid assignment to line in operand
+.\filehandling\LogFileHandler.java:740:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:741:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:747:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\filehandling\LogFileHandler.java:758:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:844:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\LogFileHandler.java:844:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:918:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogFileHandler.java:950:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\filehandling\LogFileHandler.java:1003:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogParser.java:24:	AvoidLiteralsInIfCondition:	Avoid using literals such as ".LOG" in if statements
+.\filehandling\LogParser.java:50:	EmptyCatchBlock:	Avoid empty catch blocks
+.\filehandling\LogParser.java:50:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogParser.java:63:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\LogParser.java:82:	AvoidLiteralsInIfCondition:	Avoid using literals such as ".LOG" in if statements
+.\filehandling\LogParser.java:131:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\filehandling\ParsedLogData.java:45:	UnusedPrivateField:	Avoid unused private fields such as 'DEFAULT_PER_ENTRY_CACHE_SIZE'.
+.\filehandling\StreamProcessor.java:36:	LooseCoupling:	Avoid using implementation types like 'ArrayDeque'; use the interface instead
+.\filehandling\StreamProcessor.java:44:	AvoidLiteralsInIfCondition:	Avoid using literals such as ".LOG" in if statements
+.\filehandling\StreamProcessor.java:51:	AvoidDuplicateLiterals:	The String literal "Too Many Entries" appears 4 times in this file; the first occurrence is on line 51
+.\filehandling\StreamProcessor.java:52:	AvoidDuplicateLiterals:	The String literal "The log file contains too many entries to process safely (max " appears 4 times in this file; the first occurrence is on line 52
+.\filehandling\StreamProcessor.java:54:	AvoidDuplicateLiterals:	The String literal "Too many entries (max " appears 4 times in this file; the first occurrence is on line 54
+.\filehandling\StreamProcessor.java:99:	AvoidLiteralsInIfCondition:	Avoid using literals such as ".LOG" in if statements
+.\gui\DialogHelper.java:34:	AvoidReassigningParameters:	Avoid reassigning parameters such as 'message'
+.\gui\DialogHelper.java:36:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\gui\DialogHelper.java:38:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\gui\DialogHelper.java:38:	AvoidDuplicateLiterals:	The String literal "</html>" appears 4 times in this file; the first occurrence is on line 38
+.\gui\DialogHelper.java:50:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\gui\DialogHelper.java:55:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\gui\DialogHelper.java:162:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\DialogHelper.java:193:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\EncryptionProgressDialog.java:50:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\EntryPanel.java:46:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\EntryPanel.java:68:	ConstructorCallsOverridableMethod:	This method may call an overridable method during object construction: Container.setLayout(LayoutManager) (call stack: [EntryPanel.initPanel(), Container.setLayout(LayoutManager)])
+.\gui\FormattingPanel.java:24:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\FormattingPanel.java:29:	ConstructorCallsOverridableMethod:	This method may call an overridable method during object construction: Container.setLayout(LayoutManager) (call stack: [FormattingPanel.initPanel(), Container.setLayout(LayoutManager)])
+.\gui\FullLogPanel.java:99:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:107:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\gui\FullLogPanel.java:119:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: FullLogPanel.updateLockButton() 
+.\gui\FullLogPanel.java:275:	AvoidDuplicateLiterals:	The String literal "log.txt" appears 4 times in this file; the first occurrence is on line 275
+.\gui\FullLogPanel.java:303:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:320:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\FullLogPanel.java:320:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:368:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:371:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:397:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\gui\FullLogPanel.java:522:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\FullLogPanel.java:522:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:541:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:582:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:586:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:600:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:633:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:659:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:707:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\gui\FullLogPanel.java:726:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\FullLogPanel.java:726:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:758:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\FullLogPanel.java:779:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\FullLogPanel.java:787:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\gui\FullLogPanel.java:791:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\gui\HighlightableTextPane.java:31:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\HighlightableTextPane.java:95:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\gui\HighlightableTextPane.java:96:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\gui\HighlightableTextPane.java:102:	AssignmentInOperand:	Avoid assignment to index in operand
+.\gui\HighlightableTextPane.java:111:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\HighlightableTextPane.java:134:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\HighlightableTextPane.java:153:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\HighlightableTextPane.java:195:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\InformationPanel.java:41:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\InformationPanel.java:48:	ConstructorCallsOverridableMethod:	This method may call an overridable method during object construction: JComponent.setBackground(Color) (call stack: [InformationPanel.createPanel(JTabbedPane, String, boolean, boolean), JComponent.setBackground(Color)])
+.\gui\InformationPanel.java:51:	UnusedFormalParameter:	Avoid unused method parameters such as 'tabPanel'.
+.\gui\LinkDialog.java:89:	IdenticalConditionalBranches:	Conditional statement ignores the condition
+.\gui\LoadingProgressDialog.java:73:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LockOverlay.java:17:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\LockOverlay.java:19:	UnusedPrivateField:	Avoid unused private fields such as 'owner'.
+.\gui\LockOverlay.java:37:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.setLayout(LayoutManager) 
+.\gui\LockOverlay.java:39:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setOpaque(boolean) 
+.\gui\LockOverlay.java:50:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LockOverlay.java:54:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.add(Component) 
+.\gui\LockOverlay.java:57:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Component.addMouseListener(MouseListener) 
+.\gui\LockOverlay.java:58:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Component.addMouseMotionListener(MouseMotionListener) 
+.\gui\LockOverlay.java:59:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setVisible(boolean) 
+.\gui\LockOverlay.java:61:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\LockOverlay.java:61:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LockOverlay.java:62:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\LockOverlay.java:62:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LockOverlay.java:70:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\LockOverlay.java:70:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LockOverlay.java:89:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\LockOverlay.java:89:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogInfoPanel.java:18:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\LogInfoPanel.java:43:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setOpaque(boolean) 
+.\gui\LogInfoPanel.java:44:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setBackground(Color) 
+.\gui\LogInfoPanel.java:45:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setBorder(Border) 
+.\gui\LogInfoPanel.java:77:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.add(Component, Object) 
+.\gui\LogInfoPanel.java:78:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.add(Component, Object) 
+.\gui\LogListPanel.java:69:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\LogListPanel.java:112:	ConstructorCallsOverridableMethod:	This method may call an overridable method during object construction: Container.setLayout(LayoutManager) (call stack: [LogListPanel.initPanel(), Container.setLayout(LayoutManager)])
+.\gui\LogListPanel.java:119:	AvoidLiteralsInIfCondition:	Avoid using literals such as 100 in if statements
+.\gui\LogListPanel.java:193:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\LogListPanel.java:193:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogListPanel.java:269:	LooseCoupling:	Avoid using implementation types like 'LinkedHashSet'; use the interface instead
+.\gui\LogListPanel.java:274:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\LogListPanel.java:274:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogListPanel.java:278:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\LogListPanel.java:278:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogListPanel.java:283:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogListPanel.java:304:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogListPanel.java:564:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\gui\LogListPanel.java:623:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\LogListPanel.java:623:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogListPanel.java:709:	UnusedPrivateMethod:	Avoid unused private methods such as 'insertLink()'.
+.\gui\LogListPanel.java:731:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\LogListPanel.java:731:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogListPanel.java:744:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\LogListPanel.java:744:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogListPanel.java:775:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\gui\LogListPanel.java:886:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\gui\LogListPanel.java:887:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\gui\LogListPanel.java:891:	AssignmentInOperand:	Avoid assignment to index in operand
+.\gui\LogListPanel.java:908:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogListPanel.java:916:	UnusedFormalParameter:	Avoid unused method parameters such as 'split'.
+.\gui\LogListPanel.java:961:	MissingOverride:	The method 'mousePressed(MouseEvent)' is missing an @Override annotation.
+.\gui\LogListPanel.java:965:	MissingOverride:	The method 'mouseReleased(MouseEvent)' is missing an @Override annotation.
+.\gui\LogListPanel.java:969:	MissingOverride:	The method 'mouseClicked(MouseEvent)' is missing an @Override annotation.
+.\gui\LogListPanel.java:1060:	UnusedPrivateMethod:	Avoid unused private methods such as 'updateInfoFromListModel()'.
+.\gui\LogListPanel.java:1064:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogPanel.java:5:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\LogStatistics.java:65:	AvoidLiteralsInIfCondition:	Avoid using literals such as 2 in if statements
+.\gui\LogStatistics.java:70:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\LogStatistics.java:70:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogStatistics.java:85:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\LogStatistics.java:85:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\LogStatistics.java:92:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1024 in if statements
+.\gui\NavItem.java:26:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\NavItem.java:30:	UnusedPrivateField:	Avoid unused private fields such as 'onClick'.
+.\gui\NavItem.java:38:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.setLayout(LayoutManager) 
+.\gui\NavItem.java:39:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setOpaque(boolean) 
+.\gui\NavItem.java:40:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setMaximumSize(Dimension) 
+.\gui\NavItem.java:41:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setPreferredSize(Dimension) 
+.\gui\NavItem.java:42:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setAlignmentX(float) 
+.\gui\NavItem.java:43:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Component.setFocusable(boolean) 
+.\gui\NavItem.java:44:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Component.setCursor(Cursor) 
+.\gui\NavItem.java:45:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setBorder(Border) 
+.\gui\NavItem.java:52:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.add(Component, Object) 
+.\gui\NavItem.java:54:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Component.addMouseListener(MouseListener) 
+.\gui\NavItem.java:80:	ConstructorCallsOverridableMethod:	This method may call an overridable method during object construction: Component.repaint() (call stack: [NavItem.updateVisualState(), Component.repaint()])
+.\gui\PasswordDialog.java:50:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\PasswordDialog.java:63:	ConstructorCallsOverridableMethod:	This method may call an overridable method during object construction: JDialog.setLayout(LayoutManager) (call stack: [PasswordDialog.initComponents(boolean), JDialog.setLayout(LayoutManager)])
+.\gui\PasswordDialog.java:66:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JDialog.setDefaultCloseOperation(int) 
+.\gui\PasswordDialog.java:70:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Window.addWindowListener(WindowListener) 
+.\gui\PasswordDialog.java:84:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Window.pack() 
+.\gui\PasswordDialog.java:85:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Window.setLocationRelativeTo(Component) 
+.\gui\PasswordDialog.java:134:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\PasswordDialog.java:134:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\PasswordDialog.java:210:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\gui\PasswordDialog.java:226:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\PasswordDialog.java:267:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\gui\PasswordDialog.java:278:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\PasswordGenerator.java:40:	AssignmentInOperand:	Avoid assignment to line in operand
+.\gui\PasswordGenerator.java:42:	AvoidLiteralsInIfCondition:	Avoid using literals such as 2 in if statements
+.\gui\PasswordGeneratorDialog.java:41:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\PasswordGeneratorDialog.java:52:	ConstructorCallsOverridableMethod:	This method may call an overridable method during object construction: JDialog.setLayout(LayoutManager) (call stack: [PasswordGeneratorDialog.initComponents(), JDialog.setLayout(LayoutManager)])
+.\gui\PasswordGeneratorDialog.java:53:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Window.pack() 
+.\gui\PasswordGeneratorDialog.java:54:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Window.setLocationRelativeTo(Component) 
+.\gui\PasswordStrengthIndicator.java:29:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\PasswordStrengthIndicator.java:34:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.setLayout(LayoutManager) 
+.\gui\PasswordStrengthIndicator.java:41:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.add(Component, Object) 
+.\gui\PasswordStrengthIndicator.java:42:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.add(Component, Object) 
+.\gui\PasswordStrengthIndicator.java:51:	AvoidLiteralsInIfCondition:	Avoid using literals such as 25 in if statements
+.\gui\PasswordStrengthIndicator.java:54:	AvoidLiteralsInIfCondition:	Avoid using literals such as 45 in if statements
+.\gui\PasswordStrengthIndicator.java:57:	AvoidLiteralsInIfCondition:	Avoid using literals such as 65 in if statements
+.\gui\PasswordStrengthIndicator.java:60:	AvoidLiteralsInIfCondition:	Avoid using literals such as 80 in if statements
+.\gui\PasswordStrengthIndicator.java:88:	AvoidLiteralsInIfCondition:	Avoid using literals such as ' ' in if statements
+.\gui\PasswordStrengthIndicator.java:94:	AvoidLiteralsInIfCondition:	Avoid using literals such as 40 in if statements
+.\gui\PasswordStrengthIndicator.java:96:	AvoidLiteralsInIfCondition:	Avoid using literals such as 30 in if statements
+.\gui\PasswordStrengthIndicator.java:98:	AvoidLiteralsInIfCondition:	Avoid using literals such as 20 in if statements
+.\gui\PasswordStrengthIndicator.java:112:	AvoidLiteralsInIfCondition:	Avoid using literals such as 20 in if statements
+.\gui\PasswordStrengthIndicator.java:114:	AvoidLiteralsInIfCondition:	Avoid using literals such as 15 in if statements
+.\gui\PasswordStrengthIndicator.java:116:	AvoidLiteralsInIfCondition:	Avoid using literals such as 10 in if statements
+.\gui\PasswordStrengthIndicator.java:121:	AvoidLiteralsInIfCondition:	Avoid using literals such as 50 in if statements
+.\gui\PasswordStrengthIndicator.java:137:	AvoidLiteralsInIfCondition:	Avoid using literals such as 4 in if statements
+.\gui\PasswordStrengthIndicator.java:163:	AvoidLiteralsInIfCondition:	Avoid using literals such as 6 in if statements
+.\gui\PasswordStrengthIndicator.java:185:	AvoidLiteralsInIfCondition:	Avoid using literals such as 3 in if statements
+.\gui\PenIcon.java:61:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\gui\PenIcon.java:63:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\PenIcon.java:65:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\gui\ProgressDialogBase.java:33:	AbstractClassWithoutAbstractMethod:	This abstract class does not have any abstract methods
+.\gui\SearchDialog.java:38:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\SearchDialog.java:59:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JDialog.setLayout(LayoutManager) 
+.\gui\SearchDialog.java:60:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Window.setSize(int, int) 
+.\gui\SearchDialog.java:61:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Window.setLocationRelativeTo(Component) 
+.\gui\SearchDialog.java:104:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.add(Component, Object) 
+.\gui\SearchDialog.java:105:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.add(Component, Object) 
+.\gui\SearchDialog.java:112:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JDialog.getRootPane() 
+.\gui\SearchDialog.java:114:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JDialog.getRootPane() 
+.\gui\SearchDialog.java:122:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Window.addWindowListener(WindowListener) 
+.\gui\SearchDialog.java:172:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\gui\SearchDialog.java:188:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\gui\SettingsPanel.java:55:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\SettingsPanel.java:83:	ConstructorCallsOverridableMethod:	This method may call an overridable method during object construction: Container.setLayout(LayoutManager) (call stack: [SettingsPanel.initComponents(), Container.setLayout(LayoutManager)])
+.\gui\SettingsPanel.java:99:	AvoidDuplicateLiterals:	The String literal "true" appears 28 times in this file; the first occurrence is on line 99
+.\gui\SettingsPanel.java:99:	AvoidDuplicateLiterals:	The String literal "encrypted" appears 9 times in this file; the first occurrence is on line 99
+.\gui\SettingsPanel.java:149:	AvoidDuplicateLiterals:	The String literal "Segoe UI" appears 13 times in this file; the first occurrence is on line 149
+.\gui\SettingsPanel.java:223:	AvoidDuplicateLiterals:	The String literal "showSplashOnStartup" appears 4 times in this file; the first occurrence is on line 223
+.\gui\SettingsPanel.java:237:	AvoidDuplicateLiterals:	The String literal "clipboardAutoClear" appears 4 times in this file; the first occurrence is on line 237
+.\gui\SettingsPanel.java:243:	AvoidDuplicateLiterals:	The String literal "clipboardTimeout" appears 4 times in this file; the first occurrence is on line 243
+.\gui\SettingsPanel.java:259:	AvoidDuplicateLiterals:	The String literal "autoLockEnabled" appears 4 times in this file; the first occurrence is on line 259
+.\gui\SettingsPanel.java:259:	AvoidDuplicateLiterals:	The String literal "false" appears 10 times in this file; the first occurrence is on line 259
+.\gui\SettingsPanel.java:265:	AvoidDuplicateLiterals:	The String literal "autoLockTimeout" appears 4 times in this file; the first occurrence is on line 265
+.\gui\SettingsPanel.java:313:	AvoidDuplicateLiterals:	The String literal "backupDirectory" appears 4 times in this file; the first occurrence is on line 313
+.\gui\SettingsPanel.java:448:	AvoidLiteralsInIfCondition:	Avoid using literals such as 20 in if statements
+.\gui\SettingsPanel.java:458:	AvoidLiteralsInIfCondition:	Avoid using literals such as 65 in if statements
+.\gui\SettingsPanel.java:473:	AvoidLiteralsInIfCondition:	Avoid using literals such as 45 in if statements
+.\gui\SettingsPanel.java:492:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\gui\SettingsPanel.java:527:	AvoidDuplicateLiterals:	The String literal ".bak" appears 4 times in this file; the first occurrence is on line 527
+.\gui\SettingsPanel.java:546:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\SettingsPanel.java:568:	AvoidDuplicateLiterals:	The String literal "salt" appears 4 times in this file; the first occurrence is on line 568
+.\gui\SettingsPanel.java:579:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\SettingsPanel.java:579:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\SettingsPanel.java:595:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\SettingsPanel.java:661:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\SettingsPanel.java:662:	GuardLogStatement:	Logger calls should be surrounded by log level guards.
+.\gui\SettingsPanel.java:675:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\SettingsPanel.java:748:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\SettingsPanel.java:758:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\SettingsPanel.java:800:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\SettingsPanel.java:821:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\SettingsPanel.java:821:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\SettingsPanel.java:836:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\SettingsPanel.java:894:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\gui\SettingsPanel.java:898:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\SplashEntryLoader.java:52:	CloseResource:	Ensure that resources like this InputStream object are closed after use
+.\gui\SplashEntryLoader.java:58:	CloseResource:	Ensure that resources like this BufferedReader object are closed after use
+.\gui\SplashEntryLoader.java:58:	RelianceOnDefaultCharset:	Specify a character set instead of relying on the default charset
+.\gui\SplashEntryLoader.java:61:	AssignmentInOperand:	Avoid assignment to line in operand
+.\gui\SplashEntryLoader.java:62:	AvoidLiteralsInIfCondition:	Avoid using literals such as 5 in if statements
+.\gui\SplashEntryLoader.java:66:	AvoidLiteralsInIfCondition:	Avoid using literals such as 5 in if statements
+.\gui\SplashEntryLoader.java:112:	CloseResource:	Ensure that resources like this InputStream object are closed after use
+.\gui\SplashEntryLoader.java:117:	CloseResource:	Ensure that resources like this BufferedReader object are closed after use
+.\gui\SplashEntryLoader.java:117:	RelianceOnDefaultCharset:	Specify a character set instead of relying on the default charset
+.\gui\SplashEntryLoader.java:122:	AssignmentInOperand:	Avoid assignment to line in operand
+.\gui\SplashEntryLoader.java:124:	AvoidLiteralsInIfCondition:	Avoid using literals such as 5 in if statements
+.\gui\SplashEntryLoader.java:130:	AvoidLiteralsInIfCondition:	Avoid using literals such as 5 in if statements
+.\gui\SplashPainter.java:24:	OneDeclarationPerLine:	Use one line for each declaration, it enhances code readability.
+.\gui\SplashPainter.java:33:	OneDeclarationPerLine:	Use one line for each declaration, it enhances code readability.
+.\gui\SplashScreen.java:36:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\SplashScreen.java:46:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Dialog.setUndecorated(boolean) 
+.\gui\SplashScreen.java:47:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Window.setSize(int, int) 
+.\gui\SplashScreen.java:48:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Window.setLocationRelativeTo(Component) 
+.\gui\SplashScreen.java:51:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Dialog.setShape(Shape) 
+.\gui\SplashScreen.java:111:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JDialog.setContentPane(Container) 
+.\gui\SplashScreen.java:116:	AvoidLiteralsInIfCondition:	Avoid using literals such as 5 in if statements
+.\gui\SplashScreen.java:124:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Window.toFront() 
+.\gui\SplashScreen.java:125:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Component.requestFocus() 
+.\gui\SplashScreen.java:143:	UnusedLocalVariable:	Avoid unused local variables such as 'shirt'.
+.\gui\StandardButton.java:23:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\StandardButton.java:24:	UnusedPrivateField:	Avoid unused private fields such as 'normalColor'.
+.\gui\StandardButton.java:40:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setForeground(Color) 
+.\gui\StandardButton.java:41:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setBackground(Color) 
+.\gui\StandardButton.java:42:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: AbstractButton.setFocusPainted(boolean) 
+.\gui\StandardButton.java:43:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setBorder(Border) 
+.\gui\StandardButton.java:44:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Component.setCursor(Cursor) 
+.\gui\StandardButton.java:45:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setOpaque(boolean) 
+.\gui\StandardButton.java:46:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: AbstractButton.setContentAreaFilled(boolean) 
+.\gui\StandardButton.java:47:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setFont(Font) 
+.\gui\StandardButton.java:50:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Component.addMouseListener(MouseListener) 
+.\gui\StatusBar.java:28:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\gui\StatusBar.java:32:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.setLayout(LayoutManager) 
+.\gui\StatusBar.java:33:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setBorder(Border) 
+.\gui\StatusBar.java:34:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JComponent.setBackground(Color) 
+.\gui\StatusBar.java:39:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: Container.add(Component, Object) 
+.\gui\SystemTrayMenu.java:40:	AssignmentToNonFinalStatic:	Possible unsafe assignment to non-final static field 'logTextEditor' in a constructor.
+.\gui\SystemTrayMenu.java:120:	DoNotTerminateVM:	System.exit() should not be used in J2EE/JEE apps
+.\gui\SystemTrayMenu.java:127:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\TimestampClickHandler.java:53:	ImplicitFunctionalInterface:	Annotate this interface with @FunctionalInterface or with @SuppressWarnings("PMD.ImplicitFunctionalInterface") to clarify your intent.
+.\gui\TimestampClickHandler.java:167:	AvoidCatchingGenericException:	Avoid catching NullPointerException in try-catch block
+.\gui\TimestampClickHandler.java:170:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\TimestampClickHandler.java:231:	UnusedLocalVariable:	Avoid unused local variables such as 'width'.
+.\gui\TimestampClickHandler.java:248:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\TimestampClickHandler.java:271:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\TimestampClickHandler.java:301:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\TimestampClickHandler.java:339:	EmptyCatchBlock:	Avoid empty catch blocks
+.\gui\TimestampClickHandler.java:339:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\gui\TimestampClickHandler.java:352:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\gui\TimestampClickHandler.java:356:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\main\ActionHandler.java:71:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\ActionHandler.java:101:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\ActionHandler.java:126:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\ActionHandler.java:162:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\ActionHandler.java:205:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\ActionHandler.java:205:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\ActionHandler.java:207:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\ActionHandler.java:207:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\ActionHandler.java:326:	UselessOperationOnImmutable:	The result of an operation on an immutable object is ignored
+.\main\ActionHandler.java:328:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\ActionHandler.java:341:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\ActionHandler.java:341:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\AuthenticationFailureHandler.java:30:	AvoidLiteralsInIfCondition:	Avoid using literals such as 4 in if statements
+.\main\AuthenticationFailureHandler.java:37:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\AuthenticationFailureHandler.java:37:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\AuthenticationFailureHandler.java:41:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\main\AuthenticationFailureHandler.java:42:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\main\AuthenticationFailureHandler.java:74:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\AuthenticationFailureHandler.java:74:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\AuthenticationFailureHandler.java:91:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\AuthenticationFailureHandler.java:91:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\AuthenticationFailureHandler.java:101:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\AuthenticationFailureHandler.java:101:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\AuthenticationFailureHandler.java:103:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\AuthenticationFailureHandler.java:118:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\AuthenticationFailureHandler.java:118:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:76:	AvoidDuplicateLiterals:	The String literal "backupDirectory" appears 4 times in this file; the first occurrence is on line 76
+.\main\BackupManager.java:80:	AvoidDuplicateLiterals:	The String literal "true" appears 4 times in this file; the first occurrence is on line 80
+.\main\BackupManager.java:94:	AvoidDuplicateLiterals:	The String literal "user.home" appears 5 times in this file; the first occurrence is on line 94
+.\main\BackupManager.java:155:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\main\BackupManager.java:174:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\BackupManager.java:174:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:193:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:218:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\BackupManager.java:218:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:249:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\BackupManager.java:249:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:317:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\BackupManager.java:317:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:322:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:329:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\BackupManager.java:329:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:338:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:363:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\BackupManager.java:363:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:412:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\main\BackupManager.java:416:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\main\BackupManager.java:445:	AvoidLiteralsInIfCondition:	Avoid using literals such as 32 in if statements
+.\main\BackupManager.java:456:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:477:	AvoidLiteralsInIfCondition:	Avoid using literals such as 4 in if statements
+.\main\BackupManager.java:480:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:515:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\BackupManager.java:515:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:567:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\BackupManager.java:567:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:573:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\BackupManager.java:573:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\BackupManager.java:582:	UnusedPrivateMethod:	Avoid unused private methods such as 'verifyBackup(Path, Path)'.
+.\main\BackupManager.java:586:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\EncryptionHandler.java:81:	AvoidDuplicateLiterals:	The String literal "salt" appears 7 times in this file; the first occurrence is on line 81
+.\main\EncryptionHandler.java:101:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\EncryptionHandler.java:126:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\EncryptionHandler.java:149:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\EncryptionHandler.java:149:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\EncryptionHandler.java:181:	AvoidCatchingGenericException:	Avoid catching NullPointerException in try-catch block
+.\main\EncryptionHandler.java:186:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\EncryptionHandler.java:218:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\EncryptionHandler.java:231:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\EncryptionHandler.java:231:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\EncryptionHandler.java:259:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\EncryptionHandler.java:264:	AvoidLiteralsInIfCondition:	Avoid using literals such as 4 in if statements
+.\main\EncryptionHandler.java:269:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\main\EncryptionHandler.java:270:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\main\EncryptionHandler.java:311:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\HmacUtils.java:14:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\KeyRotationManager.java:18:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:56:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\main\LogTextEditor.java:115:	AvoidFieldNameMatchingMethodName:	Field isLocked has the same name as a method
+.\main\LogTextEditor.java:168:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\LogTextEditor.java:168:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:201:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:209:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:217:	ConstructorCallsOverridableMethod:	This method may call an overridable method during object construction: LogTextEditor.getRootPane() (call stack: [LogTextEditor.setupKeyBindings(), LogTextEditor.getRootPane()])
+.\main\LogTextEditor.java:218:	ConstructorCallsOverridableMethod:	This method may call an overridable method during object construction: LogTextEditor.setLocked(boolean) (call stack: [LogTextEditor.loadSettings(), LogTextEditor.setLocked(boolean)])
+.\main\LogTextEditor.java:238:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:327:	MissingOverride:	The method 'actionPerformed(ActionEvent)' is missing an @Override annotation.
+.\main\LogTextEditor.java:336:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:343:	MissingOverride:	The method 'actionPerformed(ActionEvent)' is missing an @Override annotation.
+.\main\LogTextEditor.java:352:	AvoidLiteralsInIfCondition:	Avoid using literals such as 2 in if statements
+.\main\LogTextEditor.java:368:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\main\LogTextEditor.java:371:	AvoidDuplicateLiterals:	The String literal "true" appears 15 times in this file; the first occurrence is on line 371
+.\main\LogTextEditor.java:378:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:385:	AvoidLiteralsInIfCondition:	Avoid using literals such as "Windows" in if statements
+.\main\LogTextEditor.java:391:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:407:	UnusedLocalVariable:	Avoid unused local variables such as 'editor'.
+.\main\LogTextEditor.java:411:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:450:	AvoidDuplicateLiterals:	The String literal "requireEncryptionForNewFiles" appears 4 times in this file; the first occurrence is on line 450
+.\main\LogTextEditor.java:456:	AvoidLiteralsInIfCondition:	Avoid using literals such as "true" in if statements
+.\main\LogTextEditor.java:461:	AvoidDuplicateLiterals:	The String literal "encrypted" appears 5 times in this file; the first occurrence is on line 461
+.\main\LogTextEditor.java:469:	AvoidLiteralsInIfCondition:	Avoid using literals such as "true" in if statements
+.\main\LogTextEditor.java:499:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:502:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\LogTextEditor.java:502:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:509:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:530:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:533:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\LogTextEditor.java:533:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:546:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:596:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:608:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\LogTextEditor.java:682:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\main\LogTextEditor.java:776:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\LogTextEditor.java:819:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\main\LogTextEditor.java:825:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\main\PasswordPrompter.java:32:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\PasswordPrompter.java:33:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\main\SecurityEventLogger.java:31:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\UIInitializer.java:83:	DoNotTerminateVM:	System.exit() should not be used in J2EE/JEE apps
+.\main\UIInitializer.java:255:	AvoidLiteralsInIfCondition:	Avoid using literals such as 2 in if statements
+.\main\UIInitializer.java:257:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\main\UIInitializer.java:259:	AvoidLiteralsInIfCondition:	Avoid using literals such as 3 in if statements
+.\main\UIInitializer.java:261:	AvoidLiteralsInIfCondition:	Avoid using literals such as 5 in if statements
+.\main\UIInitializer.java:329:	EmptyCatchBlock:	Avoid empty catch blocks
+.\main\UIInitializer.java:329:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\main\UIInitializer.java:344:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\markdown\LinkHandler.java:83:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\markdown\LinkHandler.java:99:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\markdown\LinkHandler.java:111:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\markdown\LinkHandler.java:146:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\markdown\LinkHandler.java:170:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\markdown\LinkHandler.java:179:	AvoidDuplicateLiterals:	The String literal "linkHover" appears 6 times in this file; the first occurrence is on line 179
+.\markdown\LinkHandler.java:200:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\markdown\LinkHandler.java:224:	EmptyCatchBlock:	Avoid empty catch blocks
+.\markdown\LinkHandler.java:224:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\markdown\MarkdownEntryProcessor.java:80:	AvoidReassigningLoopVariables:	Avoid reassigning the loop control variable 'i'
+.\markdown\MarkdownEntryProcessor.java:82:	AvoidReassigningLoopVariables:	Avoid reassigning the loop control variable 'i'
+.\markdown\MarkdownRenderer.java:139:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\markdown\MarkdownRenderer.java:161:	UnusedPrivateMethod:	Avoid unused private methods such as 'computeHashFromEntries(List<List<String>>)'.
+.\markdown\MarkdownRenderer.java:166:	AvoidLiteralsInIfCondition:	Avoid using literals such as 256 in if statements
+.\markdown\MarkdownRenderer.java:184:	AvoidReassigningLoopVariables:	Avoid reassigning the loop control variable 'l'
+.\markdown\MarkdownRenderer.java:199:	MissingOverride:	The method 'removeEldestEntry(Entry<String, SoftReference<List<Segment>>>)' is missing an @Override annotation.
+.\markdown\MarkdownRenderer.java:209:	MissingOverride:	The method 'removeEldestEntry(Entry<String, SoftReference<CacheEntry>>)' is missing an @Override annotation.
+.\markdown\MarkdownRenderer.java:229:	AvoidReassigningLoopVariables:	Avoid reassigning the loop control variable 'l'
+.\markdown\MarkdownRenderer.java:287:	AvoidDuplicateLiterals:	The String literal "sep" appears 4 times in this file; the first occurrence is on line 287
+.\markdown\MarkdownRenderer.java:301:	AvoidDuplicateLiterals:	The String literal "info" appears 4 times in this file; the first occurrence is on line 301
+.\markdown\MarkdownRenderer.java:311:	UnusedAssignment:	The initializer for variable 'segs' is never used (overwritten on line 314)
+.\markdown\MarkdownRenderer.java:314:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\markdown\MarkdownRenderer.java:340:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\markdown\MarkdownRenderer.java:390:	AvoidReassigningLoopVariables:	Avoid reassigning the loop control variable 'i'
+.\markdown\MarkdownRenderer.java:393:	AvoidReassigningLoopVariables:	Avoid reassigning the loop control variable 'i'
+.\markdown\MarkdownRenderer.java:510:	IdenticalConditionalBranches:	Conditional statement ignores the condition
+.\markdown\MarkdownRenderer.java:523:	IdenticalConditionalBranches:	Conditional statement ignores the condition
+.\markdown\MarkdownRenderer.java:644:	UnusedAssignment:	The initializer for variable 'segs' is never used (overwritten on lines 644 and 647)
+.\markdown\MarkdownRenderer.java:647:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\markdown\MarkdownRenderer.java:684:	EmptyCatchBlock:	Avoid empty catch blocks
+.\markdown\MarkdownRenderer.java:760:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\notepad\NotepadOpener.java:47:	EmptyCatchBlock:	Avoid empty catch blocks
+.\notepad\NotepadOpener.java:47:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\notepad\NotepadOpener.java:53:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\notepad\NotepadOpener.java:63:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\notepad\NotepadOpener.java:66:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\notepad\NotepadOpener.java:71:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\notepad\NotepadOpener.java:137:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\security\BackupKeyDerivation.java:41:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\security\BackupKeyDerivation.java:47:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\security\BackupKeyDerivation.java:68:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\security\LinkOpenPolicy.java:33:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\security\PathValidator.java:22:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\security\PathValidator.java:24:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\security\PathValidator.java:41:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\security\SecurityFilePolicy.java:27:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\security\SecurityFilePolicy.java:36:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\security\SecurityFilePolicy.java:44:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1000 in if statements
+.\services\EncryptionService.java:9:	UseVarargs:	Consider using varargs for methods or constructors which take an array the last parameter.
+.\services\FileServiceImpl.java:40:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\DebugTest.java:11:	TestClassWithoutTestCases:	The class 'DebugTest' might be a test class, but it contains no test cases.
+.\test\java\DebugTest.java:24:	SystemPrintln:	Usage of System.out/err
+.\test\java\DebugTest.java:29:	SystemPrintln:	Usage of System.out/err
+.\test\java\DebugTest.java:31:	SystemPrintln:	Usage of System.out/err
+.\test\java\DebugTest.java:35:	SystemPrintln:	Usage of System.out/err
+.\test\java\DebugTest.java:39:	SystemPrintln:	Usage of System.out/err
+.\test\java\DebugTest.java:41:	SystemPrintln:	Usage of System.out/err
+.\test\java\DebugTest.java:45:	SystemPrintln:	Usage of System.out/err
+.\test\java\DebugTest.java:48:	SystemPrintln:	Usage of System.out/err
+.\test\java\DebugTest.java:50:	SystemPrintln:	Usage of System.out/err
+.\test\java\DebugTest.java:51:	SystemPrintln:	Usage of System.out/err
+.\test\java\DebugTest.java:52:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:13:	TestClassWithoutTestCases:	The class 'DuplicateTest' might be a test class, but it contains no test cases.
+.\test\java\DuplicateTest.java:16:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:30:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:34:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:35:	AvoidDuplicateLiterals:	The String literal ".txt" appears 4 times in this file; the first occurrence is on line 35
+.\test\java\DuplicateTest.java:51:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:51:	AvoidDuplicateLiterals:	The String literal "Loaded entries: " appears 4 times in this file; the first occurrence is on line 51
+.\test\java\DuplicateTest.java:53:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:58:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:61:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:67:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:71:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:91:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:93:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:98:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:102:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:119:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:121:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:126:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:130:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:152:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:154:	SystemPrintln:	Usage of System.out/err
+.\test\java\DuplicateTest.java:159:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:13:	TestClassWithoutTestCases:	The class 'LoadEntryTest' might be a test class, but it contains no test cases.
+.\test\java\LoadEntryTest.java:31:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:35:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:40:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:43:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:48:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:49:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:50:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\LoadEntryTest.java:51:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:59:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:65:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:67:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:74:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:77:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:81:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:85:	SystemPrintln:	Usage of System.out/err
+.\test\java\LoadEntryTest.java:96:	UnusedLocalVariable:	Avoid unused local variables such as 'now'.
+.\test\java\LoadEntryTest.java:97:	UnusedLocalVariable:	Avoid unused local variables such as 'formatter'.
+.\test\java\TestRunner.java:8:	TestClassWithoutTestCases:	The class 'TestRunner' might be a test class, but it contains no test cases.
+.\test\java\TestRunner.java:15:	SystemPrintln:	Usage of System.out/err
+.\test\java\TestRunner.java:21:	SystemPrintln:	Usage of System.out/err
+.\test\java\TestRunner.java:53:	SystemPrintln:	Usage of System.out/err
+.\test\java\TestRunner.java:81:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:8:	TestClassWithoutTestCases:	The class 'ToastTest' might be a test class, but it contains no test cases.
+.\test\java\ToastTest.java:11:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:14:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:17:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:18:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\ToastTest.java:19:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:24:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:27:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:28:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\ToastTest.java:29:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:34:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:37:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:38:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\ToastTest.java:39:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:44:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:47:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:48:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\ToastTest.java:49:	SystemPrintln:	Usage of System.out/err
+.\test\java\ToastTest.java:53:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionEdgeCaseTest.java:11:	TestClassWithoutTestCases:	The class 'EncryptionEdgeCaseTest' might be a test class, but it contains no test cases.
+.\test\java\encryption\EncryptionEdgeCaseTest.java:23:	AvoidDuplicateLiterals:	The String literal "password" appears 11 times in this file; the first occurrence is on line 23
+.\test\java\encryption\EncryptionManagerTest.java:10:	TestClassWithoutTestCases:	The class 'EncryptionManagerTest' might be a test class, but it contains no test cases.
+.\test\java\encryption\EncryptionManagerTest.java:26:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:32:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:38:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:52:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:58:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:76:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:82:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:100:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:106:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:115:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:120:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:129:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:135:	SystemPrintln:	Usage of System.out/err
+.\test\java\encryption\EncryptionManagerTest.java:147:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\EntryEditorLimitsTest.java:14:	TestClassWithoutTestCases:	The class 'EntryEditorLimitsTest' might be a test class, but it contains no test cases.
+.\test\java\filehandling\EntryEditorLimitsTest.java:23:	UseVarargs:	Consider using varargs for methods or constructors which take an array the last parameter.
+.\test\java\filehandling\EntryEditorLimitsTest.java:38:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\EntryEditorLimitsTest.java:49:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\EntryEditorLimitsTest.java:52:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:21:	TestClassWithoutTestCases:	The class 'FileHandlingJUnitTest' might be a test class, but it contains no test cases.
+.\test\java\filehandling\FileHandlingJUnitTest.java:60:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:63:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:68:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:72:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:77:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:95:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:100:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:117:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:122:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:132:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:137:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:143:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:148:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:154:	UnusedLocalVariable:	Avoid unused local variables such as 'uniqueLoader'.
+.\test\java\filehandling\FileHandlingJUnitTest.java:175:	AvoidDuplicateLiterals:	The String literal "Decrypted content should contain original entries" appears 4 times in this file; the first occurrence is on line 175
+.\test\java\filehandling\FileHandlingJUnitTest.java:178:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:186:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingJUnitTest.java:216:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:17:	TestClassWithoutTestCases:	The class 'FileHandlingTest' might be a test class, but it contains no test cases.
+.\test\java\filehandling\FileHandlingTest.java:25:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:83:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:113:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:116:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:118:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:123:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:128:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:131:	AvoidLiteralsInIfCondition:	Avoid using literals such as 2 in if statements
+.\test\java\filehandling\FileHandlingTest.java:135:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:137:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:141:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:146:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:165:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:167:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:172:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:189:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:191:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:196:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:201:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:209:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:211:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:213:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:216:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:221:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:223:	AvoidLiteralsInIfCondition:	Avoid using literals such as "" in if statements
+.\test\java\filehandling\FileHandlingTest.java:224:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:226:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:231:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:234:	AvoidDuplicateLiterals:	The String literal "%02d:%02d %04d-%02d-%02d" appears 18 times in this file; the first occurrence is on line 234
+.\test\java\filehandling\FileHandlingTest.java:240:	AvoidDuplicateLiterals:	The String literal "First entry" appears 6 times in this file; the first occurrence is on line 240
+.\test\java\filehandling\FileHandlingTest.java:252:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:254:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:257:	AvoidLiteralsInIfCondition:	Avoid using literals such as 3 in if statements
+.\test\java\filehandling\FileHandlingTest.java:258:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:265:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:267:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:270:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:275:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:278:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:282:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:284:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:289:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:294:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:304:	UnusedNullCheckInEquals:	Invoke equals() on the object you've already ensured is not null
+.\test\java\filehandling\FileHandlingTest.java:305:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:307:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:312:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:317:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:319:	AvoidLiteralsInIfCondition:	Avoid using literals such as 2 in if statements
+.\test\java\filehandling\FileHandlingTest.java:323:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:325:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:329:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:334:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:340:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:342:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:347:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:349:	AvoidDuplicateLiterals:	The String literal "14:30 2025-12-18" appears 5 times in this file; the first occurrence is on line 349
+.\test\java\filehandling\FileHandlingTest.java:362:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\test\java\filehandling\FileHandlingTest.java:363:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:375:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:377:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:382:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:386:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:386:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:391:	AvoidDuplicateLiterals:	The String literal "testpassword" appears 6 times in this file; the first occurrence is on line 391
+.\test\java\filehandling\FileHandlingTest.java:396:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:404:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:406:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:411:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:411:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:417:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:421:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:423:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:428:	AvoidLiteralsInIfCondition:	Avoid using literals such as "14:30 2025-12-18" in if statements
+.\test\java\filehandling\FileHandlingTest.java:429:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:431:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:436:	AvoidLiteralsInIfCondition:	Avoid using literals such as "14:30 2025-12-18" in if statements
+.\test\java\filehandling\FileHandlingTest.java:437:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:439:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:445:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:447:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:452:	AvoidLiteralsInIfCondition:	Avoid using literals such as "" in if statements
+.\test\java\filehandling\FileHandlingTest.java:453:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:455:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:462:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:464:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:466:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:467:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:472:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:476:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:476:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:485:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:488:	UseCollectionIsEmpty:	Substitute calls to size() == 0 (or size() != 0, size() > 0, size() < 1) with calls to isEmpty()
+.\test\java\filehandling\FileHandlingTest.java:489:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:491:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:494:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:499:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:503:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:503:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:512:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:514:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:519:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:523:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:523:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:528:	AvoidDuplicateLiterals:	The String literal "Second entry" appears 4 times in this file; the first occurrence is on line 528
+.\test\java\filehandling\FileHandlingTest.java:533:	AvoidLiteralsInIfCondition:	Avoid using literals such as 2 in if statements
+.\test\java\filehandling\FileHandlingTest.java:534:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:537:	OneDeclarationPerLine:	Use one line for each declaration, it enhances code readability.
+.\test\java\filehandling\FileHandlingTest.java:543:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:545:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:548:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:553:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:557:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\test\java\filehandling\FileHandlingTest.java:558:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:567:	OneDeclarationPerLine:	Use one line for each declaration, it enhances code readability.
+.\test\java\filehandling\FileHandlingTest.java:574:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:576:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:581:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:585:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\test\java\filehandling\FileHandlingTest.java:586:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:596:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:600:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:602:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:605:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:610:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:614:	AvoidLiteralsInIfCondition:	Avoid using literals such as 2 in if statements
+.\test\java\filehandling\FileHandlingTest.java:615:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:623:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:634:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:636:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:639:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:644:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:648:	UseCollectionIsEmpty:	Substitute calls to size() == 0 (or size() != 0, size() > 0, size() < 1) with calls to isEmpty()
+.\test\java\filehandling\FileHandlingTest.java:649:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:653:	AvoidLiteralsInIfCondition:	Avoid using literals such as ".LOG" in if statements
+.\test\java\filehandling\FileHandlingTest.java:653:	AvoidDuplicateLiterals:	The String literal ".LOG" appears 23 times in this file; the first occurrence is on line 653
+.\test\java\filehandling\FileHandlingTest.java:653:	UnnecessaryCaseChange:	Using equalsIgnoreCase() is cleaner than using toUpperCase/toLowerCase().equals().
+.\test\java\filehandling\FileHandlingTest.java:653:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\test\java\filehandling\FileHandlingTest.java:659:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:661:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:664:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:669:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:673:	UseCollectionIsEmpty:	Substitute calls to size() == 0 (or size() != 0, size() > 0, size() < 1) with calls to isEmpty()
+.\test\java\filehandling\FileHandlingTest.java:674:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:684:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:686:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:689:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:694:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:699:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:700:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:701:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:706:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:721:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:723:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:725:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:726:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:731:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:752:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\test\java\filehandling\FileHandlingTest.java:753:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:755:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:757:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:758:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:763:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:780:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:781:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:782:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:787:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:806:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:807:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:808:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:813:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:832:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:833:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:834:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:839:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:864:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:865:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:866:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:871:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:890:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:891:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:892:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:897:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:909:	AvoidDuplicateLiterals:	The String literal "Entry 1" appears 4 times in this file; the first occurrence is on line 909
+.\test\java\filehandling\FileHandlingTest.java:912:	AvoidDuplicateLiterals:	The String literal "Entry 2" appears 4 times in this file; the first occurrence is on line 912
+.\test\java\filehandling\FileHandlingTest.java:962:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:964:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:969:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:989:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:990:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:991:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:996:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1016:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1017:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:1018:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1023:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1044:	AvoidLiteralsInIfCondition:	Avoid using literals such as 1 in if statements
+.\test\java\filehandling\FileHandlingTest.java:1045:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1047:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1049:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:1050:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1055:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1071:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1072:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:1073:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1078:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1083:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1085:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1090:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1096:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1098:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1103:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1115:	UseCollectionIsEmpty:	Substitute calls to size() == 0 (or size() != 0, size() > 0, size() < 1) with calls to isEmpty()
+.\test\java\filehandling\FileHandlingTest.java:1116:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1118:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1123:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1139:	UseCollectionIsEmpty:	Substitute calls to size() == 0 (or size() != 0, size() > 0, size() < 1) with calls to isEmpty()
+.\test\java\filehandling\FileHandlingTest.java:1140:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1142:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1147:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1151:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:1151:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:1160:	UseCollectionIsEmpty:	Substitute calls to size() == 0 (or size() != 0, size() > 0, size() < 1) with calls to isEmpty()
+.\test\java\filehandling\FileHandlingTest.java:1163:	AvoidLiteralsInIfCondition:	Avoid using literals such as ".LOG" in if statements
+.\test\java\filehandling\FileHandlingTest.java:1163:	UnnecessaryCaseChange:	Using equalsIgnoreCase() is cleaner than using toUpperCase/toLowerCase().equals().
+.\test\java\filehandling\FileHandlingTest.java:1163:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\test\java\filehandling\FileHandlingTest.java:1169:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1171:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1174:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1179:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:1179:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:1185:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1189:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:1189:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:1212:	UseCollectionIsEmpty:	Substitute calls to size() == 0 (or size() != 0, size() > 0, size() < 1) with calls to isEmpty()
+.\test\java\filehandling\FileHandlingTest.java:1212:	UnnecessaryCaseChange:	Using equalsIgnoreCase() is cleaner than using toUpperCase/toLowerCase().equals().
+.\test\java\filehandling\FileHandlingTest.java:1212:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\test\java\filehandling\FileHandlingTest.java:1213:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1215:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1220:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1224:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:1224:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:1238:	AvoidLiteralsInIfCondition:	Avoid using literals such as ".LOG" in if statements
+.\test\java\filehandling\FileHandlingTest.java:1238:	UnnecessaryCaseChange:	Using equalsIgnoreCase() is cleaner than using toUpperCase/toLowerCase().equals().
+.\test\java\filehandling\FileHandlingTest.java:1238:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\test\java\filehandling\FileHandlingTest.java:1244:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1246:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1249:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1254:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:1254:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:1260:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1264:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:1264:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:1274:	UseCollectionIsEmpty:	Substitute calls to size() == 0 (or size() != 0, size() > 0, size() < 1) with calls to isEmpty()
+.\test\java\filehandling\FileHandlingTest.java:1277:	AvoidLiteralsInIfCondition:	Avoid using literals such as ".LOG" in if statements
+.\test\java\filehandling\FileHandlingTest.java:1277:	UnnecessaryCaseChange:	Using equalsIgnoreCase() is cleaner than using toUpperCase/toLowerCase().equals().
+.\test\java\filehandling\FileHandlingTest.java:1277:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\test\java\filehandling\FileHandlingTest.java:1283:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1285:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1288:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1293:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:1293:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:1299:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1303:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:1303:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\filehandling\FileHandlingTest.java:1310:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1317:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1326:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1335:	UnusedNullCheckInEquals:	Invoke equals() on the object you've already ensured is not null
+.\test\java\filehandling\FileHandlingTest.java:1336:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1338:	SystemPrintln:	Usage of System.out/err
+.\test\java\filehandling\FileHandlingTest.java:1343:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\filehandling\FileHandlingTest.java:1343:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\gui\PasswordGeneratorTest.java:13:	TestClassWithoutTestCases:	The class 'PasswordGeneratorTest' might be a test class, but it contains no test cases.
+.\test\java\gui\PasswordGeneratorTest.java:17:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:31:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:36:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:47:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:52:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:62:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:67:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:81:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:86:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:103:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:108:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:119:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:124:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:131:	UnnecessaryCaseChange:	Using equalsIgnoreCase() is cleaner than using toUpperCase/toLowerCase().equals().
+.\test\java\gui\PasswordGeneratorTest.java:131:	UseLocaleWithCaseConversions:	When doing a String.toLowerCase()/toUpperCase() call, use a Locale
+.\test\java\gui\PasswordGeneratorTest.java:138:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:143:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:157:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:162:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:173:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:178:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:186:	AvoidLiteralsInIfCondition:	Avoid using literals such as "!@#$%^&*()_+-=[]{}|;:,.<>?" in if statements
+.\test\java\gui\PasswordGeneratorTest.java:200:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:205:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:218:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:223:	SystemPrintln:	Usage of System.out/err
+.\test\java\gui\PasswordGeneratorTest.java:235:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:22:	TestClassWithoutTestCases:	The class 'SystemIntegrationTest' might be a test class, but it contains no test cases.
+.\test\java\integration\SystemIntegrationTest.java:42:	UnusedLocalVariable:	Avoid unused local variables such as 'tempLogFile'.
+.\test\java\integration\SystemIntegrationTest.java:47:	AvoidDuplicateLiterals:	The String literal "backups" appears 5 times in this file; the first occurrence is on line 47
+.\test\java\integration\SystemIntegrationTest.java:55:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:73:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:78:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:99:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:104:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:121:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:126:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:147:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:152:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:176:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:181:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:188:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\integration\SystemIntegrationTest.java:197:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\integration\SystemIntegrationTest.java:213:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:218:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:237:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:242:	SystemPrintln:	Usage of System.out/err
+.\test\java\integration\SystemIntegrationTest.java:266:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:17:	TestClassWithoutTestCases:	The class 'BackupManagerTest' might be a test class, but it contains no test cases.
+.\test\java\main\BackupManagerTest.java:42:	AvoidDuplicateLiterals:	The String literal "backupDirectory" appears 4 times in this file; the first occurrence is on line 42
+.\test\java\main\BackupManagerTest.java:47:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:53:	AvoidDuplicateLiterals:	The String literal "autoBackupEnabled" appears 9 times in this file; the first occurrence is on line 53
+.\test\java\main\BackupManagerTest.java:53:	AvoidDuplicateLiterals:	The String literal "true" appears 7 times in this file; the first occurrence is on line 53
+.\test\java\main\BackupManagerTest.java:60:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:65:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:76:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:81:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:96:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:101:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:121:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:126:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:139:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:144:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:155:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:160:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:166:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:171:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:186:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:191:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:198:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\main\BackupManagerTest.java:204:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:209:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\BackupManagerTest.java:215:	UnusedLocalVariable:	Avoid unused local variables such as 'backupFile'.
+.\test\java\main\BackupManagerTest.java:233:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:17:	TestClassWithoutTestCases:	The class 'SingleInstanceManagerTest' might be a test class, but it contains no test cases.
+.\test\java\main\SingleInstanceManagerTest.java:53:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:62:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:67:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:74:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:79:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:86:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:91:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:107:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:112:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:134:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:139:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:148:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:153:	SystemPrintln:	Usage of System.out/err
+.\test\java\main\SingleInstanceManagerTest.java:158:	UnusedLocalVariable:	Avoid unused local variables such as 'result'.
+.\test\java\main\SingleInstanceManagerTest.java:164:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:19:	TestClassWithoutTestCases:	The class 'PerformanceTest' might be a test class, but it contains no test cases.
+.\test\java\performance\PerformanceTest.java:34:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:53:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:57:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:62:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:78:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:81:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:86:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:112:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:115:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:120:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:139:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\performance\PerformanceTest.java:159:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:164:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:177:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:187:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:192:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:214:	DoNotCallGarbageCollectionExplicitly:	Do not explicitly trigger a garbage collection.
+.\test\java\performance\PerformanceTest.java:215:	EmptyCatchBlock:	Avoid empty catch blocks
+.\test\java\performance\PerformanceTest.java:220:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:225:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:230:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:246:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:250:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:255:	SystemPrintln:	Usage of System.out/err
+.\test\java\performance\PerformanceTest.java:280:	SystemPrintln:	Usage of System.out/err
+.\test\java\security\PermissionsTest.java:14:	TestClassWithoutTestCases:	The class 'PermissionsTest' might be a test class, but it contains no test cases.
+.\test\java\security\PermissionsTest.java:21:	UnusedAssignment:	The initializer for variable 'ok' is never used (overwritten on lines 24 and 30)
+.\test\java\security\PermissionsTest.java:25:	SystemPrintln:	Usage of System.out/err
+.\test\java\security\PermissionsTest.java:29:	SystemPrintln:	Usage of System.out/err
+.\test\java\security\PermissionsTest.java:33:	SystemPrintln:	Usage of System.out/err
+.\test\java\security\PermissionsTest.java:35:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\test\java\test\UIIntegrationTest.java:17:	TestClassWithoutTestCases:	The class 'UIIntegrationTest' might be a test class, but it contains no test cases.
+.\test\java\test\UIIntegrationTest.java:29:	SystemPrintln:	Usage of System.out/err
+.\test\java\test\UIIntegrationTest.java:37:	SystemPrintln:	Usage of System.out/err
+.\test\java\test\UIIntegrationTest.java:61:	SystemPrintln:	Usage of System.out/err
+.\test\java\test\UIIntegrationTest.java:65:	SystemPrintln:	Usage of System.out/err
+.\test\java\test\UIIntegrationTest.java:103:	SystemPrintln:	Usage of System.out/err
+.\test\java\test\UIIntegrationTest.java:107:	SystemPrintln:	Usage of System.out/err
+.\test\java\test\UIIntegrationTest.java:143:	SystemPrintln:	Usage of System.out/err
+.\test\java\test\UIIntegrationTest.java:154:	UnusedLocalVariable:	Avoid unused local variables such as 'timestamp'.
+.\test\java\utils\DateHandlerTest.java:13:	TestClassWithoutTestCases:	The class 'DateHandlerTest' might be a test class, but it contains no test cases.
+.\test\java\utils\DateHandlerTest.java:17:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:36:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:41:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:54:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:59:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:83:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:88:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:103:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:108:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:118:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:123:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:142:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:147:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:159:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:164:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:176:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:181:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:192:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:197:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:214:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:219:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\DateHandlerTest.java:238:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:16:	TestClassWithoutTestCases:	The class 'TooltipHelperTest' might be a test class, but it contains no test cases.
+.\test\java\utils\TooltipHelperTest.java:30:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:32:	AvoidDuplicateLiterals:	The String literal "Requires GUI environment" appears 7 times in this file; the first occurrence is on line 32
+.\test\java\utils\TooltipHelperTest.java:52:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:57:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:74:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:79:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:86:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:91:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:103:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:108:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:118:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:123:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:137:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:142:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:153:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:158:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:178:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:183:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:190:	SystemPrintln:	Usage of System.out/err
+.\test\java\utils\TooltipHelperTest.java:199:	SystemPrintln:	Usage of System.out/err
+.\utils\CompoundUndoDocumentFilter.java:61:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\utils\CompoundUndoDocumentFilter.java:90:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\utils\DateHandler.java:89:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\utils\LinesInputStream.java:24:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\utils\LinesInputStream.java:33:	AssignmentInOperand:	Avoid assignment to pos in operand
+.\utils\SecureTempFiles.java:29:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\utils\SecureTempFiles.java:64:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\utils\SecureTempFiles.java:72:	AvoidCatchingGenericException:	Avoid catching Throwable in try-catch block
+.\utils\SecureTempFiles.java:72:	AvoidCatchingThrowable:	A catch statement should never catch throwable since it includes errors.
+.\utils\SecureTempFiles.java:88:	AvoidCatchingGenericException:	Avoid catching Throwable in try-catch block
+.\utils\SecureTempFiles.java:88:	AvoidCatchingThrowable:	A catch statement should never catch throwable since it includes errors.
+.\utils\Toast.java:65:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\utils\Toast.java:94:	OneDeclarationPerLine:	Use one line for each declaration, it enhances code readability.
+.\utils\Toast.java:102:	AvoidCatchingGenericException:	Avoid catching NullPointerException in try-catch block
+.\utils\Toast.java:107:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\utils\UndoRedoTextArea.java:31:	MissingSerialVersionUID:	Classes implementing Serializable should set a serialVersionUID
+.\utils\UndoRedoTextArea.java:38:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JTextComponent.getDocument() 
+.\utils\UndoRedoTextArea.java:46:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JTextComponent.getDocument() 
+.\utils\UndoRedoTextArea.java:47:	ConstructorCallsOverridableMethod:	Overridable method called during object construction: JTextComponent.getDocument() 
+.\utils\UndoRedoTextArea.java:58:	EmptyCatchBlock:	Avoid empty catch blocks
+.\utils\UndoRedoTextArea.java:72:	EmptyCatchBlock:	Avoid empty catch blocks
+.\utils\WindowDragger.java:31:	MissingOverride:	The method 'mousePressed(MouseEvent)' is missing an @Override annotation.
+.\utils\WindowDragger.java:32:	MissingOverride:	The method 'mouseReleased(MouseEvent)' is missing an @Override annotation.
+.\utils\WindowDragger.java:32:	NullAssignment:	Assigning an Object to null is a code smell.  Consider refactoring.
+.\utils\WindowDragger.java:35:	MissingOverride:	The method 'mouseDragged(MouseEvent)' is missing an @Override annotation.
+.\utils\WindowDragger.java:44:	EmptyCatchBlock:	Avoid empty catch blocks
+.\utils\WindowDragger.java:44:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\utils\WindowDragger.java:47:	AvoidCatchingGenericException:	Avoid catching NullPointerException in try-catch block
+.\utils\WindowDragger.java:52:	EmptyCatchBlock:	Avoid empty catch blocks
+.\utils\WindowDragger.java:52:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block
+.\utils\WindowDragger.java:55:	EmptyCatchBlock:	Avoid empty catch blocks
+.\utils\WindowDragger.java:55:	AvoidCatchingGenericException:	Avoid catching Exception in try-catch block

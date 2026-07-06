@@ -53,7 +53,8 @@ import gui.SystemTrayMenu;
 import gui.LoadingProgressDialog;
 import security.SecurityFilePolicy;
 
-public class LogTextEditor extends JFrame {
+public final class LogTextEditor extends JFrame {
+    private static final long serialVersionUID = 1L;
 
     private final Application application;
     private final JList<String> logList = new JList<>();
@@ -449,8 +450,9 @@ public class LogTextEditor extends JFrame {
                 settings.load(fis);
                 if (settings.getProperty("requireEncryptionForNewFiles") == null) {
                     settings.setProperty("requireEncryptionForNewFiles", "true");
-                    saveSettings();
                 }
+                settings.setProperty("encrypted", "true");
+                saveSettings();
                 settingsPanel.loadCurrentSettings();
                 // Show splash screen on startup if enabled
                 if ("true".equals(settings.getProperty("showSplashOnStartup", "true"))) {
@@ -458,25 +460,14 @@ public class LogTextEditor extends JFrame {
                 }
                 String backupDir = settings.getProperty("backupDirectory", "");
                 logFileHandler.setBackupDirectory(backupDir);
-                String enc = settings.getProperty("encrypted");
                 boolean dataLoaded = false;
                 if (!java.nio.file.Files.exists(logFileHandler.getFilePath())
-                    && !"true".equals(enc)
                     && isEncryptionRequiredForNewFiles()) {
                     bootstrapEncryptedLogIfNeeded();
-                    enc = settings.getProperty("encrypted");
                 }
-                if ("true".equals(enc)) {
-                    dataLoaded = encryptionHandler.handleEncryptionSetup();
-                } else if (java.nio.file.Files.exists(logFileHandler.getFilePath())
-                           && encryption.EncryptionDetector.hasMagicHeader(logFileHandler.getFilePath())) {
-                    // Mismatch: settings say unencrypted but the file has the LOGH encrypted header.
-                    // Auto-correct settings and route through the normal auth flow to prevent
-                    // loading binary ciphertext as plain text (which causes double error dialogs).
-                    settings.setProperty("encrypted", "true");
-                    dataLoaded = encryptionHandler.handleEncryptionSetup();
-                }
-                if ("true".equals(settings.getProperty("encrypted", "false")) && !dataLoaded) {
+
+                dataLoaded = encryptionHandler.handleEncryptionSetup();
+                if (!dataLoaded) {
                     setLocked(true);
                     return;
                 }
@@ -511,6 +502,7 @@ public class LogTextEditor extends JFrame {
                 logFileHandler.showErrorDialog("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
             }
         } else {
+            settings.setProperty("encrypted", "true");
             settings.setProperty("requireEncryptionForNewFiles", "true");
             if (!java.nio.file.Files.exists(logFileHandler.getFilePath()) && isEncryptionRequiredForNewFiles()) {
                 bootstrapEncryptedLogIfNeeded();

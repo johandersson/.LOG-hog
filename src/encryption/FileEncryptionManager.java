@@ -17,6 +17,8 @@ import utils.ProgressCallback;
  */
 public class FileEncryptionManager {
 
+    private static final char[] EMPTY_PASSWORD = new char[0];
+
     private final Path filePath;
     private final Encryptor encryptor;
     private byte[] sessionKeyBytes;
@@ -133,7 +135,7 @@ public class FileEncryptionManager {
     }
 
     public char[] getPassword() {
-        return null;
+        return EMPTY_PASSWORD;
     }
 
     public byte[] getSalt() {

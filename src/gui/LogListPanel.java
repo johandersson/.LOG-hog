@@ -66,7 +66,8 @@ import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 import utils.UndoRedoTextArea;
 
-public class LogListPanel extends JPanel {
+public final class LogListPanel extends JPanel {
+    private static final long serialVersionUID = 1L;
     private final JList<String> logList;
     private final DefaultListModel<String> listModel;
     private final JTextArea entryArea;

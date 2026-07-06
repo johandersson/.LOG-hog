@@ -50,7 +50,7 @@ public class ServiceFactory {
         return new LogEntryServiceImpl(logFileOps);
     }
 
-    // Combined service for backward compatibility
+    // Combined operations service for callers that need the full log API.
     public LogFileOperations createLogFileOperations(Path filePath) {
         return new LogFileHandler(filePath, encryptor);
     }

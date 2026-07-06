@@ -28,27 +28,27 @@ public class LoadEntryTest {
             // Load entries to get a timestamp
             entryLoader.loadLogEntries(listModel);
             if (listModel.getSize() == 0) {
-                System.out.println("FAIL: No entries loaded");
+                testsupport.TestLog.out("FAIL: No entries loaded");
                 return;
             }
             String originalTimestamp = listModel.getElementAt(0);
-            System.out.println("Original timestamp: " + originalTimestamp);
+            testsupport.TestLog.out("Original timestamp: " + originalTimestamp);
 
             // Load the entry content before encryption
             String originalContent = entryLoader.loadEntry(originalTimestamp);
             if (originalContent == null || originalContent.isEmpty()) {
-                System.out.println("FAIL: Original content empty");
+                testsupport.TestLog.out("FAIL: Original content empty");
                 return;
             }
-            System.out.println("Original content: '" + originalContent + "'");
+            testsupport.TestLog.out("Original content: '" + originalContent + "'");
 
             // Now enable encryption (simulate locking)
             try {
                 logFileHandler.enableEncryption("testpassword".toCharArray());
-                System.out.println("Encryption enabled");
-                System.out.println("isEncrypted: " + logFileHandler.isEncrypted());
+                testsupport.TestLog.out("Encryption enabled");
+                testsupport.TestLog.out("isEncrypted: " + logFileHandler.isEncrypted());
             } catch (Exception e) {
-                System.out.println("Encryption failed: " + e);
+                testsupport.TestLog.out("Encryption failed: " + e);
                 return;
             }
 
@@ -56,33 +56,33 @@ public class LoadEntryTest {
             listModel.clear();
             entryLoader.loadLogEntries(listModel);
             if (listModel.getSize() == 0) {
-                System.out.println("FAIL: No entries after encryption");
+                testsupport.TestLog.out("FAIL: No entries after encryption");
                 return;
             }
 
             // The timestamp should be the same (display format)
             String encryptedTimestamp = listModel.getElementAt(0);
-            System.out.println("Encrypted timestamp: " + encryptedTimestamp);
+            testsupport.TestLog.out("Encrypted timestamp: " + encryptedTimestamp);
             if (!originalTimestamp.equals(encryptedTimestamp)) {
-                System.out.println("FAIL: Timestamps don't match");
+                testsupport.TestLog.out("FAIL: Timestamps don't match");
                 return;
             }
 
             // Load the entry content after encryption
             String encryptedContent = entryLoader.loadEntry(encryptedTimestamp);
             if (encryptedContent == null || encryptedContent.isEmpty()) {
-                System.out.println("FAIL: Encrypted content empty");
+                testsupport.TestLog.out("FAIL: Encrypted content empty");
                 return;
             }
-            System.out.println("Encrypted content: '" + encryptedContent + "'");
+            testsupport.TestLog.out("Encrypted content: '" + encryptedContent + "'");
 
             // Content should be the same
             if (!originalContent.equals(encryptedContent)) {
-                System.out.println("FAIL: Contents don't match");
+                testsupport.TestLog.out("FAIL: Contents don't match");
                 return;
             }
 
-            System.out.println("SUCCESS: LoadEntry works after encryption unlock");
+            testsupport.TestLog.out("SUCCESS: LoadEntry works after encryption unlock");
 
         } finally {
             // Clean up

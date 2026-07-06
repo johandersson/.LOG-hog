@@ -14,7 +14,7 @@ public class DateHandlerTest {
 
     @Test
     void testParseTimestampLogHogFormat() {
-        System.out.println("🧪 Testing LogHog timestamp format parsing...");
+        testsupport.TestLog.out("🧪 Testing LogHog timestamp format parsing...");
 
         // Test basic LogHog format
         LocalDateTime result1 = DateHandler.parseTimestamp("14:30 2025-12-19");
@@ -33,12 +33,12 @@ public class DateHandlerTest {
         assertEquals(1, result3.getMonthValue());
         assertEquals(15, result3.getDayOfMonth());
 
-        System.out.println("✅ LogHog timestamp format parsing works correctly");
+        testsupport.TestLog.out("✅ LogHog timestamp format parsing works correctly");
     }
 
     @Test
     void testParseTimestampIsoFormats() {
-        System.out.println("🧪 Testing ISO timestamp format parsing...");
+        testsupport.TestLog.out("🧪 Testing ISO timestamp format parsing...");
 
         // Test various ISO formats
         LocalDateTime iso1 = DateHandler.parseTimestamp("2025-12-19 14:30");
@@ -51,12 +51,12 @@ public class DateHandlerTest {
         LocalDateTime iso3 = DateHandler.parseTimestamp("2025-12-19T14:30:45");
         assertEquals(45, iso3.getSecond());
 
-        System.out.println("✅ ISO timestamp format parsing works correctly");
+        testsupport.TestLog.out("✅ ISO timestamp format parsing works correctly");
     }
 
     @Test
     void testParseTimestampInternationalFormats() {
-        System.out.println("🧪 Testing international timestamp format parsing...");
+        testsupport.TestLog.out("🧪 Testing international timestamp format parsing...");
 
         // European format
         LocalDateTime eu = DateHandler.parseTimestamp("19/12/2025 14:30");
@@ -80,12 +80,12 @@ public class DateHandlerTest {
         LocalDateTime dash2 = DateHandler.parseTimestamp("12-19-2025 14:30");
         assertEquals(12, dash2.getMonthValue());
 
-        System.out.println("✅ International timestamp format parsing works correctly");
+        testsupport.TestLog.out("✅ International timestamp format parsing works correctly");
     }
 
     @Test
     void testParseTimestampTwelveHourFormats() {
-        System.out.println("🧪 Testing 12-hour timestamp format parsing...");
+        testsupport.TestLog.out("🧪 Testing 12-hour timestamp format parsing...");
 
         // US 12-hour with AM/PM
         LocalDateTime am = DateHandler.parseTimestamp("12/19/2025 02:30:45 PM");
@@ -100,12 +100,12 @@ public class DateHandlerTest {
         LocalDateTime eu12 = DateHandler.parseTimestamp("19/12/2025 02:30:45 PM");
         assertEquals(14, eu12.getHour());
 
-        System.out.println("✅ 12-hour timestamp format parsing works correctly");
+        testsupport.TestLog.out("✅ 12-hour timestamp format parsing works correctly");
     }
 
     @Test
     void testParseTimestampNotepadFormats() {
-        System.out.println("🧪 Testing Notepad-style timestamp format parsing...");
+        testsupport.TestLog.out("🧪 Testing Notepad-style timestamp format parsing...");
 
         // Notepad US format
         LocalDateTime notepadUS = DateHandler.parseTimestamp("Date: 12/19/2025 Time: 02:30:45 PM");
@@ -115,12 +115,12 @@ public class DateHandlerTest {
         LocalDateTime notepadEU = DateHandler.parseTimestamp("Date: 19/12/2025 Time: 14:30:45");
         assertEquals(14, notepadEU.getHour());
 
-        System.out.println("✅ Notepad-style timestamp format parsing works correctly");
+        testsupport.TestLog.out("✅ Notepad-style timestamp format parsing works correctly");
     }
 
     @Test
     void testParseTimestampInvalidFormats() {
-        System.out.println("🧪 Testing invalid timestamp format handling...");
+        testsupport.TestLog.out("🧪 Testing invalid timestamp format handling...");
 
         // Test various invalid formats
         String[] invalidFormats = {
@@ -139,12 +139,12 @@ public class DateHandlerTest {
                 "Should reject invalid format: " + invalid);
         }
 
-        System.out.println("✅ Invalid timestamp format handling works correctly");
+        testsupport.TestLog.out("✅ Invalid timestamp format handling works correctly");
     }
 
     @Test
     void testParseTimestampEdgeCases() {
-        System.out.println("🧪 Testing timestamp parsing edge cases...");
+        testsupport.TestLog.out("🧪 Testing timestamp parsing edge cases...");
 
         // Test with extra whitespace
         LocalDateTime result1 = DateHandler.parseTimestamp("  14:30 2025-12-19  ");
@@ -156,12 +156,12 @@ public class DateHandlerTest {
         assertEquals(1, result2.getMonthValue());
         assertEquals(1, result2.getDayOfMonth());
 
-        System.out.println("✅ Timestamp parsing edge cases handled correctly");
+        testsupport.TestLog.out("✅ Timestamp parsing edge cases handled correctly");
     }
 
     @Test
     void testFormatCurrentTimestamp() {
-        System.out.println("🧪 Testing current timestamp formatting...");
+        testsupport.TestLog.out("🧪 Testing current timestamp formatting...");
 
         String timestamp = DateHandler.formatCurrentTimestamp();
 
@@ -173,12 +173,12 @@ public class DateHandlerTest {
         assertDoesNotThrow(() -> DateHandler.parseTimestamp(timestamp),
                           "Formatted timestamp should be parseable");
 
-        System.out.println("✅ Current timestamp formatting works correctly");
+        testsupport.TestLog.out("✅ Current timestamp formatting works correctly");
     }
 
     @Test
     void testTimestampRoundTrip() {
-        System.out.println("🧪 Testing timestamp round-trip consistency...");
+        testsupport.TestLog.out("🧪 Testing timestamp round-trip consistency...");
 
         // Create a timestamp and ensure it can be parsed back
         String formatted = DateHandler.formatCurrentTimestamp();
@@ -189,12 +189,12 @@ public class DateHandlerTest {
         long secondsDiff = Math.abs(java.time.Duration.between(parsed, now).getSeconds());
         assertTrue(secondsDiff < 10, "Parsed timestamp should be within 10 seconds of current time");
 
-        System.out.println("✅ Timestamp round-trip consistency works correctly");
+        testsupport.TestLog.out("✅ Timestamp round-trip consistency works correctly");
     }
 
     @Test
     void testParseTimestampWithVariousSeparators() {
-        System.out.println("🧪 Testing timestamp parsing with various separators...");
+        testsupport.TestLog.out("🧪 Testing timestamp parsing with various separators...");
 
         // Test different date separators
         LocalDateTime slash = DateHandler.parseTimestamp("19/12/2025 14:30");
@@ -211,12 +211,12 @@ public class DateHandlerTest {
         assertEquals(slash.getYear(), dash.getYear());
         assertEquals(slash.getMonth(), dash.getMonth());
 
-        System.out.println("✅ Timestamp parsing with various separators works correctly");
+        testsupport.TestLog.out("✅ Timestamp parsing with various separators works correctly");
     }
 
     @Test
     void testParseTimestampComprehensiveFormatSupport() {
-        System.out.println("🧪 Testing comprehensive format support...");
+        testsupport.TestLog.out("🧪 Testing comprehensive format support...");
 
         // Test that we support a wide variety of real-world formats
         String[] testFormats = {
@@ -235,6 +235,6 @@ public class DateHandlerTest {
                               "Should support format: " + format);
         }
 
-        System.out.println("✅ Comprehensive format support works correctly");
+        testsupport.TestLog.out("✅ Comprehensive format support works correctly");
     }
 }

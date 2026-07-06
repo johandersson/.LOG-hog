@@ -52,8 +52,9 @@ import filehandling.LogFileHandler;
 import filehandling.ParsedLogData;
 import main.LogTextEditor;
 import notepad.NotepadOpener;
+import utils.SafeExecution;
 
-public class FullLogPanel extends LogPanel {
+public final class FullLogPanel extends LogPanel {
     private final HighlightableTextPane fullLogPane;
     private final JLabel fullLogPathLabel;
     private final LogFileHandler logFileHandler;
@@ -242,7 +243,7 @@ public class FullLogPanel extends LogPanel {
     }
 
     public void performSearchInFullLog(String query) {
-        // Legacy method, now handled by SearchDialog
+        // Search interaction is handled by SearchDialog.
         openSearchDialog();
     }
 
@@ -312,12 +313,12 @@ public class FullLogPanel extends LogPanel {
     }
 
     /**
-     * Compatibility overload allowing callers to request a load and receive a callback when started.
+     * Loads the full log and invokes a callback after triggering the load.
      */
     public void loadFullLog(Runnable onStarted) {
         loadFullLog();
         if (onStarted != null) {
-            try { onStarted.run(); } catch (Exception ignore) {}
+            SafeExecution.run(onStarted::run);
         }
     }
 

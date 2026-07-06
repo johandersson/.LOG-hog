@@ -38,17 +38,18 @@ import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 import markdown.MarkdownStyle;
 
-public class InformationPanel extends JPanel {
+public final class InformationPanel extends JPanel {
+    private static final long serialVersionUID = 1L;
     private String fileName;
     private JTextPane textPane;
 
-    public InformationPanel(JTabbedPane tabPane, String fileNameForText, String title, boolean lazyLoad, boolean showSplash) {
+    public InformationPanel(String fileNameForText, String title, boolean lazyLoad, boolean showSplash) {
         super(new BorderLayout(8, 8));
         this.fileName = fileNameForText;
-        createPanel(tabPane, title, lazyLoad, showSplash);
+        createPanel(title, lazyLoad, showSplash);
     }
 
-    private void createPanel(JTabbedPane tabPanel, String title, boolean lazyLoad, boolean showSplash) {
+    private void createPanel(String title, boolean lazyLoad, boolean showSplash) {
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(12, 12, 12, 12));
 
@@ -71,8 +72,6 @@ public class InformationPanel extends JPanel {
         sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         // vertical scrollbar policy left to default (AS_NEEDED)
         add(sp, BorderLayout.CENTER);
-
-        // 'tabPanel' parameter is unused, kept for compatibility (PMD fix)
 
         if (lazyLoad && !showSplash) {
             var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));

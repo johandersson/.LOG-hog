@@ -23,19 +23,19 @@ public class EncryptionManagerTest {
 
     @Test
     void testGenerateSalt() {
-        System.out.println("🧪 Testing salt generation...");
+        testsupport.TestLog.out("🧪 Testing salt generation...");
 
         assertDoesNotThrow(() -> {
             byte[] salt = encryptionManager.generateSalt();
             assertNotNull(salt, "Salt should not be null");
             assertEquals(16, salt.length, "Salt should be 16 bytes");
-            System.out.println("✅ Salt generation works correctly");
+            testsupport.TestLog.out("✅ Salt generation works correctly");
         });
     }
 
     @Test
     void testEncryptDecryptCycle() {
-        System.out.println("🧪 Testing basic encrypt/decrypt cycle...");
+        testsupport.TestLog.out("🧪 Testing basic encrypt/decrypt cycle...");
 
         String originalText = "Hello, this is a test message for encryption!";
 
@@ -49,13 +49,13 @@ public class EncryptionManagerTest {
             String decrypted = encryptionManager.decrypt(encrypted, testPassword);
             assertEquals(originalText, decrypted, "Decrypted text should match original");
 
-            System.out.println("✅ Basic encrypt/decrypt cycle works perfectly");
+            testsupport.TestLog.out("✅ Basic encrypt/decrypt cycle works perfectly");
         });
     }
 
     @Test
     void testEncryptDecryptWithDifferentPasswords() {
-        System.out.println("🧪 Testing encryption with different passwords...");
+        testsupport.TestLog.out("🧪 Testing encryption with different passwords...");
 
         String message = "Secret message";
         char[] wrongPassword = "wrongPassword".toCharArray();
@@ -73,13 +73,13 @@ public class EncryptionManagerTest {
                 encryptionManager.decrypt(encrypted, wrongPassword);
             }, "Should fail with wrong password");
 
-            System.out.println("✅ Password validation works correctly");
+            testsupport.TestLog.out("✅ Password validation works correctly");
         });
     }
 
     @Test
     void testCorruptedDataHandling() {
-        System.out.println("🧪 Testing corrupted data handling...");
+        testsupport.TestLog.out("🧪 Testing corrupted data handling...");
 
         String message = "Test message";
 
@@ -97,13 +97,13 @@ public class EncryptionManagerTest {
                 encryptionManager.decrypt(corrupted, testPassword);
             }, "Should fail with corrupted data");
 
-            System.out.println("✅ Corrupted data detected correctly");
+            testsupport.TestLog.out("✅ Corrupted data detected correctly");
         });
     }
 
     @Test
     void testTooShortDataHandling() {
-        System.out.println("🧪 Testing too short data handling...");
+        testsupport.TestLog.out("🧪 Testing too short data handling...");
 
         // Test with data shorter than IV length
         byte[] tooShortData = new byte[10]; // Less than GCM_IV_LENGTH (12)
@@ -112,12 +112,12 @@ public class EncryptionManagerTest {
             encryptionManager.decrypt(tooShortData, testPassword);
         }, "Should reject data that's too short");
 
-        System.out.println("✅ Too short data rejected with appropriate error message");
+        testsupport.TestLog.out("✅ Too short data rejected with appropriate error message");
     }
 
     @Test
     void testUnicodeDataHandling() {
-        System.out.println("🧪 Testing Unicode data handling...");
+        testsupport.TestLog.out("🧪 Testing Unicode data handling...");
 
         String unicodeText = "Hello 世界! 🌍 Test with émojis: 😀🎉🚀";
 
@@ -126,13 +126,13 @@ public class EncryptionManagerTest {
             String decrypted = encryptionManager.decrypt(encrypted, testPassword);
             assertEquals(unicodeText, decrypted, "Unicode text should be preserved");
 
-            System.out.println("✅ Unicode and emoji data handled correctly");
+            testsupport.TestLog.out("✅ Unicode and emoji data handled correctly");
         });
     }
 
     @Test
     void testKeyDerivation() {
-        System.out.println("🧪 Testing key derivation...");
+        testsupport.TestLog.out("🧪 Testing key derivation...");
 
         assertDoesNotThrow(() -> {
             // Test that same password + salt produces same key
@@ -144,7 +144,7 @@ public class EncryptionManagerTest {
             // Keys should be equal (same password + salt)
             assertEquals(key1.getAlgorithm(), key2.getAlgorithm(), "Keys should have same algorithm");
 
-            System.out.println("✅ Key derivation works correctly");
+            testsupport.TestLog.out("✅ Key derivation works correctly");
         });
     }
 

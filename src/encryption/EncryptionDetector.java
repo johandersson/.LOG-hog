@@ -25,7 +25,9 @@ import java.nio.file.Path;
  * Utility class for detecting encrypted files.
  * Provides methods to determine if a file contains encrypted data.
  */
-public class EncryptionDetector {
+public final class EncryptionDetector {
+
+    private static final byte[] EMPTY_BYTES = new byte[0];
 
     /**
      * Returns true if the file is an encrypted LogHog file.
@@ -66,23 +68,23 @@ public class EncryptionDetector {
      * decrypt the file without any information from {@code loghog_settings.properties}.
      *
      * @param filePath path to the LOGH encrypted file
-     * @return the raw salt bytes, or {@code null} if the file is not a valid LOGH file
+     * @return the raw salt bytes, or an empty array if the file is not a valid LOGH file
      *         or if the header cannot be read
      */
     public static byte[] extractSaltFromHeader(Path filePath) {
         try {
-            if (!hasMagicHeader(filePath)) return null;
+            if (!hasMagicHeader(filePath)) return EMPTY_BYTES;
             try (var in = Files.newInputStream(filePath)) {
                 // Skip magic (4 bytes) and version (1 byte)
-                if (in.skip(5) < 5) return null;
+                if (in.skip(5) < 5) return EMPTY_BYTES;
                 int saltLen = in.read();
-                if (saltLen <= 0 || saltLen > 64) return null; // sanity-check
+                if (saltLen <= 0 || saltLen > 64) return EMPTY_BYTES; // sanity-check
                 byte[] salt = new byte[saltLen];
-                if (in.readNBytes(salt, 0, saltLen) != saltLen) return null;
+                if (in.readNBytes(salt, 0, saltLen) != saltLen) return EMPTY_BYTES;
                 return salt;
             }
         } catch (IOException e) {
-            return null;
+            return EMPTY_BYTES;
         }
     }
 

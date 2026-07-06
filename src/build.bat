@@ -1,6 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
+REM Non-interactive by default. Set LOGHOG_PAUSE_ON_ERROR=1 to pause on build errors.
+if not defined LOGHOG_PAUSE_ON_ERROR set "LOGHOG_PAUSE_ON_ERROR=0"
+
 REM Sync help.md to resources folder before building (prefer top-level help.md)
 echo Syncing help.md to resources...
 if exist "%~dp0..\help.md" (
@@ -24,9 +27,8 @@ for /f "delims=" %%i in ('dir /s /b *.java ^| findstr /v test') do set "files=!f
 javac -d . %files%
 if %errorlevel% neq 0 (
     popd
-    REM PAUSE to allow user to see compilation errors before exiting
     echo Compilation failed with errors. Please fix the issues and try again.
-    pause
+    if /I "%LOGHOG_PAUSE_ON_ERROR%"=="1" pause
     exit /b %errorlevel%
 )
 REM Create the JAR file in the src/build directory (single artifact)
