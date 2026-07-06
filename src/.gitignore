@@ -1,7 +1,12 @@
 *.class
 
 build/component-inventory-*.txt
+build/pmd-latest.json
 build/loghog-*.jar
 build/run-latest.bat
 build/run-latest.sh
 *.journal.enc
+
+# Security scan tooling/output
+tools/dependency-check-*/
+tools/owasp-dc-report/
