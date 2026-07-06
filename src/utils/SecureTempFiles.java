@@ -45,7 +45,7 @@ public final class SecureTempFiles {
      * This is best-effort and attempts to delete files in a shutdown hook to cover crash/abnormal exits.
      */
     public static Path createSecureTempFile(Path dir, String prefix, String suffix, boolean deleteOnExit) throws java.io.IOException {
-        Path parent = dir != null ? dir : Path.of(System.getProperty("java.io.tmpdir"));
+        Path parent = resolveSafeTempParent(dir);
         Files.createDirectories(parent);
         Path tmp = Files.createTempFile(parent, prefix, suffix);
 
@@ -89,5 +89,22 @@ public final class SecureTempFiles {
         }
         DELETE_ON_EXIT.add(p);
         registerShutdownHookIfNeeded();
+    }
+
+    private static Path resolveSafeTempParent(Path requested) {
+        Path defaultTemp = Path.of(System.getProperty("java.io.tmpdir")).toAbsolutePath().normalize();
+        if (requested == null) {
+            return defaultTemp;
+        }
+        try {
+            Path normalized = requested.toAbsolutePath().normalize();
+            String pathText = normalized.toString();
+            if (pathText.contains("\n") || pathText.contains("\r") || pathText.contains("\u0000")) {
+                return defaultTemp;
+            }
+            return normalized;
+        } catch (Exception ex) {
+            return defaultTemp;
+        }
     }
 }

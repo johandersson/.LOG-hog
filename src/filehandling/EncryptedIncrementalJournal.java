@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import encryption.FileEncryptionManager;
+import main.SecureDeletionUtils;
 
 final class EncryptedIncrementalJournal {
     private static final long COMPACT_THRESHOLD_BYTES = 64L * 1024L;
@@ -33,7 +34,12 @@ final class EncryptedIncrementalJournal {
 
         List<String> journalLines = readJournalLines();
         journalLines.addAll(entryLines);
-        baseManager.duplicateFor(journalPath).encryptFileFromLines(journalLines);
+        FileEncryptionManager journalManager = baseManager.duplicateFor(journalPath);
+        try {
+            journalManager.encryptFileFromLines(journalLines);
+        } finally {
+            journalManager.clearSensitiveData();
+        }
         compactIfNeeded();
     }
 
@@ -43,7 +49,9 @@ final class EncryptedIncrementalJournal {
 
     void clear() {
         try {
-            Files.deleteIfExists(journalPath);
+            if (Files.exists(journalPath)) {
+                SecureDeletionUtils.wipeFile(journalPath);
+            }
         } catch (Exception ignored) {
         }
     }
@@ -59,7 +67,12 @@ final class EncryptedIncrementalJournal {
         if (!Files.exists(journalPath) || Files.size(journalPath) == 0L) {
             return new ArrayList<>();
         }
-        return stripHeader(baseManager.duplicateFor(journalPath).decryptFileToLines());
+        FileEncryptionManager journalManager = baseManager.duplicateFor(journalPath);
+        try {
+            return stripHeader(journalManager.decryptFileToLines());
+        } finally {
+            journalManager.clearSensitiveData();
+        }
     }
 
     private void compactIfNeeded() throws Exception {

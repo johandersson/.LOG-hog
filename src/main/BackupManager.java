@@ -63,6 +63,7 @@ public class BackupManager {
     private static final int HMAC_SIZE_BYTES = 32;
     private static final String AUTO_BACKUP_PREFIX = "loghog-auto-backup-";
     private static final String ENCRYPTED_BACKUP_EXTENSION = ".enc";
+    private static final String JOURNAL_BACKUP_SUFFIX = ".journal.enc";
 
     private final Properties settings;
     private static final int MAX_NUMBERED_BACKUPS = 5;
@@ -314,9 +315,7 @@ public class BackupManager {
             }
 
             // Securely delete existing file if it exists
-            if (Files.exists(backupPath)) {
-                SecureDeletionUtils.wipeFile(backupPath);
-            }
+            wipeBackupPair(backupPath);
 
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
@@ -331,6 +330,7 @@ public class BackupManager {
 
             Files.copy(logPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
             SafeExecution.run(() -> setOwnerOnlyPermissions(backupPath));
+            copyJournalSidecarIfPresent(logPath, backupPath);
 
             // After copy, check for tampering
             if (SafeExecution.testOrFalse(() -> tamperDetector.isTampered(logPath))) {
@@ -338,11 +338,7 @@ public class BackupManager {
             }
 
             // Compute and append HMAC for integrity verification
-                byte[] key = getSessionHmacKeyOrThrow();
-            byte[] data = Files.readAllBytes(backupPath);
-            byte[] hmac = HmacUtils.computeHmacSha256(key, data);
-            Files.write(backupPath, hmac, StandardOpenOption.APPEND);
-            SafeExecution.run(() -> setOwnerOnlyPermissions(backupPath));
+            appendBackupHmac(backupPath);
             SecurityEventLogger.log("BackupCreated", "Backup file created and HMAC appended: " + backupPath);
 
             if (progressDialog != null) {
@@ -426,22 +422,69 @@ public class BackupManager {
         return java.util.Arrays.copyOf(inMemoryHmacKey, inMemoryHmacKey.length);
     }
 
+    private void appendBackupHmac(Path backupPath) throws IOException {
+        byte[] key = null;
+        byte[] data = null;
+        byte[] hmac = null;
+        try {
+            key = getSessionHmacKeyOrThrow();
+            data = Files.readAllBytes(backupPath);
+            hmac = HmacUtils.computeHmacSha256(key, data);
+            Files.write(backupPath, hmac, StandardOpenOption.APPEND);
+            SafeExecution.run(() -> setOwnerOnlyPermissions(backupPath));
+        } finally {
+            if (key != null) {
+                java.util.Arrays.fill(key, (byte) 0);
+            }
+            if (data != null) {
+                java.util.Arrays.fill(data, (byte) 0);
+            }
+            if (hmac != null) {
+                java.util.Arrays.fill(hmac, (byte) 0);
+            }
+        }
+    }
+
     /**
      * Verifies backup by size and HMAC.
      */
     private boolean verifyBackupWithHmac(Path original, Path backup) {
+        byte[] orig = null;
+        byte[] backupAll = null;
+        byte[] backupData = null;
+        byte[] backupHmac = null;
+        byte[] key = null;
         try {
-            byte[] orig = Files.readAllBytes(original);
-            byte[] backupAll = Files.readAllBytes(backup);
-            if (backupAll.length < HMAC_SIZE_BYTES) return false;
-            byte[] backupData = java.util.Arrays.copyOf(backupAll, backupAll.length - HMAC_SIZE_BYTES);
-            byte[] backupHmac = java.util.Arrays.copyOfRange(backupAll, backupAll.length - HMAC_SIZE_BYTES, backupAll.length);
-            byte[] key = getSessionHmacKeyOrThrow();
+            long originalSize = Files.size(original);
+            long backupSize = Files.size(backup);
+            if (backupSize < HMAC_SIZE_BYTES || originalSize + HMAC_SIZE_BYTES != backupSize) return false;
+
+            orig = Files.readAllBytes(original);
+            backupAll = Files.readAllBytes(backup);
+            backupData = java.util.Arrays.copyOf(backupAll, backupAll.length - HMAC_SIZE_BYTES);
+            backupHmac = java.util.Arrays.copyOfRange(backupAll, backupAll.length - HMAC_SIZE_BYTES, backupAll.length);
+            key = getSessionHmacKeyOrThrow();
             boolean sizeMatch = orig.length == backupData.length;
             boolean hmacMatch = HmacUtils.verifyHmacSha256(key, backupData, backupHmac);
             return sizeMatch && hmacMatch;
         } catch (IOException | RuntimeException e) {
             return false;
+        } finally {
+            if (orig != null) {
+                java.util.Arrays.fill(orig, (byte) 0);
+            }
+            if (backupAll != null) {
+                java.util.Arrays.fill(backupAll, (byte) 0);
+            }
+            if (backupData != null) {
+                java.util.Arrays.fill(backupData, (byte) 0);
+            }
+            if (backupHmac != null) {
+                java.util.Arrays.fill(backupHmac, (byte) 0);
+            }
+            if (key != null) {
+                java.util.Arrays.fill(key, (byte) 0);
+            }
         }
     }
 
@@ -471,8 +514,7 @@ public class BackupManager {
             }
 
             // Get backup directory
-            String backupDir = getAutoBackupDirectory();
-            Path backupDirPath = Paths.get(backupDir);
+            Path backupDirPath = getSafeBackupDirectoryPath();
             Files.createDirectories(backupDirPath);
 
             // Create backup file path in the backup directory
@@ -482,15 +524,23 @@ public class BackupManager {
             // Rotate existing numbered backups (bak.4 -> delete, bak.3 -> bak.4, etc.)
             for (int i = MAX_NUMBERED_BACKUPS - 1; i > 0; i--) {
                 Path oldBackup = Paths.get(bakPath.toString() + "." + i);
+                Path oldBackupJournal = getJournalSidecarPath(oldBackup);
                 if (i == MAX_NUMBERED_BACKUPS - 1) {
                     // Securely delete oldest backup to prevent recovery
                     if (Files.exists(oldBackup)) {
                         SecureDeletionUtils.wipeFile(oldBackup);
                     }
+                    if (Files.exists(oldBackupJournal)) {
+                        SecureDeletionUtils.wipeFile(oldBackupJournal);
+                    }
                 } else {
                     Path newBackup = Paths.get(bakPath.toString() + "." + (i + 1));
+                    Path newBackupJournal = getJournalSidecarPath(newBackup);
                     if (Files.exists(oldBackup)) {
                         Files.move(oldBackup, newBackup, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    if (Files.exists(oldBackupJournal)) {
+                        Files.move(oldBackupJournal, newBackupJournal, StandardCopyOption.REPLACE_EXISTING);
                     }
                 }
             }
@@ -498,10 +548,16 @@ public class BackupManager {
             // Move previous backup to numbered slot (.bak -> .bak.1 or .bak.enc -> .bak.enc.1)
             if (Files.exists(bakPath)) {
                 Files.move(bakPath, Paths.get(bakPath.toString() + ".1"), StandardCopyOption.REPLACE_EXISTING);
+                Path bakJournal = getJournalSidecarPath(bakPath);
+                if (Files.exists(bakJournal)) {
+                    Files.move(bakJournal, getJournalSidecarPath(Paths.get(bakPath.toString() + ".1")), StandardCopyOption.REPLACE_EXISTING);
+                }
             }
             
             // Create new backup (encrypted files are copied as .bak.enc)
             Files.copy(logPath, bakPath, StandardCopyOption.REPLACE_EXISTING);
+            copyJournalSidecarIfPresent(logPath, bakPath);
+            appendBackupHmac(bakPath);
             
         } catch (IOException | RuntimeException e) {
             // Don't fail the save operation if backup fails
@@ -531,8 +587,7 @@ public class BackupManager {
      */
     private void rotateAutoBackups() {
         try {
-            String backupDir = getAutoBackupDirectory();
-            Path backupDirPath = Paths.get(backupDir);
+            Path backupDirPath = getSafeBackupDirectoryPath();
             
             if (!Files.exists(backupDirPath)) {
                 return;
@@ -540,7 +595,12 @@ public class BackupManager {
             
             // Find all auto backup files
             List<Path> backups = Files.list(backupDirPath)
-                .filter(p -> p.getFileName().toString().startsWith(AUTO_BACKUP_PREFIX))
+                .filter(p -> {
+                    String name = p.getFileName().toString();
+                    return name.startsWith(AUTO_BACKUP_PREFIX)
+                        && name.endsWith(ENCRYPTED_BACKUP_EXTENSION)
+                        && !name.endsWith(JOURNAL_BACKUP_SUFFIX);
+                })
                 .sorted(Comparator.comparing(p -> {
                     try {
                         return Files.getLastModifiedTime(p);
@@ -554,6 +614,7 @@ public class BackupManager {
             while (backups.size() > MAX_AUTO_BACKUPS) {
                 Path oldest = backups.remove(0);
                 SafeExecution.run(() -> SecureDeletionUtils.wipeFile(oldest));
+                SafeExecution.run(() -> SecureDeletionUtils.wipeFile(getJournalSidecarPath(oldest)));
             }
             
         } catch (IOException | RuntimeException e) {
@@ -584,14 +645,30 @@ public class BackupManager {
         return backupDir;
     }
 
+    private Path getSafeBackupDirectoryPath() {
+        String backupDir = getAutoBackupDirectory();
+        if (backupDir == null || backupDir.isBlank()) {
+            return Path.of(System.getProperty(PROP_USER_HOME, ".")).toAbsolutePath().normalize();
+        }
+        try {
+            Path normalized = Path.of(backupDir).toAbsolutePath().normalize();
+            String text = normalized.toString();
+            if (text.contains("\n") || text.contains("\r") || text.contains("\u0000")) {
+                return Path.of(System.getProperty(PROP_USER_HOME, ".")).toAbsolutePath().normalize();
+            }
+            return normalized;
+        } catch (Exception ex) {
+            return Path.of(System.getProperty(PROP_USER_HOME, ".")).toAbsolutePath().normalize();
+        }
+    }
+
     /**
      * Creates a unique backup file path with timestamp.
      */
     private Path createBackupPath() {
-        String backupDir = getAutoBackupDirectory();
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
         String filename = AUTO_BACKUP_PREFIX + timestamp + ENCRYPTED_BACKUP_EXTENSION;
-        return Paths.get(backupDir, filename);
+        return getSafeBackupDirectoryPath().resolve(filename);
     }
 
     /**
@@ -599,6 +676,41 @@ public class BackupManager {
      */
     private Path getLogFilePath() {
         return Paths.get(System.getProperty(PROP_USER_HOME), "log.txt");
+    }
+
+    private Path getJournalSidecarPath(Path basePath) {
+        return Paths.get(basePath.toString() + JOURNAL_BACKUP_SUFFIX);
+    }
+
+    private void copyJournalSidecarIfPresent(Path sourceLogPath, Path backupPath) {
+        Path sourceJournalPath = getJournalSidecarPath(sourceLogPath);
+        if (!Files.exists(sourceJournalPath)) {
+            return;
+        }
+
+        Path backupJournalPath = getJournalSidecarPath(backupPath);
+        try {
+            Files.copy(sourceJournalPath, backupJournalPath, StandardCopyOption.REPLACE_EXISTING);
+            setOwnerOnlyPermissions(backupJournalPath);
+        } catch (IOException | RuntimeException ignored) {
+        }
+    }
+
+    private void wipeBackupPair(Path backupPath) {
+        try {
+            if (Files.exists(backupPath)) {
+                SecureDeletionUtils.wipeFile(backupPath);
+            }
+        } catch (IOException ignored) {
+        }
+
+        try {
+            Path backupJournalPath = getJournalSidecarPath(backupPath);
+            if (Files.exists(backupJournalPath)) {
+                SecureDeletionUtils.wipeFile(backupJournalPath);
+            }
+        } catch (IOException ignored) {
+        }
     }
 
     /**

@@ -91,11 +91,10 @@ public class LinkHandler {
             return;
         }
 
-        java.io.File file;
+        java.nio.file.Path target;
         try {
-            // First try to parse as URI
             java.net.URI uri = java.net.URI.create(href);
-            file = new java.io.File(uri);
+            target = java.nio.file.Paths.get(uri).toAbsolutePath().normalize();
         } catch (Exception uriEx) {
             // Fallback: try to extract path manually
             try {
@@ -107,7 +106,7 @@ public class LinkHandler {
                 } else {
                     filePath = href.substring(5); // Remove "file:"
                 }
-                file = new java.io.File(filePath);
+                target = java.nio.file.Path.of(filePath).toAbsolutePath().normalize();
             } catch (Exception pathEx) {
                 // Security: Don't expose internal path details
                 showLinkError(pane, "Invalid file link format.");
@@ -116,19 +115,18 @@ public class LinkHandler {
         }
 
         // Check if file exists
-        if (!file.exists()) {
+        if (!java.nio.file.Files.exists(target)) {
             // Security: Don't expose absolute paths
             showLinkError(pane, "File not found. The linked file may have been moved or deleted.");
             return;
         }
 
         // Check if it's actually a file (not a directory)
-        if (!file.isFile()) {
+        if (!java.nio.file.Files.isRegularFile(target)) {
             showLinkError(pane, "Cannot open: path is not a file.");
             return;
         }
 
-        java.nio.file.Path target = file.toPath();
         if (!LinkOpenPolicy.isSafeToOpen(target)) {
             showLinkError(pane, "Cannot open this file due to security policy.");
             return;
@@ -139,7 +137,7 @@ public class LinkHandler {
 
         // Try to open the file
         try {
-            Desktop.getDesktop().open(file);
+            Desktop.getDesktop().open(target.toFile());
         } catch (java.io.IOException ioEx) {
             // Security: Don't expose internal error details
             showLinkError(pane, "Unable to open file. Check if you have the appropriate application installed.");

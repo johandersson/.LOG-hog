@@ -18,6 +18,7 @@
 package notepad;
 
 import java.awt.Desktop;
+import java.awt.Desktop.Action;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -39,39 +40,26 @@ public class NotepadOpener {
             return;
         }
 
-        // Try Desktop API first (cross-platform)
-        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.EDIT)) {
+        // Use Desktop API only to avoid spawning external shell commands.
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Action.EDIT)) {
             try {
                 Desktop.getDesktop().edit(logPath.toFile());
                 return;
             } catch (Exception e) {
-                // Fall through to platform-specific methods
+                // Try open as a fallback if editor integration is unavailable.
             }
         }
-        
-        // Platform-specific fallbacks
-        String os = System.getProperty("os.name").toLowerCase();
-        try {
-            if (os.contains("windows")) {
-                new ProcessBuilder("notepad.exe", logPath.toAbsolutePath().toString()).start();
-            } else if (os.contains("mac")) {
-                new ProcessBuilder("open", "-e", logPath.toAbsolutePath().toString()).start();
-            } else if (os.contains("linux")) {
-                // Try common Linux editors in order
-                try {
-                    new ProcessBuilder("xdg-open", logPath.toAbsolutePath().toString()).start();
-                } catch (Exception e1) {
-                    try {
-                        new ProcessBuilder("gedit", logPath.toAbsolutePath().toString()).start();
-                    } catch (Exception e2) {
-                        new ProcessBuilder("nano", logPath.toAbsolutePath().toString()).start();
-                    }
-                }
+
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Action.OPEN)) {
+            try {
+                Desktop.getDesktop().open(logPath.toFile());
+                return;
+            } catch (Exception ignored) {
             }
-        } catch (Exception e) {
-            gui.DialogHelper.showError(null, "Error", "Unable to Open Editor", 
-                "Could not open the log file in a text editor.<br>Please open it manually:<br><code>" + logPath.toAbsolutePath() + "</code>");
         }
+
+        gui.DialogHelper.showError(null, "Error", "Unable to Open Editor",
+            "Could not open the log file in an editor on this system.<br>Please open it manually:<br><code>" + logPath.toAbsolutePath() + "</code>");
     }
 
     private static Path findLogPath() {

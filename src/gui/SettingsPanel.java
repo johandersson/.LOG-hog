@@ -511,7 +511,10 @@ public final class SettingsPanel extends JPanel {
                     if (java.nio.file.Files.exists(settingsPath)) {
                         java.nio.file.Path backupSettingsPath;
                         if (backupDirSnapshot != null && !backupDirSnapshot.isEmpty()) {
-                            java.nio.file.Path backupDirPath = java.nio.file.Paths.get(backupDirSnapshot);
+                            java.nio.file.Path backupDirPath = normalizeBackupDirectory(backupDirSnapshot);
+                            if (backupDirPath == null) {
+                                throw new java.io.IOException("Invalid backup directory");
+                            }
                             java.nio.file.Files.createDirectories(backupDirPath);
                             backupSettingsPath = backupDirPath.resolve(settingsPath.getFileName().toString() + BACKUP_EXTENSION);
                         } else {
@@ -644,7 +647,10 @@ public final class SettingsPanel extends JPanel {
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         var current = backupDirField.getText();
         if (!current.isEmpty()) {
-            chooser.setCurrentDirectory(new java.io.File(current));
+            Path safeCurrent = normalizeBackupDirectory(current);
+            if (safeCurrent != null && Files.isDirectory(safeCurrent)) {
+                chooser.setCurrentDirectory(safeCurrent.toFile());
+            }
         }
         var res = chooser.showOpenDialog(editor);
         if (res == JFileChooser.APPROVE_OPTION) {
@@ -665,7 +671,10 @@ public final class SettingsPanel extends JPanel {
         var chooser = new JFileChooser();
         var backupDir = backupDirField.getText();
         if (!backupDir.isEmpty()) {
-            chooser.setCurrentDirectory(new java.io.File(backupDir));
+            Path safeBackupDir = normalizeBackupDirectory(backupDir);
+            if (safeBackupDir != null && Files.isDirectory(safeBackupDir)) {
+                chooser.setCurrentDirectory(safeBackupDir.toFile());
+            }
         }
         var date = LocalDate.now().toString();
         chooser.setSelectedFile(new java.io.File("loghog-backup-" + date + ".enc"));
@@ -753,16 +762,22 @@ public final class SettingsPanel extends JPanel {
         if (path == null || path.isBlank()) {
             return true; // Empty path is allowed (will use default)
         }
+        return normalizeBackupDirectory(path) != null;
+    }
+
+    private Path normalizeBackupDirectory(String path) {
         try {
-            // Check if it's a valid path
-            java.nio.file.Paths.get(path);
-            // Check for dangerous characters that could be used for path traversal
-            if (path.contains("..") || path.contains("\\") && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains(OS_WINDOWS)) {
-                return false;
+            Path normalized = Path.of(path).toAbsolutePath().normalize();
+            if (normalized.getNameCount() == 0) {
+                return null;
             }
-            return true;
+            String normalizedStr = normalized.toString();
+            if (normalizedStr.contains("\n") || normalizedStr.contains("\r") || normalizedStr.contains("\u0000")) {
+                return null;
+            }
+            return normalized;
         } catch (InvalidPathException e) {
-            return false;
+            return null;
         }
     }
 

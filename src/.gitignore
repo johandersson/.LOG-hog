@@ -10,3 +10,4 @@ build/run-latest.sh
 # Security scan tooling/output
 tools/dependency-check-*/
 tools/owasp-dc-report/
+tools/security-audit/

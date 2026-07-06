@@ -27,7 +27,7 @@ import java.util.List;
 
 public class PasswordGenerator {
     private static final SecureRandom random = new SecureRandom();
-    private static final char[] PASSWORD_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?".toCharArray();
+    private static final char[] ALLOWED_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?".toCharArray();
     private static List<String> wordList; // default null, no initializer needed
 
     private static void loadWordList() {
@@ -46,7 +46,7 @@ public class PasswordGenerator {
             }
         } catch (IOException e) {
             // Fallback words if dict.txt not found
-            wordList.addAll(List.of("correct", "horse", "battery", "staple", "random", "secure", "password", "generator"));
+            wordList.addAll(List.of("correct", "horse", "battery", "staple", "random", "secure", "vault", "generator"));
         }
     }
 
@@ -76,7 +76,7 @@ public class PasswordGenerator {
         }
         char[] generated = new char[length];
         for (int i = 0; i < length; i++) {
-            generated[i] = PASSWORD_CHARS[random.nextInt(PASSWORD_CHARS.length)];
+            generated[i] = ALLOWED_CHARS[random.nextInt(ALLOWED_CHARS.length)];
         }
         return generated;
     }

@@ -67,6 +67,7 @@ public class EncryptionManager implements SessionKeyEncryptor {
     private static final EncryptionManager INSTANCE = new EncryptionManager();
     private static final byte[] FILE_MAGIC = new byte[] { 'L', 'O', 'G', 'H' };
     private static final byte FILE_VERSION = 1;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     public static EncryptionManager getInstance() {
         return INSTANCE;
@@ -188,7 +189,7 @@ public class EncryptionManager implements SessionKeyEncryptor {
             SecretKey key = deriveKey(password, salt);
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             iv = new byte[GCM_IV_LENGTH];
-            new SecureRandom().nextBytes(iv);
+            SECURE_RANDOM.nextBytes(iv);
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
             cipher.init(Cipher.ENCRYPT_MODE, key, spec);
 
@@ -215,7 +216,8 @@ public class EncryptionManager implements SessionKeyEncryptor {
                         cos.write(buf, 0, n);
                         n = bin.read(buf);
                     }
-                } catch (java.io.IOException ignored) {
+                } catch (java.io.IOException e) {
+                    throw new EncryptionException("Unable to encrypt stream.", e);
                 } finally {
                     CryptoUtils.zeroize(buf);
                 }
@@ -238,7 +240,7 @@ public class EncryptionManager implements SessionKeyEncryptor {
         try {
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             iv = new byte[GCM_IV_LENGTH];
-            new SecureRandom().nextBytes(iv);
+            SECURE_RANDOM.nextBytes(iv);
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
             cipher.init(Cipher.ENCRYPT_MODE, sessionKey, spec);
 
@@ -264,7 +266,8 @@ public class EncryptionManager implements SessionKeyEncryptor {
                         cos.write(buf, 0, n);
                         n = bin.read(buf);
                     }
-                } catch (java.io.IOException ignored) {
+                } catch (java.io.IOException e) {
+                    throw new EncryptionException("Unable to encrypt stream.", e);
                 } finally {
                     CryptoUtils.zeroize(buf);
                 }
@@ -597,7 +600,7 @@ public class EncryptionManager implements SessionKeyEncryptor {
     private byte[] performEncryption(String data, SecretKey key) throws java.security.GeneralSecurityException {
         Cipher cipher = Cipher.getInstance(ALGORITHM);
         byte[] iv = new byte[GCM_IV_LENGTH];
-        new SecureRandom().nextBytes(iv);
+        SECURE_RANDOM.nextBytes(iv);
         GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
         cipher.init(Cipher.ENCRYPT_MODE, key, spec);
         byte[] plaintext = data.getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -616,7 +619,7 @@ public class EncryptionManager implements SessionKeyEncryptor {
     private byte[] performEncryptionFromBytes(byte[] data, SecretKey key) throws java.security.GeneralSecurityException {
         Cipher cipher = Cipher.getInstance(ALGORITHM);
         byte[] iv = new byte[GCM_IV_LENGTH];
-        new SecureRandom().nextBytes(iv);
+        SECURE_RANDOM.nextBytes(iv);
         GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
         cipher.init(Cipher.ENCRYPT_MODE, key, spec);
         byte[] ciphertext = cipher.doFinal(data);
