@@ -1,6 +1,8 @@
 package security;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -30,6 +32,37 @@ public final class LinkOpenPolicy {
             return java.nio.file.Files.exists(real)
                 && java.nio.file.Files.isReadable(real)
                 && java.nio.file.Files.isRegularFile(real);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Limit local link opening to expected user-controlled roots to avoid
+     * browsing arbitrary system files through markdown content.
+     */
+    public static boolean isWithinAllowedRoots(Path file) {
+        if (file == null) return false;
+        try {
+            Path real = file.toRealPath(java.nio.file.LinkOption.NOFOLLOW_LINKS);
+            List<Path> allowedRoots = new ArrayList<>();
+
+            String userHome = System.getProperty("user.home", "");
+            if (!userHome.isBlank()) {
+                allowedRoots.add(Path.of(userHome).toAbsolutePath().normalize());
+            }
+
+            String cwd = System.getProperty("user.dir", "");
+            if (!cwd.isBlank()) {
+                allowedRoots.add(Path.of(cwd).toAbsolutePath().normalize());
+            }
+
+            for (Path root : allowedRoots) {
+                if (real.startsWith(root)) {
+                    return true;
+                }
+            }
+            return false;
         } catch (Exception e) {
             return false;
         }

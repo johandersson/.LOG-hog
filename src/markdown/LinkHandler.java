@@ -131,6 +131,10 @@ public class LinkHandler {
             showLinkError(pane, "Cannot open this file due to security policy.");
             return;
         }
+        if (!LinkOpenPolicy.isWithinAllowedRoots(target)) {
+            showLinkError(pane, "This file is outside allowed local directories.");
+            return;
+        }
         if (LinkOpenPolicy.isLikelyExecutable(target) && !confirmHighRiskFileOpen(pane, target)) {
             return;
         }

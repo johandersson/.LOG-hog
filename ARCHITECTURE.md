@@ -1,193 +1,48 @@
-# .LOG-hog Architecture Documentation
+# .LOG-hog Architecture
 
-**Version:** 2.0\
-**Last Updated:** April 2026\
-**Author:** Johan Andersson
+Short architecture snapshot aligned with current code.
 
-***
+## Core Modules
 
-## System Overview
+* UI: `gui/*`, `main/LogTextEditor.java`
+* File and entry handling: `filehandling/*`
+* Encryption: `encryption/*`
+* Security policy/helpers: `security/*`
+* Backup and integrity: `main/BackupManager.java`
 
-
-
-### Layers
-
-* UI: Swing interface
-* APP: Application coordination
-* SVC: Core services
-* DATA: File system
-
-***
-
-## Core Components
-
-
-
-### Components
-
-* `LogHog`: entry point
-* `LogTextEditor`: main window
-* `LogFileHandler`: file operations
-* `EncryptionManager`: crypto operations
-* `BackupManager`: backups
-
-***
-
-## Encryption Flow
+## Runtime Flow
 
 ```mermaid
 flowchart LR
-    user["User / UI"]
-    editor["LogTextEditor"]
-    handler["LogFileHandler"]
-    encrypt["EncryptionManager"]
-    pbkdf2["PBKDF2 (Key Derivation)"]
-    aes["AES-GCM"]
-    storage["File System (DATA)"]
-    backup["BackupManager"]
-
-    user --> editor
-    editor --> handler
-    handler --> encrypt
-    encrypt --> pbkdf2
-    pbkdf2 --> aes
-    aes --> handler
-    handler --> storage
-    handler --> backup
-    backup --> storage
+    UI[LogTextEditor + Panels] --> FH[LogFileHandler]
+    FH --> ENC[EncryptionManager/FileEncryptionManager]
+    FH --> JRN[EncryptedIncrementalJournal]
+    FH --> BK[BackupManager]
+    ENC --> FS[(Encrypted snapshot)]
+    JRN --> FSJ[(Encrypted journal sidecar)]
+    BK --> BFS[(Encrypted backups + HMAC)]
 ```
 
-***
+## Security-Critical Design
 
-## Backup Flow
+* Encrypted-only storage path (plaintext mode removed)
+* AES-GCM + PBKDF2 derived keys
+* Incremental encrypted journal writes, compacted on lock/threshold
+* Numbered backup integrity via HMAC
+* Persistent lockout with fail-closed tamper handling
+* Link/file open checks and security policy gates
 
-```mermaid
-flowchart LR
-    handler["LogFileHandler"]
-    backup["BackupManager"]
-    storage["File System"]
-    remote["Remote Backup Storage"]
-
-    handler -->|triggers backup| backup
-    backup -->|reads| storage
-    backup -->|writes| remote
-    backup -->|verifies| handler
-```
-
-***
-
-## Startup Flow
+## Trust Boundaries
 
 ```mermaid
 flowchart TD
-    loghog["LogHog"]
-    config["Config Loader"]
-    keyring["KeyringManager"]
-    services["SVC (Core services)"]
-    ui["LogTextEditor (UI)"]
-
-    loghog --> config
-    config --> keyring
-    keyring --> services
-    services --> ui
+    USER[User input/UI actions] --> APP[Application logic]
+    APP --> POLICY[Security policy checks]
+    POLICY --> DISK[Local filesystem]
 ```
 
-***
+## Scope / Non-Goals
 
-## Password Handling
+* Protects local data at rest and against offline tampering/access
+* Does not protect against malware, keyloggers, or a fully compromised host
 
-* Progressive delays after failed attempts
-* Limited retries
-* Raw password not retained after unlock
-* Restart required after limit
-
-***
-
-## Project Structure
-
-```
-src/
-├── main/
-├── encryption/
-├── filehandling/
-├── gui/
-├── clipboard/
-├── utils/
-└── resources/
-```
-
-***
-
-## Design Patterns
-
-* Singleton
-* Factory
-* Observer
-* Facade
-
-***
-
-## Technology Stack
-
-| Area     | Technology |
-| -------- | ---------- |
-| Language | Java 17    |
-| UI       | Swing      |
-| Crypto   | JDK        |
-| Build    | javac      |
-
-***
-
-## Security Considerations
-
-* Protects data at rest
-* No protection against malware
-* Memory exposure reduced, but still possible during active session
-* Secure deletion is best-effort
-
-***
-
-## Data Flow
-
-```mermaid
-flowchart LR
-    UI["UI: LogTextEditor"]
-    APP["APP: LogHog / Coordinators"]
-    SVC["SVC: EncryptionManager / BackupManager / LogFileHandler"]
-    DATA["DATA: File System"]
-
-    UI --> APP
-    APP --> SVC
-    SVC --> DATA
-    SVC --> APP
-```
-
-***
-
-## Performance
-
-* Fast startup
-* Low memory use
-* Depends on file size
-
-***
-
-## Glossary
-
-* AES: encryption
-* GCM: integrity + encryption
-* PBKDF2: key derivation
-* IV: initialization vector
-* Salt: random input
-
-***
-
-## Documentation
-
-* encryption.md
-* help.md
-* README.md
-
-***
-
-*Architecture document v2.0 – April 2026*
