@@ -180,9 +180,13 @@ public class FileEncryptionManager {
              var out = Files.newOutputStream(outputPath);
              var dec = requireSessionEncryptor().openDecryptedStream(in, requireSessionKey(), null)) {
             byte[] buf = new byte[8192];
-            int r;
-            while ((r = dec.read(buf)) != -1) {
-                out.write(buf, 0, r);
+            try {
+                int r;
+                while ((r = dec.read(buf)) != -1) {
+                    out.write(buf, 0, r);
+                }
+            } finally {
+                CryptoUtils.zeroize(buf);
             }
         }
         CryptoUtils.setOwnerOnlyPermissions(outputPath);

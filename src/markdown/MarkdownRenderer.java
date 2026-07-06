@@ -54,6 +54,8 @@ import javax.swing.text.Element;
  * to ensure no variance in spacing regardless of content type.
  */
 public class MarkdownRenderer {
+    private static final long ENTRY_CACHE_TTL_MS = 15_000L;
+    private static final long DOC_CACHE_TTL_MS = 60_000L;
 
     // Pre-compiled pattern for timestamp validation - much faster than String.matches()
     private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
@@ -116,7 +118,10 @@ public class MarkdownRenderer {
         synchronized (CACHE) {
             java.lang.ref.SoftReference<CacheEntry> ref = CACHE.get(key);
             CacheEntry cached = (ref == null) ? null : ref.get();
-            if (ref != null && cached == null) CACHE.remove(key);
+            if (ref != null && (cached == null || cached.isExpired())) {
+                CACHE.remove(key);
+                cached = null;
+            }
             if (cached != null) {
                 pane.setDocument(cached.doc);
                 pane.setCaretPosition(0);
@@ -151,7 +156,7 @@ public class MarkdownRenderer {
         }
 
         synchronized (CACHE) {
-            CACHE.put(key, new java.lang.ref.SoftReference<>(new CacheEntry(doc)));
+            CACHE.put(key, new java.lang.ref.SoftReference<>(new CacheEntry(doc, System.currentTimeMillis() + DOC_CACHE_TTL_MS)));
         }
 
         pane.setDocument(doc);
@@ -195,8 +200,8 @@ public class MarkdownRenderer {
     // Entry-level cache: map entry-hash -> list of (text, AttributeSet) segments
     private static final int MAX_ENTRY_CACHE = 1024;
     // Entry cache also stored in SoftReference for memory efficiency
-    private static final java.util.Map<String, java.lang.ref.SoftReference<java.util.List<Segment>>> ENTRY_CACHE = new java.util.LinkedHashMap<>() {
-        protected boolean removeEldestEntry(java.util.Map.Entry<String, java.lang.ref.SoftReference<java.util.List<Segment>>> eldest) {
+    private static final java.util.Map<String, java.lang.ref.SoftReference<CachedSegments>> ENTRY_CACHE = new java.util.LinkedHashMap<>() {
+        protected boolean removeEldestEntry(java.util.Map.Entry<String, java.lang.ref.SoftReference<CachedSegments>> eldest) {
             return size() > MAX_ENTRY_CACHE;
         }
     };
@@ -213,7 +218,22 @@ public class MarkdownRenderer {
 
     private static class CacheEntry {
         final StyledDocument doc;
-        CacheEntry(StyledDocument d) { this.doc = d; }
+        final long expiresAt;
+        CacheEntry(StyledDocument d, long expiresAt) {
+            this.doc = d;
+            this.expiresAt = expiresAt;
+        }
+        boolean isExpired() { return System.currentTimeMillis() >= expiresAt; }
+    }
+
+    private static class CachedSegments {
+        final java.util.List<Segment> segments;
+        final long expiresAt;
+        CachedSegments(java.util.List<Segment> segments, long expiresAt) {
+            this.segments = segments;
+            this.expiresAt = expiresAt;
+        }
+        boolean isExpired() { return System.currentTimeMillis() >= expiresAt; }
     }
 
     private static String computeHash(List<String> lines) {
@@ -310,16 +330,20 @@ public class MarkdownRenderer {
                 String entryKey = computeHashForEntry(entry);
                 java.util.List<Segment> segs = null;
                 synchronized (ENTRY_CACHE) {
-                    java.lang.ref.SoftReference<java.util.List<Segment>> ref = ENTRY_CACHE.get(entryKey);
-                    segs = (ref == null) ? null : ref.get();
-                    if (ref != null && segs == null) ENTRY_CACHE.remove(entryKey);
+                    java.lang.ref.SoftReference<CachedSegments> ref = ENTRY_CACHE.get(entryKey);
+                    CachedSegments cached = (ref == null) ? null : ref.get();
+                    if (ref != null && (cached == null || cached.isExpired())) {
+                        ENTRY_CACHE.remove(entryKey);
+                        cached = null;
+                    }
+                    segs = cached == null ? null : cached.segments;
                 }
                 if (segs != null) {
                     insertSegmentsIntoDoc(doc, segs);
                 } else {
                     segs = buildSegmentsForEntry(entry);
                     synchronized (ENTRY_CACHE) {
-                        ENTRY_CACHE.put(entryKey, new java.lang.ref.SoftReference<>(segs));
+                        ENTRY_CACHE.put(entryKey, new java.lang.ref.SoftReference<>(new CachedSegments(segs, System.currentTimeMillis() + ENTRY_CACHE_TTL_MS)));
                     }
                     insertSegmentsIntoDoc(doc, segs);
                 }
@@ -643,19 +667,21 @@ public class MarkdownRenderer {
                     String entryKey = computeHashForEntry(entry);
                     java.util.List<Segment> segs = null;
                     synchronized (ENTRY_CACHE) {
-                        java.lang.ref.SoftReference<java.util.List<Segment>> ref = ENTRY_CACHE.get(entryKey);
-                        segs = (ref == null) ? null : ref.get();
-                        if (ref != null && segs == null) {
+                        java.lang.ref.SoftReference<CachedSegments> ref = ENTRY_CACHE.get(entryKey);
+                        CachedSegments cached = (ref == null) ? null : ref.get();
+                        if (ref != null && (cached == null || cached.isExpired())) {
                             // reclaimed
                             ENTRY_CACHE.remove(entryKey);
+                            cached = null;
                         }
+                        segs = cached == null ? null : cached.segments;
                     }
                     if (segs != null) {
                         insertSegmentsIntoDoc(doc, segs);
                     } else {
                         segs = buildSegmentsForEntry(entry);
                         synchronized (ENTRY_CACHE) {
-                            ENTRY_CACHE.put(entryKey, new java.lang.ref.SoftReference<>(segs));
+                            ENTRY_CACHE.put(entryKey, new java.lang.ref.SoftReference<>(new CachedSegments(segs, System.currentTimeMillis() + ENTRY_CACHE_TTL_MS)));
                         }
                         insertSegmentsIntoDoc(doc, segs);
                     }

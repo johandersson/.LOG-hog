@@ -121,7 +121,7 @@ public class ActionHandler {
                     logFileHandler.saveTextAsync(newEntry, listModel, () -> {
                         try {
                             editor.loadLogEntries();
-                            fullLogPanel.loadFullLog();
+                            fullLogPanel.refreshIfVisible();
                             SystemTrayMenu.updateRecentLogsMenu();
                         } catch (Exception ex) {
                             // Security: Don't expose internal error details
@@ -208,7 +208,7 @@ public class ActionHandler {
                 // If anything goes wrong, avoid resetting filters; just show a toast
             }
             // Refresh Full Log view to reflect updated content
-            fullLogPanel.loadFullLog();
+            fullLogPanel.refreshIfVisible();
             SystemTrayMenu.updateRecentLogsMenu();
             Toast.showToast(editor, "Entry updated successfully!");
         });
@@ -225,7 +225,7 @@ public class ActionHandler {
             javax.swing.SwingUtilities.invokeLater(() -> {
                 editor.getEntryPanel().getTextArea().setText("");
                 editor.updateLogListView();
-                fullLogPanel.loadFullLog(); // update full log view after save
+                fullLogPanel.refreshIfVisible();
                 SystemTrayMenu.updateRecentLogsMenu();
                 Toast.showToast(editor, "Entry saved successfully!");
             });

@@ -182,6 +182,7 @@ public final class EntryPanel extends JPanel {
         previewBtn.setEnabled(!locked);
         if (locked) {
             textArea.setText("");
+            previewPane.setText("");
             // Switch back to edit mode if in preview mode
             if (isPreviewMode) {
                 togglePreview();

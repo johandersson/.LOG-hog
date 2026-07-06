@@ -35,6 +35,7 @@ import markdown.MarkdownRenderer;
  * Manages decryption, parsing, and rendering of log entries.
  */
 public class FullLogFileLoader {
+    private static final int MAX_EAGER_ENTRY_DOC_CACHE = 1_000;
     
     // Use centralized UI render cap
     
@@ -103,6 +104,13 @@ public class FullLogFileLoader {
         }
     }
 
+    private void cacheParsedData(ParsedLogData parsedData, long lastModified) {
+        synchronized (cacheLock) {
+            this.cachedParsedData = parsedData;
+            this.cachedLastModified = lastModified;
+        }
+    }
+
     /**
      * Removes the Notepad compatibility header (.LOG line and any leading blank entries)
      * from the parsed entry list before display.
@@ -139,9 +147,9 @@ public class FullLogFileLoader {
                 return;
             }
 
-            byte[] bytes = Files.readAllBytes(chosen);
-            String content = new String(bytes);
-            textPane.setText(content);
+            try (var reader = Files.newBufferedReader(chosen, java.nio.charset.StandardCharsets.UTF_8)) {
+                textPane.read(reader, null);
+            }
             textPane.clearHighlights();
             textPane.setCaretPosition(0);
         } catch (IOException e) {
@@ -280,7 +288,7 @@ public class FullLogFileLoader {
                 }
             }
             synchronized (cacheLock) {
-                if (!logFileHandler.isEncrypted() && this.cachedParsedData != null && this.cachedLastModified == lm && !logFileHandler.hasPendingWrites()) {
+                if (this.cachedParsedData != null && this.cachedLastModified == lm && !logFileHandler.hasPendingWrites()) {
                     return this.cachedParsedData;
                 }
             }
@@ -315,32 +323,24 @@ public class FullLogFileLoader {
                 if (p != null && Files.exists(p)) lm = Files.getLastModifiedTime(p).toMillis();
             } catch (Exception ignored) {}
             ParsedLogData pd = new ParsedLogData(allEntries, entriesToRender);
-            if (!logFileHandler.isEncrypted()) {
-                synchronized (cacheLock) {
-                    // Build per-entry rendered documents for UI-sized sets to speed up
-                    // subsequent re-renders. Limit to avoid excess memory use.
-                    try {
-                        if (entriesToRender != null && entriesToRender.size() <= ResourceLimits.MAX_ENTRIES_TO_RENDER_UI) {
-                            synchronized (pd.perEntryDocCache) {
-                                for (List<String> entry : entriesToRender) {
-                                    if (entry == null || entry.isEmpty()) continue;
-                                    String key = entry.get(0).trim();
-                                    // Avoid rebuilding if already present
-                                    if (pd.perEntryDocCache.containsKey(key)) continue;
-                                    try {
-                                        javax.swing.text.StyledDocument doc = MarkdownRenderer.buildDocumentFromEntries(java.util.List.of(entry), null);
-                                        pd.perEntryDocCache.put(key, new java.lang.ref.SoftReference<>(doc));
-                                    } catch (Exception ignored) {
-                                        // If building an entry doc fails, skip caching it
-                                    }
-                                }
+            try {
+                if (entriesToRender != null && entriesToRender.size() <= MAX_EAGER_ENTRY_DOC_CACHE) {
+                    synchronized (pd.perEntryDocCache) {
+                        for (List<String> entry : entriesToRender) {
+                            if (entry == null || entry.isEmpty()) continue;
+                            String key = entry.get(0).trim();
+                            if (pd.perEntryDocCache.containsKey(key)) continue;
+                            try {
+                                javax.swing.text.StyledDocument doc = MarkdownRenderer.buildDocumentFromEntries(java.util.List.of(entry), null);
+                                pd.perEntryDocCache.put(key, new java.lang.ref.SoftReference<>(doc));
+                            } catch (Exception ignored) {
+                                // If building an entry doc fails, skip caching it
                             }
                         }
-                    } catch (Exception ignored) {}
-                    this.cachedParsedData = pd;
-                    this.cachedLastModified = lm;
+                    }
                 }
-            }
+            } catch (Exception ignored) {}
+            cacheParsedData(pd, lm);
             return pd;
         } else {
             try (var stream = logFileHandler.getLinesStreamed()) {
@@ -379,7 +379,7 @@ public class FullLogFileLoader {
                 } catch (Exception ignored) {}
                 ParsedLogData pd = new ParsedLogData((int)Math.min(total, Integer.MAX_VALUE), entriesToRender);
                 try {
-                    if (entriesToRender != null && entriesToRender.size() <= ResourceLimits.MAX_ENTRIES_TO_RENDER_UI) {
+                    if (entriesToRender != null && entriesToRender.size() <= MAX_EAGER_ENTRY_DOC_CACHE) {
                         synchronized (pd.perEntryDocCache) {
                             for (List<String> entry : entriesToRender) {
                                 if (entry == null || entry.isEmpty()) continue;
@@ -393,12 +393,7 @@ public class FullLogFileLoader {
                         }
                     }
                 } catch (Exception ignored) {}
-                if (!logFileHandler.isEncrypted()) {
-                    synchronized (cacheLock) {
-                        this.cachedParsedData = pd;
-                        this.cachedLastModified = lm;
-                    }
-                }
+                cacheParsedData(pd, lm);
                 return pd;
             }
         }

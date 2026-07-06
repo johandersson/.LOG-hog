@@ -1140,6 +1140,7 @@ public final class LogListPanel extends JPanel {
         
         if (locked) {
             entryArea.setText("");
+            previewPane.setText("");
             // Switch back to edit mode if in preview mode
             if (isPreviewMode) {
                 entryContainer.remove(previewScrollPane);

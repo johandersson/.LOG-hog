@@ -589,6 +589,7 @@ public final class LogTextEditor extends JFrame {
         synchronized (lockObject) {
             logFileHandler.clearSensitiveData();
             backupManager.clearInMemoryHmacKey();
+            fullLogPanel.clearRuntimeCaches();
             // Clear secure clipboard state when locking to minimize exposure
             try {
                 clipboard.SecureClipboardManager.onLock();

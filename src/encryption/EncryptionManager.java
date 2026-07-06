@@ -182,11 +182,12 @@ public class EncryptionManager implements SessionKeyEncryptor {
         if (password == null) throw new EncryptionException("Password cannot be null");
         if (salt == null) throw new EncryptionException("Salt cannot be null");
 
+        byte[] iv = null;
         try {
             // Write header: MAGIC, version, salt length, salt, iv length, iv
             SecretKey key = deriveKey(password, salt);
             Cipher cipher = Cipher.getInstance(ALGORITHM);
-            byte[] iv = new byte[GCM_IV_LENGTH];
+            iv = new byte[GCM_IV_LENGTH];
             new SecureRandom().nextBytes(iv);
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
             cipher.init(Cipher.ENCRYPT_MODE, key, spec);
@@ -202,23 +203,27 @@ public class EncryptionManager implements SessionKeyEncryptor {
             try (java.io.BufferedInputStream bin = new java.io.BufferedInputStream(in);
                  javax.crypto.CipherOutputStream cos = new javax.crypto.CipherOutputStream(out, cipher)) {
                 byte[] buf = new byte[8192];
-                int n;
-                long total = -1;
                 try {
+                    int n;
+                    long total = -1;
                     if (in instanceof java.io.ByteArrayInputStream) {
                         total = bin.available();
                     }
-                } catch (java.io.IOException ignored) {
-                }
-                if (progress != null && total > 0) progress.setTotalBytes(total + 0);
-                n = bin.read(buf);
-                while (n != -1) {
-                    cos.write(buf, 0, n);
                     n = bin.read(buf);
+                    if (progress != null && total > 0) progress.setTotalBytes(total + 0);
+                    while (n != -1) {
+                        cos.write(buf, 0, n);
+                        n = bin.read(buf);
+                    }
+                } catch (java.io.IOException ignored) {
+                } finally {
+                    CryptoUtils.zeroize(buf);
                 }
             }
         } catch (java.security.GeneralSecurityException | java.io.IOException e) {
             throw new EncryptionException("Unable to encrypt stream.", e);
+        } finally {
+            CryptoUtils.zeroize(iv);
         }
     }
 
@@ -229,9 +234,10 @@ public class EncryptionManager implements SessionKeyEncryptor {
         if (sessionKey == null) throw new EncryptionException("Session key cannot be null");
         if (salt == null) throw new EncryptionException("Salt cannot be null");
 
+        byte[] iv = null;
         try {
             Cipher cipher = Cipher.getInstance(ALGORITHM);
-            byte[] iv = new byte[GCM_IV_LENGTH];
+            iv = new byte[GCM_IV_LENGTH];
             new SecureRandom().nextBytes(iv);
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
             cipher.init(Cipher.ENCRYPT_MODE, sessionKey, spec);
@@ -246,23 +252,27 @@ public class EncryptionManager implements SessionKeyEncryptor {
             try (java.io.BufferedInputStream bin = new java.io.BufferedInputStream(in);
                  javax.crypto.CipherOutputStream cos = new javax.crypto.CipherOutputStream(out, cipher)) {
                 byte[] buf = new byte[8192];
-                int n;
-                long total = -1;
                 try {
+                    int n;
+                    long total = -1;
                     if (in instanceof java.io.ByteArrayInputStream) {
                         total = bin.available();
                     }
-                } catch (java.io.IOException ignored) {
-                }
-                if (progress != null && total > 0) progress.setTotalBytes(total + 0);
-                n = bin.read(buf);
-                while (n != -1) {
-                    cos.write(buf, 0, n);
                     n = bin.read(buf);
+                    if (progress != null && total > 0) progress.setTotalBytes(total + 0);
+                    while (n != -1) {
+                        cos.write(buf, 0, n);
+                        n = bin.read(buf);
+                    }
+                } catch (java.io.IOException ignored) {
+                } finally {
+                    CryptoUtils.zeroize(buf);
                 }
             }
         } catch (java.security.GeneralSecurityException | java.io.IOException e) {
             throw new EncryptionException("Unable to encrypt stream.", e);
+        } finally {
+            CryptoUtils.zeroize(iv);
         }
     }
 
@@ -397,12 +407,15 @@ public class EncryptionManager implements SessionKeyEncryptor {
         if (encryptedIn == null) throw new EncryptionException("Input stream cannot be null");
         if (password == null) throw new EncryptionException("Password cannot be null");
         // salt can be null if reading from header
+        byte[] magicCheck = null;
+        byte[] headerSalt = null;
+        byte[] iv = null;
         try {
             java.io.BufferedInputStream bin = new java.io.BufferedInputStream(encryptedIn);
             
             // Check for LOGH header format
             bin.mark(32);
-            byte[] magicCheck = new byte[FILE_MAGIC.length];
+            magicCheck = new byte[FILE_MAGIC.length];
             int magicRead = bin.read(magicCheck);
             boolean hasHeader = (magicRead == FILE_MAGIC.length);
             if (hasHeader) {
@@ -425,7 +438,8 @@ public class EncryptionManager implements SessionKeyEncryptor {
                 if (saltLen <= 0 || saltLen > 64) {
                     throw new EncryptionException("Invalid salt length in header: " + saltLen);
                 }
-                actualSalt = new byte[saltLen];
+                headerSalt = new byte[saltLen];
+                actualSalt = headerSalt;
                 int gotSalt = bin.read(actualSalt);
                 if (gotSalt != saltLen) {
                     throw new EncryptionException("Truncated header: missing salt");
@@ -445,7 +459,7 @@ public class EncryptionManager implements SessionKeyEncryptor {
             
             SecretKey key = deriveKey(password, actualSalt);
             Cipher cipher = Cipher.getInstance(ALGORITHM);
-            byte[] iv = new byte[GCM_IV_LENGTH];
+            iv = new byte[GCM_IV_LENGTH];
             int got = bin.read(iv);
             if (got != GCM_IV_LENGTH) {
                 throw new EncryptionException("Encrypted data missing IV or is corrupted.");
@@ -457,6 +471,10 @@ public class EncryptionManager implements SessionKeyEncryptor {
             throw e;
         } catch (java.security.GeneralSecurityException | java.io.IOException e) {
             throw new EncryptionException("Unable to open decrypted stream.", e);
+        } finally {
+            CryptoUtils.zeroize(magicCheck);
+            CryptoUtils.zeroize(headerSalt);
+            CryptoUtils.zeroize(iv);
         }
     }
 
@@ -464,11 +482,14 @@ public class EncryptionManager implements SessionKeyEncryptor {
     public java.io.InputStream openDecryptedStream(java.io.InputStream encryptedIn, SecretKey sessionKey, utils.ProgressCallback progress) throws EncryptionException {
         if (encryptedIn == null) throw new EncryptionException("Input stream cannot be null");
         if (sessionKey == null) throw new EncryptionException("Session key cannot be null");
+        byte[] magicCheck = null;
+        byte[] headerSalt = null;
+        byte[] iv = null;
         try {
             java.io.BufferedInputStream bin = new java.io.BufferedInputStream(encryptedIn);
 
             bin.mark(32);
-            byte[] magicCheck = new byte[FILE_MAGIC.length];
+            magicCheck = new byte[FILE_MAGIC.length];
             int magicRead = bin.read(magicCheck);
             boolean hasHeader = (magicRead == FILE_MAGIC.length);
             if (hasHeader) {
@@ -489,7 +510,7 @@ public class EncryptionManager implements SessionKeyEncryptor {
                 if (saltLen <= 0 || saltLen > 64) {
                     throw new EncryptionException("Invalid salt length in header: " + saltLen);
                 }
-                byte[] headerSalt = new byte[saltLen];
+                headerSalt = new byte[saltLen];
                 int gotSalt = bin.read(headerSalt);
                 if (gotSalt != saltLen) {
                     throw new EncryptionException("Truncated header: missing salt");
@@ -503,7 +524,7 @@ public class EncryptionManager implements SessionKeyEncryptor {
             }
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
-            byte[] iv = new byte[GCM_IV_LENGTH];
+            iv = new byte[GCM_IV_LENGTH];
             int got = bin.read(iv);
             if (got != GCM_IV_LENGTH) {
                 throw new EncryptionException("Encrypted data missing IV or is corrupted.");
@@ -515,6 +536,10 @@ public class EncryptionManager implements SessionKeyEncryptor {
             throw e;
         } catch (java.security.GeneralSecurityException | java.io.IOException e) {
             throw new EncryptionException("Unable to open decrypted stream.", e);
+        } finally {
+            CryptoUtils.zeroize(magicCheck);
+            CryptoUtils.zeroize(headerSalt);
+            CryptoUtils.zeroize(iv);
         }
     }
 

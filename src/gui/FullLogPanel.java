@@ -313,6 +313,25 @@ public final class FullLogPanel extends LogPanel {
     }
 
     /**
+     * Refresh the full log only when this panel is currently visible.
+     * Avoids reparsing and rerendering after saves when the user is not on this tab.
+     */
+    public void refreshIfVisible() {
+        if (isShowing()) {
+            loadFullLog();
+        }
+    }
+
+    /**
+     * Clear cached full-log parsed state and rendered markdown caches.
+     * Used when sensitive runtime state should be dropped immediately.
+     */
+    public void clearRuntimeCaches() {
+        fileLoader.invalidateCache();
+        markdown.MarkdownRenderer.invalidateAllCaches();
+    }
+
+    /**
      * Loads the full log and invokes a callback after triggering the load.
      */
     public void loadFullLog(Runnable onStarted) {
