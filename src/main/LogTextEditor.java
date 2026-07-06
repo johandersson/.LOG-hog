@@ -587,6 +587,9 @@ public final class LogTextEditor extends JFrame {
 
     public void manualLock() {
         synchronized (lockObject) {
+            try {
+                logFileHandler.compactEncryptedJournal();
+            } catch (Exception ignored) {}
             logFileHandler.clearSensitiveData();
             backupManager.clearInMemoryHmacKey();
             fullLogPanel.clearRuntimeCaches();

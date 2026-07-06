@@ -181,13 +181,12 @@ Your password is the only thing that cannot be recovered — write it down and s
 
 ### File Self-Containment and Recovery
 
-Your encrypted log file is **self-contained**: the encryption metadata (salt) is embedded  
-directly in the file header. This means:
+Your encrypted log data keeps its encryption metadata in the file headers, but active storage may now include a small encrypted journal sidecar during editing. This means:
 
 * If you lose your `loghog_settings.properties` file, your data is **not** permanently lost
-* .LOG-hog will automatically recover the salt from the file when you next open it
-* You only need your **password** and the encrypted **log file** to regain full access
-* Reinstalling the app or moving the file to a new machine works seamlessly
+* .LOG-hog will automatically recover the salt from the encrypted file headers when you next open it
+* You need your **password** plus the encrypted snapshot and any journal sidecar still present to regain full access
+* Reinstalling the app or moving the files to a new machine works seamlessly
 
 The only unrecoverable scenario is losing your password.
 
@@ -238,7 +237,7 @@ The only unrecoverable scenario is losing your password.
 ### Performance Note
 
 Encryption introduces a small delay during loading and saving.  
-Decrypted data is read on demand; active UI state and pending edits may still keep plaintext in memory during use.
+Decrypted data is read on demand; active UI state and pending edits may still keep plaintext in memory during use. Incremental appends are buffered into a journal sidecar and compacted back into the main snapshot on lock or after the journal grows.
 
 ***
 

@@ -4,3 +4,4 @@ build/component-inventory-*.txt
 build/loghog-*.jar
 build/run-latest.bat
 build/run-latest.sh
+*.journal.enc

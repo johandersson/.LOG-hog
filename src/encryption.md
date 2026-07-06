@@ -88,11 +88,11 @@ MAGIC(4) | VERSION(1) | SALT-LEN | SALT | IV-LEN | IV | CIPHERTEXT
 
 This structured header enables forward compatibility and safe parsing.
 
-The **salt is embedded in every encrypted file**. This makes each file fully self-contained:
-recovering access requires only the file and the correct password — the settings file
-(`loghog_settings.properties`) is not required. If settings are lost or the app is reinstalled,
-.LOG-hog will automatically extract the salt from the file header on next launch and restore
-the settings file.
+The main encrypted snapshot is the canonical file on disk. Incremental edits are first written to a small encrypted journal sidecar, then compacted back into the snapshot on lock or when the journal grows beyond a threshold.
+
+The **salt is embedded in every encrypted snapshot and journal file**. This means the encryption metadata still travels with the encrypted data, but the active state may now consist of the main snapshot plus a journal sidecar while the file is open.
+
+Recovering access requires the encrypted snapshot, the journal sidecar if one exists, and the correct password — the settings file (`loghog_settings.properties`) is not required. If settings are lost or the app is reinstalled, .LOG-hog will automatically extract the salt from the encrypted file headers on next launch and restore the settings file.
 
 ***
 
@@ -124,6 +124,7 @@ The encryption system is modular and designed with separation of concerns:
 * **EncryptionManager** – orchestrates high-level operations
 * **Encryptor** – AES-GCM and key derivation
 * **FileEncryptionManager** – file I/O integration
+* **EncryptedIncrementalJournal** – incremental encrypted append sidecar and compaction helper
 * **CryptoUtils** – shared security primitives (zeroization, comparison, permissions)
 * **BackupKeyDerivation** – backup-key derivation policy (v2 + legacy compatibility)
 
@@ -134,9 +135,12 @@ flowchart LR
   BK --> V1[Legacy v1 Key]
   V2 --> BM[BackupManager HMAC Sign/Verify]
   V1 --> BM
-  EF[Encrypted file + cache state] --> SG[Save safety guard]
-  SG -->|valid source| EW[Encrypted write]
+  EF[Encrypted snapshot + cache state] --> SG[Save safety guard]
+  SG -->|valid source| EW[Encrypted write or journal append]
   SG -->|invalid source| RW[Refuse write]
+  EW --> J[Encrypted journal sidecar]
+  J --> C[Compaction on lock or threshold]
+  C --> EF
 ```
 
 ***
@@ -174,7 +178,7 @@ flowchart LR
 
 ### File Security
 
-* Full-file encryption at rest
+* Full-file encryption at rest, with incremental appends staged through an encrypted journal sidecar
 * AES-GCM authentication prevents undetected tampering
 * Lock operation clears sensitive data from memory
 

@@ -69,8 +69,7 @@ public class LogHogOptimizationTest {
     }
 
     private static void testBasicOperations() throws Exception {
-        LogFileHandler.setTestFilePath(TEST_FILE_BASIC);
-        LogFileHandler handler = new LogFileHandler();
+        LogFileHandler handler = new LogFileHandler(TEST_FILE_BASIC, EncryptionManager.getInstance());
 
         // Test saving
         utils.Log.info(() -> "  - Testing save operations...");
@@ -92,8 +91,7 @@ public class LogHogOptimizationTest {
     }
 
     private static void testEncryption() throws Exception {
-        LogFileHandler.setTestFilePath(TEST_FILE_ENCRYPT);
-        LogFileHandler handler = new LogFileHandler();
+        LogFileHandler handler = new LogFileHandler(TEST_FILE_ENCRYPT, EncryptionManager.getInstance());
 
         // Ensure file exists first
         if (!java.nio.file.Files.exists(TEST_FILE_ENCRYPT)) {
@@ -137,8 +135,7 @@ public class LogHogOptimizationTest {
     }
 
     private static void testCaching() throws Exception {
-        LogFileHandler.setTestFilePath(TEST_FILE_CACHE);
-        LogFileHandler handler = new LogFileHandler();
+        LogFileHandler handler = new LogFileHandler(TEST_FILE_CACHE, EncryptionManager.getInstance());
 
         // Create fresh file and enable encryption
         if (!java.nio.file.Files.exists(TEST_FILE_CACHE)) {
@@ -177,8 +174,7 @@ public class LogHogOptimizationTest {
     }
 
     private static void testLazySorting() throws Exception {
-        LogFileHandler.setTestFilePath(TEST_FILE_SORT);
-        LogFileHandler handler = new LogFileHandler();
+        LogFileHandler handler = new LogFileHandler(TEST_FILE_SORT, EncryptionManager.getInstance());
 
         // Create unsorted entries
         String[] unsortedEntries = {

@@ -45,12 +45,14 @@ public class EntryEditor {
     private final Path filePath;
     private final FileEncryptionManager encryptionManager;
     private final FileCache cache;
+    private final EncryptedIncrementalJournal incrementalJournal;
     private BackupManager backupManager;
     
     public EntryEditor(Path filePath, FileEncryptionManager encryptionManager, FileCache cache) {
         this.filePath = filePath;
         this.encryptionManager = encryptionManager;
         this.cache = cache;
+        this.incrementalJournal = new EncryptedIncrementalJournal(filePath, encryptionManager);
     }
     
     public void setBackupManager(BackupManager backupManager) {
@@ -68,22 +70,11 @@ public class EntryEditor {
 
         if (encrypted) {
             List<String> cachedLines = getEncryptedWorkingLines();
-            cachedLines.addAll(Arrays.asList(entry.split("\r?\n", -1)));
-            // Restore fullText assignment for encrypted block
-            StringBuilder fullTextBuilder = new StringBuilder();
-            for (String line : cachedLines) {
-                fullTextBuilder.append(line).append(LogFileFormat.INTERNAL_LINE_SEPARATOR);
-            }
-            String fullText = fullTextBuilder.toString();
-            // Ensure .LOG header is present for encrypted files
-            if (!fullText.startsWith(".LOG")) {
-                fullText = ".LOG" + LogFileFormat.INTERNAL_LINE_SEPARATOR + LogFileFormat.INTERNAL_LINE_SEPARATOR + fullText;
-                cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1)));
-            }
-            // Normalize spacing to prevent accumulation of blank lines
+            List<String> entryLines = Arrays.asList(entry.split("\r?\n", -1));
+            cachedLines.addAll(entryLines);
             List<String> normalized = LogFileFormat.normalizeSpacing(cachedLines);
+            incrementalJournal.appendEntryLines(entryLines);
             cache.updateCachedLines(normalized);
-            encryptionManager.encryptFileFromLines(cache.getCachedLines());
         } else {
             // Normalize content lines: remove trailing blank lines from user-supplied text
             List<String> contentLines = Arrays.asList(text.split("\r?\n", -1));
@@ -310,17 +301,22 @@ public class EntryEditor {
             return cachedLines;
         }
 
-        if (!Files.exists(filePath) || Files.size(filePath) == 0L) {
-            return new ArrayList<>();
-        }
-
-        List<String> decryptedLines = encryptionManager.decryptFileToLines();
+        List<String> decryptedLines = incrementalJournal.readMergedLines();
         if (decryptedLines == null || decryptedLines.isEmpty()) {
             throw new IllegalStateException("Refusing encrypted save: source file is non-empty but decrypted content is empty. This prevents accidental overwrite.");
         }
 
         cache.updateCachedLines(decryptedLines);
         return new ArrayList<>(decryptedLines);
+    }
+
+    public List<String> getMergedEncryptedWorkingLines() throws Exception {
+        return getEncryptedWorkingLines();
+    }
+
+    public void compactEncryptedJournal() throws Exception {
+        incrementalJournal.compactNow();
+        cache.clearCachedLines();
     }
     
     /**
@@ -336,6 +332,7 @@ public class EntryEditor {
                 backupManager.createNumberedBackup();
             }
             encryptionManager.encryptFileFromLines(normalized);
+            incrementalJournal.clear();
         } else {
             if (backupManager != null) {
                 backupManager.createNumberedBackup();

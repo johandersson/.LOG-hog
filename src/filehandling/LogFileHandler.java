@@ -480,7 +480,7 @@ public class LogFileHandler implements LogFileOperations {
             throw new IllegalStateException(ENCRYPTED_ONLY_MSG);
         }
 
-        return encryptionManager.decryptFileToLines();
+        return entryEditor.getMergedEncryptedWorkingLines();
     }
 
     /**
@@ -805,6 +805,14 @@ public class LogFileHandler implements LogFileOperations {
 
     public List<String> getRecentLogEntries(int i) {
         return entryLoader.getRecentLogEntries(i);
+    }
+
+    public void compactEncryptedJournal() throws Exception {
+        if (!encrypted) {
+            return;
+        }
+        entryEditor.compactEncryptedJournal();
+        notifyCacheInvalidationListeners();
     }
 
     public void clearSensitiveData() {

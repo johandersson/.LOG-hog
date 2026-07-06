@@ -88,6 +88,14 @@ public class FileEncryptionManager {
         }
     }
 
+    public FileEncryptionManager duplicateFor(Path targetPath) {
+        FileEncryptionManager duplicate = new FileEncryptionManager(targetPath, encryptor);
+        duplicate.encrypted = this.encrypted;
+        duplicate.sessionKeyBytes = this.sessionKeyBytes != null ? this.sessionKeyBytes.clone() : null;
+        duplicate.salt = this.salt != null ? this.salt.clone() : null;
+        return duplicate;
+    }
+
     public void setEncryption(char[] pwd, byte[] slt) throws EncryptionException {
         clearSessionKey();
         SecretKey derivedKey = encryptor.deriveKey(pwd, slt);
