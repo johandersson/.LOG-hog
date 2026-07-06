@@ -8,8 +8,6 @@ When the application starts, the editor is immediately focused so you can begin 
 
 This workflow allows rapid, continuous note-taking with minimal friction.
 
-***
-
 ## ⚡ Lightweight & Cross-Platform
 
 * **Small footprint (\~230 KB)** with no external runtime dependencies
@@ -17,8 +15,6 @@ This workflow allows rapid, continuous note-taking with minimal friction.
 * Runs on **Windows, macOS, and Linux**
 
 The application starts quickly and is designed to be efficient for everyday use.
-
-***
 
 ## 🗂️ .LOG Format Compatibility
 
@@ -39,8 +35,6 @@ It extends this concept with:
 * backups
 * markdown rendering
 
-***
-
 # 🔐 Security Overview
 
 .LOG-hog uses **modern cryptographic techniques and secure coding practices** to protect data at rest.
@@ -57,8 +51,6 @@ It extends this concept with:
 * Static analysis tools used to detect common vulnerability classes
 
 👉 See `encryption.md` for detailed technical information.
-
-***
 
 ## ⚠️ Security Model (Important)
 
@@ -78,8 +70,6 @@ It does **not protect against**:
 * a **trusted system**
 * and a **strong password**
 
-***
-
 ## 📋 Clipboard Security
 
 Sensitive data copied from .LOG-hog is protected with:
@@ -96,8 +86,6 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 
 👉 Always manually clear the clipboard after unexpected termination.
 
-***
-
 # ✨ Key Features
 
 * **Tabbed interface** for writing and browsing logs
@@ -111,8 +99,6 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 * **Backup and restore support**
 * **System tray integration**
 
-***
-
 # ⌨️ Keyboard Shortcuts
 
 * **Ctrl+S** – Save entry
@@ -120,14 +106,10 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 * **Ctrl+R** – Refresh log
 * **Ctrl+F** – Search
 
-***
-
 # 🔎 Filtering Entries
 
 * **Search bar** for keyword filtering
 * **Date range filtering** for time-based queries
-
-***
 
 # 🧩 System Tray Features
 
@@ -135,8 +117,6 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 * Add new entries directly
 * Clipboard control (clear sensitive data)
 * Access clipboard security settings
-
-***
 
 # 💾 Backup and Restore
 
@@ -155,8 +135,6 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 
 Replace your log file manually with a backup file if needed.
 
-***
-
 # 🔐 Encryption
 
 ### Encryption Policy
@@ -164,8 +142,6 @@ Replace your log file manually with a backup file if needed.
 * Encryption is always enabled
 * Requires a strong password
 * Password is never stored on disk
-
-***
 
 ### Security Notes
 
@@ -176,8 +152,6 @@ Replace your log file manually with a backup file if needed.
 ⚠️ **Important:**  
 If you forget your password, your data **cannot** be recovered.  
 Your password is the only thing that cannot be recovered — write it down and store it safely.
-
-***
 
 ### File Self-Containment and Recovery
 
@@ -190,16 +164,12 @@ Your encrypted log data keeps its encryption metadata in the file headers, but a
 
 The only unrecoverable scenario is losing your password.
 
-***
-
 ### Password Recommendations
 
 * Use **20+ characters**
 * Prefer random or passphrase-based passwords
 * Avoid reuse across services
 * Use a password manager
-
-***
 
 ### Password Generator
 
@@ -209,22 +179,16 @@ The only unrecoverable scenario is losing your password.
 * Diceware-style passphrases
 * Strength indicator
 
-***
-
 ### Password Dialog
 
 * Type your password in the masked field
 * Click the **eye button** (or hold **ESC**) to peek at the password while typing — release to re-mask it
 * Press **Enter** to confirm, **Cancel** to abort
 
-***
-
 ### Usage
 
 * Password is required on application startup
 * Failed attempts trigger increasing delays and keep the file locked after repeated failures
-
-***
 
 ### Lock / Unlock
 
@@ -232,22 +196,16 @@ The only unrecoverable scenario is losing your password.
 * Unlock requires password re-entry
 * Unlock from any view: click the **Unlock** link in the locked entry or log list area, or use the **Unlock File** button in the Full Log tab
 
-***
-
 ### Performance Note
 
 Encryption introduces a small delay during loading and saving.  
 Decrypted data is read on demand; active UI state and pending edits may still keep plaintext in memory during use. Incremental appends are buffered into a journal sidecar and compacted back into the main snapshot on lock or after the journal grows.
-
-***
 
 # ✏️ Editing Entries
 
 * **Edit Timestamp** via right-click
 * **Delete Entries** with confirmation
 * **Copy to clipboard** (with auto-clear protection)
-
-***
 
 # 🔗 Links
 
@@ -263,8 +221,6 @@ http://example.com
 file:///path/to/file
 ```
 
-***
-
 # 📝 Markdown Support
 
 Supported formatting:
@@ -278,21 +234,15 @@ Supported formatting:
 
 Rendering applies in the Full Log view.
 
-***
-
 # ⚙️ Performance Notes
 
 * Large logs are partially rendered for responsiveness
 * Use filters to access older entries
 
-***
-
 # 📄 License
 
 .LOG-hog is licensed under **GPL v3**.  
 See `LICENSE.md` for details.
-
-***
 
 # 📦 Repository
 
@@ -301,4 +251,3 @@ GitHub:
 
 Production builds now use timestamped artifact names, e.g. `loghog-2026-07-06-18_15.jar`.
 
-***

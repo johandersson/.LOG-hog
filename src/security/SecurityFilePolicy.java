@@ -82,8 +82,18 @@ public final class SecurityFilePolicy {
             File f = path.toFile();
             boolean readable = f.setReadable(true, true);
             boolean writable = f.setWritable(true, true);
-            // Directories require owner execute for traversal on many filesystems.
-            boolean executable = f.isDirectory() ? f.setExecutable(true, true) : f.setExecutable(false, false);
+            // Directories need execute/traverse. For regular files, execute bit is not security-critical
+            // and may be unsupported or immutable on some filesystems (especially on Windows).
+            boolean executable = true;
+            if (f.isDirectory()) {
+                executable = f.setExecutable(true, true) || f.canExecute();
+            } else {
+                try {
+                    f.setExecutable(false, false);
+                } catch (Exception ignored) {
+                    // Best effort only for regular files.
+                }
+            }
             return readable && writable && executable;
         } catch (Exception ignored) {
             return false;

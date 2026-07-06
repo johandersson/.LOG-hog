@@ -37,6 +37,8 @@ import javax.swing.text.StyledDocument;
 public class MarkdownFormatter {
     
     private static final Pattern LINK_PATTERN = Pattern.compile("\\[([^\\]]+)\\]\\(([^\\)]+)\\)");
+    private static final Pattern AUTOLINK_PATTERN = Pattern.compile("<((?:https?|file)://[^>\\s]+)>");
+    private static final Pattern PLAIN_URL_PATTERN = Pattern.compile("(?<![\\]\\)\\w])(https?://[^\\s<]+|file:///[^\\s<]+)");
     private static final Pattern BOLD_PATTERN = Pattern.compile("\\*\\*(.*?)\\*\\*");
     private static final Pattern ITALIC_PATTERN = Pattern.compile("\\*(.*?)\\*");
     private static final Pattern INLINE_CODE_PATTERN = Pattern.compile("`([^`]*)`");
@@ -112,6 +114,29 @@ public class MarkdownFormatter {
             elements.add(new FormattedElement(linkMatcher.start(), linkMatcher.end(), 
                 "link", display, target));
         }
+
+        // Find angle-bracket autolinks, e.g. <http://example.com>
+        Matcher autoLinkMatcher = AUTOLINK_PATTERN.matcher(line);
+        while (autoLinkMatcher.find()) {
+            int start = autoLinkMatcher.start();
+            int end = autoLinkMatcher.end();
+            if (!overlapsExisting(elements, start, end)) {
+                String target = autoLinkMatcher.group(1);
+                elements.add(new FormattedElement(start, end, "link", target, target));
+            }
+        }
+
+        // Find plain URLs not already part of another markdown token
+        Matcher plainUrlMatcher = PLAIN_URL_PATTERN.matcher(line);
+        while (plainUrlMatcher.find()) {
+            int start = plainUrlMatcher.start();
+            int end = plainUrlMatcher.end();
+            if (!overlapsExisting(elements, start, end)) {
+                String target = trimTrailingUrlPunctuation(plainUrlMatcher.group(1));
+                int adjustedEnd = start + target.length();
+                elements.add(new FormattedElement(start, adjustedEnd, "link", target, target));
+            }
+        }
         
         // Find inline code
         Matcher codeMatcher = INLINE_CODE_PATTERN.matcher(line);
@@ -131,6 +156,31 @@ public class MarkdownFormatter {
         elements.sort(Comparator.comparingInt(FormattedElement::start));
         
         return elements;
+    }
+
+    private static boolean overlapsExisting(List<FormattedElement> elements, int start, int end) {
+        for (FormattedElement elem : elements) {
+            if (start < elem.end && end > elem.start) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String trimTrailingUrlPunctuation(String url) {
+        if (url == null || url.isEmpty()) {
+            return "";
+        }
+        int end = url.length();
+        while (end > 0) {
+            char c = url.charAt(end - 1);
+            if (c == '.' || c == ',' || c == ';' || c == ':' || c == '!' || c == '?') {
+                end--;
+                continue;
+            }
+            break;
+        }
+        return url.substring(0, end);
     }
     
     /**

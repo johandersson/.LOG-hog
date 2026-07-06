@@ -104,8 +104,7 @@ public final class InformationPanel extends JPanel {
                 try {
                     String informationTextToDisplay = get();
                     java.util.List<String> lines = informationTextToDisplay == null ? java.util.List.of() : informationTextToDisplay.lines().toList();
-                    // Use the same markdown rendering pipeline as Full Log/other views for consistency.
-                    MarkdownRenderer.renderMarkdown(textPane, lines, false);
+                    MarkdownRenderer.renderMarkdownDocument(textPane, lines);
                     LinkHandler.addLinkListeners(textPane);
                     textPane.setCaretPosition(0);
                 } catch (InterruptedException ie) {

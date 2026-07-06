@@ -110,6 +110,26 @@ public class MarkdownRenderer {
     }
 
     /**
+     * Render markdown as a single document entry (for help/about screens).
+     * Uses the full markdown renderer but avoids log-entry parsing assumptions.
+     */
+    public static void renderMarkdownDocument(JTextPane pane, List<String> lines) {
+        javax.swing.text.DefaultStyledDocument newDoc = new javax.swing.text.DefaultStyledDocument();
+        Map<String, Style> styles = createStyles(newDoc);
+        try {
+            List<List<String>> entries = new ArrayList<>();
+            if (lines != null && !lines.isEmpty()) {
+                entries.add(new ArrayList<>(lines));
+            }
+            renderEntries(entries, newDoc, styles);
+        } catch (BadLocationException e) {
+            throw new RuntimeException("Error rendering markdown document", e);
+        }
+        pane.setDocument(newDoc);
+        pane.setCaretPosition(0);
+    }
+
+    /**
      * Render markdown directly without parsing into entries (for help/about text).
      * Treats the entire content as a single entry to avoid extra spacing between sections.
      */
@@ -383,7 +403,7 @@ public class MarkdownRenderer {
             boolean isTimestamp = (i == 0) && isTimestampLine(line);
             boolean isCodeBlockMarker = "```".equals(line.trim());
             boolean isBlank = line.isBlank();
-            boolean isList = line.startsWith("- ");
+            boolean isList = isUnorderedListLine(line);
             boolean isQuote = line.startsWith(">");
             boolean isHeading = isHeadingLine(line);
 
@@ -504,13 +524,21 @@ public class MarkdownRenderer {
         List<String> listLines = new ArrayList<>();
         for (int j = startIndex; j < entry.size(); j++) {
             String line = entry.get(j);
-            if (line.startsWith("- ")) {
+            if (isUnorderedListLine(line)) {
                 listLines.add(line);
             } else if (!line.isBlank()) {
                 break;
             }
         }
         return listLines;
+    }
+
+    private static boolean isUnorderedListLine(String line) {
+        if (line == null || line.length() < 2) {
+            return false;
+        }
+        char marker = line.charAt(0);
+        return (marker == '-' || marker == '*' || marker == '+') && line.charAt(1) == ' ';
     }
 
     private static List<String> collectQuoteLines(int startIndex, List<String> entry) {
