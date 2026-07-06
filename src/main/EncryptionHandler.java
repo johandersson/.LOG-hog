@@ -223,9 +223,7 @@ public class EncryptionHandler {
             }
             char[] pwd = result.password;
             if (pwd == null) {
-                if (exitOnCancel) {
-                    System.exit(0);
-                }
+                // Treat cancel as a non-fatal abort; caller decides whether to keep app locked.
                 return false; // User cancelled
             }
             try {
@@ -265,7 +263,7 @@ public class EncryptionHandler {
                 attempts++;
                 if (attempts >= 4) {
                     DialogHelper.showError(parentFrame, "Security Error", "🚫 Security Lock", "Too many failed password attempts.<br>The application is now locked for security.<br><br>Please restart the application to try again.");
-                    System.exit(0);
+                    return false;
                 }
                 
                 String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
@@ -318,9 +316,6 @@ public class EncryptionHandler {
                 } else {
                     // For non-authentication errors, show error and exit/return
                     logFileHandler.showErrorDialog("<html><b>📁 Load Failed</b><br><br>Unable to load log entries due to a file error.<br><br><i>Technical details: " + e.getClass().getSimpleName() + "</i><br><br><i>Tip: The file may be corrupted. Try restoring from a backup.</i></html>");
-                    if (exitOnCancel) {
-                        System.exit(0);
-                    }
                     return false; // Don't retry on non-authentication errors
                 }
             }

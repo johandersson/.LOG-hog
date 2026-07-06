@@ -31,8 +31,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.nio.CharBuffer;
-import java.security.MessageDigest;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
@@ -44,6 +42,7 @@ import javax.swing.SwingUtilities;
 
 import gui.DialogHelper;
 import gui.LoadingProgressDialog;
+import security.BackupKeyDerivation;
 
 /**
  * Manages automatic and manual backups of log files.
@@ -388,6 +387,7 @@ public class BackupManager {
         * For unencrypted files, a random in-memory session key is generated on first use.
      */
     private byte[] inMemoryHmacKey = null;
+    private byte[] legacyInMemoryHmacKey = null;
 
     /**
      * Derives and stores the backup HMAC key from the user's credentials.
@@ -396,23 +396,11 @@ public class BackupManager {
      * be computed without knowing the password — nothing sensitive is stored in settings.
      */
     public void deriveAndSetHmacKey(char[] password, byte[] salt) {
-        java.nio.ByteBuffer pwdBuf = java.nio.charset.StandardCharsets.UTF_8
-                .encode(CharBuffer.wrap(password));
-        byte[] pwdBytes = new byte[pwdBuf.remaining()];
-        pwdBuf.get(pwdBytes);
-        try {
-            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-            sha256.update(pwdBytes);
-            sha256.update(salt);
-            sha256.update("loghog-backup-hmac-v1".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            byte[] derived = sha256.digest();
-            clearInMemoryHmacKey();
-            inMemoryHmacKey = derived;
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
-        } finally {
-            java.util.Arrays.fill(pwdBytes, (byte) 0);
-        }
+        byte[] derivedV2 = BackupKeyDerivation.deriveV2(password, salt);
+        byte[] derivedLegacy = BackupKeyDerivation.deriveLegacyV1(password, salt);
+        clearInMemoryHmacKey();
+        inMemoryHmacKey = derivedV2;
+        legacyInMemoryHmacKey = derivedLegacy;
     }
 
     /**
@@ -422,6 +410,10 @@ public class BackupManager {
         if (inMemoryHmacKey != null) {
             java.util.Arrays.fill(inMemoryHmacKey, (byte) 0);
             inMemoryHmacKey = null;
+        }
+        if (legacyInMemoryHmacKey != null) {
+            java.util.Arrays.fill(legacyInMemoryHmacKey, (byte) 0);
+            legacyInMemoryHmacKey = null;
         }
     }
 
@@ -438,8 +430,7 @@ public class BackupManager {
         }
 
         // Generate a random in-memory key for the current session (unencrypted-file path)
-        byte[] newKey = new byte[32];
-        new java.security.SecureRandom().nextBytes(newKey);
+        byte[] newKey = BackupKeyDerivation.randomSessionKey();
         inMemoryHmacKey = newKey;
         return java.util.Arrays.copyOf(inMemoryHmacKey, inMemoryHmacKey.length);
     }
@@ -457,6 +448,10 @@ public class BackupManager {
             byte[] key = getOrCreateHmacKey();
             boolean sizeMatch = orig.length == backupData.length;
             boolean hmacMatch = HmacUtils.verifyHmacSha256(key, backupData, backupHmac);
+            if (!hmacMatch && legacyInMemoryHmacKey != null) {
+                byte[] legacyKey = java.util.Arrays.copyOf(legacyInMemoryHmacKey, legacyInMemoryHmacKey.length);
+                hmacMatch = HmacUtils.verifyHmacSha256(legacyKey, backupData, backupHmac);
+            }
             return sizeMatch && hmacMatch;
         } catch (Exception e) {
             return false;

@@ -17,6 +17,7 @@
 
 package filehandling;
 
+import java.util.Base64;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -133,17 +134,11 @@ public class DialogHandler {
         if (choice == 0) {
             // Create new file
             try {
-                Files.createDirectories(filePath.getParent());
-                Files.writeString(filePath, ".LOG" + LogFileFormat.LINE_SEPARATOR + LogFileFormat.LINE_SEPARATOR);
-                DialogHelper.showSuccess(
-                    null,
-                    "Success",
-                    "File Created",
-                    "New log file created successfully!<br><br>" +
-                    "Location: <b>" + filePath + "</b>"
-                );
-                // Inform user that new file will NOT be encrypted until they enable encryption
-                DialogHelper.showInfo(null, "New File Created", "Not Encrypted", "The new log file is currently unencrypted. You must enable encryption in Settings to encrypt it.");
+                if (!createEncryptedLogFile(filePath)) {
+                    return false;
+                }
+                DialogHelper.showSuccess(null, "Success", "Encrypted File Created",
+                    "New encrypted log file created successfully!<br><br>Location: <b>" + filePath + "</b>");
                 lastMissingFileAction = MissingFileAction.CREATED;
                 if (onInvalidateCache != null) onInvalidateCache.run();
                 return true;
@@ -228,6 +223,7 @@ public class DialogHandler {
                                         return;
                                     }
                                     Files.copy(sel, filePath, StandardCopyOption.REPLACE_EXISTING);
+                                        security.SecurityFilePolicy.ensureOwnerOnlyPermissions(filePath);
                             if (onInvalidateCache != null) onInvalidateCache.run();
                             lastMissingFileAction = MissingFileAction.COPIED;
                             success.set(true);
@@ -323,6 +319,7 @@ public class DialogHandler {
                         return;
                     }
                     Files.copy(b, filePath, StandardCopyOption.REPLACE_EXISTING);
+                    security.SecurityFilePolicy.ensureOwnerOnlyPermissions(filePath);
                     if (onInvalidateCache != null) onInvalidateCache.run();
                     success.set(true);
                 } catch (Exception e) {
@@ -400,5 +397,54 @@ public class DialogHandler {
             throw new RuntimeException(exRef.get());
         }
         return result.get();
+    }
+
+    private static boolean createEncryptedLogFile(Path filePath) {
+        try (gui.PasswordDialog.PasswordResult pwdResult = gui.PasswordDialog.showPasswordDialog(
+                null,
+                "Create Password",
+                "Create a password to protect your new log file.",
+                true)) {
+            char[] pwd = pwdResult.password;
+            if (pwd == null || pwd.length == 0) {
+                return false;
+            }
+
+            Files.createDirectories(filePath.getParent());
+            encryption.EncryptionManager em = encryption.EncryptionManager.getInstance();
+            byte[] salt = em.generateSalt();
+            String initialContent = ".LOG" + LogFileFormat.LINE_SEPARATOR + LogFileFormat.LINE_SEPARATOR;
+            byte[] encrypted = em.encrypt(initialContent, pwd, salt);
+            Files.write(filePath, encrypted);
+            security.SecurityFilePolicy.ensureOwnerOnlyPermissions(filePath);
+
+            persistEncryptionSettings(salt);
+            return true;
+        } catch (Exception e) {
+            showErrorDialog("<html><b>Encryption Setup Failed</b><br><br>Unable to initialize encrypted file.</html>");
+            return false;
+        }
+    }
+
+    private static void persistEncryptionSettings(byte[] salt) {
+        if (salt == null) return;
+        try {
+            Path settingsPath = Path.of(System.getProperty("user.home"), "loghog_settings.properties");
+            java.util.Properties props = new java.util.Properties();
+            if (Files.exists(settingsPath)) {
+                try (java.io.InputStream in = Files.newInputStream(settingsPath)) {
+                    props.load(in);
+                }
+            }
+            props.setProperty("encrypted", "true");
+            props.setProperty("salt", Base64.getEncoder().encodeToString(salt));
+            props.setProperty("requireEncryptionForNewFiles", "true");
+            try (java.io.OutputStream out = Files.newOutputStream(settingsPath)) {
+                props.store(out, "LogHog settings");
+            }
+            security.SecurityFilePolicy.ensureOwnerOnlyPermissions(settingsPath);
+        } catch (Exception ignored) {
+            // best effort
+        }
     }
 }

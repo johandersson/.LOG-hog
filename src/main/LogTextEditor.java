@@ -24,6 +24,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.util.Base64;
 import java.util.ArrayList;
 
 import javax.swing.AbstractAction;
@@ -50,6 +51,7 @@ import gui.NavItem;
 import gui.SettingsPanel;
 import gui.SystemTrayMenu;
 import gui.LoadingProgressDialog;
+import security.SecurityFilePolicy;
 
 public class LogTextEditor extends JFrame {
 
@@ -445,6 +447,10 @@ public class LogTextEditor extends JFrame {
         if (java.nio.file.Files.exists(settingsPath)) {
             try (java.io.InputStream fis = java.nio.file.Files.newInputStream(settingsPath)) {
                 settings.load(fis);
+                if (settings.getProperty("requireEncryptionForNewFiles") == null) {
+                    settings.setProperty("requireEncryptionForNewFiles", "true");
+                    saveSettings();
+                }
                 settingsPanel.loadCurrentSettings();
                 // Show splash screen on startup if enabled
                 if ("true".equals(settings.getProperty("showSplashOnStartup", "true"))) {
@@ -454,6 +460,12 @@ public class LogTextEditor extends JFrame {
                 logFileHandler.setBackupDirectory(backupDir);
                 String enc = settings.getProperty("encrypted");
                 boolean dataLoaded = false;
+                if (!java.nio.file.Files.exists(logFileHandler.getFilePath())
+                    && !"true".equals(enc)
+                    && isEncryptionRequiredForNewFiles()) {
+                    bootstrapEncryptedLogIfNeeded();
+                    enc = settings.getProperty("encrypted");
+                }
                 if ("true".equals(enc)) {
                     dataLoaded = encryptionHandler.handleEncryptionSetup();
                 } else if (java.nio.file.Files.exists(logFileHandler.getFilePath())
@@ -463,6 +475,10 @@ public class LogTextEditor extends JFrame {
                     // loading binary ciphertext as plain text (which causes double error dialogs).
                     settings.setProperty("encrypted", "true");
                     dataLoaded = encryptionHandler.handleEncryptionSetup();
+                }
+                if ("true".equals(settings.getProperty("encrypted", "false")) && !dataLoaded) {
+                    setLocked(true);
+                    return;
                 }
                 if (!dataLoaded) {
                     LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
@@ -495,6 +511,11 @@ public class LogTextEditor extends JFrame {
                 logFileHandler.showErrorDialog("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
             }
         } else {
+            settings.setProperty("requireEncryptionForNewFiles", "true");
+            if (!java.nio.file.Files.exists(logFileHandler.getFilePath()) && isEncryptionRequiredForNewFiles()) {
+                bootstrapEncryptedLogIfNeeded();
+            }
+
             LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
             if (java.nio.file.Files.exists(logFileHandler.getFilePath())) {
                 progressDialog.setStatus("Loading log entries...");
@@ -521,9 +542,59 @@ public class LogTextEditor extends JFrame {
     private void saveSettings() {
         try (java.io.OutputStream fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
+            SecurityFilePolicy.ensureOwnerOnlyPermissions(settingsPath);
         } catch (Exception e) {
             // Security: Don't expose exception details (Guideline 2-1)
             logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to save application settings.<br><br><i>Tip: Settings may not persist between sessions.</i></html>");
+        }
+    }
+
+    private boolean isEncryptionRequiredForNewFiles() {
+        return "true".equals(settings.getProperty("requireEncryptionForNewFiles", "true"));
+    }
+
+    private void bootstrapEncryptedLogIfNeeded() {
+        Object[] options = {"Create Encrypted", "Cancel"};
+        int choice = DialogHelper.showOptions(
+            this,
+            "Secure Setup",
+            "No Log File Found",
+            "For better security, create an encrypted log file now.",
+            JOptionPane.QUESTION_MESSAGE,
+            options,
+            options[0]
+        );
+
+        if (choice != 0) {
+            return;
+        }
+
+        try (gui.PasswordDialog.PasswordResult pwdResult =
+                 gui.PasswordDialog.showPasswordDialog(this,
+                     "Create Encryption Password",
+                     "Create a password to protect your new log file.",
+                     true)) {
+            char[] password = pwdResult.password;
+            if (password == null || password.length == 0) {
+                return;
+            }
+
+            java.nio.file.Path logPath = logFileHandler.getFilePath();
+            java.nio.file.Files.createDirectories(logPath.getParent());
+            if (!java.nio.file.Files.exists(logPath)) {
+                java.nio.file.Files.writeString(logPath, ".LOG\n\n");
+                SecurityFilePolicy.ensureOwnerOnlyPermissions(logPath);
+            }
+
+            logFileHandler.enableEncryption(password);
+            byte[] salt = logFileHandler.getSalt();
+            if (salt != null) {
+                settings.setProperty("encrypted", "true");
+                settings.setProperty("salt", Base64.getEncoder().encodeToString(salt));
+                saveSettings();
+            }
+        } catch (Exception e) {
+            logFileHandler.showErrorDialog("<html><b>🔐 Encryption Setup Failed</b><br><br>Unable to initialize encrypted storage.<br><br><i>Tip: You can retry from Settings.</i></html>");
         }
     }
 

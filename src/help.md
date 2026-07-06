@@ -25,7 +25,7 @@ The application starts quickly and is designed to be efficient for everyday use.
 .LOG-hog is fully compatible with standard `.LOG` files.
 
 * Open an existing `.LOG` file and continue working immediately
-* Your data remains **plain text by default**, editable in any text editor
+* New files are created **encrypted by default** (existing plain-text `.LOG` files remain supported)
 * Advanced features (encryption, search, formatting) are layered on top
 
 ### About the Format
@@ -222,7 +222,7 @@ The only unrecoverable scenario is losing your password.
 ### Usage
 
 * Password is required on application startup
-* Failed attempts trigger increasing delays
+* Failed attempts trigger increasing delays and keep the file locked after repeated failures
 
 ***
 
@@ -254,7 +254,7 @@ Decrypted data is read on demand; active UI state and pending edits may still ke
 You can include:
 
 * URLs
-* Local file links
+* Local file links (opening executable/script-like files requires explicit confirmation)
 
 Example:
 
@@ -298,5 +298,7 @@ See `LICENSE.md` for details.
 
 GitHub:  
 <http://github.com/johandersson/.LOG-hog>
+
+Production builds now use timestamped artifact names, e.g. `loghog-2026-07-06-18_15.jar`.
 
 ***

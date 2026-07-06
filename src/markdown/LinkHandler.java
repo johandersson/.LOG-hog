@@ -28,6 +28,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTextPane;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.StyledDocument;
+import security.LinkOpenPolicy;
 
 public class LinkHandler {
 
@@ -127,6 +128,15 @@ public class LinkHandler {
             return;
         }
 
+        java.nio.file.Path target = file.toPath();
+        if (!LinkOpenPolicy.isSafeToOpen(target)) {
+            showLinkError(pane, "Cannot open this file due to security policy.");
+            return;
+        }
+        if (LinkOpenPolicy.isLikelyExecutable(target) && !confirmHighRiskFileOpen(pane, target)) {
+            return;
+        }
+
         // Try to open the file
         try {
             Desktop.getDesktop().open(file);
@@ -220,5 +230,19 @@ public class LinkHandler {
         // Find the parent window to show the error dialog
         java.awt.Window parent = javax.swing.SwingUtilities.getWindowAncestor(pane);
         gui.DialogHelper.showError(parent, "Link Error", message);
+    }
+
+    private static boolean confirmHighRiskFileOpen(JTextPane pane, java.nio.file.Path target) {
+        java.awt.Window parent = javax.swing.SwingUtilities.getWindowAncestor(pane);
+        int choice = gui.DialogHelper.showOptions(
+            parent,
+            "Security Confirmation",
+            "Open Potentially Executable File",
+            "This file type can execute code. Open only if you trust the source.<br><br><b>File:</b> " + target.getFileName(),
+            javax.swing.JOptionPane.WARNING_MESSAGE,
+            new Object[] {"Open", "Cancel"},
+            "Cancel"
+        );
+        return choice == 0;
     }
 }

@@ -32,8 +32,20 @@ if %errorlevel% neq 0 (
 REM Create the JAR file in the src/build directory (single artifact)
 if not exist "%~dp0build" mkdir "%~dp0build"
 REM Include compiled classes, resource directory and any top-level text resources
-REM Use a stable jar filename (no date suffix)
-set "JAR_NAME=loghog.jar"
+for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format \"yyyy-MM-dd-HH_mm\""') do set "BUILD_TS=%%i"
+if "%BUILD_TS%"=="" set "BUILD_TS=unknown"
+set "JAR_NAME=loghog-%BUILD_TS%.jar"
 jar cvfm "%~dp0build\%JAR_NAME%" manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class markdown/*.class main/*.class services/*.class utils/*.class resources/ *.txt resources/*
+
+set "INVENTORY_FILE=%~dp0build\component-inventory-%BUILD_TS%.txt"
+echo Build Timestamp: %BUILD_TS%> "%INVENTORY_FILE%"
+echo Artifact: %JAR_NAME%>> "%INVENTORY_FILE%"
+echo Runtime: Pure JDK (no external runtime dependencies)>> "%INVENTORY_FILE%"
+echo.>> "%INVENTORY_FILE%"
+echo Java Version:>> "%INVENTORY_FILE%"
+java -version 2>> "%INVENTORY_FILE%"
+echo.>> "%INVENTORY_FILE%"
+echo Source Inventory:>> "%INVENTORY_FILE%"
+for /f %%c in ('dir /s /b *.java ^| find /c /v ""') do echo Java Files: %%c>> "%INVENTORY_FILE%"
 popd
 echo Production build completed: %~dp0build\%JAR_NAME%

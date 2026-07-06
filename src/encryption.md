@@ -95,6 +95,8 @@ the settings file.
 ### Backup Integrity
 
 Backups include an **HMAC-SHA256** for integrity verification.  
+The backup signing key now uses a stronger **PBKDF2-HMAC-SHA256 derived key (v2)** from password+salt.
+A legacy verifier remains in place for backward compatibility with older backup signatures.
 Integrity is verified immediately after backup creation.
 
 ***
@@ -119,6 +121,16 @@ The encryption system is modular and designed with separation of concerns:
 * **Encryptor** – AES-GCM and key derivation
 * **FileEncryptionManager** – file I/O integration
 * **CryptoUtils** – shared security primitives (zeroization, comparison, permissions)
+* **BackupKeyDerivation** – backup-key derivation policy (v2 + legacy compatibility)
+
+```mermaid
+flowchart LR
+  P[Password + Salt] --> BK[BackupKeyDerivation]
+  BK --> V2[PBKDF2 v2 Key]
+  BK --> V1[Legacy v1 Key]
+  V2 --> BM[BackupManager HMAC Sign/Verify]
+  V1 --> BM
+```
 
 ***
 
@@ -138,7 +150,7 @@ The encryption system is modular and designed with separation of concerns:
 
 * Progressive delays (3s → 15s → 30s)
 * Randomized delay variation to reduce predictability
-* Maximum attempt limit with restart requirement
+* Maximum attempt limit keeps encrypted content locked without forcing process termination
 
 ***
 

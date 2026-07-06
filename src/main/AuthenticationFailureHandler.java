@@ -35,7 +35,6 @@ public final class AuthenticationFailureHandler {
                     DialogHelper.showError(parentFrame, "Security Error", "🚫 Security Lock", "Too many failed password attempts.<br>The application is now locked for security.<br><br>Please restart the application to try again.");
                 }
             } catch (Exception ignore) {}
-            System.exit(0);
             return false;
         }
 
@@ -118,9 +117,7 @@ public final class AuthenticationFailureHandler {
             }
         } catch (Exception ignore) {}
 
-        if (exitOnCancel) {
-            System.exit(0);
-        }
+        // Keep app alive on non-auth failures; caller can keep UI locked.
         return false;
     }
 }
