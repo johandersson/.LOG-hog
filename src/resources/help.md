@@ -24,8 +24,8 @@ The application starts quickly and is designed to be efficient for everyday use.
 
 .LOG-hog is fully compatible with standard `.LOG` files.
 
-* Open an existing `.LOG` file and continue working immediately
-* New files are created **encrypted by default** (existing plain-text `.LOG` files remain supported)
+* Open your existing encrypted log file and continue working immediately
+* New files are created **encrypted**
 * Advanced features (encryption, search, formatting) are layered on top
 
 ### About the Format
@@ -35,7 +35,7 @@ It extends this concept with:
 
 * structured entries
 * search and filtering
-* optional encryption
+* always-on encryption
 * backups
 * markdown rendering
 
@@ -52,7 +52,7 @@ It extends this concept with:
 * Progressive delay on failed password attempts
 * Sensitive data stored in memory as mutable arrays and cleared after use
 * Clipboard auto-clearing for sensitive content
-* Optional encrypted backups
+* Encrypted backups
 * Secure file handling and path validation
 * Static analysis tools used to detect common vulnerability classes
 
@@ -105,7 +105,7 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 * **Advanced search and filtering**
 * **Single-instance enforcement**
 * **Right-click actions** (edit date, delete, copy)
-* **Optional encryption**
+* **Always-on encryption**
 * **Manual lock / unlock**
 * **Backup and restore support**
 * **System tray integration**
@@ -142,7 +142,7 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 ### Backups
 
 * Manual backup from Settings
-* Optional automatic backups
+* Automatic backups (optional)
 * Backups preserve encryption state
 
 ### Important Notes
@@ -158,9 +158,9 @@ Replace your log file manually with a backup file if needed.
 
 # 🔐 Encryption
 
-### Enabling Encryption
+### Encryption Policy
 
-* Enable from the Settings tab
+* Encryption is always enabled
 * Requires a strong password
 * Password is never stored on disk
 

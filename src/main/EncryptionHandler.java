@@ -32,6 +32,7 @@ import gui.LoadingProgressDialog;
 import gui.PasswordDialog;
 import gui.SecurityDelayDialog;
 import security.AuthenticationFailureClassifier;
+import security.PersistentAuthLockout;
 
 /**
  * Handles encryption setup, password authentication, and related security operations.
@@ -211,6 +212,17 @@ public class EncryptionHandler {
     private boolean performPasswordAuthentication(byte[] salt, String dialogTitle, boolean exitOnCancel) {
         boolean success = false;
         int attempts = 0;
+
+        long remainingLockoutMs = PersistentAuthLockout.getRemainingLockoutMillis(settings);
+        if (remainingLockoutMs > 0) {
+            long minutes = Math.max(1L, (remainingLockoutMs + 59999L) / 60000L);
+            DialogHelper.showError(parentFrame,
+                "Security Lock",
+                "Account Temporarily Locked",
+                "Too many failed attempts were detected.<br><br>Please wait about " + minutes + " minute(s) and try again.");
+            return false;
+        }
+
         while (!success) {
             PasswordDialog.PasswordResult result;
             // Ensure the password dialog is shown on the EDT regardless of caller thread
@@ -246,6 +258,12 @@ public class EncryptionHandler {
                     loadLogEntriesCallback.run();
                     success = true;
 
+                    PersistentAuthLockout.clear(settings);
+                    try {
+                        if (saveSettingsCallback != null) saveSettingsCallback.run();
+                    } catch (Exception ignored) {
+                    }
+
                     // Derive the backup HMAC key from credentials so it is never stored in settings.
                     // The key is only computable with the correct password.
                     backupManager.deriveAndSetHmacKey(pwd, salt);
@@ -266,6 +284,22 @@ public class EncryptionHandler {
                 java.util.Arrays.fill(pwd, '\0');
                 
                 attempts++;
+                PersistentAuthLockout.registerFailure(settings);
+                try {
+                    if (saveSettingsCallback != null) saveSettingsCallback.run();
+                } catch (Exception ignored) {
+                }
+
+                long lockoutNow = PersistentAuthLockout.getRemainingLockoutMillis(settings);
+                if (lockoutNow > 0) {
+                    long minutes = Math.max(1L, (lockoutNow + 59999L) / 60000L);
+                    DialogHelper.showError(parentFrame,
+                        "Security Lock",
+                        "Account Temporarily Locked",
+                        "Too many failed attempts were detected.<br><br>Please wait about " + minutes + " minute(s) before trying again.");
+                    return false;
+                }
+
                 if (attempts >= 4) {
                     DialogHelper.showError(parentFrame, "Security Error", "🚫 Security Lock", "Too many failed password attempts.<br>The application is now locked for security.<br><br>Please restart the application to try again.");
                     return false;

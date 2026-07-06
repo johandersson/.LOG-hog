@@ -57,10 +57,12 @@ public final class PasswordDialog extends JDialog {
     private boolean visible; // default false, no initializer needed
     private String customMessage;
     private PasswordStrengthIndicator strengthIndicator;
+    private final boolean enforceStrongPolicy;
 
     public PasswordDialog(Frame parent, String title, String customMessage, boolean showStrength) {
         super(parent, title, true);
         this.customMessage = customMessage;
+        this.enforceStrongPolicy = showStrength;
         initComponents(showStrength);
         
         // SECURITY: Set close operation to dispose to ensure cleanup
@@ -203,7 +205,19 @@ public final class PasswordDialog extends JDialog {
         cancelButton = new StandardButton("Cancel", new Color(0xE0E0E0), new Color(0xB0B0B0));
 
         okButton.addActionListener(e -> {
-            password = passwordField.getPassword();
+            char[] candidate = passwordField.getPassword();
+            if (enforceStrongPolicy) {
+                String policyError = security.PasswordPolicy.validateForNewEncryption(candidate);
+                if (policyError != null) {
+                    javax.swing.JOptionPane.showMessageDialog(this,
+                        policyError,
+                        "Password Too Weak",
+                        javax.swing.JOptionPane.WARNING_MESSAGE);
+                    java.util.Arrays.fill(candidate, '\0');
+                    return;
+                }
+            }
+            password = candidate;
             setVisible(false);
         });
 

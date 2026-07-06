@@ -574,9 +574,8 @@ public final class SettingsPanel extends JPanel {
                             statusLabel.setText("Encryption enabled successfully.");
                             statusLabel.setForeground(Color.BLUE);
 
-                            // Arrange to show completion state; only after the user clicks OK
-                            // will we offer cleanup of old unencrypted backups.
-                            progressDialog.setOnOkCallback(() -> cleanupOldUnencryptedBackups());
+                            // Arrange to show completion state and silently clean up legacy .bak files.
+                            progressDialog.setOnOkCallback(SettingsPanel.this::cleanupLegacyBackupsSilently);
                             progressDialog.showCompletion();
 
                             // Perform automatic backup after successful encryption
@@ -605,7 +604,7 @@ public final class SettingsPanel extends JPanel {
         }.execute();
     }
 
-    private void cleanupOldUnencryptedBackups() {
+    private void cleanupLegacyBackupsSilently() {
         try {
             String backupDirStr = backupManager.getAutoBackupDirectory();
             Path backupDir = java.nio.file.Paths.get(backupDirStr);
@@ -614,61 +613,26 @@ public final class SettingsPanel extends JPanel {
                 return; // No backup directory
             }
 
-            // Find .bak files that are unencrypted
-            List<Path> unencryptedBackups = Files.list(backupDir)
+            // Find legacy .bak files that are not encrypted artifacts and securely remove them.
+            List<Path> legacyBackups = Files.list(backupDir)
                 .filter(path -> path.getFileName().toString().endsWith(".bak"))
                 .filter(path -> !encryption.EncryptionDetector.isFileEncrypted(path))
                 .collect(Collectors.toList());
 
-            if (unencryptedBackups.isEmpty()) {
-                return; // No unencrypted backups to clean up
+            if (legacyBackups.isEmpty()) {
+                return;
             }
 
-            // Show dialog asking user what to do
-            StringBuilder message = new StringBuilder(512);
-            message.append("<html><b>Security Notice: Old Unencrypted Backups Found</b><br><br>")
-                .append("After encrypting your log file, we found ").append(unencryptedBackups.size())
-                .append(" backup file(s) that contain unencrypted data:<br><br>");
-
-            for (Path backup : unencryptedBackups) {
-                message.append("• ").append(backup.getFileName().toString()).append("<br>");
-            }
-
-            message.append("<br><b>Security Risk:</b> These backups contain your log data in plain text.<br>"
-                + "Anyone with access to your backup location can read them.<br><br>"
-                + "<b>Recommendation:</b> Delete these old backups to prevent data exposure.<br>"
-                + "You can keep them if you need them for recovery purposes.<br><br>"
-                + "What would you like to do?</html>");
-
-            int choice = gui.DialogHelper.showOptions(editor,
-                "Clean Up Old Backups",
-                "Security Notice: Old Unencrypted Backups Found",
-                message.toString(),
-                JOptionPane.WARNING_MESSAGE,
-                new String[]{"Delete old unencrypted backups", "Keep them"},
-                "Delete old unencrypted backups");
-
-            if (choice == JOptionPane.YES_OPTION) {
-                UiTaskRunner.runModalBackgroundTask(editor, "Cleaning Old Backups", "Deleting old backups...", () -> {
-                    for (Path backup : unencryptedBackups) {
-                        try {
-                            SecureDeletionUtils.wipeFile(backup);
-                        } catch (java.io.IOException e) {
-                            Log.error(() -> "Failed to securely delete backup: " + backup, e);
-                        }
-                    }
-
-                    javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(
-                        editor,
-                        "Old unencrypted backup files have been securely deleted.",
-                        "Cleanup Complete",
-                        JOptionPane.INFORMATION_MESSAGE
-                    ));
-                });
+            for (Path backup : legacyBackups) {
+                try {
+                    SecureDeletionUtils.wipeFile(backup);
+                } catch (java.io.IOException e) {
+                    Log.error(() -> "Failed to securely delete legacy backup: " + backup, e);
+                }
             }
 
         } catch (java.io.IOException e) {
-            // Silently ignore cleanup errors to not disrupt the encryption success
+            // Best effort cleanup; do not block normal flow.
             Log.error("Error during backup cleanup", e);
         }
     }
@@ -751,6 +715,16 @@ public final class SettingsPanel extends JPanel {
     private void saveSettings() {
         try (var fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
+            security.SecurityFilePolicy.ensureOwnerOnlyPermissions(settingsPath);
+            if (!security.SecurityFilePolicy.isOwnerOnlyAccessEnforced(settingsPath)
+                && !VALUE_TRUE.equals(settings.getProperty("permissionsWarningShown", VALUE_FALSE))) {
+                settings.setProperty("permissionsWarningShown", VALUE_TRUE);
+                gui.DialogHelper.showWarning(editor,
+                    "Security Notice",
+                    "Platform Permission Limits",
+                    "Strict owner-only permission verification is unavailable on this platform.<br><br>" +
+                    "For best protection, use a dedicated user account and full-disk encryption.");
+            }
         } catch (java.io.IOException e) {
             gui.DialogHelper.showError(editor, "Error", "Error saving settings. Please check file permissions and try again.");
         }

@@ -111,7 +111,7 @@ public class DialogHandler {
             "The log file <b>%s</b> could not be found.<br><br>" +
             "What would you like to do?<br>" +
             "• <b>Create a new log file</b> — starts fresh<br>" +
-            "• <b>Browse for log.txt</b> — pick an existing file<br>" +
+            "• <b>Browse for encrypted log file</b> — pick an existing file<br>" +
             "• <b>Restore from backup</b> — if you have one<br>" +
             "• <b>Exit</b> — close the application<br></html>",
             filePath.getFileName()
@@ -147,9 +147,9 @@ public class DialogHandler {
                 return false;
             }
         } else if (choice == 1) {
-            // Browse for log.txt
+            // Browse for encrypted log file
             javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
-            fileChooser.setDialogTitle("Select log.txt file");
+            fileChooser.setDialogTitle("Select encrypted log file");
             fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
                 @Override
                 public boolean accept(java.io.File f) {
@@ -164,29 +164,15 @@ public class DialogHandler {
             if (result == javax.swing.JFileChooser.APPROVE_OPTION) {
                 java.io.File selectedFile = fileChooser.getSelectedFile();
                 if (!"log.txt".equalsIgnoreCase(selectedFile.getName())) {
-                    showErrorDialog("<html><b>Invalid File</b><br><br>Please select a file named log.txt.</html>");
+                    showErrorDialog("<html><b>Invalid File</b><br><br>Please select the application log file named log.txt.</html>");
                     return false;
                 }
                 // Optionally validate file contents (e.g., check for .LOG header)
                 try {
-                    // Read only the prefix of the file (cheap) to detect the .LOG header
                     java.nio.file.Path selPath = selectedFile.toPath();
-                    try (java.io.InputStream in = java.nio.file.Files.newInputStream(selPath)) {
-                        byte[] buf = new byte[4];
-                        int r = in.read(buf);
-                        String start = r > 0 ? new String(buf, 0, Math.max(0, r), java.nio.charset.StandardCharsets.UTF_8) : "";
-                        if (!start.startsWith(".LOG")) {
-                            int confirm = DialogHelper.showOptions(
-                                null,
-                                "Confirm log.txt",
-                                "Confirm log.txt",
-                                "Selected file does not appear to be a valid log.txt. Set as default anyway?",
-                                JOptionPane.QUESTION_MESSAGE,
-                                new Object[]{"Yes", "No"},
-                                "No"
-                            );
-                            if (confirm != 0) return false;
-                        }
+                    if (!security.BackupRestoreVerifier.isValidEncryptedBackup(selPath)) {
+                        showErrorDialog("<html><b>Invalid File</b><br><br>Selected file is not a valid encrypted log file.</html>");
+                        return false;
                     }
                 } catch (Exception e) {
                     showErrorDialog("<html><b>File Read Error</b><br><br>Unable to read the selected file.</html>");
@@ -281,12 +267,12 @@ public class DialogHandler {
             fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
                 @Override
                 public boolean accept(java.io.File f) {
-                    return f.isDirectory() || f.getName().endsWith(".txt") || f.getName().endsWith(".bak");
+                    return f.isDirectory() || f.getName().endsWith(".enc") || f.getName().endsWith(".bak.enc");
                 }
 
                 @Override
                 public String getDescription() {
-                    return "Backup Files (*.txt, *.bak)";
+                    return "Encrypted Backup Files (*.enc, *.bak.enc)";
                 }
             });
 
@@ -316,6 +302,11 @@ public class DialogHandler {
                         // Record error and close
                         errorRef.set(new IllegalArgumentException("Selected backup path is not allowed"));
                         javax.swing.SwingUtilities.invokeLater(() -> showErrorDialog("<html><b>Invalid Backup</b><br><br>Selected backup path is not allowed.</html>"));
+                        return;
+                    }
+                    if (!security.BackupRestoreVerifier.isValidEncryptedBackup(b)) {
+                        errorRef.set(new IllegalArgumentException("Backup is not a valid encrypted file"));
+                        javax.swing.SwingUtilities.invokeLater(() -> showErrorDialog("<html><b>Invalid Backup</b><br><br>Selected backup is not a valid encrypted backup.</html>"));
                         return;
                     }
                     Files.copy(b, filePath, StandardCopyOption.REPLACE_EXISTING);
@@ -438,7 +429,6 @@ public class DialogHandler {
             }
             props.setProperty("encrypted", "true");
             props.setProperty("salt", Base64.getEncoder().encodeToString(salt));
-            props.setProperty("requireEncryptionForNewFiles", "true");
             try (java.io.OutputStream out = Files.newOutputStream(settingsPath)) {
                 props.store(out, "LogHog settings");
             }

@@ -448,9 +448,6 @@ public final class LogTextEditor extends JFrame {
         if (java.nio.file.Files.exists(settingsPath)) {
             try (java.io.InputStream fis = java.nio.file.Files.newInputStream(settingsPath)) {
                 settings.load(fis);
-                if (settings.getProperty("requireEncryptionForNewFiles") == null) {
-                    settings.setProperty("requireEncryptionForNewFiles", "true");
-                }
                 settings.setProperty("encrypted", "true");
                 saveSettings();
                 settingsPanel.loadCurrentSettings();
@@ -461,8 +458,7 @@ public final class LogTextEditor extends JFrame {
                 String backupDir = settings.getProperty("backupDirectory", "");
                 logFileHandler.setBackupDirectory(backupDir);
                 boolean dataLoaded = false;
-                if (!java.nio.file.Files.exists(logFileHandler.getFilePath())
-                    && isEncryptionRequiredForNewFiles()) {
+                if (!java.nio.file.Files.exists(logFileHandler.getFilePath())) {
                     bootstrapEncryptedLogIfNeeded();
                 }
 
@@ -503,8 +499,7 @@ public final class LogTextEditor extends JFrame {
             }
         } else {
             settings.setProperty("encrypted", "true");
-            settings.setProperty("requireEncryptionForNewFiles", "true");
-            if (!java.nio.file.Files.exists(logFileHandler.getFilePath()) && isEncryptionRequiredForNewFiles()) {
+            if (!java.nio.file.Files.exists(logFileHandler.getFilePath())) {
                 bootstrapEncryptedLogIfNeeded();
             }
 
@@ -535,14 +530,15 @@ public final class LogTextEditor extends JFrame {
         try (java.io.OutputStream fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
             SecurityFilePolicy.ensureOwnerOnlyPermissions(settingsPath);
+            if (!SecurityFilePolicy.isOwnerOnlyAccessEnforced(settingsPath)
+                && !"true".equals(settings.getProperty("permissionsWarningShown", "false"))) {
+                settings.setProperty("permissionsWarningShown", "true");
+                logFileHandler.showErrorDialog("<html><b>⚠️ Security Notice</b><br><br>Strict owner-only file permission verification is unavailable on this platform.<br><br><i>Tip: Ensure your OS account and disk are protected.</i></html>");
+            }
         } catch (Exception e) {
             // Security: Don't expose exception details (Guideline 2-1)
             logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to save application settings.<br><br><i>Tip: Settings may not persist between sessions.</i></html>");
         }
-    }
-
-    private boolean isEncryptionRequiredForNewFiles() {
-        return "true".equals(settings.getProperty("requireEncryptionForNewFiles", "true"));
     }
 
     private void bootstrapEncryptedLogIfNeeded() {

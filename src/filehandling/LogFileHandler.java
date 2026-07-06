@@ -484,7 +484,7 @@ public class LogFileHandler implements LogFileOperations {
     }
 
     /**
-     * Returns a stream of lines for unencrypted files. Caller must close the stream.
+     * Streaming plaintext access is intentionally disabled in encrypted-only mode.
      */
     public java.util.stream.Stream<String> getLinesStreamed() throws Exception {
         throw new UnsupportedOperationException("Streaming plaintext access is disabled in encrypted-only mode.");
@@ -602,19 +602,7 @@ public class LogFileHandler implements LogFileOperations {
         if (!Files.exists(filePath)) {
             return new ArrayList<>();
         }
-
-        if (encryptionManager.isEncrypted()) {
-            return LogParser.parseAllEntries(getLines());
-        }
-
-        long currentModified = Files.getLastModifiedTime(filePath).toMillis();
-        if (cache.getCachedEntries() == null || currentModified > cache.getCachedEntriesLastModified()) {
-            List<String> lines = getLines();
-            List<List<String>> entries = LogParser.parseAllEntries(lines);
-            cache.setCachedEntries(entries, currentModified);
-        }
-
-        return cache.getCachedEntries();
+        return LogParser.parseAllEntries(getLines());
     }
 
     public void enableEncryption() throws Exception {

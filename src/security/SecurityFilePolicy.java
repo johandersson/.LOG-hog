@@ -38,6 +38,31 @@ public final class SecurityFilePolicy {
         }
     }
 
+    /**
+     * Best-effort check for owner-only read/write on POSIX systems.
+     * Returns true when verifiable as secure, false when insecure or unverifiable.
+     */
+    public static boolean isOwnerOnlyAccessEnforced(Path path) {
+        if (path == null || !Files.exists(path)) return false;
+        try {
+            Set<PosixFilePermission> perms = Files.getPosixFilePermissions(path);
+            boolean ownerRw = perms.contains(PosixFilePermission.OWNER_READ)
+                && perms.contains(PosixFilePermission.OWNER_WRITE);
+            boolean othersDenied = !perms.contains(PosixFilePermission.GROUP_READ)
+                && !perms.contains(PosixFilePermission.GROUP_WRITE)
+                && !perms.contains(PosixFilePermission.GROUP_EXECUTE)
+                && !perms.contains(PosixFilePermission.OTHERS_READ)
+                && !perms.contains(PosixFilePermission.OTHERS_WRITE)
+                && !perms.contains(PosixFilePermission.OTHERS_EXECUTE);
+            return ownerRw && othersDenied;
+        } catch (UnsupportedOperationException | SecurityException ex) {
+            // On non-POSIX platforms this may be unverifiable via standard JDK APIs.
+            return false;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
     public static String sanitizeLogValue(String input) {
         if (input == null) return "";
         String noNewlines = input.replace('\r', ' ').replace('\n', ' ');
