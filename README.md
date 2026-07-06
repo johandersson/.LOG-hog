@@ -46,10 +46,12 @@ Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.co
 * Incremental encrypted journal writes with compaction on lock/threshold
 * Tamper-evident backup integrity (HMAC for numbered backups)
 * Persistent lockout state with fail-closed behavior on tamper/missing state
+* Tamper-evident security event log with sequence and hash-chain anchoring
 * Progressive delay on failed password attempts
 * No hardcoded keys or credentials
 * Sensitive data cleared from memory after use
 * Encrypted backups and journal sidecar handling
+* Strict owner-only permission enforcement for security-critical artifacts
 * Clipboard auto-clear to reduce accidental exposure
 * Static analysis (SpotBugs / FindSecBugs) used to detect common vulnerability classes
 
@@ -135,6 +137,7 @@ This results in:
 * Password is never written to disk
 * Sensitive memory is cleared after use
 * Lockout state is persisted with tamper-evident integrity checks
+* Security events are persisted in a tamper-evident anchored chain
 * Backup copies can be integrity-verified
 
 ⚠️ **Important:**  

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Properties;
 
@@ -19,11 +20,15 @@ public final class PersistentAuthLockout {
     private static final String KEY_FAILED = "authFailedAttempts";
     private static final String KEY_LOCKED_UNTIL = "authLockedUntilEpochMs";
     private static final String KEY_MAC = "authLockoutMac";
+    private static final String KEY_SEQ = "authStateSeq";
+    private static final String KEY_STATE_HASH = "authStateHash";
+    private static final String KEY_ANCHOR_MAC = "authAnchorMac";
     private static final int MAX_FAILED_ATTEMPTS = 4;
     private static final long LOCKOUT_MS = 10 * 60 * 1000L;
     private static final String LOCKOUT_DIR_NAME = ".loghog";
     private static final String LOCKOUT_STATE_FILE = "auth-lockout.properties";
     private static final String LOCKOUT_KEY_FILE = "auth-lockout.key";
+    private static final String LOCKOUT_ANCHOR_FILE = "auth-lockout.anchor";
 
     private PersistentAuthLockout() {}
 
@@ -32,6 +37,7 @@ public final class PersistentAuthLockout {
         try {
             return Math.max(0L, readState().lockedUntil - System.currentTimeMillis());
         } catch (Exception e) {
+            audit("LOCKOUT_READ_ERROR", e.getClass().getSimpleName());
             return LOCKOUT_MS;
         }
     }
@@ -44,11 +50,14 @@ public final class PersistentAuthLockout {
             if (failed >= MAX_FAILED_ATTEMPTS) {
                 state.failedAttempts = 0;
                 state.lockedUntil = System.currentTimeMillis() + LOCKOUT_MS;
+                audit("LOCKOUT_TRIGGERED", "until=" + state.lockedUntil);
             } else {
                 state.failedAttempts = failed;
+                audit("AUTH_FAILURE", "count=" + failed);
             }
             writeState(state);
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            audit("LOCKOUT_WRITE_ERROR", ex.getClass().getSimpleName());
             // Fail closed by leaving existing lockout data untouched.
         }
     }
@@ -56,8 +65,10 @@ public final class PersistentAuthLockout {
     public static void clear(Properties settings) {
         purgeLegacyKeys(settings);
         try {
-            writeState(new LockoutState(0, 0L));
-        } catch (Exception ignored) {
+            writeState(new LockoutState(0, 0L, 0L));
+            audit("LOCKOUT_CLEARED", "ok");
+        } catch (Exception ex) {
+            audit("LOCKOUT_CLEAR_ERROR", ex.getClass().getSimpleName());
         }
     }
 
@@ -80,19 +91,21 @@ public final class PersistentAuthLockout {
             byte[] key = generateKey();
             try {
                 writeKey(key);
-                writeState(new LockoutState(0, 0L), key);
+                writeState(new LockoutState(0, 0L, 0L), key);
+                audit("LOCKOUT_STATE_INIT", "fresh");
             } finally {
                 zeroize(key);
             }
-            return new LockoutState(0, 0L);
+            return new LockoutState(0, 0L, 1L);
         }
 
         if (!keyExists) {
             byte[] key = generateKey();
             try {
                 writeKey(key);
-                LockoutState locked = new LockoutState(0, System.currentTimeMillis() + LOCKOUT_MS);
+                LockoutState locked = new LockoutState(0, System.currentTimeMillis() + LOCKOUT_MS, 0L);
                 writeState(locked, key);
+                audit("LOCKOUT_KEY_RECOVERY", "missing_key");
                 return locked;
             } finally {
                 zeroize(key);
@@ -102,7 +115,7 @@ public final class PersistentAuthLockout {
         byte[] key = Files.readAllBytes(keyPath);
         try {
             if (!stateExists) {
-                LockoutState locked = new LockoutState(0, System.currentTimeMillis() + LOCKOUT_MS);
+                LockoutState locked = new LockoutState(0, System.currentTimeMillis() + LOCKOUT_MS, 0L);
                 writeState(locked, key);
                 return locked;
             }
@@ -118,8 +131,9 @@ public final class PersistentAuthLockout {
             byte[] actualMac = Base64.getDecoder().decode(mac);
             try {
                 if (!java.security.MessageDigest.isEqual(expectedMac, actualMac)) {
-                    LockoutState locked = new LockoutState(0, System.currentTimeMillis() + LOCKOUT_MS);
+                    LockoutState locked = new LockoutState(0, System.currentTimeMillis() + LOCKOUT_MS, 0L);
                     writeState(locked, key);
+                    audit("LOCKOUT_TAMPER_DETECTED", "state_mac_mismatch");
                     return locked;
                 }
             } finally {
@@ -127,10 +141,20 @@ public final class PersistentAuthLockout {
                 zeroize(actualMac);
             }
 
-            return new LockoutState(
+            LockoutState state = new LockoutState(
                 parseInt(props.getProperty(KEY_FAILED), 0),
-                parseLong(props.getProperty(KEY_LOCKED_UNTIL), 0L)
+                parseLong(props.getProperty(KEY_LOCKED_UNTIL), 0L),
+                parseLong(props.getProperty(KEY_SEQ), 0L)
             );
+
+            if (!verifyAnchor(state, key, props.getProperty(KEY_STATE_HASH, ""))) {
+                LockoutState locked = new LockoutState(0, System.currentTimeMillis() + LOCKOUT_MS, 0L);
+                writeState(locked, key);
+                audit("LOCKOUT_ROLLBACK_DETECTED", "anchor_mismatch");
+                return locked;
+            }
+
+            return state;
         } finally {
             zeroize(key);
         }
@@ -147,9 +171,24 @@ public final class PersistentAuthLockout {
 
     private static void writeState(LockoutState state, byte[] key) throws IOException {
         ensureStorageDir();
+        long nextSeq = Math.max(state.sequence + 1L, readAnchorSequence() + 1L);
         Properties props = new Properties();
         props.setProperty(KEY_FAILED, Integer.toString(state.failedAttempts));
         props.setProperty(KEY_LOCKED_UNTIL, Long.toString(state.lockedUntil));
+        props.setProperty(KEY_SEQ, Long.toString(nextSeq));
+
+        byte[] stateHashRaw = null;
+        String stateHash = "";
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            stateHashRaw = digest.digest(serializeState(props));
+            stateHash = Base64.getEncoder().encodeToString(stateHashRaw);
+        } catch (java.security.GeneralSecurityException ex) {
+            throw new IOException("Unable to hash lockout state", ex);
+        } finally {
+            zeroize(stateHashRaw);
+        }
+        props.setProperty(KEY_STATE_HASH, stateHash);
 
         byte[] payload = serializeState(props);
         byte[] mac = null;
@@ -160,8 +199,9 @@ public final class PersistentAuthLockout {
                 props.store(out, "LogHog lockout state");
                 Files.write(getStatePath(), out.toByteArray());
             }
-            SecurityFilePolicy.ensureOwnerOnlyPermissions(getStatePath());
-            SecurityFilePolicy.ensureOwnerOnlyPermissions(getKeyPath());
+            SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(getStatePath());
+            SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(getKeyPath());
+            writeAnchor(nextSeq, stateHash, key);
         } finally {
             zeroize(payload);
             zeroize(mac);
@@ -171,7 +211,7 @@ public final class PersistentAuthLockout {
     private static void writeKey(byte[] key) throws IOException {
         ensureStorageDir();
         Files.write(getKeyPath(), Base64.getEncoder().encode(key));
-        SecurityFilePolicy.ensureOwnerOnlyPermissions(getKeyPath());
+        SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(getKeyPath());
     }
 
     private static Path getStorageDir() {
@@ -186,9 +226,95 @@ public final class PersistentAuthLockout {
         return getStorageDir().resolve(LOCKOUT_KEY_FILE);
     }
 
+    private static Path getAnchorPath() {
+        return getStorageDir().resolve(LOCKOUT_ANCHOR_FILE);
+    }
+
     private static void ensureStorageDir() throws IOException {
         Files.createDirectories(getStorageDir());
-        SecurityFilePolicy.ensureOwnerOnlyPermissions(getStorageDir());
+        SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(getStorageDir());
+    }
+
+    private static void writeAnchor(long sequence, String stateHash, byte[] key) throws IOException {
+        String payload = sequence + "|" + stateHash;
+        byte[] mac = HmacUtils.computeHmacSha256(key, payload.getBytes(StandardCharsets.UTF_8));
+        try {
+            Properties anchor = new Properties();
+            anchor.setProperty(KEY_SEQ, Long.toString(sequence));
+            anchor.setProperty(KEY_STATE_HASH, stateHash);
+            anchor.setProperty(KEY_ANCHOR_MAC, Base64.getEncoder().encodeToString(mac));
+            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                anchor.store(out, "LogHog lockout anchor");
+                Files.write(getAnchorPath(), out.toByteArray());
+            }
+            SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(getAnchorPath());
+        } finally {
+            zeroize(mac);
+        }
+    }
+
+    private static long readAnchorSequence() {
+        Path anchorPath = getAnchorPath();
+        if (!Files.exists(anchorPath)) {
+            return 0L;
+        }
+        try {
+            Properties props = new Properties();
+            try (ByteArrayInputStream in = new ByteArrayInputStream(Files.readAllBytes(anchorPath))) {
+                props.load(in);
+            }
+            return parseLong(props.getProperty(KEY_SEQ), 0L);
+        } catch (Exception ex) {
+            return 0L;
+        }
+    }
+
+    private static boolean verifyAnchor(LockoutState state, byte[] key, String stateHash) {
+        Path anchorPath = getAnchorPath();
+        if (!Files.exists(anchorPath)) {
+            return false;
+        }
+        try {
+            Properties anchor = new Properties();
+            try (ByteArrayInputStream in = new ByteArrayInputStream(Files.readAllBytes(anchorPath))) {
+                anchor.load(in);
+            }
+
+            long anchorSeq = parseLong(anchor.getProperty(KEY_SEQ), -1L);
+            String anchorHash = anchor.getProperty(KEY_STATE_HASH, "");
+            String anchorMac = anchor.getProperty(KEY_ANCHOR_MAC, "");
+            String payload = anchorSeq + "|" + anchorHash;
+
+            byte[] expected = HmacUtils.computeHmacSha256(key, payload.getBytes(StandardCharsets.UTF_8));
+            byte[] actual = Base64.getDecoder().decode(anchorMac);
+            try {
+                if (!java.security.MessageDigest.isEqual(expected, actual)) {
+                    return false;
+                }
+            } finally {
+                zeroize(expected);
+                zeroize(actual);
+            }
+
+            if (state.sequence < anchorSeq) {
+                return false;
+            }
+            if (state.sequence > anchorSeq) {
+                // Anchor is stale; accept only if state hash matches and anchor can be advanced by next write.
+                return stateHash != null && !stateHash.isEmpty();
+            }
+            return anchorHash.equals(stateHash);
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    private static void audit(String eventType, String details) {
+        try {
+            SecurityEventLog.appendEvent(eventType, details);
+        } catch (Exception ignored) {
+            // Never block auth flow on audit write failures.
+        }
     }
 
     private static byte[] serializeState(Properties props) throws IOException {
@@ -229,10 +355,12 @@ public final class PersistentAuthLockout {
     private static final class LockoutState {
         private int failedAttempts;
         private long lockedUntil;
+        private long sequence;
 
-        private LockoutState(int failedAttempts, long lockedUntil) {
+        private LockoutState(int failedAttempts, long lockedUntil, long sequence) {
             this.failedAttempts = failedAttempts;
             this.lockedUntil = lockedUntil;
+            this.sequence = sequence;
         }
     }
 }

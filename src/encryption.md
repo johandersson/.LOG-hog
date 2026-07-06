@@ -27,8 +27,10 @@ Not designed to protect against malware, keyloggers, or a fully compromised host
 * No raw password stored in settings
 * Sensitive arrays are zeroized where possible
 * Persistent auth lockout uses tamper-evident state and fail-closed handling
+* Lockout state includes sequence/hash anchoring to detect rollback attempts
 * Backup integrity uses HMAC-SHA256 with derived backup key material
-* Owner-only file-permission hardening is applied best-effort per platform
+* Security events are persisted with sequence and hash-chain integrity anchors
+* Owner-only file-permission hardening supports strict fail-secure mode for critical artifacts
 
 ## Data Flow
 
@@ -41,6 +43,8 @@ flowchart LR
     S --> B[BackupManager]
     J --> B
     B --> H[HMAC integrity append/verify]
+    AUTH[Auth lockout state] --> L[(Tamper-evident lockout + anchor)]
+    AUTH --> EV[(Security event log + anchor)]
 ```
 
 ## Practical Limits

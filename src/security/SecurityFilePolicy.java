@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -15,26 +16,18 @@ public final class SecurityFilePolicy {
     public static void ensureOwnerOnlyPermissions(Path path) {
         if (path == null) return;
 
-        try {
-            Set<PosixFilePermission> perms = Set.of(
-                PosixFilePermission.OWNER_READ,
-                PosixFilePermission.OWNER_WRITE
-            );
-            Files.setPosixFilePermissions(path, perms);
-            return;
-        } catch (UnsupportedOperationException | SecurityException ignored) {
-            // Not POSIX or blocked.
-        } catch (Exception ignored) {
-            // Best-effort fallback below.
-        }
+        tryApplyOwnerOnlyPermissions(path);
+    }
 
-        try {
-            File f = path.toFile();
-            f.setReadable(true, true);
-            f.setWritable(true, true);
-            f.setExecutable(false, false);
-        } catch (Exception ignored) {
-            // Best-effort only.
+    /**
+     * Fail-secure variant for security-critical files (keys, auth state, audit metadata).
+     */
+    public static void ensureOwnerOnlyPermissionsOrThrow(Path path) {
+        if (path == null) {
+            throw new SecurityException("Path cannot be null");
+        }
+        if (!tryApplyOwnerOnlyPermissions(path)) {
+            throw new SecurityException("Failed to enforce owner-only permissions for: " + path);
         }
     }
 
@@ -70,5 +63,30 @@ public final class SecurityFilePolicy {
             return noNewlines;
         }
         return noNewlines.substring(0, 1000) + "...";
+    }
+
+    private static boolean tryApplyOwnerOnlyPermissions(Path path) {
+        try {
+            Set<PosixFilePermission> perms = new HashSet<>();
+            perms.add(PosixFilePermission.OWNER_READ);
+            perms.add(PosixFilePermission.OWNER_WRITE);
+            Files.setPosixFilePermissions(path, perms);
+            return true;
+        } catch (UnsupportedOperationException | SecurityException ignored) {
+            // Not POSIX or blocked.
+        } catch (Exception ignored) {
+            // Fall back to basic file attributes below.
+        }
+
+        try {
+            File f = path.toFile();
+            boolean readable = f.setReadable(true, true);
+            boolean writable = f.setWritable(true, true);
+            // Directories require owner execute for traversal on many filesystems.
+            boolean executable = f.isDirectory() ? f.setExecutable(true, true) : f.setExecutable(false, false);
+            return readable && writable && executable;
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 }

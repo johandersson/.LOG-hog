@@ -42,6 +42,7 @@ import javax.swing.SwingUtilities;
 
 import gui.DialogHelper;
 import gui.LoadingProgressDialog;
+import security.AppPathPolicy;
 import security.BackupKeyDerivation;
 import utils.SafeExecution;
 
@@ -180,7 +181,9 @@ public class BackupManager {
      */
     private void saveSettings() {
         try {
-            Path settingsPath = Paths.get(System.getProperty(PROP_USER_HOME), ".loghog", "settings.properties");
+            Path settingsPath = AppPathPolicy.userHomePath().resolve(".loghog").resolve("settings.properties");
+            AppPathPolicy.assertSafeDirectory(settingsPath.getParent());
+            AppPathPolicy.assertSafeRegularFile(settingsPath);
             Files.createDirectories(settingsPath.getParent());
             try (java.io.OutputStream out = java.nio.file.Files.newOutputStream(settingsPath)) {
                 settings.store(out, "LogHog Settings");
@@ -293,6 +296,9 @@ public class BackupManager {
         try {
             Path backupPath = createBackupPath();
             Path logPath = getLogFilePath();
+            AppPathPolicy.assertSafeRegularFile(logPath);
+            AppPathPolicy.assertSafeDirectory(backupPath.getParent());
+            AppPathPolicy.assertSafeRegularFile(backupPath);
 
             // Show progress dialog for larger files (only if parentFrame is set)
             long fileSize = Files.exists(logPath) ? Files.size(logPath) : 0;
@@ -308,6 +314,7 @@ public class BackupManager {
 
             // Ensure backup directory exists
             Files.createDirectories(backupPath.getParent());
+            AppPathPolicy.assertSafeDirectory(backupPath.getParent());
 
             if (progressDialog != null) {
                 LoadingProgressDialog finalDialog = progressDialog;
@@ -496,6 +503,7 @@ public class BackupManager {
     public void createNumberedBackup() {
         try {
             Path logPath = getLogFilePath();
+            AppPathPolicy.assertSafeRegularFile(logPath);
             if (!Files.exists(logPath)) {
                 return;
             }
@@ -515,11 +523,13 @@ public class BackupManager {
 
             // Get backup directory
             Path backupDirPath = getSafeBackupDirectoryPath();
+            AppPathPolicy.assertSafeDirectory(backupDirPath);
             Files.createDirectories(backupDirPath);
 
             // Create backup file path in the backup directory
             String bakFilename = logPath.getFileName().toString() + ".bak.enc";
             Path bakPath = backupDirPath.resolve(bakFilename);
+            AppPathPolicy.assertSafeRegularFile(bakPath);
             
             // Rotate existing numbered backups (bak.4 -> delete, bak.3 -> bak.4, etc.)
             for (int i = MAX_NUMBERED_BACKUPS - 1; i > 0; i--) {
@@ -646,20 +656,9 @@ public class BackupManager {
     }
 
     private Path getSafeBackupDirectoryPath() {
-        String backupDir = getAutoBackupDirectory();
-        if (backupDir == null || backupDir.isBlank()) {
-            return Path.of(System.getProperty(PROP_USER_HOME, ".")).toAbsolutePath().normalize();
-        }
-        try {
-            Path normalized = Path.of(backupDir).toAbsolutePath().normalize();
-            String text = normalized.toString();
-            if (text.contains("\n") || text.contains("\r") || text.contains("\u0000")) {
-                return Path.of(System.getProperty(PROP_USER_HOME, ".")).toAbsolutePath().normalize();
-            }
-            return normalized;
-        } catch (Exception ex) {
-            return Path.of(System.getProperty(PROP_USER_HOME, ".")).toAbsolutePath().normalize();
-        }
+        Path fallback = AppPathPolicy.userHomePath();
+        Path normalized = AppPathPolicy.normalizeUserPath(getAutoBackupDirectory());
+        return normalized != null ? normalized : fallback;
     }
 
     /**
@@ -675,7 +674,7 @@ public class BackupManager {
      * Gets the path to the log file.
      */
     private Path getLogFilePath() {
-        return Paths.get(System.getProperty(PROP_USER_HOME), "log.txt");
+        return AppPathPolicy.userHomePath().resolve("log.txt");
     }
 
     private Path getJournalSidecarPath(Path basePath) {

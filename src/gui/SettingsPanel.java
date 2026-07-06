@@ -52,6 +52,7 @@ import javax.swing.SpinnerNumberModel;
 import filehandling.LogFileHandler;
 import main.BackupManager;
 import main.LogTextEditor;
+import security.AppPathPolicy;
 import utils.Toast;
 import main.SecureDeletionUtils;
 
@@ -703,11 +704,16 @@ public final class SettingsPanel extends JPanel {
                         SecureDeletionUtils.wipeFile(backupPath);
                     }
                     Path encryptedLogPath = logFileHandler.getFilePath();
+                    security.AppPathPolicy.assertSafeRegularFile(encryptedLogPath);
+                    security.AppPathPolicy.assertSafeDirectory(selectedDir);
+                    security.AppPathPolicy.assertSafeRegularFile(backupPath);
                     Files.copy(encryptedLogPath, backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-                    var settingsSource = Paths.get(System.getProperty("user.home"), "settings.ini");
+                    var settingsSource = security.AppPathPolicy.userHomePath().resolve("settings.ini");
                     if (Files.exists(settingsSource)) {
+                        security.AppPathPolicy.assertSafeRegularFile(settingsSource);
                         var settingsBackupPath = selectedDir.resolve("settings.ini");
+                        security.AppPathPolicy.assertSafeRegularFile(settingsBackupPath);
                         if (Files.exists(settingsBackupPath)) {
                             SecureDeletionUtils.wipeFile(settingsBackupPath);
                         }
@@ -766,19 +772,11 @@ public final class SettingsPanel extends JPanel {
     }
 
     private Path normalizeBackupDirectory(String path) {
-        try {
-            Path normalized = Path.of(path).toAbsolutePath().normalize();
-            if (normalized.getNameCount() == 0) {
-                return null;
-            }
-            String normalizedStr = normalized.toString();
-            if (normalizedStr.contains("\n") || normalizedStr.contains("\r") || normalizedStr.contains("\u0000")) {
-                return null;
-            }
-            return normalized;
-        } catch (InvalidPathException e) {
+        Path normalized = AppPathPolicy.normalizeUserPath(path);
+        if (normalized == null || normalized.getNameCount() == 0) {
             return null;
         }
+        return normalized;
     }
 
 }

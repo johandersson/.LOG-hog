@@ -1,8 +1,6 @@
 package security;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -45,24 +43,7 @@ public final class LinkOpenPolicy {
         if (file == null) return false;
         try {
             Path real = file.toRealPath(java.nio.file.LinkOption.NOFOLLOW_LINKS);
-            List<Path> allowedRoots = new ArrayList<>();
-
-            String userHome = System.getProperty("user.home", "");
-            if (!userHome.isBlank()) {
-                allowedRoots.add(Path.of(userHome).toAbsolutePath().normalize());
-            }
-
-            String cwd = System.getProperty("user.dir", "");
-            if (!cwd.isBlank()) {
-                allowedRoots.add(Path.of(cwd).toAbsolutePath().normalize());
-            }
-
-            for (Path root : allowedRoots) {
-                if (real.startsWith(root)) {
-                    return true;
-                }
-            }
-            return false;
+            return AppPathPolicy.isWithinUserControlledRoots(real);
         } catch (Exception e) {
             return false;
         }
