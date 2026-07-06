@@ -230,7 +230,8 @@ public final class SettingsPanel extends JPanel {
         clipboardAutoClearCheckBox = new JCheckBox("Auto-clear clipboard after copying");
         clipboardAutoClearCheckBox.setBackground(Color.WHITE);
         clipboardAutoClearCheckBox.setFont(new Font(FONT_UI, Font.PLAIN, 13));
-        clipboardAutoClearCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_CLIPBOARD_AUTO_CLEAR, VALUE_TRUE)));
+        clipboardAutoClearCheckBox.setSelected(true);
+        clipboardAutoClearCheckBox.setEnabled(false);
 
         var timeoutLabel = new JLabel("Timeout (seconds): ");
         timeoutLabel.setFont(new Font(FONT_UI, Font.PLAIN, 13));
@@ -252,7 +253,8 @@ public final class SettingsPanel extends JPanel {
         autoLockCheckBox = new JCheckBox("Lock file after inactivity");
         autoLockCheckBox.setBackground(Color.WHITE);
         autoLockCheckBox.setFont(new Font(FONT_UI, Font.PLAIN, 13));
-        autoLockCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_AUTO_LOCK_ENABLED, VALUE_FALSE)));
+        autoLockCheckBox.setSelected(true);
+        autoLockCheckBox.setEnabled(false);
 
         var timeoutLabel = new JLabel("Timeout (minutes): ");
         timeoutLabel.setFont(new Font(FONT_UI, Font.PLAIN, 13));
@@ -309,9 +311,9 @@ public final class SettingsPanel extends JPanel {
         backupDirField.setText(settings.getProperty(KEY_BACKUP_DIRECTORY, ""));
         autoBackupCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_AUTO_BACKUP_ENABLED, VALUE_FALSE)));
         splashOnStartupCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_SHOW_SPLASH, VALUE_TRUE)));
-        clipboardAutoClearCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_CLIPBOARD_AUTO_CLEAR, VALUE_TRUE)));
+        clipboardAutoClearCheckBox.setSelected(true);
         clipboardTimeoutField.setText(settings.getProperty(KEY_CLIPBOARD_TIMEOUT, "30"));
-        autoLockCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_AUTO_LOCK_ENABLED, VALUE_FALSE)));
+        autoLockCheckBox.setSelected(true);
         
         // Load auto-lock timeout in minutes
         int timeoutSeconds = Integer.parseInt(settings.getProperty(KEY_AUTO_LOCK_TIMEOUT, "900"));
@@ -351,9 +353,9 @@ public final class SettingsPanel extends JPanel {
         var newBackupDir = backupDirField.getText();
         var newAutoBackupEnabled = autoBackupCheckBox.isSelected();
         var newSplashOnStartup = splashOnStartupCheckBox.isSelected();
-        var newClipboardAutoClear = clipboardAutoClearCheckBox.isSelected();
+        var newClipboardAutoClear = true;
         var newClipboardTimeout = clipboardTimeoutField.getText();
-        var newAutoLockEnabled = autoLockCheckBox.isSelected();
+        var newAutoLockEnabled = true;
         
         // Get spinner value (in minutes) and convert to seconds, with validation
         int newAutoLockMinutes = (Integer) autoLockTimeoutSpinner.getValue();

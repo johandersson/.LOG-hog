@@ -52,7 +52,6 @@ public class StandardButton extends JButton {
         }
         uiInitialized = true;
 
-        setForeground(Color.BLACK);
         setBackground(normalColor);
         setFocusPainted(false);
         setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
@@ -61,20 +60,24 @@ public class StandardButton extends JButton {
         setContentAreaFilled(false);
         setFont(new Font("Segoe UI", Font.BOLD, 12));
 
-        // Add hover effect
-        addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                setBackground(new Color(0xD0D0D0));
-                repaint();
-            }
+        if (getClass() == StandardButton.class) {
+            setForeground(Color.BLACK);
 
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                setBackground(normalColor);
-                repaint();
-            }
-        });
+            // Add default hover effect for plain StandardButton instances only.
+            addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    setBackground(new Color(0xD0D0D0));
+                    repaint();
+                }
+
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    setBackground(normalColor);
+                    repaint();
+                }
+            });
+        }
     }
 
     @Override

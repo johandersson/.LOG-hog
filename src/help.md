@@ -84,7 +84,7 @@ It does **not protect against**:
 
 Sensitive data copied from .LOG-hog is protected with:
 
-* **Automatic clearing** after a configurable timeout (default: 15 seconds)
+* **Automatic clearing** after a configurable timeout (default: 15 seconds, always enabled)
 * Manual "Clear Clipboard" option
 * User warnings when copying sensitive content
 
@@ -106,6 +106,7 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 * **Single-instance enforcement**
 * **Right-click actions** (edit date, delete, copy)
 * **Always-on encryption**
+* **Always-on auto-lock and clipboard auto-clear**
 * **Manual lock / unlock**
 * **Backup and restore support**
 * **System tray integration**
@@ -185,7 +186,7 @@ directly in the file header. This means:
 
 * If you lose your `loghog_settings.properties` file, your data is **not** permanently lost
 * .LOG-hog will automatically recover the salt from the file when you next open it
-* You only need your **password** and the encrypted **.logh file** to regain full access
+* You only need your **password** and the encrypted **log file** to regain full access
 * Reinstalling the app or moving the file to a new machine works seamlessly
 
 The only unrecoverable scenario is losing your password.

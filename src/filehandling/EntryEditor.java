@@ -67,7 +67,7 @@ public class EntryEditor {
         String entry = LogFileFormat.createEntry(uniqueTimeStamp, text);
 
         if (encrypted) {
-            List<String> cachedLines = cache.getCachedLines();
+            List<String> cachedLines = getEncryptedWorkingLines();
             cachedLines.addAll(Arrays.asList(entry.split("\r?\n", -1)));
             // Restore fullText assignment for encrypted block
             StringBuilder fullTextBuilder = new StringBuilder();
@@ -288,7 +288,7 @@ public class EntryEditor {
 
         // Determine duplicate count using cache or file read
         if (Files.exists(filePath)) {
-            List<String> existingLines = encryptionManager.isEncrypted() ? cache.getCachedLines() : Files.readAllLines(filePath);
+            List<String> existingLines = encryptionManager.isEncrypted() ? getEncryptedWorkingLines() : Files.readAllLines(filePath);
             if (existingLines != null) {
                 count = (int) existingLines.stream().filter(line -> line.trim().startsWith(timeStamp)).count();
             }
@@ -298,6 +298,29 @@ public class EntryEditor {
         // Use StringBuilder for string appends if needed in future logic
         saveEntry(inputText, unique, encryptionManager.isEncrypted());
         return unique;
+    }
+
+    /**
+     * Returns the working line set for encrypted writes.
+     * If the cache is empty, it is hydrated from the encrypted file to avoid accidental overwrite.
+     */
+    private List<String> getEncryptedWorkingLines() throws Exception {
+        List<String> cachedLines = cache.getCachedLines();
+        if (!cachedLines.isEmpty()) {
+            return cachedLines;
+        }
+
+        if (!Files.exists(filePath) || Files.size(filePath) == 0L) {
+            return new ArrayList<>();
+        }
+
+        List<String> decryptedLines = encryptionManager.decryptFileToLines();
+        if (decryptedLines == null || decryptedLines.isEmpty()) {
+            throw new IllegalStateException("Refusing encrypted save: source file is non-empty but decrypted content is empty. This prevents accidental overwrite.");
+        }
+
+        cache.updateCachedLines(decryptedLines);
+        return new ArrayList<>(decryptedLines);
     }
     
     /**

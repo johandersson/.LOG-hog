@@ -74,6 +74,10 @@ It does **not** protect against:
   Enforced owner-only access where supported (POSIX).  
   Windows fallback uses standard JDK file permission APIs (limited by OS-level ACL behavior).
 
+* **Write Safety Guard**  
+  Encrypted save paths refuse writes when the source encrypted file is non-empty but decrypts to empty content,
+  preventing silent overwrite in ambiguous/corrupt edge states.
+
 ***
 
 ### File Format
@@ -130,6 +134,9 @@ flowchart LR
   BK --> V1[Legacy v1 Key]
   V2 --> BM[BackupManager HMAC Sign/Verify]
   V1 --> BM
+  EF[Encrypted file + cache state] --> SG[Save safety guard]
+  SG -->|valid source| EW[Encrypted write]
+  SG -->|invalid source| RW[Refuse write]
 ```
 
 ***
@@ -151,6 +158,7 @@ flowchart LR
 * Progressive delays (3s → 15s → 30s)
 * Randomized delay variation to reduce predictability
 * Maximum attempt limit keeps encrypted content locked without forcing process termination
+* Persistent lockout state is retained to resist repeated restart-based guessing
 
 ***
 
@@ -177,6 +185,7 @@ flowchart LR
 * Single-instance execution
 * Input validation for sensitive operations
 * Secure error handling
+* Always-on auto-lock for inactive sessions
 
 ***
 
@@ -184,7 +193,7 @@ flowchart LR
 
 ### Features
 
-* Automatic clearing after configurable timeout
+* Automatic clearing after configurable timeout (always enabled)
 * Manual clear controls
 * Clipboard clearing on application shutdown
 
@@ -267,8 +276,8 @@ Best-effort 3-pass overwrite:
 
 ## ⚙️ Settings
 
-* No sensitive data stored in configuration
-* All settings currently plaintext
+* No passwords or secret keys stored in configuration
+* Security metadata and runtime preferences are stored in plaintext configuration
 
 ***
 

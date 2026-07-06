@@ -224,6 +224,9 @@ public final class LogTextEditor extends JFrame {
             // Initialize auto-lock timer
             initializeAutoLock();
 
+            // Persist always-on security defaults to normalize legacy settings.
+            saveSettings();
+
             // Update system tray recent logs menu now that settings are loaded
             SystemTrayMenu.updateRecentLogsMenu();
             
@@ -628,7 +631,8 @@ public final class LogTextEditor extends JFrame {
      * Reads settings and sets up activity tracking.
      */
     private void initializeAutoLock() {
-        autoLockEnabled = "true".equals(settings.getProperty("autoLockEnabled", "false"));
+        autoLockEnabled = true;
+        settings.setProperty("autoLockEnabled", "true");
         try {
             autoLockTimeoutSeconds = Integer.parseInt(settings.getProperty("autoLockTimeout", "900"));
             // Validate timeout is within reasonable bounds (10 seconds to 24 hours)
@@ -649,7 +653,8 @@ public final class LogTextEditor extends JFrame {
      * Updates auto-lock settings and restarts timer if needed.
      */
     public void updateAutoLockSettings(boolean enabled, String timeoutStr) {
-        autoLockEnabled = enabled;
+        autoLockEnabled = true;
+        settings.setProperty("autoLockEnabled", "true");
         try {
             autoLockTimeoutSeconds = Integer.parseInt(timeoutStr);
             // Validate timeout is within reasonable bounds (10 seconds to 24 hours)
@@ -666,7 +671,7 @@ public final class LogTextEditor extends JFrame {
             autoLockTimer = null;
         }
 
-        // Start new timer if enabled
+        // Keep auto-lock always enabled.
         if (autoLockEnabled && !isLocked) {
             startAutoLockTimer();
         }
@@ -742,15 +747,15 @@ public final class LogTextEditor extends JFrame {
     }
 
     private void initializeSecureClipboard() {
-        // Initialize secure clipboard settings from saved preferences
-        boolean autoClear = "true".equals(settings.getProperty("clipboardAutoClear", "true"));
+        // Keep clipboard auto-clear always enabled.
+        settings.setProperty("clipboardAutoClear", "true");
         int timeout = Integer.parseInt(settings.getProperty("clipboardTimeout", "30"));
         // Validate timeout is within SecureClipboardManager bounds (5-30 seconds)
         if (timeout < 5 || timeout > 30) {
             timeout = 15; // Default to 15 seconds
         }
 
-        clipboard.SecureClipboardManager.setAutoClearEnabled(autoClear);
+        clipboard.SecureClipboardManager.setAutoClearEnabled(true);
         try {
             clipboard.SecureClipboardManager.setTimeoutSeconds(timeout);
         } catch (IllegalArgumentException e) {
