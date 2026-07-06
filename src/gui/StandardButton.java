@@ -21,11 +21,9 @@ import java.awt.*;
 import javax.swing.*;
 
 public class StandardButton extends JButton {
-    private static final long serialVersionUID = 1L;
     private final Color normalColor;
     private final Color shadowColor;
     private final Color disabledColor;
-    private boolean uiInitialized;
     private int shadowOffset = 3;
     private final int cornerRadius = 12;
 
@@ -38,20 +36,8 @@ public class StandardButton extends JButton {
         this.normalColor = normalColor;
         this.shadowColor = shadowColor;
         this.disabledColor = disabledColor;
-    }
 
-    @Override
-    public void addNotify() {
-        initializeUiIfNeeded();
-        super.addNotify();
-    }
-
-    private void initializeUiIfNeeded() {
-        if (uiInitialized) {
-            return;
-        }
-        uiInitialized = true;
-
+        setForeground(Color.BLACK);
         setBackground(normalColor);
         setFocusPainted(false);
         setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
@@ -60,24 +46,20 @@ public class StandardButton extends JButton {
         setContentAreaFilled(false);
         setFont(new Font("Segoe UI", Font.BOLD, 12));
 
-        if (getClass() == StandardButton.class) {
-            setForeground(Color.BLACK);
+        // Add hover effect
+        addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                setBackground(new Color(0xD0D0D0));
+                repaint();
+            }
 
-            // Add default hover effect for plain StandardButton instances only.
-            addMouseListener(new java.awt.event.MouseAdapter() {
-                @Override
-                public void mouseEntered(java.awt.event.MouseEvent e) {
-                    setBackground(new Color(0xD0D0D0));
-                    repaint();
-                }
-
-                @Override
-                public void mouseExited(java.awt.event.MouseEvent e) {
-                    setBackground(normalColor);
-                    repaint();
-                }
-            });
-        }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                setBackground(normalColor);
+                repaint();
+            }
+        });
     }
 
     @Override

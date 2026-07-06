@@ -33,8 +33,7 @@ import javax.swing.JPanel;
 
 import utils.WindowShakeAnimation;
 
-public final class SplashScreen extends JDialog {
-    private static final long serialVersionUID = 1L;
+public class SplashScreen extends JDialog {
     private int animationFrame; // default 0
     private javax.swing.Timer animationTimer;
     private StandardButton okButton;

@@ -258,6 +258,8 @@ public class UIInitializer {
             handleLogEntriesTabSelection();
         } else if (idx == 3) {
             editor.getSettingsPanel().loadCurrentSettings();
+        } else if (idx == 4) {
+            ((InformationPanel) tabPane.getComponentAt(4)).loadText();
         } else if (idx == 5) {
             ((InformationPanel) tabPane.getComponentAt(5)).loadText();
         } else if (idx == 0) {
