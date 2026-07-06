@@ -1,9 +1,9 @@
 package main;
 
-import java.nio.file.*;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.nio.file.Path;
 import java.util.Arrays;
+
+import security.StreamingHash;
 
 public class TamperDetector {
     private byte[] lastKnownHash;
@@ -18,12 +18,6 @@ public class TamperDetector {
     }
 
     private byte[] computeHash(Path file) throws java.io.IOException {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] data = Files.readAllBytes(file);
-            return md.digest(data);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 algorithm is unavailable", e);
-        }
+        return StreamingHash.sha256(file);
     }
 }

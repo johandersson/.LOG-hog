@@ -31,6 +31,7 @@ import gui.DialogHelper;
 import gui.LoadingProgressDialog;
 import gui.PasswordDialog;
 import gui.SecurityDelayDialog;
+import security.AuthenticationFailureClassifier;
 
 /**
  * Handles encryption setup, password authentication, and related security operations.
@@ -270,27 +271,7 @@ public class EncryptionHandler {
                     return false;
                 }
                 
-                String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-                String exceptionType = e.getClass().getSimpleName().toLowerCase();
-                
-                // Check if this is a decryption/authentication error
-                boolean isAuthError = errorMsg.contains("tag mismatch") ||
-                    errorMsg.contains("bad tag") ||
-                    errorMsg.contains("badpadding") ||
-                    errorMsg.contains("illegal block size") ||
-                    errorMsg.contains("aeadbadtag") ||
-                    errorMsg.contains("integrity check failed") ||
-                    errorMsg.contains("mac check failed") ||
-                    errorMsg.contains("decryption failed") ||
-                    errorMsg.contains("unable to open your file") ||
-                    errorMsg.contains("your password might be incorrect") ||
-                    errorMsg.contains("malformedinput") ||
-                    errorMsg.contains("input length") ||
-                    exceptionType.contains("indexoutofbounds") ||
-                    exceptionType.contains("nullpointer") ||
-                    errorMsg.contains("malformed") ||
-                    errorMsg.contains("index") ||
-                    errorMsg.contains("split");
+                boolean isAuthError = AuthenticationFailureClassifier.isLikelyAuthenticationFailure(e);
                 
                 if (isAuthError) {
                     int remaining = 4 - attempts;

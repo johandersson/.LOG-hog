@@ -465,6 +465,10 @@ public class BackupManager {
                     isEncrypted = hdr[0] == 'L' && hdr[1] == 'O' && hdr[2] == 'G' && hdr[3] == 'H';
                 }
             }
+            if (!isEncrypted) {
+                // Encrypted-only policy: skip numbered backup creation for non-encrypted files.
+                return;
+            }
 
             // Get backup directory
             String backupDir = getAutoBackupDirectory();
@@ -472,7 +476,7 @@ public class BackupManager {
             Files.createDirectories(backupDirPath);
 
             // Create backup file path in the backup directory
-            String bakFilename = logPath.getFileName().toString() + (isEncrypted ? ".bak.enc" : ".bak");
+            String bakFilename = logPath.getFileName().toString() + ".bak.enc";
             Path bakPath = backupDirPath.resolve(bakFilename);
             
             // Rotate existing numbered backups (bak.4 -> delete, bak.3 -> bak.4, etc.)

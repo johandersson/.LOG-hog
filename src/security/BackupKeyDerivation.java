@@ -11,7 +11,8 @@ import javax.crypto.spec.PBEKeySpec;
  */
 public final class BackupKeyDerivation {
     private static final int KEY_LENGTH_BYTES = 32;
-    private static final int PBKDF2_ITERATIONS = 120000;
+    // Align with primary encryption KDF hardness to avoid weaker derived backup key paths.
+    private static final int PBKDF2_ITERATIONS = 600000;
     private static final String PBKDF2_ALGO = "PBKDF2WithHmacSHA256";
     private static final byte[] CONTEXT_V2 = "loghog-backup-hmac-v2".getBytes(StandardCharsets.UTF_8);
 

@@ -573,10 +573,6 @@ public final class LogTextEditor extends JFrame {
 
             java.nio.file.Path logPath = logFileHandler.getFilePath();
             java.nio.file.Files.createDirectories(logPath.getParent());
-            if (!java.nio.file.Files.exists(logPath)) {
-                java.nio.file.Files.writeString(logPath, ".LOG\n\n");
-                SecurityFilePolicy.ensureOwnerOnlyPermissions(logPath);
-            }
 
             logFileHandler.enableEncryption(password);
             byte[] salt = logFileHandler.getSalt();
