@@ -64,11 +64,6 @@ public class ActionHandler {
     public ActionListener createCopyLogEntryAction() {
         return e -> {
             String selectedItem = logList.getSelectedValue();
-            // Debug: show which item the menu action is attempting to copy
-            try {
-                String dbg = selectedItem == null ? "(no selection)" : selectedItem;
-                Toast.showToast(editor, "Copy action invoked for: " + dbg);
-            } catch (Exception ignored) {}
             if (selectedItem != null) {
                 // Check if file is encrypted and show enhanced warning
                 if (logFileHandler.isEncrypted()) {
@@ -81,19 +76,6 @@ public class ActionHandler {
                 try {
                     var rawTs = logFileHandler.getRawTimestamp(selectedItem);
                     String logContent = logFileHandler.loadEntry(rawTs);
-
-                    // Show debug dialog with internal values to help diagnose copy issues
-                    String snippet = "(no content)";
-                    int len = 0;
-                    if (logContent != null && !logContent.isEmpty()) {
-                        len = logContent.length();
-                        snippet = logContent.length() > 200 ? logContent.substring(0, 200) + "..." : logContent;
-                    }
-                    // Basic HTML-escape to avoid breaking the dialog when showing raw snippets
-                    String escaped = snippet.replace("&", "&amp;").replace("<", "&lt;")
-                        .replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
-                    String details = "Raw timestamp: " + rawTs + "<br>Length: " + len + "<br><br>Snippet:<br>" + escaped;
-                    DialogHelper.showInfo(editor, "Copy Debug", "Preparing to copy entry:", details);
 
                     clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(
                         selectedItem + "\n\n" + logContent, editor,
