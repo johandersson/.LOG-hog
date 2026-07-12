@@ -44,6 +44,7 @@ import gui.DialogHelper;
 import gui.LoadingProgressDialog;
 import security.AppPathPolicy;
 import security.BackupKeyDerivation;
+import security.SecurityFilePolicy;
 import utils.SafeExecution;
 
 /**
@@ -181,37 +182,21 @@ public class BackupManager {
      */
     private void saveSettings() {
         try {
-            Path settingsPath = AppPathPolicy.userHomePath().resolve(".loghog").resolve("settings.properties");
+            Path settingsPath = AppPathPolicy.settingsFilePath();
             AppPathPolicy.assertSafeDirectory(settingsPath.getParent());
             AppPathPolicy.assertSafeRegularFile(settingsPath);
             Files.createDirectories(settingsPath.getParent());
             try (java.io.OutputStream out = java.nio.file.Files.newOutputStream(settingsPath)) {
                 settings.store(out, "LogHog Settings");
             }
-            // Attempt to restrict settings file permissions to the current user only
-            setOwnerOnlyPermissions(settingsPath);
+            SecurityFilePolicy.ensureOwnerOnlyPermissions(settingsPath);
         } catch (IOException | SecurityException e) {
             // Security: Don't log exception details to console
         }
     }
 
     private void setOwnerOnlyPermissions(Path path) {
-        try {
-            try {
-                java.util.Set<java.nio.file.attribute.PosixFilePermission> perms = java.nio.file.attribute.PosixFilePermissions.fromString("rw-------");
-                Files.setPosixFilePermissions(path, perms);
-                return;
-            } catch (UnsupportedOperationException | SecurityException ignored) {
-                // Not POSIX or not permitted
-            }
-
-            java.io.File f = path.toFile();
-            f.setReadable(true, true);
-            f.setWritable(true, true);
-            f.setExecutable(false, true);
-        } catch (IOException | SecurityException ignored) {
-            // Best-effort only
-        }
+        SecurityFilePolicy.ensureOwnerOnlyPermissions(path);
     }
 
     /**

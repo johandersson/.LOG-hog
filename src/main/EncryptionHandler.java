@@ -212,6 +212,7 @@ public class EncryptionHandler {
     private boolean performPasswordAuthentication(byte[] salt, String dialogTitle, boolean exitOnCancel) {
         boolean success = false;
         int attempts = 0;
+        final int maxSessionAttempts = PersistentAuthLockout.getMaxSessionAttempts();
 
         long remainingLockoutMs = PersistentAuthLockout.getRemainingLockoutMillis(settings);
         if (remainingLockoutMs > 0) {
@@ -284,34 +285,36 @@ public class EncryptionHandler {
                 java.util.Arrays.fill(pwd, '\0');
                 
                 attempts++;
-                PersistentAuthLockout.registerFailure(settings);
-                try {
-                    if (saveSettingsCallback != null) saveSettingsCallback.run();
-                } catch (Exception ignored) {
-                }
+                if (attempts >= maxSessionAttempts) {
+                    PersistentAuthLockout.registerFailure(settings);
+                    try {
+                        if (saveSettingsCallback != null) saveSettingsCallback.run();
+                    } catch (Exception ignored) {
+                    }
 
-                long lockoutNow = PersistentAuthLockout.getRemainingLockoutMillis(settings);
-                if (lockoutNow > 0) {
-                    long minutes = Math.max(1L, (lockoutNow + 59999L) / 60000L);
-                    DialogHelper.showError(parentFrame,
-                        "Security Lock",
-                        "Account Temporarily Locked",
-                        "Too many failed attempts were detected.<br><br>Please wait about " + minutes + " minute(s) before trying again.");
-                    return false;
-                }
-
-                if (attempts >= 4) {
-                    DialogHelper.showError(parentFrame, "Security Error", "🚫 Security Lock", "Too many failed password attempts.<br>The application is now locked for security.<br><br>Please restart the application to try again.");
+                    long lockoutNow = PersistentAuthLockout.getRemainingLockoutMillis(settings);
+                    if (lockoutNow > 0) {
+                        long minutes = Math.max(1L, (lockoutNow + 59999L) / 60000L);
+                        DialogHelper.showError(parentFrame,
+                            "Security Lock",
+                            "Account Temporarily Locked",
+                            "Too many failed sessions were detected.<br><br>Please wait about " + minutes + " minute(s) before trying again.");
+                    } else {
+                        DialogHelper.showError(parentFrame,
+                            "Authentication Failed",
+                            "Session Attempts Exhausted",
+                            "You have used all 3 tries for this session.<br><br>Please restart the unlock flow and try again.");
+                    }
                     return false;
                 }
                 
                 boolean isAuthError = AuthenticationFailureClassifier.isLikelyAuthenticationFailure(e);
                 
                 if (isAuthError) {
-                    int remaining = 4 - attempts;
+                    int remaining = maxSessionAttempts - attempts;
                     DialogHelper.showError(parentFrame, "Authentication Failed", "🔒 Authentication Failed",
                         "The password you entered appears to be incorrect, or the encrypted file has an unexpected format.<br><br>" +
-                        "You have <b>" + remaining + "</b> attempt" + (remaining == 1 ? "" : "s") + " remaining before the application locks for security.<br><br>Tip: Double-check your password or password manager.");
+                        "You have <b>" + remaining + "</b> attempt" + (remaining == 1 ? "" : "s") + " remaining in this session.<br><br>Tip: Double-check your password or password manager.");
                     // WindowShakeAnimation.shake(parentFrame);
                     // Add progressive delay after failed attempts
                     long delay = switch (attempts) {

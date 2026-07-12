@@ -28,6 +28,7 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import gui.DialogHelper;
+import security.AppPathPolicy;
 
 /**
  * Handles user dialogs for file operations and error recovery.
@@ -420,7 +421,7 @@ public class DialogHandler {
     private static void persistEncryptionSettings(byte[] salt) {
         if (salt == null) return;
         try {
-            Path settingsPath = Path.of(System.getProperty("user.home"), "loghog_settings.properties");
+            Path settingsPath = AppPathPolicy.settingsFilePath();
             java.util.Properties props = new java.util.Properties();
             if (Files.exists(settingsPath)) {
                 try (java.io.InputStream in = Files.newInputStream(settingsPath)) {
@@ -429,6 +430,7 @@ public class DialogHandler {
             }
             props.setProperty("encrypted", "true");
             props.setProperty("salt", Base64.getEncoder().encodeToString(salt));
+            Files.createDirectories(settingsPath.getParent());
             try (java.io.OutputStream out = Files.newOutputStream(settingsPath)) {
                 props.store(out, "LogHog settings");
             }

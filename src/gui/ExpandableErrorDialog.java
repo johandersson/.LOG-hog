@@ -23,11 +23,28 @@ import javax.swing.SwingUtilities;
  * containing a full stack trace when a Throwable is provided.
  */
 public class ExpandableErrorDialog {
+    private static final String DEBUG_FLAG = "loghog.debug";
+
+    private static boolean isProductionMode() {
+        return !Boolean.getBoolean(DEBUG_FLAG);
+    }
+
+    private static String referenceCode(Throwable t) {
+        if (t == null) {
+            return "LHG-UI-0000";
+        }
+        int code = Math.abs((t.getClass().getName() + String.valueOf(t.getMessage())).hashCode());
+        return String.format("LHG-UI-%04d", code % 10000);
+    }
 
     public static void show(Component parent, String title, String htmlMessage, Throwable t) {
         Runnable r = () -> {
             JPanel main = new JPanel(new BorderLayout(8, 8));
-            JLabel messageLabel = new JLabel(htmlMessage);
+            String displayMessage = htmlMessage;
+            if (isProductionMode()) {
+                displayMessage = htmlMessage + "<br><br><i>Reference code: " + referenceCode(t) + "</i>";
+            }
+            JLabel messageLabel = new JLabel(displayMessage);
             main.add(messageLabel, BorderLayout.NORTH);
 
             JPanel bottom = new JPanel();
@@ -57,12 +74,12 @@ public class ExpandableErrorDialog {
             bottom.add(Box.createVerticalStrut(8));
             bottom.add(traceScroll);
 
-            if (t != null) {
+            if (t != null && !isProductionMode()) {
                 StringWriter sw = new StringWriter();
                 t.printStackTrace(new PrintWriter(sw));
                 traceArea.setText(sw.toString());
             } else {
-                // No exception - disable toggle
+                // In production mode, details are intentionally hidden.
                 toggle.setEnabled(false);
             }
 

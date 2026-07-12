@@ -11,6 +11,14 @@ import java.nio.file.Path;
 public final class AppPathPolicy {
     private AppPathPolicy() {}
 
+    public static Path appDataDirectory() {
+        return userHomePath().resolve(".loghog");
+    }
+
+    public static Path settingsFilePath() {
+        return appDataDirectory().resolve("settings.properties");
+    }
+
     public static Path userHomePath() {
         String home = System.getProperty("user.home", ".");
         return Path.of(home).toAbsolutePath().normalize();

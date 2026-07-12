@@ -51,6 +51,7 @@ import gui.NavItem;
 import gui.SettingsPanel;
 import gui.SystemTrayMenu;
 import gui.LoadingProgressDialog;
+import security.AppPathPolicy;
 import security.SecurityFilePolicy;
 
 public final class LogTextEditor extends JFrame {
@@ -111,7 +112,7 @@ public final class LogTextEditor extends JFrame {
     private SettingsPanel settingsPanel;
 
     private final java.util.Properties settings = new java.util.Properties();
-    private final java.nio.file.Path settingsPath = java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
+    private final java.nio.file.Path settingsPath = AppPathPolicy.settingsFilePath();
 
     private boolean isLocked;
     private final Object lockObject = new Object();
@@ -162,14 +163,8 @@ public final class LogTextEditor extends JFrame {
 
         logFileHandler = (LogFileHandler) application.getLogFileOperations();
 
-        // Load settings file FIRST so all features can use existing settings
-        if (java.nio.file.Files.exists(settingsPath)) {
-            try (java.io.InputStream fis = java.nio.file.Files.newInputStream(settingsPath)) {
-                settings.load(fis);
-            } catch (Exception e) {
-                // Settings will use defaults if load fails
-            }
-        }
+        // Load settings file FIRST so all features can use existing settings.
+        loadSettingsFromDisk();
 
         // Initialize backup manager
         backupManager = new BackupManager(settings);
@@ -251,6 +246,28 @@ public final class LogTextEditor extends JFrame {
         logListPanel = new LogListPanel(this, logFileHandler, listModel, logList);
         fullLogPanel = new FullLogPanel(this, logFileHandler);
         settingsPanel = new SettingsPanel(this, settings, settingsPath, logFileHandler);
+    }
+
+    private java.nio.file.Path getLegacySettingsPath() {
+        return java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
+    }
+
+    private void loadSettingsFromDisk() {
+        java.nio.file.Path legacyPath = getLegacySettingsPath();
+        java.nio.file.Path sourcePath = java.nio.file.Files.exists(settingsPath) ? settingsPath : legacyPath;
+
+        if (sourcePath == null || !java.nio.file.Files.exists(sourcePath)) {
+            return;
+        }
+
+        try (java.io.InputStream fis = java.nio.file.Files.newInputStream(sourcePath)) {
+            settings.load(fis);
+            if (sourcePath.equals(legacyPath)) {
+                saveSettings();
+            }
+        } catch (Exception e) {
+            // Settings will use defaults if load fails
+        }
     }
 
     public ActionListener copyLogEntryTextToClipBoard() {
@@ -530,6 +547,14 @@ public final class LogTextEditor extends JFrame {
     }
 
     private void saveSettings() {
+        try {
+            AppPathPolicy.assertSafeDirectory(settingsPath.getParent());
+            AppPathPolicy.assertSafeRegularFile(settingsPath);
+            java.nio.file.Files.createDirectories(settingsPath.getParent());
+        } catch (Exception ignored) {
+            // Fall through to write attempt for consistent user-facing error behavior.
+        }
+
         try (java.io.OutputStream fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
             SecurityFilePolicy.ensureOwnerOnlyPermissions(settingsPath);
@@ -753,6 +778,8 @@ public final class LogTextEditor extends JFrame {
     private void initializeSecureClipboard() {
         // Keep clipboard auto-clear always enabled.
         settings.setProperty("clipboardAutoClear", "true");
+        // If a previous run crashed after copying sensitive content, clear clipboard on next start.
+        clipboard.SecureClipboardManager.recoverClipboardAfterCrash();
         int timeout = Integer.parseInt(settings.getProperty("clipboardTimeout", "30"));
         // Validate timeout is within SecureClipboardManager bounds (5-30 seconds)
         if (timeout < 5 || timeout > 30) {

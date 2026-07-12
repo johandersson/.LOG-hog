@@ -71,12 +71,16 @@ Many lightweight note tools optimize for convenience first and security second.
 
 * Unauthorized access to local files or backups
 * Offline attacks on encrypted data
+* Opportunistic tampering of local security metadata
 
 It does **not protect against**:
 
 * Malware or keyloggers
 * System-level compromise
 * Memory access during an active session
+* Attackers with full access to your user profile and host metadata
+
+Note: local lockout/audit metadata keys are protected with a host-profile-bound envelope for practical hardening. This improves resistance to casual tampering but is not equivalent to a hardware-backed secret store.
 
 👉 Security depends on:
 

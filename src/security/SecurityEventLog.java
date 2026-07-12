@@ -98,18 +98,23 @@ public final class SecurityEventLog {
             byte[] generated = new byte[32];
             new java.security.SecureRandom().nextBytes(generated);
             try {
-                Files.write(keyPath, Base64.getEncoder().encode(generated));
-                SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(keyPath);
+                SensitiveKeyProtector.writeProtected(keyPath, generated, "security-events-hmac-key");
             } finally {
                 java.util.Arrays.fill(generated, (byte) 0);
             }
         }
 
-        byte[] encoded = Files.readAllBytes(keyPath);
         try {
-            return Base64.getDecoder().decode(encoded);
-        } finally {
-            java.util.Arrays.fill(encoded, (byte) 0);
+            return SensitiveKeyProtector.readProtected(keyPath, "security-events-hmac-key");
+        } catch (IOException protectedReadFailed) {
+            byte[] encoded = Files.readAllBytes(keyPath);
+            try {
+                byte[] decoded = decodeMaybeBase64(encoded);
+                SensitiveKeyProtector.writeProtected(keyPath, decoded, "security-events-hmac-key");
+                return decoded;
+            } finally {
+                java.util.Arrays.fill(encoded, (byte) 0);
+            }
         }
     }
 
@@ -195,17 +200,27 @@ public final class SecurityEventLog {
         if (!Files.exists(privatePath) || !Files.exists(publicPath)) {
             KeyPairGenerator kpg = KeyPairGenerator.getInstance("Ed25519");
             KeyPair generated = kpg.generateKeyPair();
-            Files.write(privatePath, Base64.getEncoder().encode(generated.getPrivate().getEncoded()));
+            SensitiveKeyProtector.writeProtected(privatePath, generated.getPrivate().getEncoded(), "security-events-signing-private");
             Files.write(publicPath, Base64.getEncoder().encode(generated.getPublic().getEncoded()));
             SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(privatePath);
             SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(publicPath);
             return generated;
         }
 
-        byte[] privateEncodedB64 = Files.readAllBytes(privatePath);
+        byte[] privateEncoded;
+        try {
+            privateEncoded = SensitiveKeyProtector.readProtected(privatePath, "security-events-signing-private");
+        } catch (IOException protectedReadFailed) {
+            byte[] privateEncodedB64 = Files.readAllBytes(privatePath);
+            try {
+                privateEncoded = decodeMaybeBase64(privateEncodedB64);
+                SensitiveKeyProtector.writeProtected(privatePath, privateEncoded, "security-events-signing-private");
+            } finally {
+                java.util.Arrays.fill(privateEncodedB64, (byte) 0);
+            }
+        }
         byte[] publicEncodedB64 = Files.readAllBytes(publicPath);
         try {
-            byte[] privateEncoded = Base64.getDecoder().decode(privateEncodedB64);
             byte[] publicEncoded = Base64.getDecoder().decode(publicEncodedB64);
             try {
                 KeyFactory kf = KeyFactory.getInstance("Ed25519");
@@ -217,8 +232,15 @@ public final class SecurityEventLog {
                 java.util.Arrays.fill(publicEncoded, (byte) 0);
             }
         } finally {
-            java.util.Arrays.fill(privateEncodedB64, (byte) 0);
             java.util.Arrays.fill(publicEncodedB64, (byte) 0);
+        }
+    }
+
+    private static byte[] decodeMaybeBase64(byte[] raw) {
+        try {
+            return Base64.getDecoder().decode(raw);
+        } catch (IllegalArgumentException ex) {
+            return raw.clone();
         }
     }
 

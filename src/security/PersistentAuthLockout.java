@@ -24,12 +24,11 @@ public final class PersistentAuthLockout {
     private static final String KEY_SEQ = "authStateSeq";
     private static final String KEY_STATE_HASH = "authStateHash";
     private static final String KEY_ANCHOR_MAC = "authAnchorMac";
-    private static final int MAX_FAILED_ATTEMPTS = 3;
+    private static final int MAX_FAILED_SESSIONS_BEFORE_LOCKOUT = 10;
+    private static final int MAX_SESSION_ATTEMPTS = 3;
     private static final long[] LOCKOUT_SCHEDULE_MS = new long[] {
-        1L * 60L * 1000L,
-        3L * 60L * 1000L,
-        5L * 60L * 1000L,
-        10L * 60L * 1000L,
+        30L * 60L * 1000L,
+        30L * 60L * 1000L,
         30L * 60L * 1000L
     };
     private static final String LOCKOUT_DIR_NAME = ".loghog";
@@ -53,17 +52,17 @@ public final class PersistentAuthLockout {
         purgeLegacyKeys(settings);
         try {
             LockoutState state = readState();
-            int failed = state.failedAttempts + 1;
-            if (failed >= MAX_FAILED_ATTEMPTS) {
+            int failedSessions = state.failedAttempts + 1;
+            if (failedSessions >= MAX_FAILED_SESSIONS_BEFORE_LOCKOUT) {
                 state.failedAttempts = 0;
-                state.lockoutLevel = state.lockoutLevel + 1;
+                state.lockoutLevel = 1;
                 long lockoutDurationMs = getLockoutDurationMillis(state.lockoutLevel);
                 state.lockedUntil = System.currentTimeMillis() + lockoutDurationMs;
                 long lockoutMinutes = lockoutDurationMs / (60L * 1000L);
                 audit("LOCKOUT_TRIGGERED", "level=" + state.lockoutLevel + ",minutes=" + lockoutMinutes + ",until=" + state.lockedUntil);
             } else {
-                state.failedAttempts = failed;
-                audit("AUTH_FAILURE", "count=" + failed);
+                state.failedAttempts = failedSessions;
+                audit("AUTH_FAILURE", "failedSessions=" + failedSessions);
             }
             writeState(state);
         } catch (Exception ex) {
@@ -80,6 +79,14 @@ public final class PersistentAuthLockout {
         } catch (Exception ex) {
             audit("LOCKOUT_CLEAR_ERROR", ex.getClass().getSimpleName());
         }
+    }
+
+    public static int getMaxSessionAttempts() {
+        return MAX_SESSION_ATTEMPTS;
+    }
+
+    public static int getMaxFailedSessionsBeforeLockout() {
+        return MAX_FAILED_SESSIONS_BEFORE_LOCKOUT;
     }
 
     private static void purgeLegacyKeys(Properties settings) {
@@ -101,7 +108,7 @@ public final class PersistentAuthLockout {
         boolean anchorExists = Files.exists(anchorPath);
 
         if (!stateExists || !keyExists || !anchorExists) {
-            byte[] key = keyExists ? Files.readAllBytes(keyPath) : generateKey();
+            byte[] key = keyExists ? readKey() : generateKey();
             try {
                 if (!keyExists) {
                     writeKey(key);
@@ -115,7 +122,7 @@ public final class PersistentAuthLockout {
             }
         }
 
-        byte[] key = Files.readAllBytes(keyPath);
+        byte[] key = readKey();
         try {
             Properties props = new Properties();
             try (ByteArrayInputStream in = new ByteArrayInputStream(Files.readAllBytes(statePath))) {
@@ -159,7 +166,7 @@ public final class PersistentAuthLockout {
     }
 
     private static void writeState(LockoutState state) throws IOException {
-        byte[] key = Files.exists(getKeyPath()) ? Files.readAllBytes(getKeyPath()) : generateKey();
+        byte[] key = Files.exists(getKeyPath()) ? readKey() : generateKey();
         try {
             writeState(state, key);
         } finally {
@@ -209,8 +216,35 @@ public final class PersistentAuthLockout {
 
     private static void writeKey(byte[] key) throws IOException {
         ensureStorageDir();
-        Files.write(getKeyPath(), Base64.getEncoder().encode(key));
-        SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(getKeyPath());
+        SensitiveKeyProtector.writeProtected(getKeyPath(), key, "auth-lockout-key");
+    }
+
+    private static byte[] readKey() throws IOException {
+        Path keyPath = getKeyPath();
+        try {
+            return SensitiveKeyProtector.readProtected(keyPath, "auth-lockout-key");
+        } catch (IOException protectedReadFailed) {
+            byte[] raw = Files.readAllBytes(keyPath);
+            byte[] decoded = tryDecodeLegacyKey(raw);
+            try {
+                writeKey(decoded);
+                audit("LOCKOUT_KEY_MIGRATED", "legacy_format");
+                return decoded;
+            } finally {
+                zeroize(raw);
+            }
+        }
+    }
+
+    private static byte[] tryDecodeLegacyKey(byte[] raw) {
+        if (raw == null || raw.length == 0) {
+            return generateKey();
+        }
+        try {
+            return Base64.getDecoder().decode(raw);
+        } catch (IllegalArgumentException ex) {
+            return raw.clone();
+        }
     }
 
     private static Path getStorageDir() {

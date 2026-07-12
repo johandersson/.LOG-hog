@@ -138,7 +138,7 @@ public final class InformationPanel extends JPanel {
             if (Files.exists(p2)) return Files.readString(p2, StandardCharsets.UTF_8);
             if (Files.exists(p3)) return Files.readString(p3, StandardCharsets.UTF_8);
         } catch (IOException couldNotReadFile) {
-            return "Could not read " + fileName + " from file system: " + couldNotReadFile.getMessage();
+            return "Could not read " + fileName + " from file system. Code: LHG-INF-1001";
         }
 
         // 2) Try resource locations inside the JAR (several common packaging locations)
@@ -149,7 +149,7 @@ public final class InformationPanel extends JPanel {
                     return new String(is.readAllBytes(), StandardCharsets.UTF_8);
                 }
             } catch (IOException e) {
-                return "Could not read " + fileName + " from resources: " + e.getMessage();
+                return "Could not read " + fileName + " from resources. Code: LHG-INF-1002";
             }
         }
 

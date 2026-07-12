@@ -157,7 +157,7 @@ Your password is the only thing that cannot be recovered — write it down and s
 
 Your encrypted log data keeps its encryption metadata in the file headers, but active storage may now include a small encrypted journal sidecar during editing. This means:
 
-* If you lose your `loghog_settings.properties` file, your data is **not** permanently lost
+* If you lose your `.loghog/settings.properties` file, your data is **not** permanently lost
 * .LOG-hog will automatically recover the salt from the encrypted file headers when you next open it
 * You need your **password** plus the encrypted snapshot and any journal sidecar still present to regain full access
 * Reinstalling the app or moving the files to a new machine works seamlessly

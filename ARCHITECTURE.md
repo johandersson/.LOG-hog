@@ -33,6 +33,7 @@ flowchart LR
 * Tamper-evident security event log (sequence + hash-chain + anchored metadata)
 * Link/file open checks and centralized security path policy gates
 * Strict owner-only permission enforcement for security-critical artifacts
+* Local metadata-key envelope is host-profile-bound (hardening), not hardware-backed
 
 ## Security Persistence Flow
 

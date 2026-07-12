@@ -65,7 +65,7 @@ public final class EncryptionDetector {
      * <p>
      * This is used for disaster-recovery when the settings file has been lost: the salt
      * stored in the file header is sufficient (together with the user's password) to
-     * decrypt the file without any information from {@code loghog_settings.properties}.
+    * decrypt the file without any information from {@code .loghog/settings.properties}.
      *
      * @param filePath path to the LOGH encrypted file
      * @return the raw salt bytes, or an empty array if the file is not a valid LOGH file

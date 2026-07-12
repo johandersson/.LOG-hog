@@ -26,6 +26,9 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -34,6 +37,8 @@ import java.util.concurrent.TimeUnit;
 import javax.swing.SwingUtilities;
 import gui.DialogHelper;
 
+import security.AppPathPolicy;
+import security.SecurityFilePolicy;
 import utils.Toast;
 
 /**
@@ -71,6 +76,7 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
     private static byte[] lastCopiedDigest; // Track hash of content we last copied
     // Track ownership: true when we set clipboard contents and still own it
     private static volatile boolean weOwnClipboard = false;
+    private static final Path CLIPBOARD_MARKER = AppPathPolicy.appDataDirectory().resolve("clipboard.pending");
 
     private static final SecureClipboardManager INSTANCE = new SecureClipboardManager();
 
@@ -179,6 +185,7 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
                     lastCopiedDigest = null;
                 }
                 weOwnClipboard = true;
+                writeClipboardMarker();
             }
 
             // Show success message
@@ -235,6 +242,7 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
                                         clipboard.setContents(emptySelection, INSTANCE);
                                         lastCopiedDigest = null;
                                         weOwnClipboard = false;
+                                        clearClipboardMarker();
 
                                         // Cancel any pending clear task
                                         if (clearTask != null) {
@@ -245,13 +253,18 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
                                         // Clipboard was changed by user - don't clear
                                         lastCopiedDigest = null;
                                         weOwnClipboard = false;
+                                        clearClipboardMarker();
                                     }
                                 } catch (Exception e) {
                                     // On digest errors, clear tracked value to avoid repeated failures
                                     lastCopiedDigest = null;
+                                    weOwnClipboard = false;
+                                    clearClipboardMarker();
                                 }
                             } else {
                                 lastCopiedDigest = null;
+                                weOwnClipboard = false;
+                                clearClipboardMarker();
                             }
                         }
                     }
@@ -280,7 +293,10 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
                     clearTask = null;
                 }
                 byte[] oldDigest = lastCopiedDigest;
+                boolean hadOwnership = weOwnClipboard;
                 lastCopiedDigest = null;
+                weOwnClipboard = false;
+                clearClipboardMarker();
 
                 // Also attempt to clear clipboard contents if they match the previously tracked digest
                 if (oldDigest != null) {
@@ -295,9 +311,8 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
                                     byte[] now = md.digest(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                                     if (java.util.Arrays.equals(now, oldDigest)) {
                                         // Only clear if we still own the clipboard
-                                        if (weOwnClipboard) {
+                                        if (hadOwnership) {
                                             clipboard.setContents(new StringSelection(""), INSTANCE);
-                                            weOwnClipboard = false;
                                         }
                                     }
                                 }
@@ -403,6 +418,41 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
         synchronized (LOCK) {
             weOwnClipboard = false;
             lastCopiedDigest = null;
+            clearClipboardMarker();
+        }
+    }
+
+    public static void recoverClipboardAfterCrash() {
+        try {
+            if (!Files.exists(CLIPBOARD_MARKER)) {
+                return;
+            }
+            Clipboard clipboard = getSystemClipboardSafe();
+            if (clipboard != null) {
+                clipboard.setContents(new StringSelection(""), INSTANCE);
+            }
+        } catch (Exception ignored) {
+            // best-effort recovery
+        } finally {
+            clearClipboardMarker();
+        }
+    }
+
+    private static void writeClipboardMarker() {
+        try {
+            Files.createDirectories(CLIPBOARD_MARKER.getParent());
+            Files.writeString(CLIPBOARD_MARKER, Long.toString(System.currentTimeMillis()), StandardCharsets.UTF_8);
+            SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(CLIPBOARD_MARKER);
+        } catch (Exception ignored) {
+            // best-effort marker, clipboard clear remains timeout-based
+        }
+    }
+
+    private static void clearClipboardMarker() {
+        try {
+            Files.deleteIfExists(CLIPBOARD_MARKER);
+        } catch (Exception ignored) {
+            // best-effort cleanup
         }
     }
 

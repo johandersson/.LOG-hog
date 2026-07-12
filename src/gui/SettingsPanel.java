@@ -589,12 +589,12 @@ public final class SettingsPanel extends JPanel {
                         } catch (InterruptedException ex2) {
                             Thread.currentThread().interrupt();
                             progressDialog.close();
-                            JOptionPane.showMessageDialog(editor, "Encryption succeeded but UI refresh was interrupted: " + ex2.getMessage(), "Warning", JOptionPane.WARNING_MESSAGE);
+                            JOptionPane.showMessageDialog(editor, "Encryption succeeded but UI refresh was interrupted. Code: LHG-SET-1001", "Warning", JOptionPane.WARNING_MESSAGE);
                             statusLabel.setText("Encryption completed but settings update was interrupted.");
                             statusLabel.setForeground(Color.ORANGE);
                         } catch (ExecutionException ex2) {
                             progressDialog.close();
-                            JOptionPane.showMessageDialog(editor, "Encryption succeeded but saving settings failed: " + ex2.getMessage(), "Warning", JOptionPane.WARNING_MESSAGE);
+                            JOptionPane.showMessageDialog(editor, "Encryption succeeded but saving settings failed. Code: LHG-SET-1002", "Warning", JOptionPane.WARNING_MESSAGE);
                             statusLabel.setText("Encryption completed but settings update failed.");
                             statusLabel.setForeground(Color.ORANGE);
                         }
@@ -709,10 +709,10 @@ public final class SettingsPanel extends JPanel {
                     security.AppPathPolicy.assertSafeRegularFile(backupPath);
                     Files.copy(encryptedLogPath, backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-                    var settingsSource = security.AppPathPolicy.userHomePath().resolve("settings.ini");
+                    var settingsSource = security.AppPathPolicy.settingsFilePath();
                     if (Files.exists(settingsSource)) {
                         security.AppPathPolicy.assertSafeRegularFile(settingsSource);
-                        var settingsBackupPath = selectedDir.resolve("settings.ini");
+                        var settingsBackupPath = selectedDir.resolve(settingsSource.getFileName().toString());
                         security.AppPathPolicy.assertSafeRegularFile(settingsBackupPath);
                         if (Files.exists(settingsBackupPath)) {
                             SecureDeletionUtils.wipeFile(settingsBackupPath);

@@ -9,7 +9,7 @@ import java.util.Set;
  */
 public final class LinkOpenPolicy {
     private static final Set<String> HIGH_RISK_EXTENSIONS = Set.of(
-        "exe", "bat", "cmd", "com", "msi", "ps1", "vbs", "js", "jar", "sh", "scr", "pif"
+        "exe", "bat", "cmd", "com", "msi", "ps1", "vbs", "js", "jar", "sh", "scr", "pif", "lnk", "url", "reg", "hta"
     );
 
     private LinkOpenPolicy() {}
