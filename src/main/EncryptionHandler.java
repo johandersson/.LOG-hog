@@ -241,8 +241,12 @@ public class EncryptionHandler {
             }
             char[] pwd = result.password;
             if (pwd == null) {
-                // Treat cancel as a non-fatal abort; caller decides whether to keep app locked.
-                return false; // User cancelled
+                // Startup/recovery flow should terminate when auth is cancelled.
+                if (exitOnCancel) {
+                    System.exit(0);
+                }
+                // Treat cancel as a non-fatal abort for manual unlock flow.
+                return false;
             }
             try {
                 logFileHandler.setEncryption(pwd, salt);
@@ -304,6 +308,9 @@ public class EncryptionHandler {
                             "Authentication Failed",
                             "Session Attempts Exhausted",
                             "You have used all 3 tries for this session.<br><br>Please restart the unlock flow and try again.");
+                    }
+                    if (exitOnCancel) {
+                        System.exit(1);
                     }
                     return false;
                 }

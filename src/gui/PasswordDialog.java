@@ -194,7 +194,12 @@ public final class PasswordDialog extends JDialog {
                 @Override
                 public void changedUpdate(javax.swing.event.DocumentEvent e) { updateStrength(); }
                 private void updateStrength() {
-                    strengthIndicator.updateStrength(passwordField.getPassword());
+                    char[] current = passwordField.getPassword();
+                    try {
+                        strengthIndicator.updateStrength(current);
+                    } finally {
+                        CryptoUtils.zeroize(current);
+                    }
                 }
             });
         }
@@ -320,24 +325,36 @@ public final class PasswordDialog extends JDialog {
         var dialog = new PasswordDialog(parent, title, null, false);
         dialog.setVisible(true);
         char[] pw = dialog.getPassword();
-        dialog.dispose(); // Explicitly dispose to trigger cleanup
-        return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
+        try {
+            return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
+        } finally {
+            dialog.dispose(); // Explicitly dispose to trigger cleanup
+            CryptoUtils.zeroize(pw);
+        }
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String customMessage) {
         var dialog = new PasswordDialog(parent, title, customMessage, false);
         dialog.setVisible(true);
         char[] pw = dialog.getPassword();
-        dialog.dispose(); // Explicitly dispose to trigger cleanup
-        return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
+        try {
+            return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
+        } finally {
+            dialog.dispose(); // Explicitly dispose to trigger cleanup
+            CryptoUtils.zeroize(pw);
+        }
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String customMessage, boolean showStrength) {
         var dialog = new PasswordDialog(parent, title, customMessage, showStrength);
         dialog.setVisible(true);
         char[] pw = dialog.getPassword();
-        dialog.dispose(); // Explicitly dispose to trigger cleanup
-        return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
+        try {
+            return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
+        } finally {
+            dialog.dispose(); // Explicitly dispose to trigger cleanup
+            CryptoUtils.zeroize(pw);
+        }
     }
 
     /**

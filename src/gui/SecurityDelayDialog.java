@@ -57,26 +57,30 @@ public class SecurityDelayDialog extends ProgressDialogBase {
      * @param delayMillis the delay in milliseconds
      */
     private void startCountdown(long delayMillis) {
-        final long startTime = System.currentTimeMillis();
-        final long endTime = startTime + delayMillis;
+        final long delayNanos = delayMillis * 1_000_000L;
+        final long startNanos = System.nanoTime();
+
+        progressBar.setValue(0);
+        long initialRemainingSeconds = (delayMillis + 999L) / 1000L;
+        progressLabel.setText(formatProgress(0, initialRemainingSeconds));
         
         // Use Swing Timer for smooth progress updates
         var timer = new Timer(50, null);
         timer.addActionListener(e -> {
-            long currentTime = System.currentTimeMillis();
-            if (currentTime >= endTime) {
+            long elapsedNanos = System.nanoTime() - startNanos;
+            if (elapsedNanos >= delayNanos) {
                 progressBar.setValue(100);
                 progressLabel.setText(formatProgress(100, 0));
                 timer.stop();
                 dialog.dispose();
             } else {
-                long elapsed = currentTime - startTime;
-                int progress = (int) (elapsed * 100 / delayMillis);
+                int progress = (int) ((elapsedNanos * 100L) / delayNanos);
                 progressBar.setValue(progress);
                 
                 // Update countdown every tick
-                long remainingMillis = endTime - currentTime;
-                long remainingSeconds = (remainingMillis + 999) / 1000; // Round up
+                long remainingNanos = delayNanos - elapsedNanos;
+                long remainingMillis = Math.max(0L, remainingNanos / 1_000_000L);
+                long remainingSeconds = (remainingMillis + 999L) / 1000L; // Round up
                 progressLabel.setText(formatProgress(progress, remainingSeconds));
             }
         });

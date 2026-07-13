@@ -226,6 +226,8 @@ public class LogFileHandler implements LogFileOperations {
                 // Fall back to just invalidation on error
                 writeDebug("saveTextAsync: reload failed - " + e.getMessage());
             }
+            // Keep Full Log and other cache-aware views in sync after async saves.
+            notifyCacheInvalidationListeners();
             if (onComplete != null) onComplete.run();
         });
         // PMD: Avoid unused private methods such as 'sortAndNormalizeFile()'.
@@ -312,7 +314,16 @@ public class LogFileHandler implements LogFileOperations {
      * Async version of flushPendingWrites - shows a progress dialog and runs write off-EDT.
      */
     public void flushPendingWritesAsync(Runnable onComplete) {
-        asyncSaver.flushPendingWritesAsync(onComplete);
+        asyncSaver.flushPendingWritesAsync(() -> {
+            // On successful flush, pending writes are cleared and views can safely refresh
+            // from disk. Skip notification if write failed and pending writes remain.
+            if (!cache.hasPendingWrites()) {
+                notifyCacheInvalidationListeners();
+            }
+            if (onComplete != null) {
+                onComplete.run();
+            }
+        });
     }
     
     /**

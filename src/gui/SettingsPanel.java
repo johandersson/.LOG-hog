@@ -437,6 +437,7 @@ public final class SettingsPanel extends JPanel {
 
         if (pwd.length < 20) {
             gui.DialogHelper.showError(editor, "Invalid Password", "Password must be at least 20 characters");
+            java.util.Arrays.fill(pwd, '\0');
             return;
         }
 
@@ -456,12 +457,14 @@ public final class SettingsPanel extends JPanel {
             if (!hasUpper || !hasSpecial) {
                 String requirements = "Password must contain at least one uppercase letter and one special character (e.g., !@#$%^&*()_+-=[]{}|;':\",./<>?), OR score 'Strong' or higher in the strength indicator.";
                 gui.DialogHelper.showWarning(editor, "Password Requirements", requirements, null);
+                java.util.Arrays.fill(pwd, '\0');
                 return;
             }
         }
 
         if (score < 45) { // Require at least 'Good' (45+)
             gui.DialogHelper.showWarning(editor, "Weak Password", "Password is too weak. Please create a stronger password (aim for 'Good' or 'Strong' in the indicator).", null);
+            java.util.Arrays.fill(pwd, '\0');
             return;
         }
 

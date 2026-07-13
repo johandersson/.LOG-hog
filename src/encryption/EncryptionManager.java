@@ -9,6 +9,7 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+import filehandling.ResourceLimits;
 
 /*
  * Copyright (C) 2026 Johan Andersson
@@ -469,7 +470,14 @@ public class EncryptionManager implements SessionKeyEncryptor {
             }
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
             cipher.init(Cipher.DECRYPT_MODE, key, spec);
-            return new javax.crypto.CipherInputStream(bin, cipher);
+            byte[] encryptedPayload = readRemainingCiphertext(bin);
+            byte[] plaintext = null;
+            try {
+                plaintext = cipher.doFinal(encryptedPayload);
+            } finally {
+                CryptoUtils.zeroize(encryptedPayload);
+            }
+            return new ZeroizingByteArrayInputStream(plaintext);
         } catch (EncryptionException e) {
             throw e;
         } catch (java.security.GeneralSecurityException | java.io.IOException e) {
@@ -534,7 +542,14 @@ public class EncryptionManager implements SessionKeyEncryptor {
             }
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
             cipher.init(Cipher.DECRYPT_MODE, sessionKey, spec);
-            return new javax.crypto.CipherInputStream(bin, cipher);
+            byte[] encryptedPayload = readRemainingCiphertext(bin);
+            byte[] plaintext = null;
+            try {
+                plaintext = cipher.doFinal(encryptedPayload);
+            } finally {
+                CryptoUtils.zeroize(encryptedPayload);
+            }
+            return new ZeroizingByteArrayInputStream(plaintext);
         } catch (EncryptionException e) {
             throw e;
         } catch (java.security.GeneralSecurityException | java.io.IOException e) {
@@ -694,6 +709,43 @@ public class EncryptionManager implements SessionKeyEncryptor {
             throw e;
         } catch (java.security.GeneralSecurityException e) {
             throw new EncryptionException("Key rotation failed", e);
+        }
+    }
+
+    private byte[] readRemainingCiphertext(java.io.InputStream in) throws java.io.IOException, EncryptionException {
+        final long maxCipherBytes = ResourceLimits.MAX_FILE_SIZE + (8L * 1024L * 1024L);
+        java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+        byte[] chunk = new byte[8192];
+        long total = 0L;
+        try {
+            int n;
+            while ((n = in.read(chunk)) != -1) {
+                total += n;
+                if (total > maxCipherBytes) {
+                    throw new EncryptionException("Encrypted payload exceeds maximum supported size.");
+                }
+                buffer.write(chunk, 0, n);
+            }
+            return buffer.toByteArray();
+        } finally {
+            CryptoUtils.zeroize(chunk);
+        }
+    }
+
+    private static final class ZeroizingByteArrayInputStream extends java.io.ByteArrayInputStream {
+        private boolean cleared;
+
+        private ZeroizingByteArrayInputStream(byte[] data) {
+            super(data == null ? new byte[0] : data);
+        }
+
+        @Override
+        public void close() throws java.io.IOException {
+            if (!cleared) {
+                CryptoUtils.zeroize(this.buf);
+                cleared = true;
+            }
+            super.close();
         }
     }
 

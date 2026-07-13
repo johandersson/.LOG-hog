@@ -10,9 +10,8 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Cipher;
-import javax.crypto.SecretKeyFactory;
+import javax.crypto.Mac;
 import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
@@ -21,13 +20,13 @@ import javax.crypto.spec.SecretKeySpec;
 public final class SensitiveKeyProtector {
     private static final byte[] MAGIC = new byte[] { 'L', 'H', 'K', '1' };
     private static final byte[] DPAPI_MAGIC = new byte[] { 'L', 'H', 'D', '1' };
-    private static final int PBKDF2_ITERATIONS = 600000;
-    private static final int KEY_BITS = 256;
     private static final int GCM_TAG_BITS = 128;
     private static final int GCM_IV_LENGTH = 12;
-    private static final String KDF = "PBKDF2WithHmacSHA256";
     private static final String CIPHER = "AES/GCM/NoPadding";
     private static final String SALT_FILE = "key-protection.salt";
+    private static final String MASTER_SECRET_FILE = "key-protection.master";
+    private static final byte[] KEY_CONTEXT = "loghog-key-protection-v2".getBytes(StandardCharsets.UTF_8);
+    private static final int MASTER_SECRET_BYTES = 32;
     private static final long DPAPI_TIMEOUT_SECONDS = 10;
 
     private SensitiveKeyProtector() {}
@@ -237,6 +236,29 @@ public final class SensitiveKeyProtector {
         return Files.readAllBytes(saltPath);
     }
 
+    private static byte[] getOrCreateMasterSecret() throws IOException {
+        Path masterPath = AppPathPolicy.appDataDirectory().resolve(MASTER_SECRET_FILE);
+        Files.createDirectories(masterPath.getParent());
+
+        if (!Files.exists(masterPath)) {
+            byte[] generated = new byte[MASTER_SECRET_BYTES];
+            new SecureRandom().nextBytes(generated);
+            try {
+                Files.write(masterPath, generated);
+                SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(masterPath);
+            } finally {
+                zeroize(generated);
+            }
+        }
+
+        byte[] master = Files.readAllBytes(masterPath);
+        if (master.length != MASTER_SECRET_BYTES) {
+            zeroize(master);
+            throw new IOException("Master key protection material has invalid length");
+        }
+        return master;
+    }
+
     private static byte[] encrypt(byte[] plaintext, String purpose, byte[] wrappingSalt) throws IOException {
         byte[] hostKey = null;
         byte[] iv = new byte[GCM_IV_LENGTH];
@@ -302,24 +324,19 @@ public final class SensitiveKeyProtector {
     }
 
     private static byte[] deriveHostWrappingKey(byte[] wrappingSalt) throws IOException {
-        String fingerprint = String.join("|",
-            "loghog-key-protection-v1",
-            System.getProperty("user.name", ""),
-            System.getProperty("user.home", ""),
-            System.getProperty("os.name", ""),
-            System.getProperty("os.arch", ""),
-            System.getProperty("java.vendor", ""));
-
-        char[] chars = fingerprint.toCharArray();
-        PBEKeySpec spec = new PBEKeySpec(chars, wrappingSalt, PBKDF2_ITERATIONS, KEY_BITS);
-        Arrays.fill(chars, '\0');
+        byte[] masterSecret = null;
         try {
-            SecretKeyFactory skf = SecretKeyFactory.getInstance(KDF);
-            return skf.generateSecret(spec).getEncoded();
+            masterSecret = getOrCreateMasterSecret();
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(masterSecret, "HmacSHA256"));
+            mac.update(KEY_CONTEXT);
+            mac.update((byte) 0x00);
+            mac.update(wrappingSalt);
+            return mac.doFinal();
         } catch (GeneralSecurityException ex) {
             throw new IOException("Unable to derive key protection material", ex);
         } finally {
-            spec.clearPassword();
+            zeroize(masterSecret);
         }
     }
 
