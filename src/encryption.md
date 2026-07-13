@@ -6,7 +6,7 @@ This document restores the full encryption documentation and aligns it with the 
 
 - Critical cryptography regressions: not identified in current implementation.
 - Primary hardening updates reflected in this revision:
-  - sensitive local key files are now protected at rest with host-bound AES-GCM wrapping,
+  - sensitive local key files are now protected at rest with AES-GCM wrapping derived from a protected per-user random master secret,
   - settings persistence is unified to a single canonical path,
   - user-facing error messages are sanitized in key UI paths.
 
@@ -70,15 +70,16 @@ Legacy loghog_settings.properties is treated as migration input when present.
 
 ### Sensitive key material at rest
 
-Security key files (for lockout HMAC and security-event signing/HMAC) are protected with host-bound AES-GCM wrapping instead of raw plaintext/base64 storage.
+Security key files (for lockout HMAC and security-event signing/HMAC) are protected with AES-GCM wrapping instead of raw plaintext/base64 storage.
 
-Red-team caveat: this host binding is a hardening layer, not a hardware-backed secret store. If an attacker can recover host/user fingerprint inputs and key-protection salt from the same machine image, offline unwrap may still be possible.
+Red-team caveat: this is stronger than plaintext/base64 key storage but is still not a hardware-backed secret store.
 
 Protection flow:
 
-1. derive host wrapping key via PBKDF2-HMAC-SHA256 using host/user fingerprint and app-protected salt,
-2. encrypt key blob with AES-GCM + purpose-bound AAD,
-3. enforce owner-only permissions on wrapped key artifacts.
+1. load or create a protected per-user random master secret,
+2. derive a purpose/context-bound wrapping key using HMAC-SHA256,
+3. encrypt key blob with AES-GCM + purpose-bound AAD,
+4. enforce owner-only permissions on wrapped key artifacts.
 
 ## Authentication Lockout Model
 
@@ -88,7 +89,7 @@ Current behavior:
 - each exhausted session increments failed-session count,
 - lockout triggers after 10 failed sessions,
 - lockout duration: 30 minutes,
-- tamper/missing lockout artifacts fail closed.
+- tamper/missing lockout artifacts are auto-healed to a reset state to avoid sticky lockout loops.
 
 Lockout state includes sequence/hash anchor checks to detect rollback attempts.
 
@@ -143,12 +144,14 @@ flowchart LR
 sequenceDiagram
     participant App as App
     participant Salt as key-protection.salt
-    participant KDF as PBKDF2-HMAC-SHA256
+    participant Master as key-protection.master
+    participant KDF as HMAC-SHA256 key derivation
     participant AES as AES-GCM
     participant File as Wrapped key file
 
     App->>Salt: load or create random salt
-    App->>KDF: derive host-bound wrapping key
+    App->>Master: load or create random master secret
+    App->>KDF: derive context-bound wrapping key
     App->>AES: encrypt sensitive key blob with AAD purpose
     AES->>File: write LHK1 + IV + ciphertext
     App->>File: enforce owner-only permissions
