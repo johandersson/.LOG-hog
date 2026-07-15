@@ -265,7 +265,7 @@ public class MarkdownRenderer {
         try {
             java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
             md.update((byte)2); // entry marker
-            for (String l : entry) {
+            for (String l : normalizeEntryLines(entry)) {
                 if (l == null) l = "";
                 md.update(l.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                 md.update((byte)0);
@@ -279,7 +279,7 @@ public class MarkdownRenderer {
     private static java.util.List<Segment> buildSegmentsForEntry(List<String> entry) throws BadLocationException {
         DefaultStyledDocument temp = new DefaultStyledDocument();
         Map<String, Style> styles = createStyles(temp);
-        MarkdownEntryRenderer.renderEntry(entry, new MarkdownRenderingContext(temp, styles));
+        MarkdownEntryRenderer.renderEntry(normalizeEntryLines(entry), new MarkdownRenderingContext(temp, styles));
 
         int len = temp.getLength();
         java.util.List<Segment> segments = new java.util.ArrayList<>();
@@ -317,7 +317,7 @@ public class MarkdownRenderer {
         // Trim trailing blank lines from entries similar to renderEntries
         List<List<String>> trimmedEntries = new ArrayList<>(entries.size());
         for (List<String> entry : entries) {
-            List<String> trimmed = new ArrayList<>(entry);
+            List<String> trimmed = normalizeEntryLines(entry);
             while (!trimmed.isEmpty() && trimmed.get(trimmed.size() - 1).isBlank()) {
                 trimmed.remove(trimmed.size() - 1);
             }
@@ -664,7 +664,7 @@ public class MarkdownRenderer {
         // Trim trailing blank lines from entries - pre-size for efficiency
         List<List<String>> trimmedEntries = new ArrayList<>(entries.size());
         for (List<String> entry : entries) {
-            List<String> trimmed = new ArrayList<>(entry);
+            List<String> trimmed = normalizeEntryLines(entry);
             while (!trimmed.isEmpty() && trimmed.get(trimmed.size() - 1).isBlank()) {
                 trimmed.remove(trimmed.size() - 1);
             }
@@ -739,6 +739,28 @@ public class MarkdownRenderer {
                 // Ignore if can't trim
             }
         }
+    }
+
+    static List<String> normalizeEntryLines(List<String> entry) {
+        List<String> normalized = new ArrayList<>();
+        if (entry == null) {
+            return normalized;
+        }
+
+        for (String rawLine : entry) {
+            String line = rawLine == null ? "" : rawLine;
+            if (line.indexOf('\n') < 0 && line.indexOf('\r') < 0) {
+                normalized.add(line);
+                continue;
+            }
+
+            String[] splitLines = line.split("\\R", -1);
+            for (String splitLine : splitLines) {
+                normalized.add(splitLine);
+            }
+        }
+
+        return normalized;
     }
 
     private static void renderInfoEntry(List<String> entry, StyledDocument doc, Map<String, Style> styles) throws BadLocationException {
