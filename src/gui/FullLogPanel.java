@@ -273,7 +273,7 @@ public final class FullLogPanel extends LogPanel {
                 return;
             }
             updateButtonStates(false);
-            java.nio.file.Path logPath = java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt");
+            Path logPath = logFileHandler.getFilePath();
             if (!Files.exists(logPath)) {
                 showLogNotFound();
                 return;
@@ -353,7 +353,7 @@ public final class FullLogPanel extends LogPanel {
                 return;
             }
             updateButtonStates(false);
-            java.nio.file.Path logPath = java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt");
+            Path logPath = logFileHandler.getFilePath();
             if (!Files.exists(logPath)) {
                 showLogNotFound();
                 return;
@@ -379,13 +379,8 @@ public final class FullLogPanel extends LogPanel {
                     fullLoadProgress.setVisible(false);
                     try {
                         ParsedLogData parsedData = get();
-                        // Render on EDT and always scroll to bottom when loading
-                        fileLoader.renderParsedData(parsedData, true);
-                        // Ensure caret is at end and visible
-                        try {
-                            fullLogPane.setCaretPosition(fullLogPane.getDocument().getLength());
-                            fullLogPane.requestFocusInWindow();
-                        } catch (Exception ignored) {}
+                        // Render on EDT without forcing scroll position.
+                        fileLoader.renderParsedData(parsedData, false);
                         LogStatistics stats = new LogStatistics(parsedData.getTotalEntryCount(), parsedData.entriesToRender, logPath);
                         infoPanel.updateStatistics(stats);
                     } catch (Exception ex) {

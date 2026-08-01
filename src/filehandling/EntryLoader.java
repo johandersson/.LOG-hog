@@ -523,8 +523,26 @@ public class EntryLoader {
             }
             return b.dateTime.compareTo(a.dateTime);
         });
-        
-        parsedEntriesCache = parsed;
+
+        // Normalize duplicate timestamps to display keys used by the UI/list model
+        // so search/filter operations never return indistinguishable duplicate rows.
+        Map<String, Integer> occurrenceCount = new HashMap<>();
+        List<ParsedEntry> normalized = new ArrayList<>(parsed.size());
+        Pattern baseTsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}$");
+        for (ParsedEntry pe : parsed) {
+            String rawTs = pe.timestamp == null ? "" : pe.timestamp.trim();
+            String cleanTs = rawTs.replaceAll(" \\(\\d+\\)$", "");
+            if (baseTsPattern.matcher(cleanTs).matches()) {
+                int occurrence = occurrenceCount.getOrDefault(cleanTs, 0);
+                occurrenceCount.put(cleanTs, occurrence + 1);
+                String displayTs = occurrence > 0 ? cleanTs + " (" + occurrence + ")" : cleanTs;
+                normalized.add(new ParsedEntry(displayTs, pe.dateTime));
+            } else {
+                normalized.add(pe);
+            }
+        }
+
+        parsedEntriesCache = normalized;
         updateCacheTimestamp();
     }
 
