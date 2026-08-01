@@ -268,16 +268,21 @@ public class UIInitializer {
     }
 
     private void handleFullLogTabSelection() {
-        if (!editor.getFullLogPanel().isSuppressAutoLoad()) {
-            LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
-            final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
-            showTimer.setRepeats(false);
-            showTimer.start();
-            editor.getFullLogPanel().loadFullLog(() -> {
-                if (showTimer.isRunning()) showTimer.stop();
-                progress.close();
-            });
+        if (editor.getFullLogPanel().isSuppressAutoLoad()) {
+            // Suppression is used for "Preview in Full Log" one-shot loads.
+            // Clear it here so later manual tab switches always trigger refresh.
+            editor.getFullLogPanel().setSuppressAutoLoad(false);
+            return;
         }
+
+        LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
+        final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+        showTimer.setRepeats(false);
+        showTimer.start();
+        editor.getFullLogPanel().loadFullLog(() -> {
+            if (showTimer.isRunning()) showTimer.stop();
+            progress.close();
+        });
     }
 
     private void handleLogEntriesTabSelection() {

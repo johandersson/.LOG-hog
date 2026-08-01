@@ -401,10 +401,12 @@ public class SplashScreen extends JDialog {
             g2d.drawLine(notepadX + 10, y, notepadX + 240, y);
         }
 
-        g2d.setFont(new Font("Monospaced", Font.PLAIN, 8));
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_GASP);
+        g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g2d.setFont(new Font("Monospaced", Font.PLAIN, 11));
         g2d.setColor(Color.BLACK);
         for (int i = 0; i < animationFrame && i < entriesList.size(); i++) {
-            g2d.drawString(entriesList.get(i), notepadX + 10, notepadY + 30 + i * 15);
+            g2d.drawString(entriesList.get(i), notepadX + 10, notepadY + 31 + i * 16);
         }
     }
 

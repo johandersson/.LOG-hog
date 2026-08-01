@@ -250,6 +250,11 @@ public class LogFileHandler implements LogFileOperations {
             
             List<String> lines;
             lines = new ArrayList<>(getLines());
+
+            if (!containsTimestampOccurrence(lines, rawTs, occurrence)) {
+                showErrorDialog("<html><b>✏️ Update Failed</b><br><br>Unable to locate the selected log entry.<br>Please reload and try again.</html>");
+                return;
+            }
             
             List<String> updatedLines = entryEditor.updateEntry(rawTs, occurrence, newText, lines);
 
@@ -270,6 +275,36 @@ public class LogFileHandler implements LogFileOperations {
         } catch (Exception e) {
             showErrorDialog("<html><b>✏️ Update Failed</b><br><br>Unable to update the log entry.<br>Please try again.<br><br><i>Tip: Ensure the entry exists and the file is writable.</i></html>");
         }
+    }
+
+    private boolean containsTimestampOccurrence(List<String> lines, String rawTimestamp, int occurrence) {
+        if (lines == null || rawTimestamp == null) {
+            return false;
+        }
+
+        int currentOccurrence = 0;
+        for (String line : lines) {
+            String normalizedLineTs = normalizeTimestampForMatching(line);
+            if (normalizedLineTs.equals(rawTimestamp.trim())) {
+                if (currentOccurrence == occurrence) {
+                    return true;
+                }
+                currentOccurrence++;
+            }
+        }
+
+        return false;
+    }
+
+    private String normalizeTimestampForMatching(String ts) {
+        if (ts == null) {
+            return "";
+        }
+
+        String normalized = ts.trim();
+        normalized = normalized.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2");
+        normalized = normalized.replaceAll(" \\(\\d+\\)$", "");
+        return normalized;
     }
     
     /**

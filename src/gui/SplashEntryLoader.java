@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -45,6 +46,16 @@ public class SplashEntryLoader {
     ));
     private static volatile List<String> cachedEntries;
 
+    private static final class TimedEntry {
+        private final String text;
+        private final LocalDateTime timestamp;
+
+        private TimedEntry(String text, LocalDateTime timestamp) {
+            this.text = text;
+            this.timestamp = timestamp;
+        }
+    }
+
     /**
      * Loads up to 5 random splash entries and sorts them by timestamp.
      * The backing resource is cached after the first load so repeated splash opens
@@ -54,9 +65,7 @@ public class SplashEntryLoader {
      */
     public static List<String> loadSplashEntries() {
         List<String> selectedEntries = sampleCachedEntries();
-        Collections.sort(selectedEntries, Comparator.comparing(s ->
-            LocalDateTime.parse(s.substring(0, 16), DATE_FORMATTER)));
-        return selectedEntries;
+        return sortSelectedEntries(selectedEntries);
     }
 
     /**
@@ -74,13 +83,52 @@ public class SplashEntryLoader {
             return new ArrayList<>(allEntries);
         }
 
-        List<String> shuffledEntries = new ArrayList<>(allEntries);
+        // Floyd sampling: choose K unique indices in O(K) without copying/shuffling all entries.
+        int size = allEntries.size();
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        for (int i = 0; i < SPLASH_ENTRY_COUNT; i++) {
-            int swapIndex = random.nextInt(i, shuffledEntries.size());
-            Collections.swap(shuffledEntries, i, swapIndex);
+        HashSet<Integer> chosen = new HashSet<>(SPLASH_ENTRY_COUNT * 2);
+        for (int i = size - SPLASH_ENTRY_COUNT; i < size; i++) {
+            int candidate = random.nextInt(i + 1);
+            if (!chosen.add(candidate)) {
+                chosen.add(i);
+            }
         }
-        return new ArrayList<>(shuffledEntries.subList(0, SPLASH_ENTRY_COUNT));
+
+        List<String> selected = new ArrayList<>(SPLASH_ENTRY_COUNT);
+        for (Integer index : chosen) {
+            selected.add(allEntries.get(index));
+        }
+        return selected;
+    }
+
+    private static List<String> sortSelectedEntries(List<String> selectedEntries) {
+        if (selectedEntries.isEmpty()) {
+            return selectedEntries;
+        }
+
+        List<TimedEntry> timedEntries = new ArrayList<>(selectedEntries.size());
+        for (String entry : selectedEntries) {
+            timedEntries.add(new TimedEntry(entry, parseTimestampSafe(entry)));
+        }
+
+        timedEntries.sort(Comparator.comparing(te -> te.timestamp));
+
+        List<String> sorted = new ArrayList<>(timedEntries.size());
+        for (TimedEntry te : timedEntries) {
+            sorted.add(te.text);
+        }
+        return sorted;
+    }
+
+    private static LocalDateTime parseTimestampSafe(String entry) {
+        if (entry == null || entry.length() < 16) {
+            return LocalDateTime.MIN;
+        }
+        try {
+            return LocalDateTime.parse(entry.substring(0, 16), DATE_FORMATTER);
+        } catch (Exception ignored) {
+            return LocalDateTime.MIN;
+        }
     }
 
     private static List<String> getOrLoadEntries() {

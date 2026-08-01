@@ -160,11 +160,21 @@ public class ActionHandler {
         // updateEntry handles parsing to find correct occurrence in file
         logFileHandler.updateEntry(selectedItem, logListPanel.getEntryArea().getText());
 
+        // If no pending write was produced, the update did not apply.
+        if (!logFileHandler.hasPendingWrites()) {
+            DialogHelper.showEntryNotFound(editor);
+            return;
+        }
+
         // Make a final copy for use inside the async lambda (must be effectively final)
         final String selectedCopy = selectedItem;
 
         // Flush writes asynchronously to avoid blocking UI on large files
         logFileHandler.flushPendingWritesAsync(() -> {
+            if (logFileHandler.hasPendingWrites()) {
+                logFileHandler.showErrorDialog("<html><b>💾 Save Failed</b><br><br>Changes are still pending and were not written to disk.<br>Please check file access/permissions and try again.</html>");
+                return;
+            }
             // Do NOT reload the entire entry list (this would reset filters).
             // Instead, reselect the updated item in the existing model when possible.
             try {

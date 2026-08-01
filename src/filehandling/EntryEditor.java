@@ -125,15 +125,15 @@ public class EntryEditor {
         } catch (Exception ignore) {
         }
         
-        String rawTs = timeStamp.trim();
+        String rawTs = normalizeTimestampForMatching(timeStamp);
         List<String> updatedLines = new ArrayList<>();
         boolean inTargetEntry = false;
         int currentOccurrence = 0;
 
         for (String line : lines) {
-            String trimmed = line.trim();
-            // Match the raw timestamp (file doesn't store suffix)
-            if (trimmed.equals(rawTs) || trimmed.startsWith(rawTs + " (")) {
+            // Normalize file line timestamps for robust matching with display timestamps.
+            String normalizedLineTs = normalizeTimestampForMatching(line);
+            if (normalizedLineTs.equals(rawTs)) {
                 // Found a matching timestamp
                 if (currentOccurrence == occurrence) {
                     inTargetEntry = true;
@@ -147,7 +147,7 @@ public class EntryEditor {
 
             if (inTargetEntry) {
                 // stop skipping when we hit the next timestamp line
-                if (utils.DateHandler.isTimestamp(line)) {
+                if (isTimestampLine(line)) {
                     inTargetEntry = false;
                     updatedLines.add(line); // add the next timestamp line
                 }
@@ -158,6 +158,22 @@ public class EntryEditor {
         }
 
         return updatedLines;
+    }
+
+    private String normalizeTimestampForMatching(String ts) {
+        if (ts == null) {
+            return "";
+        }
+
+        String normalized = ts.trim();
+        normalized = normalized.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2");
+        normalized = normalized.replaceAll(" \\(\\d+\\)$", "");
+        return normalized;
+    }
+
+    private boolean isTimestampLine(String line) {
+        String normalized = normalizeTimestampForMatching(line);
+        return utils.DateHandler.isTimestamp(normalized);
     }
     
     /**

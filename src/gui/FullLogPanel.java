@@ -348,12 +348,20 @@ public final class FullLogPanel extends LogPanel {
         SwingUtilities.invokeLater(() -> {
             if (editor.isLocked()) {
                 handleLockedState();
+                suppressAutoLoad = false;
+                if (callback != null) {
+                    callback.run();
+                }
                 return;
             }
             updateButtonStates(false);
             Path logPath = logFileHandler.getFilePath();
             if (!Files.exists(logPath)) {
                 showLogNotFound();
+                suppressAutoLoad = false;
+                if (callback != null) {
+                    callback.run();
+                }
                 return;
             }
             clearEditorForNewLoad(logPath);
