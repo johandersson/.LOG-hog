@@ -335,6 +335,10 @@ public class LogFileHandler implements LogFileOperations {
                 backupManager.createNumberedBackup();
             }
             encryptionManager.encryptFileFromLines(pendingLines);
+            // Keep the in-memory hydration cache and incremental journal in sync with
+            // the authoritative content we just wrote, otherwise the next read could
+            // fall back to stale pre-write content.
+            entryEditor.syncAfterFullEncryptedWrite(pendingLines);
             
             cache.clearPendingWrites();
             // Notify UI that pending writes were flushed to disk and caches may need refresh
@@ -408,6 +412,10 @@ public class LogFileHandler implements LogFileOperations {
                 backupManager.createNumberedBackup();
             }
             encryptionManager.encryptFileFromLines(lines);
+            // Keep the in-memory hydration cache and incremental journal in sync with
+            // the authoritative content we just wrote, otherwise the next read could
+            // fall back to stale pre-write content.
+            entryEditor.syncAfterFullEncryptedWrite(lines);
             
             // Invalidate caches and reload list for proper display suffix regeneration
             invalidateEntryCache();

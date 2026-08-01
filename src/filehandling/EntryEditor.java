@@ -334,6 +334,21 @@ public class EntryEditor {
         incrementalJournal.compactNow();
         cache.clearCachedLines();
     }
+
+    /**
+     * Must be called after any operation that writes a full, authoritative
+     * content snapshot directly to the base encrypted file (bypassing the
+     * incremental journal's append path). Without this, the in-memory
+     * hydration cache ({@link FileCache#getCachedLines()}) would keep
+     * returning stale pre-write content on the next read, since it is
+     * consulted before the journal/snapshot are re-read from disk. This
+     * caused edits and timestamp changes to appear to "revert" after a
+     * tab switch or subsequent save.
+     */
+    public void syncAfterFullEncryptedWrite(List<String> lines) {
+        incrementalJournal.clear();
+        cache.updateCachedLines(lines);
+    }
     
     /**
      * Writes lines to file with backup and normalization.
@@ -348,7 +363,7 @@ public class EntryEditor {
                 backupManager.createNumberedBackup();
             }
             encryptionManager.encryptFileFromLines(normalized);
-            incrementalJournal.clear();
+            syncAfterFullEncryptedWrite(normalized);
         } else {
             if (backupManager != null) {
                 backupManager.createNumberedBackup();
