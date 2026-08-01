@@ -56,9 +56,29 @@ import javax.swing.text.Element;
 public class MarkdownRenderer {
     private static final long ENTRY_CACHE_TTL_MS = 15_000L;
     private static final long DOC_CACHE_TTL_MS = 60_000L;
+    private static final int MAX_CACHEABLE_ENTRY_CHARS = 16_384;
 
     // Pre-compiled pattern for timestamp validation - much faster than String.matches()
     private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
+    private static final Pattern ASCII_CONTROL_PATTERN = Pattern.compile("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]");
+    private static final Pattern DEL_PATTERN = Pattern.compile("[\\x7F]");
+    private static final Pattern SCRIPT_OPEN_PATTERN = Pattern.compile("(?i)<script");
+    private static final Pattern SCRIPT_CLOSE_PATTERN = Pattern.compile("(?i)</script");
+    private static final Pattern IFRAME_PATTERN = Pattern.compile("(?i)<iframe");
+    private static final Pattern OBJECT_PATTERN = Pattern.compile("(?i)<object");
+    private static final Pattern EMBED_PATTERN = Pattern.compile("(?i)<embed");
+    private static final Pattern APPLET_PATTERN = Pattern.compile("(?i)<applet");
+    private static final Pattern FORM_PATTERN = Pattern.compile("(?i)<form");
+    private static final Pattern IMG_PATTERN = Pattern.compile("(?i)<img");
+    private static final Pattern SVG_PATTERN = Pattern.compile("(?i)<svg");
+    private static final Pattern CANVAS_PATTERN = Pattern.compile("(?i)<canvas");
+    private static final Pattern LINK_PATTERN = Pattern.compile("(?i)<link");
+    private static final Pattern META_PATTERN = Pattern.compile("(?i)<meta");
+    private static final Pattern BASE_PATTERN = Pattern.compile("(?i)<base");
+    private static final Pattern EVENT_HANDLER_ATTR_PATTERN = Pattern.compile("(?i)\\s+on\\w+\\s*=");
+    private static final Pattern JAVASCRIPT_PROTOCOL_PATTERN = Pattern.compile("(?i)javascript\\s*:");
+    private static final Pattern DATA_PROTOCOL_PATTERN = Pattern.compile("(?i)data\\s*:");
+    private static final Pattern VBSCRIPT_PROTOCOL_PATTERN = Pattern.compile("(?i)vbscript\\s*:");
 
     public static void renderMarkdown(JTextPane pane, List<String> lines) {
         renderMarkdown(pane, lines, false);
@@ -346,26 +366,31 @@ public class MarkdownRenderer {
                 }
                 context.insertDoubleLineSeparator();
             } else {
-                // Use entry-level cache
-                String entryKey = computeHashForEntry(entry);
-                java.util.List<Segment> segs = null;
-                synchronized (ENTRY_CACHE) {
-                    java.lang.ref.SoftReference<CachedSegments> ref = ENTRY_CACHE.get(entryKey);
-                    CachedSegments cached = (ref == null) ? null : ref.get();
-                    if (ref != null && (cached == null || cached.isExpired())) {
-                        ENTRY_CACHE.remove(entryKey);
-                        cached = null;
-                    }
-                    segs = cached == null ? null : cached.segments;
-                }
-                if (segs != null) {
-                    insertSegmentsIntoDoc(doc, segs);
-                } else {
-                    segs = buildSegmentsForEntry(entry);
+                // Use entry-level cache for typical entries. Very large entries are rendered
+                // directly to avoid extra temporary document and segment allocation churn.
+                if (isCacheableEntry(entry)) {
+                    String entryKey = computeHashForEntry(entry);
+                    java.util.List<Segment> segs = null;
                     synchronized (ENTRY_CACHE) {
-                        ENTRY_CACHE.put(entryKey, new java.lang.ref.SoftReference<>(new CachedSegments(segs, System.currentTimeMillis() + ENTRY_CACHE_TTL_MS)));
+                        java.lang.ref.SoftReference<CachedSegments> ref = ENTRY_CACHE.get(entryKey);
+                        CachedSegments cached = (ref == null) ? null : ref.get();
+                        if (ref != null && (cached == null || cached.isExpired())) {
+                            ENTRY_CACHE.remove(entryKey);
+                            cached = null;
+                        }
+                        segs = cached == null ? null : cached.segments;
                     }
-                    insertSegmentsIntoDoc(doc, segs);
+                    if (segs != null) {
+                        insertSegmentsIntoDoc(doc, segs);
+                    } else {
+                        segs = buildSegmentsForEntry(entry);
+                        synchronized (ENTRY_CACHE) {
+                            ENTRY_CACHE.put(entryKey, new java.lang.ref.SoftReference<>(new CachedSegments(segs, System.currentTimeMillis() + ENTRY_CACHE_TTL_MS)));
+                        }
+                        insertSegmentsIntoDoc(doc, segs);
+                    }
+                } else {
+                    MarkdownEntryRenderer.renderEntry(entry, new MarkdownRenderingContext(doc, styles));
                 }
             }
 
@@ -692,26 +717,30 @@ public class MarkdownRenderer {
             } else {
                 // Try entry-level cache to avoid re-rendering identical entries
                 try {
-                    String entryKey = computeHashForEntry(entry);
-                    java.util.List<Segment> segs = null;
-                    synchronized (ENTRY_CACHE) {
-                        java.lang.ref.SoftReference<CachedSegments> ref = ENTRY_CACHE.get(entryKey);
-                        CachedSegments cached = (ref == null) ? null : ref.get();
-                        if (ref != null && (cached == null || cached.isExpired())) {
-                            // reclaimed
-                            ENTRY_CACHE.remove(entryKey);
-                            cached = null;
-                        }
-                        segs = cached == null ? null : cached.segments;
-                    }
-                    if (segs != null) {
-                        insertSegmentsIntoDoc(doc, segs);
-                    } else {
-                        segs = buildSegmentsForEntry(entry);
+                    if (isCacheableEntry(entry)) {
+                        String entryKey = computeHashForEntry(entry);
+                        java.util.List<Segment> segs = null;
                         synchronized (ENTRY_CACHE) {
-                            ENTRY_CACHE.put(entryKey, new java.lang.ref.SoftReference<>(new CachedSegments(segs, System.currentTimeMillis() + ENTRY_CACHE_TTL_MS)));
+                            java.lang.ref.SoftReference<CachedSegments> ref = ENTRY_CACHE.get(entryKey);
+                            CachedSegments cached = (ref == null) ? null : ref.get();
+                            if (ref != null && (cached == null || cached.isExpired())) {
+                                // reclaimed
+                                ENTRY_CACHE.remove(entryKey);
+                                cached = null;
+                            }
+                            segs = cached == null ? null : cached.segments;
                         }
-                        insertSegmentsIntoDoc(doc, segs);
+                        if (segs != null) {
+                            insertSegmentsIntoDoc(doc, segs);
+                        } else {
+                            segs = buildSegmentsForEntry(entry);
+                            synchronized (ENTRY_CACHE) {
+                                ENTRY_CACHE.put(entryKey, new java.lang.ref.SoftReference<>(new CachedSegments(segs, System.currentTimeMillis() + ENTRY_CACHE_TTL_MS)));
+                            }
+                            insertSegmentsIntoDoc(doc, segs);
+                        }
+                    } else {
+                        MarkdownEntryRenderer.renderEntry(entry, new MarkdownRenderingContext(doc, styles));
                     }
                 } catch (BadLocationException e) {
                     // Fallback to direct rendering if building/inserting segments fails
@@ -796,40 +825,40 @@ public class MarkdownRenderer {
             
             // SECURITY: Remove ASCII control characters except tab (\t), CR (\r), LF (\n)
             // Remove: x00-x08, x0B, x0C, x0E-x1F (all control chars except tab, CR, LF)
-            sanitized = sanitized.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
+            sanitized = ASCII_CONTROL_PATTERN.matcher(sanitized).replaceAll("");
             
             // SECURITY: Remove DEL character (0x7F)
-            sanitized = sanitized.replaceAll("[\\x7F]", "");
+            sanitized = DEL_PATTERN.matcher(sanitized).replaceAll("");
             
             // SECURITY: Escape dangerous HTML tags (comprehensive list)
             // These tags can be used for XSS attacks even in non-web contexts
-            sanitized = sanitized.replaceAll("(?i)<script", "&lt;script");
-            sanitized = sanitized.replaceAll("(?i)</script", "&lt;/script");
-            sanitized = sanitized.replaceAll("(?i)<iframe", "&lt;iframe");
-            sanitized = sanitized.replaceAll("(?i)<object", "&lt;object");
-            sanitized = sanitized.replaceAll("(?i)<embed", "&lt;embed");
-            sanitized = sanitized.replaceAll("(?i)<applet", "&lt;applet");
-            sanitized = sanitized.replaceAll("(?i)<form", "&lt;form");
-            sanitized = sanitized.replaceAll("(?i)<img", "&lt;img");
-            sanitized = sanitized.replaceAll("(?i)<svg", "&lt;svg");
-            sanitized = sanitized.replaceAll("(?i)<canvas", "&lt;canvas");
-            sanitized = sanitized.replaceAll("(?i)<link", "&lt;link");
-            sanitized = sanitized.replaceAll("(?i)<meta", "&lt;meta");
-            sanitized = sanitized.replaceAll("(?i)<base", "&lt;base");
+            sanitized = SCRIPT_OPEN_PATTERN.matcher(sanitized).replaceAll("&lt;script");
+            sanitized = SCRIPT_CLOSE_PATTERN.matcher(sanitized).replaceAll("&lt;/script");
+            sanitized = IFRAME_PATTERN.matcher(sanitized).replaceAll("&lt;iframe");
+            sanitized = OBJECT_PATTERN.matcher(sanitized).replaceAll("&lt;object");
+            sanitized = EMBED_PATTERN.matcher(sanitized).replaceAll("&lt;embed");
+            sanitized = APPLET_PATTERN.matcher(sanitized).replaceAll("&lt;applet");
+            sanitized = FORM_PATTERN.matcher(sanitized).replaceAll("&lt;form");
+            sanitized = IMG_PATTERN.matcher(sanitized).replaceAll("&lt;img");
+            sanitized = SVG_PATTERN.matcher(sanitized).replaceAll("&lt;svg");
+            sanitized = CANVAS_PATTERN.matcher(sanitized).replaceAll("&lt;canvas");
+            sanitized = LINK_PATTERN.matcher(sanitized).replaceAll("&lt;link");
+            sanitized = META_PATTERN.matcher(sanitized).replaceAll("&lt;meta");
+            sanitized = BASE_PATTERN.matcher(sanitized).replaceAll("&lt;base");
             
             // SECURITY: Remove event handler attributes
             // Pattern: whitespace + on[event] + optional whitespace + =
             // Covers: onclick, onload, onerror, onmouseover, onmouseenter, onfocus, etc.
-            sanitized = sanitized.replaceAll("(?i)\\s+on\\w+\\s*=", " ");
+            sanitized = EVENT_HANDLER_ATTR_PATTERN.matcher(sanitized).replaceAll(" ");
             
             // SECURITY: Remove javascript: protocol
-            sanitized = sanitized.replaceAll("(?i)javascript\\s*:", "");
+            sanitized = JAVASCRIPT_PROTOCOL_PATTERN.matcher(sanitized).replaceAll("");
             
             // SECURITY: Remove data: protocol (can be used for embedded scripts)
-            sanitized = sanitized.replaceAll("(?i)data\\s*:", "");
+            sanitized = DATA_PROTOCOL_PATTERN.matcher(sanitized).replaceAll("");
             
             // SECURITY: Remove vbscript: protocol (IE-specific)
-            sanitized = sanitized.replaceAll("(?i)vbscript\\s*:", "");
+            sanitized = VBSCRIPT_PROTOCOL_PATTERN.matcher(sanitized).replaceAll("");
             
             return sanitized;
             
@@ -853,6 +882,17 @@ public class MarkdownRenderer {
 
     private static boolean isTimestampLine(String line) {
         return TIMESTAMP_PATTERN.matcher(line.trim()).matches();
+    }
+
+    private static boolean isCacheableEntry(List<String> entry) {
+        int totalChars = 0;
+        for (String line : entry) {
+            totalChars += (line == null ? 0 : line.length());
+            if (totalChars > MAX_CACHEABLE_ENTRY_CHARS) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

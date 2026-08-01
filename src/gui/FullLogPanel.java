@@ -89,8 +89,6 @@ public final class FullLogPanel extends LogPanel {
         // Register listener so FullLogFileLoader cache and markdown caches are invalidated when filehandler updates
         this.cacheInvalidationListener = () -> {
             fileLoader.invalidateCache();
-            // Invalidate markdown renderer caches so document-level and entry-level caches are cleared
-            markdown.MarkdownRenderer.invalidateAllCaches();
             // If this panel is currently visible, refresh the view so newly saved entries appear
             try {
                 // If part of the tab pane and currently selected, reload without forcing scroll

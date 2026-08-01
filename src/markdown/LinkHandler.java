@@ -31,12 +31,13 @@ import javax.swing.text.StyledDocument;
 import security.LinkOpenPolicy;
 
 public class LinkHandler {
+    private static final String LINK_LISTENERS_INSTALLED_KEY = "loghog.link.listeners.installed";
 
     public static void addLinkListeners(JTextPane pane) {
-        // Don't remove existing listeners - TimestampClickHandler and other handlers should coexist
-        // Multiple calls to this method will add duplicate listeners, but that's preferable to
-        // breaking other functionality. Ideally, call this only once after rendering.
-        
+        if (Boolean.TRUE.equals(pane.getClientProperty(LINK_LISTENERS_INSTALLED_KEY))) {
+            return;
+        }
+
         pane.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -64,9 +65,14 @@ public class LinkHandler {
                 handleLinkHover(pane, e);
             }
         });
+
+        pane.putClientProperty(LINK_LISTENERS_INSTALLED_KEY, Boolean.TRUE);
     }
 
     private static void handleLinkClick(JTextPane pane, MouseEvent e) {
+        if (e == null || e.isPopupTrigger() || !javax.swing.SwingUtilities.isLeftMouseButton(e)) {
+            return;
+        }
         try {
             int pos = pane.viewToModel2D(e.getPoint());
             if (pos < 0) return;
@@ -180,7 +186,7 @@ public class LinkHandler {
             if (pos < 0) {
                 if (Boolean.TRUE.equals(pane.getClientProperty("linkHover"))) {
                     pane.putClientProperty("linkHover", false);
-                    if (pane.getCursor().getType() != Cursor.HAND_CURSOR) {
+                    if (pane.getCursor().getType() == Cursor.HAND_CURSOR) {
                         pane.setCursor(Cursor.getDefaultCursor());
                     }
                 }
@@ -195,14 +201,14 @@ public class LinkHandler {
                 pane.putClientProperty("linkHover", hasLink);
                 if (hasLink) {
                     pane.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                } else if (pane.getCursor().getType() != Cursor.HAND_CURSOR) {
+                } else if (pane.getCursor().getType() == Cursor.HAND_CURSOR) {
                     pane.setCursor(Cursor.getDefaultCursor());
                 }
             }
         } catch (Exception ex) {
             if (Boolean.TRUE.equals(pane.getClientProperty("linkHover"))) {
                 pane.putClientProperty("linkHover", false);
-                if (pane.getCursor().getType() != Cursor.HAND_CURSOR) {
+                if (pane.getCursor().getType() == Cursor.HAND_CURSOR) {
                     pane.setCursor(Cursor.getDefaultCursor());
                 }
             }
