@@ -114,7 +114,7 @@ It does **not protect against**:
 
 ## 📦 Footprint
 
-* Application JAR: \~230 KB
+* Application JAR: \~450 KB
 * No external dependencies
 * Single-file distribution
 
@@ -123,6 +123,7 @@ This results in:
 * fast startup
 * easy portability
 * minimal installation complexity
+* *no risk for security breaches related to old or manipulated external packages*
 
 ***
 
