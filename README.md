@@ -123,7 +123,7 @@ This results in:
 * fast startup
 * easy portability
 * minimal installation complexity
-* *no risk for security breaches related to old or manipulated external packages*
+* **no risk for security breaches related to old or manipulated external packages**
 
 ***
 
