@@ -2,7 +2,7 @@
 
 **A lightweight, cross-platform Java application for fast note-taking with built-in protection for your data.**
 
-.LOG-hog runs on **Windows, macOS, and Linux** and provides a simple, efficient workflow for creating timestamped log entries—while offering stronger privacy controls than typical plain-text logging tools.
+.LOG-hog runs on **Windows, macOS, and Linux** and provides a simple, efficient workflow for creating timestamped notes, diary entries or log entries—while offering stronger privacy controls than typical plain-text note applications or logging tools.
 
 ***
 
