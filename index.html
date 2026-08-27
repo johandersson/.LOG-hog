@@ -1,578 +1,600 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>.LOG-hog | Private Notes. Zero Cloud.</title>
+    <title>.LOG-hog | Private Notes. Zero Cloud.</title>
 
-<link //fonts.googleapis.com
-<link rel="preconnect" href="https://fonts.://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swaproot{
-    --bg:#050816;
-    --bg2:#0b1120;
-    --card:#111827;
-    --border:rgba(255,255,255,.08);
-    --text:#ffffff;
-    --muted:#b7c0d8;
-    --primary:#00d4ff;
-    --secondary:#4f6cff;
-}
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet"
+    >
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+    <style>
+        :root {
+            --bg: #050816;
+            --bg2: #0b1120;
+            --card: #111827;
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #ffffff;
+            --muted: #b7c0d8;
+            --primary: #00d4ff;
+            --secondary: #4f6cff;
+        }
 
-html{
-    scroll-behavior:smooth;
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-body{
-    font-family:'Inter',sans-serif;
-    background:var(--bg);
-    color:var(--text);
-    overflow-x:hidden;
-}
+        html {
+            scroll-behavior: smooth;
+        }
 
-.container{
-    width:min(1200px,90%);
-    margin:auto;
-}
+        body {
+            font-family: "Inter", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+        }
 
-nav{
-    position:sticky;
-    top:0;
-    backdrop-filter:blur(20px);
-    background:rgba(5,8,22,.75);
-    border-bottom:1px solid var(--border);
-    z-index:100;
-}
+        .container {
+            width: min(1200px, 90%);
+            margin: 0 auto;
+        }
 
-.nav-content{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:18px 0;
-}
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(5, 8, 22, 0.75);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
 
-.logo{
-    font-size:1.3rem;
-    font-weight:800;
-}
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 0;
+        }
 
-.logo span{
-    color:var(--primary);
-}
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 800;
+        }
 
-.nav-links{
-    display:flex;
-    gap:24px;
-}
+        .logo span {
+            color: var(--primary);
+        }
 
-.nav-links a{
-    color:white;
-    text-decoration:none;
-    opacity:.8;
-}
+        .nav-links {
+            display: flex;
+            gap: 24px;
+        }
 
-.nav-links a:hover{
-    opacity:1;
-}
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.2s ease;
+        }
 
-.hero{
-    min-height:95vh;
-    display:flex;
-    align-items:center;
-    position:relative;
-}
+        .nav-links a:hover {
+            opacity: 1;
+        }
 
-.hero::before{
-    content:"";
-    position:absolute;
-    inset:0;
-    background:
-    radial-gradient(circle at 15% 20%, rgba(0,212,255,.20), transparent 30%),
-    radial-gradient(circle at 80% 15%, rgba(79,108,255,.25), transparent 35%),
-    radial-gradient(circle at 50% 80%, rgba(0,212,255,.12), transparent 30%);
-    pointer-events:none;
-}
+        .hero {
+            min-height: 95vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
 
-.hero-content{
-    text-align:center;
-    position:relative;
-    z-index:2;
-}
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(
+                    circle at 15% 20%,
+                    rgba(0, 212, 255, 0.2),
+                    transparent 30%
+                ),
+                radial-gradient(
+                    circle at 80% 15%,
+                    rgba(79, 108, 255, 0.25),
+                    transparent 35%
+                ),
+                radial-gradient(
+                    circle at 50% 80%,
+                    rgba(0, 212, 255, 0.12),
+                    transparent 30%
+                );
+            pointer-events: none;
+        }
 
-.badge{
-    display:inline-block;
-    margin-bottom:24px;
-    padding:10px 18px;
-    border-radius:999px;
-    background:rgba(255,255,255,.05);
-    border:1px solid var(--border);
-    color:var(--primary);
-    font-size:.9rem;
-}
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
 
-.hero h1{
-    font-size:clamp(3rem,7vw,6.5rem);
-    line-height:.95;
-    font-weight:900;
-    margin-bottom:24px;
-}
+        .badge {
+            display: inline-block;
+            margin-bottom: 24px;
+            padding: 10px 18px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
 
-.gradient{
-    background:linear-gradient(
-        90deg,
-        #00d4ff,
-        #4f6cff,
-        #93a4ff
-    );
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-}
+        .hero h1 {
+            margin-bottom: 24px;
+            font-size: clamp(3rem, 7vw, 6.5rem);
+            line-height: 0.95;
+            font-weight: 900;
+        }
 
-.hero p{
-    max-width:850px;
-    margin:auto;
-    color:var(--muted);
-    font-size:1.25rem;
-    line-height:1.8;
-}
+        .gradient {
+            background: linear-gradient(
+                90deg,
+                #00d4ff,
+                #4f6cff,
+                #93a4ff
+            );
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-.buttons{
-    display:flex;
-    justify-content:center;
-    gap:16px;
-    flex-wrap:wrap;
-    margin-top:40px;
-}
+        .hero p {
+            max-width: 850px;
+            margin: 0 auto;
+            color: var(--muted);
+            font-size: 1.25rem;
+            line-height: 1.8;
+        }
 
-.btn{
-    padding:16px 28px;
-    border-radius:12px;
-    text-decoration:none;
-    font-weight:700;
-    transition:.2s;
-}
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
 
-.btn-primary{
-    background:linear-gradient(135deg,var(--primary),var(--secondary));
-    color:white;
-}
+        .btn {
+            display: inline-block;
+            padding: 16px 28px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
 
-.btn-primary:hover{
-    transform:translateY(-3px);
-}
+        .btn-primary {
+            background: linear-gradient(
+                135deg,
+                var(--primary),
+                var(--secondary)
+            );
+            color: white;
+        }
 
-.btn-secondary{
-    border:1px solid var(--border);
-    color:white;
-}
+        .btn-primary:hover {
+            transform: translateY(-3px);
+        }
 
-.btn-secondary:hover{
-    background:rgba(255,255,255,.05);
-}
+        .btn-secondary {
+            border: 1px solid var(--border);
+            color: white;
+        }
 
-section{
-    padding:100px 0;
-}
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
 
-.section-title{
-    text-align:center;
-    font-size:3rem;
-    margin-bottom:18px;
-}
+        section {
+            padding: 100px 0;
+        }
 
-.section-sub{
-    text-align:center;
-    max-width:800px;
-    margin:auto;
-    color:var(--muted);
-    line-height:1.8;
-}
+        .section-title {
+            margin-bottom: 18px;
+            text-align: center;
+            font-size: 3rem;
+        }
 
-.stats{
-    margin-top:70px;
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:24px;
-}
+        .section-sub {
+            max-width: 800px;
+            margin: 0 auto;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.8;
+        }
 
-.stat{
-    background:rgba(255,255,255,.03);
-    border:1px solid var(--border);
-    padding:35px;
-    border-radius:20px;
-    text-align:center;
-}
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit,
+                minmax(220px, 1fr)
+            );
+            gap: 24px;
+            margin-top: 70px;
+        }
 
-.stat h3{
-    font-size:2.5rem;
-    margin-bottom:10px;
-    color:var(--primary);
-}
+        .stat {
+            padding: 35px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            text-align: center;
+        }
 
-.grid{
-    margin-top:60px;
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-    gap:24px;
-}
+        .stat h3 {
+            margin-bottom: 10px;
+            color: var(--primary);
+            font-size: 2.5rem;
+        }
 
-.card{
-    background:rgba(255,255,255,.03);
-    border:1px solid var(--border);
-    border-radius:20px;
-    padding:30px;
-    transition:.2s;
-}
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit,
+                minmax(280px, 1fr)
+            );
+            gap: 24px;
+            margin-top: 60px;
+        }
 
-.card:hover{
-    transform:translateY(-5px);
-    border-color:rgba(0,212,255,.25);
-}
+        .card {
+            padding: 30px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
 
-.card h3{
-    margin-bottom:14px;
-    font-size:1.2rem;
-}
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 212, 255, 0.25);
+        }
 
-.card p{
-    color:var(--muted);
-    line-height:1.8;
-}
+        .card h3 {
+            margin-bottom: 14px;
+            font-size: 1.2rem;
+        }
 
-.security-panel{
-    background:linear-gradient(
-        135deg,
-        rgba(0,212,255,.08),
-        rgba(79,108,255,.08)
-    );
-    border:1px solid var(--border);
-    border-radius:28px;
-    padding:60px;
-    margin-top:50px;
-}
+        .card p {
+            color: var(--muted);
+            line-height: 1.8;
+        }
 
-.security-panel h2{
-    margin-bottom:16px;
-}
+        .security-panel {
+            margin-top: 50px;
+            padding: 60px;
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            background: linear-gradient(
+                135deg,
+                rgba(0, 212, 255, 0.08),
+                rgba(79, 108, 255, 0.08)
+            );
+        }
 
-.security-panel p{
-    color:var(--muted);
-    line-height:1.9;
-}
+        .security-panel h2 {
+            margin-bottom: 16px;
+        }
 
-.cta{
-    text-align:center;
-}
+        .security-panel p {
+            color: var(--muted);
+            line-height: 1.9;
+        }
 
-.cta-box{
-    margin-top:40px;
-    padding:60px 30px;
-    border-radius:30px;
-    background:
-    linear-gradient(
-        135deg,
-        rgba(0,212,255,.12),
-        rgba(79,108,255,.12)
-    );
-    border:1px solid var(--border);
-}
+        .cta {
+            text-align: center;
+        }
 
-.cta-box h2{
-    font-size:3rem;
-    margin-bottom:18px;
-}
+        .cta-box {
+            margin-top: 40px;
+            padding: 60px 30px;
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            background: linear-gradient(
+                135deg,
+                rgba(0, 212, 255, 0.12),
+                rgba(79, 108, 255, 0.12)
+            );
+        }
 
-.cta-box p{
-    color:var(--muted);
-    max-width:700px;
-    margin:auto;
-    line-height:1.8;
-}
+        .cta-box h2 {
+            margin-bottom: 18px;
+            font-size: 3rem;
+        }
 
-footer{
-    padding:60px 0;
-    border-top:1px solid var(--border);
-    text-align:center;
-    color:var(--muted);
-}
+        .cta-box p {
+            max-width: 700px;
+            margin: 0 auto;
+            color: var(--muted);
+            line-height: 1.8;
+        }
 
-@media(max-width:768px){
+        footer {
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            text-align: center;
+        }
 
-    .nav-links{
-        display:none;
-    }
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
 
-    .hero p{
-        font-size:1rem;
-    }
+            .hero p {
+                font-size: 1rem;
+            }
 
-    .section-title{
-        font-size:2rem;
-    }
+            .section-title {
+                font-size: 2rem;
+            }
 
-    .security-panel{
-        padding:30px;
-    }
+            .security-panel {
+                padding: 30px;
+            }
 
-    .cta-box h2{
-        font-size:2rem;
-    }
-}
-
-</style>
+            .cta-box h2 {
+                font-size: 2rem;
+            }
+        }
+    </style>
 </head>
+
 <body>
-
-<nav>
-    <div class="container nav-content">
-        <div class="logo">.LOG<span>-hog</span></div>
-
-        <div class="nav-links">
-            <a aturesFeatures</a>
-            <aecuritySecurity</a>
-            <a href="#opensource">Open Source</a/div>
-    </div>
-</nav>
-
-<section class="hero">
-
-<div class="container hero-content">
-
-<div class="badge">
-OPEN SOURCE • GPLv3 • WINDOWS • MACOS • LINUX
-</div>
-
-<h1>
-Private Notes.<br>
-<span class="gradient">Zero Cloud.</span>
-</h1>
-
-<p>
-Capture ideas, journals, research, development notes and sensitive information instantly. .LOG-hog combines lightning-fast note taking with strong encryption and practical local security, all without subscriptions, accounts, telemetry or cloud lock-in.
-</p>
-
-<div class="buttons">
-
-<a
-href="https://github.com/johandersson/.LOG-hog"
-target="_blank"
-class="btn btn-primary">
-View on GitHub
-</a>
-
-<a
-href="#features"
-class="btn btn-secondary">
-Explore Features
-</a>
-
-</div>
-
-</div>
-
-</section>
-
-<section>
-
-<div class="container">
- Writers. Trusted by Security-Minded Users.
-</h2>
-
-<p class="section-sub">
-Most note apps are designed around syncing. .LOG-hog is designed around ownership. Start writing immediately, save securely, and keep complete control of your data.
-</p>
-
-<div class="stats">
-
-<div class="stat">
-<h3>230 KB</h3>
-<p>Tiny application footprint</p>
-</div>
-
-<div class="stat">
-<h3>AES-256</h3>
-<p>Modern authenticated encryption</p>
-</div>
-
-<div class="stat">
-<h3>600K</h3>
-<p>PBKDF2 iterations</p>
-</div>
-
-<div class="stat">
-<h3>0</h3>
-<p>Cloud dependencies</p>
-</div>
-
-</div>
-
-</div>
-
-</section>
-
-<section id="features">
-
-<div class="container">
-
-<h2 class="section-title">
-Why Choose .LOG-hog?
-</h2>
-
-<p class="section-sub">
-Fast enough for daily use. Secure enough for sensitive notes. Small enough to take anywhere.
-</p>
-
-<div class="grid">
-
-<div class="card">
-<h3>⚡ Instant Logging</h3>
-<p>
-Launch the application and start typing immediately. Save with a shortcut and continue working without breaking your flow.
-</p>
-</div>
-
-<div class="card">
-<h3>🔒 Encryption First</h3>
-<p>
-Encrypted storage is the standard workflow, not an optional add-on. Your notes remain protected by modern cryptography.
-</p>
-</div>
-
-<div class="card">
-<h3>🛡 Tamper Resistant</h3>
-<p>
-Integrity validation, secure backups, lockout persistence and security-aware file handling help reduce risks from local manipulation.
-</p>
-</div>
-
-<div class="card">
-<h3>🔍 Powerful Search</h3>
-<p>
-Navigate years of notes quickly using integrated search, filtering, markdown rendering and browsing capabilities.
-</p>
-</div>
-
-<div class="card">
-<h3>🖥 Cross Platform</h3>
-<p>
-Runs on Windows, macOS and Linux with a lightweight Java runtime and minimal requirements.
-</p>
-</div>
-
-<div class="card">
-<h3>🚫 No Cloud Required</h3>
-<p>
-No accounts. No subscriptions. No telemetry. No vendor lock-in. Your notes remain entirely under your control.
-</p>
-</div>
-
-</div>
-
-</div>
-
-</section>
-
-<section id="security">
-
-<div class="container">
-
-<div class="security-panel">
-
-<h2>Security Without Complexity</h2>
-
-<p>
-.LOG-hog is built around a simple philosophy: sensitive notes should remain local and protected. The application combines AES-GCM encryption, PBKDF2 key derivation, encrypted backups, clipboard protection, secure password handling and tamper-evident mechanisms while preserving an effortless writing experience.
-</p>
-
-<br>
-
-<p>
-Unlike many productivity tools, .LOG-hog never requires an online account or external service. Your data stays on your machine, encrypted and under your control.
-</p>
-
-</div>
-
-</div>
-
-</section>
-
-<section>
-
-<div class="container">
-
-<h2 class="section-title">
-Perfect For
-</h2>
-
-<div class="grid">
-
-<div class="card">
-<h3>📓 Personal Journals</h3>
-</div>
-
-<div class="card">
-<h3>💻 Development Notes</h3>
-</div>
-
-<div class="card">
-<h3>📋 Incident Tracking</h3>
-</div>
-
-<div class="card">
-<h3>🔬 Research Logs</h3>
-</div>
-
-<div class="card">
-<h3>🧠 Knowledge Management</h3>
-</div>
-
-<div class="card">
-<h3>🔐 Private Records</h3>
-</div>
-
-</div>
-
-</div>
-
-</section>
-
-<section id="opensource">
-
-<div class="container cta">
-
-<div class="cta-box">
-
-<h2>Own Your Notes. Own Your Data.</h2>
-
-<p>
-.LOG-hog is completely open source and released under GPLv3. Review the source code, build it yourself, contribute improvements, or simply enjoy a fast and secure note-taking experience.
-</p>
-
-<div class="buttons">
-
-<a
-href="https://github.com/johandersson/.LOG-hog"
-target="_blank"
-class="btn btn-primary">
-Get .LOG-hog
-</a>
-
-</div>
-
-</div>
-
-</div>
-
-</section>
-
-<footer>
-© 2026 .LOG-hog • Fast Notes • Secure Storage • Open Source
-</footer>
-
+    <nav>
+        <div class="container nav-content">
+            <div class="logo">.LOG<span>-hog</span></div>
+
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#security">Security</a>
+                <a href="#opensource">Open Source</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container hero-content">
+            <div class="badge">
+                OPEN SOURCE • GPLv3 • WINDOWS • MACOS • LINUX
+            </div>
+
+            <h1>
+                Private Notes.<br>
+                <span class="gradient">Zero Cloud.</span>
+            </h1>
+
+            <p>
+                Capture ideas, journals, research, development notes and
+                sensitive information instantly. .LOG-hog combines
+                lightning-fast note taking with strong encryption and
+                practical local security, all without subscriptions,
+                accounts, telemetry or cloud lock-in.
+            </p>
+
+            <div class="buttons">
+                <a
+                    href="https://github.com/johandersson/.LOG-hog"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-primary"
+                >
+                    View on GitHub
+                </a>
+
+                <a href="#features" class="btn btn-secondary">
+                    Explore Features
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="container">
+            <h2 class="section-title">
+                Writers. Trusted by Security-Minded Users.
+            </h2>
+
+            <p class="section-sub">
+                Most note apps are designed around syncing. .LOG-hog is
+                designed around ownership. Start writing immediately, save
+                securely, and keep complete control of your data.
+            </p>
+
+            <div class="stats">
+                <div class="stat">
+                    <h3>230 KB</h3>
+                    <p>Tiny application footprint</p>
+                </div>
+
+                <div class="stat">
+                    <h3>AES-256</h3>
+                    <p>Modern authenticated encryption</p>
+                </div>
+
+                <div class="stat">
+                    <h3>600K</h3>
+                    <p>PBKDF2 iterations</p>
+                </div>
+
+                <div class="stat">
+                    <h3>0</h3>
+                    <p>Cloud dependencies</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features">
+        <div class="container">
+            <h2 class="section-title">
+                Why Choose .LOG-hog?
+            </h2>
+
+            <p class="section-sub">
+                Fast enough for daily use. Secure enough for sensitive notes.
+                Small enough to take anywhere.
+            </p>
+
+            <div class="grid">
+                <div class="card">
+                    <h3>⚡ Instant Logging</h3>
+                    <p>
+                        Launch the application and start typing immediately.
+                        Save with a shortcut and continue working without
+                        breaking your flow.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>🔒 Encryption First</h3>
+                    <p>
+                        Encrypted storage is the standard workflow, not an
+                        optional add-on. Your notes remain protected by
+                        modern cryptography.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>🛡 Tamper Resistant</h3>
+                    <p>
+                        Integrity validation, secure backups, lockout
+                        persistence and security-aware file handling help
+                        reduce risks from local manipulation.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>🔍 Powerful Search</h3>
+                    <p>
+                        Navigate years of notes quickly using integrated
+                        search, filtering, markdown rendering and browsing
+                        capabilities.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>🖥 Cross Platform</h3>
+                    <p>
+                        Runs on Windows, macOS and Linux with a lightweight
+                        Java runtime and minimal requirements.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>🚫 No Cloud Required</h3>
+                    <p>
+                        No accounts. No subscriptions. No telemetry. No
+                        vendor lock-in. Your notes remain entirely under
+                        your control.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="security">
+        <div class="container">
+            <div class="security-panel">
+                <h2>Security Without Complexity</h2>
+
+                <p>
+                    .LOG-hog is built around a simple philosophy: sensitive
+                    notes should remain local and protected. The application
+                    combines AES-GCM encryption, PBKDF2 key derivation,
+                    encrypted backups, clipboard protection, secure password
+                    handling and tamper-evident mechanisms while preserving
+                    an effortless writing experience.
+                </p>
+
+                <br>
+
+                <p>
+                    Unlike many productivity tools, .LOG-hog never requires
+                    an online account or external service. Your data stays
+                    on your machine, encrypted and under your control.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="container">
+            <h2 class="section-title">Perfect For</h2>
+
+            <div class="grid">
+                <div class="card">
+                    <h3>📓 Personal Journals</h3>
+                </div>
+
+                <div class="card">
+                    <h3>💻 Development Notes</h3>
+                </div>
+
+                <div class="card">
+                    <h3>📋 Incident Tracking</h3>
+                </div>
+
+                <div class="card">
+                    <h3>🔬 Research Logs</h3>
+                </div>
+
+                <div class="card">
+                    <h3>🧠 Knowledge Management</h3>
+                </div>
+
+                <div class="card">
+                    <h3>🔐 Private Records</h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="opensource">
+        <div class="container cta">
+            <div class="cta-box">
+                <h2>Own Your Notes. Own Your Data.</h2>
+
+                <p>
+                    .LOG-hog is completely open source and released under
+                    GPLv3. Review the source code, build it yourself,
+                    contribute improvements, or simply enjoy a fast and
+                    secure note-taking experience.
+                </p>
+
+                <div class="buttons">
+                    <a
+                        href="https://github.com/johandersson/.LOG-hog"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-primary"
+                    >
+                        Get .LOG-hog
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        © 2026 .LOG-hog • Fast Notes • Secure Storage • Open Source
+    </footer>
 </body>
 </html>
