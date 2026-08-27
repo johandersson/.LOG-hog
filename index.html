@@ -1,363 +1,600 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>.LOG-hog | Fast Secure Note Taking</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link href="https://fonts.googleapis.com/css2?family=00;400;500;600;700;800&display=swap
+    <title>.LOG-hog | Private Notes. Zero Cloud.</title>
 
-<style>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet"
+    >
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+    <style>
+        :root {
+            --bg: #050816;
+            --bg2: #0b1120;
+            --card: #111827;
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #ffffff;
+            --muted: #b7c0d8;
+            --primary: #00d4ff;
+            --secondary: #4f6cff;
+        }
 
-body{
-    font-family:'Inter',sans-serif;
-    background:#050816;
-    color:white;
-    overflow-x:hidden;
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-.hero{
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    padding:40px 20px;
-    background:
-        radial-gradient(circle at top left,#2e3cff 0%,transparent 30%),
-        radial-gradient(circle at bottom right,#00d4ff 0%,transparent 30%),
-        #050816;
-}
+        html {
+            scroll-behavior: smooth;
+        }
 
-.container{
-    max-width:1200px;
-    margin:auto;
-}
+        body {
+            font-family: "Inter", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+        }
 
-.badge{
-    display:inline-block;
-    background:rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.12);
-    padding:10px 20px;
-    border-radius:999px;
-    margin-bottom:30px;
-    color:#7fdcff;
-}
+        .container {
+            width: min(1200px, 90%);
+            margin: 0 auto;
+        }
 
-h1{
-    font-size:clamp(3rem,8vw,6rem);
-    line-height:1;
-    margin-bottom:24px;
-}
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(5, 8, 22, 0.75);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
 
-.gradient{
-    background:linear-gradient(90deg,#00d4ff,#4f6cff,#93a4ff);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-}
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 0;
+        }
 
-.hero p{
-    max-width:700px;
-    margin:auto;
-    font-size:1.25rem;
-    color:#c7d2fe;
-}
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 800;
+        }
 
-.cta{
-    margin-top:40px;
-    display:flex;
-    gap:16px;
-    justify-content:center;
-    flex-wrap:wrap;
-}
+        .logo span {
+            color: var(--primary);
+        }
 
-.btn{
-    text-decoration:none;
-    padding:16px 28px;
-    border-radius:12px;
-    font-weight:700;
-    transition:.2s;
-}
+        .nav-links {
+            display: flex;
+            gap: 24px;
+        }
 
-.btn-primary{
-    background:#3b82f6;
-    color:white;
-}
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.2s ease;
+        }
 
-.btn-primary:hover{
-    transform:translateY(-2px);
-}
+        .nav-links a:hover {
+            opacity: 1;
+        }
 
-.btn-secondary{
-    border:1px solid rgba(255,255,255,.15);
-    color:white;
-}
+        .hero {
+            min-height: 95vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
 
-section{
-    padding:100px 20px;
-}
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(
+                    circle at 15% 20%,
+                    rgba(0, 212, 255, 0.2),
+                    transparent 30%
+                ),
+                radial-gradient(
+                    circle at 80% 15%,
+                    rgba(79, 108, 255, 0.25),
+                    transparent 35%
+                ),
+                radial-gradient(
+                    circle at 50% 80%,
+                    rgba(0, 212, 255, 0.12),
+                    transparent 30%
+                );
+            pointer-events: none;
+        }
 
-.section-title{
-    text-align:center;
-    font-size:2.5rem;
-    margin-bottom:20px;
-}
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
 
-.section-sub{
-    text-align:center;
-    color:#a5b4fc;
-    max-width:700px;
-    margin:auto auto 60px;
-}
+        .badge {
+            display: inline-block;
+            margin-bottom: 24px;
+            padding: 10px 18px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
 
-.grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-    gap:24px;
-}
+        .hero h1 {
+            margin-bottom: 24px;
+            font-size: clamp(3rem, 7vw, 6.5rem);
+            line-height: 0.95;
+            font-weight: 900;
+        }
 
-.card{
-    background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.07);
-    padding:30px;
-    border-radius:20px;
-    backdrop-filter:blur(20px);
-}
+        .gradient {
+            background: linear-gradient(
+                90deg,
+                #00d4ff,
+                #4f6cff,
+                #93a4ff
+            );
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-.card h3{
-    margin-bottom:12px;
-}
+        .hero p {
+            max-width: 850px;
+            margin: 0 auto;
+            color: var(--muted);
+            font-size: 1.25rem;
+            line-height: 1.8;
+        }
 
-.card p{
-    color:#c7d2fe;
-}
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
 
-.highlight{
-    color:#00d4ff;
-    font-weight:700;
-}
+        .btn {
+            display: inline-block;
+            padding: 16px 28px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
 
-.stats{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-    gap:30px;
-    text-align:center;
-}
+        .btn-primary {
+            background: linear-gradient(
+                135deg,
+                var(--primary),
+                var(--secondary)
+            );
+            color: white;
+        }
 
-.stat{
-    background:rgba(255,255,255,.04);
-    padding:30px;
-    border-radius:20px;
-}
+        .btn-primary:hover {
+            transform: translateY(-3px);
+        }
 
-.stat h2{
-    font-size:3rem;
-    color:#00d4ff;
-}
+        .btn-secondary {
+            border: 1px solid var(--border);
+            color: white;
+        }
 
-footer{
-    text-align:center;
-    padding:60px 20px;
-    color:#94a3b8;
-}
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
 
-</style>
+        section {
+            padding: 100px 0;
+        }
+
+        .section-title {
+            margin-bottom: 18px;
+            text-align: center;
+            font-size: 3rem;
+        }
+
+        .section-sub {
+            max-width: 800px;
+            margin: 0 auto;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit,
+                minmax(220px, 1fr)
+            );
+            gap: 24px;
+            margin-top: 70px;
+        }
+
+        .stat {
+            padding: 35px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            text-align: center;
+        }
+
+        .stat h3 {
+            margin-bottom: 10px;
+            color: var(--primary);
+            font-size: 2.5rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit,
+                minmax(280px, 1fr)
+            );
+            gap: 24px;
+            margin-top: 60px;
+        }
+
+        .card {
+            padding: 30px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 212, 255, 0.25);
+        }
+
+        .card h3 {
+            margin-bottom: 14px;
+            font-size: 1.2rem;
+        }
+
+        .card p {
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        .security-panel {
+            margin-top: 50px;
+            padding: 60px;
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            background: linear-gradient(
+                135deg,
+                rgba(0, 212, 255, 0.08),
+                rgba(79, 108, 255, 0.08)
+            );
+        }
+
+        .security-panel h2 {
+            margin-bottom: 16px;
+        }
+
+        .security-panel p {
+            color: var(--muted);
+            line-height: 1.9;
+        }
+
+        .cta {
+            text-align: center;
+        }
+
+        .cta-box {
+            margin-top: 40px;
+            padding: 60px 30px;
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            background: linear-gradient(
+                135deg,
+                rgba(0, 212, 255, 0.12),
+                rgba(79, 108, 255, 0.12)
+            );
+        }
+
+        .cta-box h2 {
+            margin-bottom: 18px;
+            font-size: 3rem;
+        }
+
+        .cta-box p {
+            max-width: 700px;
+            margin: 0 auto;
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        footer {
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .security-panel {
+                padding: 30px;
+            }
+
+            .cta-box h2 {
+                font-size: 2rem;
+            }
+        }
+    </style>
 </head>
+
 <body>
+    <nav>
+        <div class="container nav-content">
+            <div class="logo">.LOG<span>-hog</span></div>
 
-<section class="hero">
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#security">Security</a>
+                <a href="#opensource">Open Source</a>
+            </div>
+        </div>
+    </nav>
 
-<div class="container">
+    <section class="hero">
+        <div class="container hero-content">
+            <div class="badge">
+                OPEN SOURCE • GPLv3 • WINDOWS • MACOS • LINUX
+            </div>
 
-<div class="badge">
-Open Source • GPLv3 • Windows • macOS • Linux
-</div>
+            <h1>
+                Private Notes.<br>
+                <span class="gradient">Zero Cloud.</span>
+            </h1>
 
-<h1>
-Write instantly.<br>
-<span class="gradient">Encrypt automatically.</span>
-</h1>
+            <p>
+                Capture ideas, journals, research, development notes and
+                sensitive information instantly. .LOG-hog combines
+                lightning-fast note taking with strong encryption and
+                practical local security, all without subscriptions,
+                accounts, telemetry or cloud lock-in.
+            </p>
 
-<p>
-.LOG-hog is a lightning-fast journal and note-taking application built for people who value privacy, speed, and ownership. Capture ideas, logs, research, and personal notes in seconds while keeping everything securely encrypted on your own machine.
-</p>
+            <div class="buttons">
+                <a
+                    href="https://github.com/johandersson/.LOG-hog"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-primary"
+                >
+                    View on GitHub
+                </a>
 
-<div class="cta">
-<a href="https://github.comsson/.LOG-hog
-Download / Source Code
-</a>
+                <a href="#features" class="btn btn-secondary">
+                    Explore Features
+                </a>
+            </div>
+        </div>
+    </section>
 
-<a href="#features" class="btnv>
+    <section>
+        <div class="container">
+            <h2 class="section-title">
+                Writers. Trusted by Security-Minded Users.
+            </h2>
 
-</div>
+            <p class="section-sub">
+                Most note apps are designed around syncing. .LOG-hog is
+                designed around ownership. Start writing immediately, save
+                securely, and keep complete control of your data.
+            </p>
 
-</section>
+            <div class="stats">
+                <div class="stat">
+                    <h3>230 KB</h3>
+                    <p>Tiny application footprint</p>
+                </div>
 
-<section>
+                <div class="stat">
+                    <h3>AES-256</h3>
+                    <p>Modern authenticated encryption</p>
+                </div>
 
-<div class="container">
+                <div class="stat">
+                    <h3>600K</h3>
+                    <p>PBKDF2 iterations</p>
+                </div>
 
-<div class="stats">
+                <div class="stat">
+                    <h3>0</h3>
+                    <p>Cloud dependencies</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<div class="stat">
-<h2>0</h2>
-<p>Cloud Dependency</p>
-</div>
+    <section id="features">
+        <div class="container">
+            <h2 class="section-title">
+                Why Choose .LOG-hog?
+            </h2>
 
-<div class="stat">
-<h2>230KB</h2>
-<p>Approx App Size</p>
-</div>
+            <p class="section-sub">
+                Fast enough for daily use. Secure enough for sensitive notes.
+                Small enough to take anywhere.
+            </p>
 
-<div class="stat">
-<h2>AES-256</h2>
-<p>Encryption</p>
-</div>
+            <div class="grid">
+                <div class="card">
+                    <h3>⚡ Instant Logging</h3>
+                    <p>
+                        Launch the application and start typing immediately.
+                        Save with a shortcut and continue working without
+                        breaking your flow.
+                    </p>
+                </div>
 
-<div class="stat">
-<h2>3</h2>
-<p>Major Platforms</p>
-</div>
+                <div class="card">
+                    <h3>🔒 Encryption First</h3>
+                    <p>
+                        Encrypted storage is the standard workflow, not an
+                        optional add-on. Your notes remain protected by
+                        modern cryptography.
+                    </p>
+                </div>
 
-</div>
+                <div class="card">
+                    <h3>🛡 Tamper Resistant</h3>
+                    <p>
+                        Integrity validation, secure backups, lockout
+                        persistence and security-aware file handling help
+                        reduce risks from local manipulation.
+                    </p>
+                </div>
 
-</div>
+                <div class="card">
+                    <h3>🔍 Powerful Search</h3>
+                    <p>
+                        Navigate years of notes quickly using integrated
+                        search, filtering, markdown rendering and browsing
+                        capabilities.
+                    </p>
+                </div>
 
-</section>
+                <div class="card">
+                    <h3>🖥 Cross Platform</h3>
+                    <p>
+                        Runs on Windows, macOS and Linux with a lightweight
+                        Java runtime and minimal requirements.
+                    </p>
+                </div>
 
-<section id="features">
+                <div class="card">
+                    <h3>🚫 No Cloud Required</h3>
+                    <p>
+                        No accounts. No subscriptions. No telemetry. No
+                        vendor lock-in. Your notes remain entirely under
+                        your control.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<div class="container">
+    <section id="security">
+        <div class="container">
+            <div class="security-panel">
+                <h2>Security Without Complexity</h2>
 
-<h2 class="section-title">
-Built for Speed. Designed for Privacy.
-</h2>
+                <p>
+                    .LOG-hog is built around a simple philosophy: sensitive
+                    notes should remain local and protected. The application
+                    combines AES-GCM encryption, PBKDF2 key derivation,
+                    encrypted backups, clipboard protection, secure password
+                    handling and tamper-evident mechanisms while preserving
+                    an effortless writing experience.
+                </p>
 
-<p class="section-sub">
-Most note applications prioritize syncing and sharing. .LOG-hog focuses on something different: helping you capture information quickly while keeping complete control of your data.
-</p>
+                <br>
 
-<div class="grid">
+                <p>
+                    Unlike many productivity tools, .LOG-hog never requires
+                    an online account or external service. Your data stays
+                    on your machine, encrypted and under your control.
+                </p>
+            </div>
+        </div>
+    </section>
 
-<div class="card">
-<h3>⚡ Frictionless Logging</h3>
-<p>
-Launch the application and start typing immediately. Save with a shortcut key and continue writing without interruption.
-</p>
-</div>
+    <section>
+        <div class="container">
+            <h2 class="section-title">Perfect For</h2>
 
-<div class="card">
-<h3>🔒 Security First</h3>
-<p>
-AES-256-GCM encryption, PBKDF2 key derivation, secure password handling, backup protection, and tamper-aware integrity mechanisms.
-</p>
-</div>
+            <div class="grid">
+                <div class="card">
+                    <h3>📓 Personal Journals</h3>
+                </div>
 
-<div class="card">
-<h3>🖥️ Cross Platform</h3>
-<p>
-Runs on Windows, macOS, and Linux using Java 17+ with a lightweight footprint and simple deployment.
-</p>
-</div>
+                <div class="card">
+                    <h3>💻 Development Notes</h3>
+                </div>
 
-<div class="card">
-<h3>🔍 Powerful Search</h3>
-<p>
-Find information instantly with built-in search, filtering, navigation tools, and markdown rendering.
-</p>
-</div>
+                <div class="card">
+                    <h3>📋 Incident Tracking</h3>
+                </div>
 
-<div class="card">
-<h3>📦 Tiny & Portable</h3>
-<p>
-A compact application that starts fast, consumes minimal resources, and has no external runtime dependencies.
-</p>
-</div>
+                <div class="card">
+                    <h3>🔬 Research Logs</h3>
+                </div>
 
-<div class="card">
-<h3>🛡️ Your Notes Stay Yours</h3>
-<p>
-No accounts. No subscriptions. No telemetry. No cloud lock-in. Your data lives where you decide.
-</p>
-</div>
+                <div class="card">
+                    <h3>🧠 Knowledge Management</h3>
+                </div>
 
-</div>
+                <div class="card">
+                    <h3>🔐 Private Records</h3>
+                </div>
+            </div>
+        </div>
+    </section>
 
-</div>
+    <section id="opensource">
+        <div class="container cta">
+            <div class="cta-box">
+                <h2>Own Your Notes. Own Your Data.</h2>
 
-</section>
+                <p>
+                    .LOG-hog is completely open source and released under
+                    GPLv3. Review the source code, build it yourself,
+                    contribute improvements, or simply enjoy a fast and
+                    secure note-taking experience.
+                </p>
 
-<section>
+                <div class="buttons">
+                    <a
+                        href="https://github.com/johandersson/.LOG-hog"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-primary"
+                    >
+                        Get .LOG-hog
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<div class="container">
-
-<h2 class="section-title">
-Ideal For
-</h2>
-
-<div class="grid">
-
-<div class="card">
-<h3>📓 Personal Journaling</h3>
-</div>
-
-<div class="card">
-<h3>💻 Development Notes</h3>
-</div>
-
-<div class="card">
-<h3>🔬 Research Logging</h3>
-</div>
-
-<div class="card">
-<h3>📋 Incident Tracking</h3>
-</div>
-
-<div class="card">
-<h3>🧠 Knowledge Capture</h3>
-</div>
-
-<div class="card">
-<h3>🔐 Private Records</h3>
-</div>
-
-</div>
-
-</div>
-
-</section>
-
-<section>
-
-<div class="container">
-
-<h2 class="section-title">
-Open Source. No Compromises.
-</h2>
-
-<p class="section-sub">
-.LOG-hog is released under GPLv3 and developed in the open. Review the code, build it yourself, contribute improvements, or simply use it as a secure personal logging tool.
-</p>
-
-<div style="text-align:center; margin-top:40px;">
-<atps://github.com/johandersson/.LOG-hog
-View on GitHub
-</a>
-</div>
-
-</div>
-
-</section>
-
-<footer>
-© .LOG-hog • Fast Notes • Secure Storage • Open Source
-</footer>
-
+    <footer>
+        © 2026 .LOG-hog • Fast Notes • Secure Storage • Open Source
+    </footer>
 </body>
 </html>
