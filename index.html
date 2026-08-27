@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>.LOG-hog | Private Notes. Zero Cloud.</title>
 
@@ -11,54 +11,57 @@
     content=".LOG-hog is a lightweight, open-source note-taking application for storing private notes locally in one encrypted file."
   >
 
-  <link rel="stylesheet" href="styles.css">
+  <!-- styles.css must be in the same folder as index.html -->
+  <link rel="stylesheet" href="./styles.css">
 </head>
 
 <body>
-  <nav aria-label="Main navigation">
-    <div class="container nav-content">
-      <a class="logo" href="#" aria-label=".LOG-hog home">
-        .LOG<span>-hog</span>
-      </a>
+  <header>
+    <nav aria-label="Main navigation">
+      <div class="container nav-content">
+        <a class="logo" href="./" aria-label=".LOG-hog home">
+          .LOG<span>-hog</span>
+        </a>
 
-      <div class="nav-links">
-        <a href="#features">Features</a>
-        <a href="#security">Security</a>
-        <a href="#opensource">Open Source</a>
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#security">Security</a>
+          <a href="#opensource">Open Source</a>
+        </div>
       </div>
-    </div>
-  </nav>
+    </nav>
+  </header>
 
   <main>
-    <section class="hero">
+    <section class="hero" aria-labelledby="hero-title">
       <div class="container hero-content">
         <div class="badge">
           OPEN SOURCE • SIMPLE • SECURE • YOURS
         </div>
 
-        <h1>
+        <h1 id="hero-title">
           Private Notes.<br>
           <span class="gradient">Zero Cloud.</span>
         </h1>
 
         <p>
-          Capture ideas, journals, research, development notes and
-          sensitive information instantly. .LOG-hog combines lightning-fast
-          note taking with strong encryption and practical local security,
-          all without subscriptions, accounts, telemetry or cloud lock-in.
+          Capture ideas, journals, research, development notes and sensitive
+          information instantly. .LOG-hog combines lightning-fast note taking
+          with strong encryption and practical local security, all without
+          subscriptions, accounts, telemetry or cloud lock-in.
         </p>
 
         <div class="buttons">
           <a
+            class="btn btn-primary"
             href="https://github.com/johandersson/.LOG-hog"
             target="_blank"
             rel="noopener noreferrer"
-            class="btn btn-primary"
           >
             View on GitHub
           </a>
 
-          <a href="#features" class="btn btn-secondary">
+          <a class="btn btn-secondary" href="#features">
             Explore Features
           </a>
         </div>
@@ -73,8 +76,8 @@
 
         <p class="section-sub">
           Most note apps are designed around syncing. .LOG-hog is designed
-          around ownership. Start writing immediately, save securely, and
-          keep complete control of your data.
+          around ownership. Start writing immediately, save securely, and keep
+          complete control of your data.
         </p>
 
         <div class="stats">
@@ -108,16 +111,16 @@
         </h2>
 
         <p class="section-sub">
-          Fast enough for daily use. Secure enough for sensitive notes.
-          Small enough to take anywhere.
+          Fast enough for daily use. Secure enough for sensitive notes. Small
+          enough to take anywhere.
         </p>
 
         <div class="grid">
           <article class="card">
             <h3>⚡ Instant Logging</h3>
             <p>
-              Launch the application and start typing immediately. Save with
-              a shortcut and continue working without breaking your flow.
+              Launch the application and start typing immediately. Save with a
+              shortcut and continue working without breaking your flow.
             </p>
           </article>
 
@@ -149,16 +152,16 @@
           <article class="card">
             <h3>🖥 Cross Platform</h3>
             <p>
-              Runs on Windows, macOS and Linux with a lightweight Java
-              runtime and minimal requirements.
+              Runs on Windows, macOS and Linux with a lightweight Java runtime
+              and minimal requirements.
             </p>
           </article>
 
           <article class="card">
             <h3>🚫 No Cloud Required</h3>
             <p>
-              No accounts. No subscriptions. No telemetry. No vendor
-              lock-in. Your notes remain entirely under your control.
+              No accounts. No subscriptions. No telemetry. No vendor lock-in.
+              Your notes remain entirely under your control.
             </p>
           </article>
         </div>
@@ -168,23 +171,20 @@
     <section id="security" aria-labelledby="security-title">
       <div class="container">
         <div class="security-panel">
-          <h2 id="security-title">
-            Security Without Complexity
-          </h2>
+          <h2 id="security-title">Security Without Complexity</h2>
 
           <p>
             .LOG-hog is built around a simple philosophy: sensitive notes
             should remain local and protected. The application combines
             AES-GCM encryption, PBKDF2 key derivation, encrypted backups,
-            clipboard protection, secure password handling and
-            tamper-evident mechanisms while preserving an effortless
-            writing experience.
+            clipboard protection, secure password handling and tamper-evident
+            mechanisms while preserving an effortless writing experience.
           </p>
 
           <p>
-            Unlike many productivity tools, .LOG-hog never requires an
-            online account or external service. Your data stays on your
-            machine, encrypted and under your control.
+            Unlike many productivity tools, .LOG-hog never requires an online
+            account or external service. Your data stays on your machine,
+            encrypted and under your control.
           </p>
         </div>
       </div>
@@ -192,56 +192,36 @@
 
     <section aria-labelledby="perfect-for-title">
       <div class="container">
-        <h2 id="perfect-for-title" class="section-title">
-          Perfect For
-        </h2>
+        <h2 id="perfect-for-title" class="section-title">Perfect For</h2>
 
         <div class="grid">
-          <article class="card">
-            <h3>📓 Personal Journals</h3>
-          </article>
-
-          <article class="card">
-            <h3>💻 Development Notes</h3>
-          </article>
-
-          <article class="card">
-            <h3>📋 Incident Tracking</h3>
-          </article>
-
-          <article class="card">
-            <h3>🔬 Research Logs</h3>
-          </article>
-
-          <article class="card">
-            <h3>🧠 Knowledge Management</h3>
-          </article>
-
-          <article class="card">
-            <h3>🔐 Private Records</h3>
-          </article>
+          <article class="card"><h3>📓 Personal Journals</h3></article>
+          <article class="card"><h3>💻 Development Notes</h3></article>
+          <article class="card"><h3>📋 Incident Tracking</h3></article>
+          <article class="card"><h3>🔬 Research Logs</h3></article>
+          <article class="card"><h3>🧠 Knowledge Management</h3></article>
+          <article class="card"><h3>🔐 Private Records</h3></article>
         </div>
       </div>
     </section>
 
-    <section id="opensource">
+    <section id="opensource" aria-labelledby="opensource-title">
       <div class="container cta">
         <div class="cta-box">
-          <h2>Own Your Notes. Own Your Data.</h2>
+          <h2 id="opensource-title">Own Your Notes. Own Your Data.</h2>
 
           <p>
             .LOG-hog is completely open source and released under GPLv3.
-            Review the source code, build it yourself, contribute
-            improvements, or simply enjoy a fast and secure note-taking
-            experience.
+            Review the source code, build it yourself, contribute improvements,
+            or simply enjoy a fast and secure note-taking experience.
           </p>
 
           <div class="buttons">
             <a
+              class="btn btn-primary"
               href="https://github.com/johandersson/.LOG-hog"
               target="_blank"
               rel="noopener noreferrer"
-              class="btn btn-primary"
             >
               Get .LOG-hog
             </a>
