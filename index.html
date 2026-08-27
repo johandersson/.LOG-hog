@@ -1,64 +1,73 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>.LOG-hog | Fast Notes. One Encrypted File.</title>
 
   <meta
     name="description"
-    content=".LOG-hog is a lightweight, open-source note-taking application inspired by Notepad's .LOG workflow. Store timestamped notes locally in a single encrypted file."
+    content=".LOG-hog is a lightweight note-taking application inspired by the classic .LOG functionality in Windows Notepad."
   >
 
-  <link rel="stylesheet" href="styles.css">
+  <!-- styles.css must be in the same folder as index.html -->
+  <link rel="stylesheet" href="./styles.css">
 </head>
 
 <body>
-  <nav aria-label="Main navigation">
-    <div class="container nav-content">
-      <a class="logo" href="#" aria-label=".LOG-hog home">
-        .LOG-links">
-        <a href="#features">Features  #securitySecurity</a>
-        <a href="#opensource"></a>
+  <header>
+    <nav aria-label="Main navigation">
+      <div class="container nav-content">
+        <a class="logo" href="./" aria-label=".LOG-hog home">
+          .LOG<span>-hog</span>
+        </a>
+
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#security">Security</a>
+          <a href="#opensource">Open Source</a>
+        </div>
       </div>
-    </div>
-  </nav>
+    </nav>
+  </header>
 
   <main>
-    <section class="hero">
+    <section class="hero" aria-labelledby="hero-title">
       <div class="container hero-content">
         <div class="badge">
-          OPEN SOURCE • ENCRYPTED • LOCAL FIRST • .LOG INSPIRED
+          INSPIRED BY NOTEPAD .LOG • OPEN SOURCE • LOCAL FIRST
         </div>
 
-        <h1>
+        <h1 id="hero-title">
           Fast Notes.<br>
           <span class="gradient">One Encrypted File.</span>
         </h1>
 
         <p>
-          Inspired by the classic .LOG functionality in Windows Notepad,
-          .LOG-hog is built for fast, uninterrupted note-taking. Write
-          journals, development notes, research logs and everyday entries
-          with automatic timestamps and encrypted storage.
-
-          Everything is stored locally in a single encrypted file under
-          your control. No accounts, subscriptions, telemetry or cloud
-          services required.
+          .LOG-hog is a lightweight note-taking application inspired by the
+          classic .LOG functionality in Windows Notepad. Open the application,
+          start typing immediately, and save timestamped entries without
+          interrupting your workflow. Whether you're keeping a journal,
+          tracking incidents, documenting research, or writing development
+          notes, .LOG-hog is designed to stay out of your way and let you focus
+          on writing. Everything is stored locally in a single encrypted file
+          under your control. No accounts, subscriptions, telemetry, cloud
+          synchronization or vendor lock-in.
         </p>
 
         <div class="buttons">
           <a
+            class="btn btn-primary"
             href="https://github.com/johandersson/.LOG-hog"
             target="_blank"
             rel="noopener noreferrer"
-            class="btn btn-primary"
           >
             View on GitHub
           </a>
 
-          <a href="#            Explore Features
+          <a class="btn btn-secondary" href="#features">
+            Explore Features
           </a>
         </div>
       </div>
@@ -67,101 +76,96 @@
     <section aria-labelledby="overview-title">
       <div class="container">
         <h2 id="overview-title" class="section-title">
-          Built For Logging And Note-Taking
+          Built for Logging, Journaling and Everyday Notes
         </h2>
 
         <p class="section-sub">
-          Most note applications focus on synchronization. .LOG-hog focuses
-          on writing. Launch the application, start typing immediately,
-          save a timestamped entry and continue without interruption. Your
-          notes remain stored locally in a single encrypted file.
+          Most note-taking applications are built around synchronization and
+          online services. .LOG-hog is built around writing. Launch the
+          application, write an entry, press Save, and continue. Each entry is
+          timestamped and added to your log, creating a chronological record
+          that remains easy to browse, search and manage over time. Inspired by
+          the simplicity of Notepad's .LOG workflow, .LOG-hog extends the
+          concept with encryption, search, markdown rendering, backups and
+          practical security features while keeping everything local.
         </p>
-
-        <div class="stats">
-          <div class="stat">
-            <h3>230 KB</h3>
-            <p>Approximate application size</p>
-          </div>
-
-          <div class="stat">
-            <h3>AES-256-GCM</h3>
-            <p>Encrypted storage by default</p>
-          </div>
-
-          <div class="stat">
-            <h3>600K</h3>
-            <p>PBKDF2 iterations</p>
-          </div>
-
-          <div class="stat">
-            <h3>1</h3>
-            <p>Encrypted log file</p>
-          </div>
-        </div>
       </div>
     </section>
 
     <section id="features" aria-labelledby="features-title">
       <div class="container">
         <h2 id="features-title" class="section-title">
-          Inspired By .LOG. Built For Today.
+          Why Choose .LOG-hog?
         </h2>
 
-        <p class="section-sub">
-          The familiar simplicity of Notepad's .LOG workflow, extended with
-          encryption, search, backups and markdown support.
-        </p>
+        <div class="stats">
+          <div class="stat">
+            <h3>ONE FILE</h3>
+            <p>Everything stored locally</p>
+          </div>
+
+          <div class="stat">
+            <h3>AES-256-GCM</h3>
+            <p>Encrypted notes and backups</p>
+          </div>
+
+          <div class="stat">
+            <h3>600K</h3>
+            <p>PBKDF2 key derivation iterations</p>
+          </div>
+
+          <div class="stat">
+            <h3>0</h3>
+            <p>Cloud synchronization required</p>
+          </div>
+        </div>
 
         <div class="grid">
           <article class="card">
-            <h3>⚡ Instant Logging</h3>
+            <h3>Inspired by Notepad .LOG</h3>
             <p>
-              Open the application and start typing immediately. Save an
-              entry, add a timestamp automatically and continue writing
-              without breaking your flow.
+              Save entries with automatic timestamps and build a searchable
+              history over days, months or years.
             </p>
           </article>
 
           <article class="card">
-            <h3>🔒 Encryption First</h3>
+            <h3>One Encrypted File</h3>
             <p>
-              Encrypted storage is built into the normal workflow. Notes
-              are protected using AES-256-GCM encryption with
+              Your notes are stored in a single encrypted file. No database
+              servers, online accounts or external cloud platforms are required.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Encryption by Default</h3>
+            <p>
+              Notes and backups are protected using AES-256-GCM encryption and
               password-derived keys.
             </p>
           </article>
 
           <article class="card">
-            <h3>🛡 Protected Storage</h3>
+            <h3>Built-In Password Generator</h3>
             <p>
-              Encrypted backups, integrity verification, lockout
-              persistence and security-focused file handling provide
-              additional protection for locally stored notes.
+              Create secure, unique passwords using built-in random and
+              passphrase generators.
             </p>
           </article>
 
           <article class="card">
-            <h3>🔍 Powerful Search</h3>
+            <h3>Search and Browse</h3>
             <p>
-              Navigate years of notes using integrated search, filtering,
-              markdown rendering and browsing capabilities.
+              Quickly locate entries using integrated search, filtering and
+              markdown rendering.
             </p>
           </article>
 
           <article class="card">
-            <h3>🖥 Cross Platform</h3>
+            <h3>Cross Platform</h3>
             <p>
-              Runs on Windows, macOS and Linux with Java 17+ while
-              maintaining a small footprint and simple distribution.
-            </p>
-          </article>
-
-          <article class="card">
-            <h3>🔑 Built-In Password Generator</h3>
-            <p>
-              Strong encryption depends on a strong password. Generate
-              random passwords or passphrase-based passwords directly
-              inside .LOG-hog.
+              Runs on Windows, macOS and Linux with minimal system requirements
+              and a very small distribution size.
             </p>
           </article>
         </div>
@@ -172,28 +176,39 @@
       <div class="container">
         <div class="security-panel">
           <h2 id="security-title">
-            Practical Security For Local Notes
+            Practical Security, Not Magic Security
           </h2>
 
           <p>
-            .LOG-hog combines AES-256-GCM encryption, PBKDF2 key
-            derivation, encrypted backups, secure password handling and
-            practical local hardening while preserving a fast and simple
-            writing experience.
+            .LOG-hog is designed to provide strong, practical protection for
+            locally stored notes while remaining simple to use. The application
+            uses AES-256-GCM encryption together with PBKDF2 key derivation
+            (600,000 iterations) to help protect notes and backups from
+            unauthorized access. Additional protections include encrypted
+            backups, integrity verification, retry delays for failed password
+            attempts and tamper-evident security mechanisms.
           </p>
 
           <p>
-            Security depends on using a trusted system and choosing a
-            strong, unique password. To help with this, .LOG-hog includes
-            a built-in password generator capable of creating both random
-            passwords and passphrase-style passwords.
+            However, security ultimately depends on the password you choose. A
+            weak, predictable or reused password can undermine even strong
+            encryption. For this reason, .LOG-hog includes a built-in password
+            generator capable of creating both random passwords and
+            passphrase-style passwords. Like any local application, .LOG-hog
+            cannot protect against malware, keyloggers, operating system
+            compromise or attackers who already control your machine. It is
+            designed to provide practical protection for encrypted notes stored
+            on a trusted system.
           </p>
 
           <p>
-            Like any local application, .LOG-hog cannot protect against
-            malware, keyloggers or a compromised operating system. It is
-            designed to help protect encrypted notes stored on a trusted
-            machine.
+            Important
+          </p>
+
+          <p>
+            Security depends on using a trusted system, choosing a strong,
+            unique password and keeping that password safe. If you forget your
+            password, encrypted notes cannot be recovered.
           </p>
         </div>
       </div>
@@ -207,57 +222,56 @@
 
         <div class="grid">
           <article class="card">
-            <h3>📓 Personal Journals</h3>
-            <p>Daily entries with automatic timestamps.</p>
+            <h3>Personal journals and diaries</h3>
           </article>
 
           <article class="card">
-            <h3>💻 Development Notes</h3>
-            <p>Track ideas, fixes and project details.</p>
+            <h3>Development notes</h3>
           </article>
 
           <article class="card">
-            <h3>📋 Incident Tracking</h3>
-            <p>Maintain chronological records of events.</p>
+            <h3>Incident tracking</h3>
           </article>
 
           <article class="card">
-            <h3>🔬 Research Logs</h3>
-            <p>Keep organized notes for ongoing work.</p>
+            <h3>Research logs</h3>
           </article>
 
           <article class="card">
-            <h3>🧠 Knowledge Management</h3>
-            <p>Store references, findings and information.</p>
+            <h3>Knowledge management</h3>
           </article>
 
           <article class="card">
-            <h3>🔐 Private Records</h3>
-            <p>Keep sensitive notes encrypted and local.</p>
+            <h3>Private records, technical documentation and daily work logs</h3>
           </article>
         </div>
       </div>
     </section>
 
-    <section id="opensource">
+    <section id="opensource" aria-labelledby="opensource-title">
       <div class="container cta">
         <div class="cta-box">
-          <h2>Simple Notes. Local Storage. Open Source.</h2>
+          <h2 id="opensource-title">
+            Simple Notes. Local Storage. Open Source.
+          </h2>
 
           <p>
-            .LOG-hog is open source and released under GPLv3. Inspired by
-            the .LOG functionality in Windows Notepad, it extends that
-            familiar workflow with encrypted storage, search, backups and
-            markdown support while keeping everything in a single local
-            encrypted file.
+            .LOG-hog is released under GPLv3 and is completely open source. It
+            takes the familiar .LOG concept from Windows Notepad and modernizes
+            it with encryption, search, backups, markdown rendering and
+            practical local security. The result is a lightweight application
+            focused on fast writing and local ownership rather than cloud
+            services. Review the source code, build it yourself, contribute
+            improvements, or simply enjoy a straightforward note-taking
+            application that keeps your data under your control.
           </p>
 
           <div class="buttons">
             <a
+              class="btn btn-primary"
               href="https://github.com/johandersson/.LOG-hog"
               target="_blank"
               rel="noopener noreferrer"
-              class="btn btn-primary"
             >
               Get .LOG-hog
             </a>
@@ -268,7 +282,7 @@
   </main>
 
   <footer>
-    © 2026 .LOG-hog • Open Source • Local First • Single Encrypted File
+    © 2026 .LOG-hog • Fast Notes • Secure Storage • Open Source
   </footer>
 </body>
 </html>
