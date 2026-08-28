@@ -1,4 +1,4 @@
-# 📦 .LOG-hog
+# 📦 .LOG-hog - secure personal notes or logs
 
 **A lightweight, cross-platform Java application for fast note-taking with built-in protection for your data.**
 
