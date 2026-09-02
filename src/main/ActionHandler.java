@@ -72,13 +72,9 @@ public class ActionHandler {
                     }
                 }
 
-                //Copy both timestamp and entry text
                 try {
-                    var rawTs = logFileHandler.getRawTimestamp(selectedItem);
-                    String logContent = logFileHandler.loadEntry(rawTs);
-
                     clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(
-                        selectedItem + "\n\n" + logContent, editor,
+                        buildSelectedEntryClipboardText(selectedItem), editor,
                         "Log entry copied to clipboard securely.");
                 } catch (Exception ex) {
                     // If anything goes wrong, show a user-friendly message
@@ -86,6 +82,11 @@ public class ActionHandler {
                 }
             }
         };
+    }
+
+    String buildSelectedEntryClipboardText(String selectedItem) {
+        String logContent = logFileHandler.loadEntry(selectedItem);
+        return selectedItem + "\n\n" + logContent;
     }
 
     public ActionListener createNewQuickEntryAction() {
