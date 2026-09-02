@@ -29,34 +29,44 @@ public class AsyncSaver {
     }
 
     public void saveTextAsync(String text, javax.swing.DefaultListModel<String> listModel, Runnable onComplete) {
+        saveTextAsync(text, listModel, null, onComplete);
+    }
+
+    /**
+     * Saves an entry on a background thread while a progress dialog is shown.
+     * <p>
+     * The dialog stays open until {@code postSaveWork} has finished too, so slow
+     * follow-up work (such as reparsing a very large log file to rebuild the entry
+     * list) keeps giving the user feedback instead of freezing the UI silently.
+     *
+     * @param text the entry text to save
+     * @param listModel the list model backing the entry list (unused here, kept for API compatibility)
+     * @param postSaveWork optional work run on the background thread after the save, may be null
+     * @param onComplete optional callback run on the EDT once everything is done, may be null
+     */
+    public void saveTextAsync(String text, javax.swing.DefaultListModel<String> listModel,
+                              Runnable postSaveWork, Runnable onComplete) {
         if (text == null || text.isBlank()) return;
         Thread t = new Thread(() -> {
-            final gui.LoadingProgressDialog[] holder = new gui.LoadingProgressDialog[1];
-            try {
-                javax.swing.SwingUtilities.invokeAndWait(() -> {
-                    holder[0] = new gui.LoadingProgressDialog(null, "Saving");
-                    holder[0].setStatus("Saving file...");
-                    holder[0].setIndeterminate(true);
-                    holder[0].show();
-                });
-            } catch (Exception e) {
-                // ignore
-            }
+            gui.BackgroundProgress progress = gui.BackgroundProgress.show("Saving", "Saving entry...");
 
-            String ts = null;
             try {
-                entryEditor.setBackupManager(backupManager);
-                ts = entryEditor.createAndSaveEntry(text);
-                cache.invalidateEntryCache();
-            } catch (Exception e) {
-                javax.swing.SwingUtilities.invokeLater(() -> {
-                    filehandling.DialogHandler.showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save your log entry.</html>");
-                });
-            } finally {
-                gui.LoadingProgressDialog progress = holder[0];
-                if (progress != null) {
-                    try { progress.close(); } catch (Exception ignore) {}
+                try {
+                    entryEditor.setBackupManager(backupManager);
+                    entryEditor.createAndSaveEntry(text);
+                    cache.invalidateEntryCache();
+                } catch (Exception e) {
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        filehandling.DialogHandler.showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save your log entry.</html>");
+                    });
                 }
+
+                if (postSaveWork != null) {
+                    progress.setStatus("Updating entry list...");
+                    postSaveWork.run();
+                }
+            } finally {
+                progress.close();
             }
 
             // Signal completion - caller handles list refresh for proper occurrence counting
@@ -68,6 +78,34 @@ public class AsyncSaver {
         t.start();
     }
 
+    /**
+     * Runs a potentially slow file operation on a background thread while showing
+     * the same progress dialog used for loading large files, so the UI stays
+     * responsive and the user can see that work is in progress.
+     *
+     * @param title dialog title
+     * @param status initial status message
+     * @param backgroundWork the work to run off the EDT
+     * @param onComplete optional callback run on the EDT afterwards, may be null
+     */
+    public void runWithProgressAsync(String title, String status, Runnable backgroundWork, Runnable onComplete) {
+        if (backgroundWork == null) {
+            if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
+            return;
+        }
+        Thread t = new Thread(() -> {
+            gui.BackgroundProgress progress = gui.BackgroundProgress.show(title, status);
+            try {
+                backgroundWork.run();
+            } finally {
+                progress.close();
+            }
+            if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
+        }, "loghog-progress-task");
+        t.setDaemon(false);
+        t.start();
+    }
+
     public void flushPendingWritesAsync(Runnable onComplete) {
         if (!cache.hasPendingWrites()) {
             if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
@@ -75,17 +113,7 @@ public class AsyncSaver {
         }
 
         Thread t2 = new Thread(() -> {
-            final gui.LoadingProgressDialog[] holder = new gui.LoadingProgressDialog[1];
-            try {
-                javax.swing.SwingUtilities.invokeAndWait(() -> {
-                    holder[0] = new gui.LoadingProgressDialog(null, "Saving");
-                    holder[0].setStatus("Saving file...");
-                    holder[0].setIndeterminate(true);
-                    holder[0].show();
-                });
-            } catch (Exception e) {
-                // ignore
-            }
+            gui.BackgroundProgress progress = gui.BackgroundProgress.show("Saving", "Saving file...");
 
             try {
                 List<String> pendingLines = cache.getPendingLines();
@@ -107,10 +135,7 @@ public class AsyncSaver {
                 } catch (Exception e) {
                 javax.swing.SwingUtilities.invokeLater(() -> filehandling.DialogHandler.showErrorDialog("<html><b>💾 Write Failed</b><br><br>Unable to save changes to disk.</html>"));
             } finally {
-                gui.LoadingProgressDialog progress = holder[0];
-                if (progress != null) {
-                    try { progress.close(); } catch (Exception ignore) {}
-                }
+                progress.close();
             }
 
             if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);

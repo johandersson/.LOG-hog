@@ -218,7 +218,8 @@ public class LogFileHandler implements LogFileOperations {
      */
     public void saveTextAsync(String text, DefaultListModel<String> listModel, Runnable onComplete) {
         asyncSaver.saveTextAsync(text, listModel, () -> {
-            // Reload list to properly count occurrences for display suffixes
+            // Reload list to properly count occurrences for display suffixes.
+            // Runs on the save thread (not the EDT) so large files do not freeze the UI.
             try {
                 invalidateEntryCache();
                 entryLoader.loadLogEntries(listModel);
@@ -226,6 +227,7 @@ public class LogFileHandler implements LogFileOperations {
                 // Fall back to just invalidation on error
                 writeDebug("saveTextAsync: reload failed - " + e.getMessage());
             }
+        }, () -> {
             // Keep Full Log and other cache-aware views in sync after async saves.
             notifyCacheInvalidationListeners();
             if (onComplete != null) onComplete.run();
@@ -275,6 +277,20 @@ public class LogFileHandler implements LogFileOperations {
         } catch (Exception e) {
             showErrorDialog("<html><b>✏️ Update Failed</b><br><br>Unable to update the log entry.<br>Please try again.<br><br><i>Tip: Ensure the entry exists and the file is writable.</i></html>");
         }
+    }
+
+    /**
+     * Updates an entry on a background thread while showing a progress dialog.
+     * Rewriting a very large log file can take a while, so this keeps the UI
+     * responsive instead of freezing it until the save completes.
+     *
+     * @param displayTimestamp the timestamp as shown in UI
+     * @param newText the new content
+     * @param onComplete callback run on the EDT once the update has been applied
+     */
+    public void updateEntryAsync(String displayTimestamp, String newText, Runnable onComplete) {
+        asyncSaver.runWithProgressAsync("Saving", "Saving entry...",
+            () -> updateEntry(displayTimestamp, newText), onComplete);
     }
 
     private boolean containsTimestampOccurrence(List<String> lines, String rawTimestamp, int occurrence) {

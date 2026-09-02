@@ -157,19 +157,26 @@ public class ActionHandler {
             }
         }
 
-        // selectedItem contains display timestamp (may include suffix like " (1)")
-        // updateEntry handles parsing to find correct occurrence in file
-        logFileHandler.updateEntry(selectedItem, logListPanel.getEntryArea().getText());
-
-        // If no pending write was produced, the update did not apply.
-        if (!logFileHandler.hasPendingWrites()) {
-            DialogHelper.showEntryNotFound(editor);
-            return;
-        }
-
-        // Make a final copy for use inside the async lambda (must be effectively final)
+        // Make a final copy for use inside the async lambdas (must be effectively final)
         final String selectedCopy = selectedItem;
 
+        // selectedItem contains display timestamp (may include suffix like " (1)")
+        // updateEntry handles parsing to find correct occurrence in file.
+        // Runs off the EDT with a progress dialog so large files do not freeze the UI.
+        logFileHandler.updateEntryAsync(selectedCopy, logListPanel.getEntryArea().getText(), () -> {
+            // If no pending write was produced, the update did not apply.
+            if (!logFileHandler.hasPendingWrites()) {
+                DialogHelper.showEntryNotFound(editor);
+                return;
+            }
+            flushEditedLogEntry(selectedCopy);
+        });
+    }
+
+    /**
+     * Writes the pending edit to disk and refreshes the views once it completed.
+     */
+    private void flushEditedLogEntry(final String selectedCopy) {
         // Flush writes asynchronously to avoid blocking UI on large files
         logFileHandler.flushPendingWritesAsync(() -> {
             if (logFileHandler.hasPendingWrites()) {

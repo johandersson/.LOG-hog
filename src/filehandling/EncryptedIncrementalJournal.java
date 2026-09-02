@@ -23,8 +23,20 @@ final class EncryptedIncrementalJournal {
     List<String> readMergedLines() throws Exception {
         List<String> merged = new ArrayList<>();
         merged.addAll(readSnapshotLines());
-        merged.addAll(readJournalLines());
+        appendJournalLines(merged, readJournalLines());
         return merged;
+    }
+
+    /**
+     * Appends journal lines after the snapshot, keeping a blank separator line so
+     * the first journaled timestamp is not merged into the last snapshot entry.
+     */
+    private void appendJournalLines(List<String> target, List<String> journalLines) {
+        if (journalLines == null || journalLines.isEmpty()) {
+            return;
+        }
+        LogFileFormat.ensureEntrySeparator(target);
+        target.addAll(journalLines);
     }
 
     void appendEntryLines(List<String> entryLines) throws Exception {
@@ -87,7 +99,7 @@ final class EncryptedIncrementalJournal {
 
     private void compactIntoSnapshot() throws Exception {
         List<String> merged = readSnapshotLines();
-        merged.addAll(readJournalLines());
+        appendJournalLines(merged, readJournalLines());
         if (merged.isEmpty()) {
             return;
         }

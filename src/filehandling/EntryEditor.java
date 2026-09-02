@@ -71,6 +71,8 @@ public class EntryEditor {
         if (encrypted) {
             List<String> cachedLines = getEncryptedWorkingLines();
             List<String> entryLines = Arrays.asList(entry.split("\r?\n", -1));
+            // Keep a blank line before the new timestamp so it is parsed as its own entry
+            LogFileFormat.ensureEntrySeparator(cachedLines);
             cachedLines.addAll(entryLines);
             List<String> normalized = LogFileFormat.normalizeSpacing(cachedLines);
             incrementalJournal.appendEntryLines(entryLines);
@@ -89,7 +91,10 @@ public class EntryEditor {
                 if (backupManager != null) {
                     backupManager.createNumberedBackup();
                 }
-                java.nio.file.Files.write(filePath, entryToAppend.getBytes(java.nio.charset.StandardCharsets.UTF_8), java.nio.file.StandardOpenOption.APPEND);
+                // Keep a blank line before the new timestamp so it is parsed as its own entry
+                String separatorPrefix = missingEntrySeparatorSuffix(filePath);
+                byte[] data = (separatorPrefix + entryToAppend).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                java.nio.file.Files.write(filePath, data, java.nio.file.StandardOpenOption.APPEND);
                 try {
                     encryption.CryptoUtils.setOwnerOnlyPermissions(filePath);
                 } catch (Exception ignored) {}
@@ -104,6 +109,37 @@ public class EntryEditor {
         }
     }
     
+    /**
+     * Returns the line separators that must be written before appending a new entry so
+     * the appended timestamp line is preceded by a blank line (an entry boundary).
+     * Returns an empty string for empty files or files already ending with a blank line.
+     */
+    private String missingEntrySeparatorSuffix(Path path) {
+        String ls = System.lineSeparator();
+        try {
+            long size = Files.size(path);
+            if (size == 0L) return "";
+            int tailLength = (int) Math.min(size, 64L);
+            byte[] tail = new byte[tailLength];
+            try (var channel = java.nio.channels.FileChannel.open(path, java.nio.file.StandardOpenOption.READ)) {
+                channel.position(size - tailLength);
+                java.nio.ByteBuffer buffer = java.nio.ByteBuffer.wrap(tail);
+                while (buffer.hasRemaining() && channel.read(buffer) >= 0) {
+                    // keep reading until the tail is filled or EOF
+                }
+            }
+            // ISO-8859-1 is byte-preserving, which is enough to inspect line breaks
+            String text = new String(tail, java.nio.charset.StandardCharsets.ISO_8859_1);
+            if (text.isBlank()) return "";
+            if (text.matches("(?s).*\\R[ \\t]*\\R[ \\t]*")) return "";
+            if (text.matches("(?s).*\\R[ \\t]*")) return ls;
+            return ls + ls;
+        } catch (Exception e) {
+            // If the tail cannot be inspected, prefer a safe separator over merged entries
+            return ls;
+        }
+    }
+
     /**
      * Updates an existing log entry by occurrence index.
      * @param timeStamp the raw timestamp (without display suffix)
@@ -154,9 +190,8 @@ public class EntryEditor {
             if (inTargetEntry) {
                 // stop skipping when we hit the next timestamp line
                 if (timestampBoundary) {
-                    if (!updatedLines.isEmpty() && updatedLines.get(updatedLines.size() - 1).isBlank()) {
-                        updatedLines.remove(updatedLines.size() - 1);
-                    }
+                    // Keep exactly one blank line so the next timestamp stays an entry boundary
+                    LogFileFormat.ensureEntrySeparator(updatedLines);
                     inTargetEntry = false;
                     updatedLines.add(line); // add the next timestamp line
                     hasSeenEntryTimestamp = true;
@@ -245,9 +280,10 @@ public class EntryEditor {
                     continue; // Skip this timestamp line
                 }
                 
-                // Not deleting - if we were in a deleted entry, we're now past it
-                if (inDeletedEntry && !updatedLines.isEmpty() && updatedLines.get(updatedLines.size() - 1).isBlank()) {
-                    updatedLines.remove(updatedLines.size() - 1);
+                // Not deleting - if we were in a deleted entry, keep exactly one blank
+                // line before this timestamp so it remains an entry boundary
+                if (inDeletedEntry) {
+                    LogFileFormat.ensureEntrySeparator(updatedLines);
                 }
                 inDeletedEntry = false;
                 updatedLines.add(line);
