@@ -7,8 +7,10 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Tests for SingleInstanceManager using file-based locking.
@@ -24,11 +26,15 @@ public class SingleInstanceManagerTest {
         // Create a temporary directory for test lock files
         testLockDir = Files.createTempDirectory("loghog-test-locks");
         testLockFile = testLockDir.resolve("test.lock");
+        System.setProperty("loghog.lock.dir", testLockDir.toString());
     }
 
     @AfterAll
     static void cleanupClass() throws IOException {
         // Clean up test files
+        SingleInstanceManager.releaseLock();
+        System.clearProperty("loghog.lock.dir");
+        Files.deleteIfExists(testLockDir.resolve("instance.lock"));
         if (testLockFile != null && Files.exists(testLockFile)) {
             Files.deleteIfExists(testLockFile);
         }
@@ -41,6 +47,7 @@ public class SingleInstanceManagerTest {
     void setup() {
         // Release any existing locks from previous tests
         SingleInstanceManager.releaseLock();
+        System.setProperty("loghog.lock.dir", testLockDir.toString());
     }
 
     @AfterEach
@@ -66,10 +73,12 @@ public class SingleInstanceManagerTest {
     void testNotifyExistingInstance() {
         testsupport.TestLog.out("🧪 Testing notification of existing instance...");
 
-        // This method should not throw exceptions (no-op with file locking)
-        assertDoesNotThrow(() -> {
-            SingleInstanceManager.notifyExistingInstance();
-        });
+        assertFalse(SingleInstanceManager.isAnotherInstanceRunning());
+        AtomicBoolean focusRequested = new AtomicBoolean(false);
+        SingleInstanceManager.registerFocusRequestHandler(() -> focusRequested.set(true));
+
+        assertTrue(SingleInstanceManager.notifyExistingInstance(), "Should notify active instance");
+        assertTrue(focusRequested.get(), "Notification should request focus on active instance");
 
         testsupport.TestLog.out("✅ Notify existing instance handles gracefully");
     }
@@ -123,8 +132,12 @@ public class SingleInstanceManagerTest {
                 try (RandomAccessFile raf2 = new RandomAccessFile(testLockFile.toFile(), "rw");
                      FileChannel channel2 = raf2.getChannel()) {
                     
-                    FileLock lock2 = channel2.tryLock();
-                    assertNull(lock2, "Should not acquire second lock");
+                    try {
+                        FileLock lock2 = channel2.tryLock();
+                        assertNull(lock2, "Should not acquire second lock");
+                    } catch (OverlappingFileLockException expected) {
+                        testsupport.TestLog.out("✓ Same-JVM overlapping lock was rejected");
+                    }
                 }
                 
                 lock1.release();
@@ -152,7 +165,7 @@ public class SingleInstanceManagerTest {
     void testLockDirectoryCreation() {
         testsupport.TestLog.out("🧪 Testing lock directory creation...");
 
-        Path lockDir = Path.of(System.getProperty("user.home"), ".loghog");
+        Path lockDir = testLockDir;
         
         // After isAnotherInstanceRunning, the directory should exist
         boolean result = SingleInstanceManager.isAnotherInstanceRunning();

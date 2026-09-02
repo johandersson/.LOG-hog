@@ -416,8 +416,9 @@ public final class LogTextEditor extends JFrame {
         JFrame.setDefaultLookAndFeelDecorated(false);
         
         if (SingleInstanceManager.isAnotherInstanceRunning()) {
-            SingleInstanceManager.showAlreadyRunningDialog();
-            SingleInstanceManager.notifyExistingInstance();
+            if (!SingleInstanceManager.notifyExistingInstance()) {
+                SingleInstanceManager.showAlreadyRunningDialog();
+            }
             System.exit(0);
         }
 
@@ -426,6 +427,8 @@ public final class LogTextEditor extends JFrame {
         SwingUtilities.invokeLater(() -> {
             try {
                 LogTextEditor editor = new LogTextEditor();
+                SingleInstanceManager.registerFocusRequestHandler(
+                    () -> SwingUtilities.invokeLater(editor::focusExistingWindow));
                 // don't call setVisible here: loadSettings will make the
                 // window visible after any loading/decryption completes.
                 // Note: Single-instance enforcement now uses file locking (see SingleInstanceManager)
@@ -458,10 +461,15 @@ public final class LogTextEditor extends JFrame {
         //if LogTextEditor is not visible, make it visible when a recent log is clicked
         boolean isMinimized = (this.getExtendedState() & JFrame.ICONIFIED) == JFrame.ICONIFIED;
         if (!this.isVisible() || isMinimized) {
-            this.setVisible(true);
-            this.setExtendedState(JFrame.NORMAL);
-            this.toFront();
+            focusExistingWindow();
         }
+    }
+
+    public void focusExistingWindow() {
+        setVisible(true);
+        setExtendedState(JFrame.NORMAL);
+        toFront();
+        requestFocus();
     }
 
     private void loadSettings() {

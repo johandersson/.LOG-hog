@@ -17,12 +17,24 @@
 
 package main;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.io.RandomAccessFile;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.channels.OverlappingFileLockException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Properties;
 import security.SecurityFilePolicy;
 
 import gui.DialogHelper;
@@ -42,10 +54,19 @@ import gui.DialogHelper;
  */
 public class SingleInstanceManager {
     private static final String LOCK_FILE_NAME = "instance.lock";
+    private static final String LOCK_DIR_PROPERTY = "loghog.lock.dir";
+    private static final String COMMAND_FOCUS = "FOCUS";
+    private static final int CONNECT_TIMEOUT_MS = 1500;
+    private static final int TOKEN_BYTES = 32;
     private static Path lockFilePath;
     private static RandomAccessFile lockFile;
     private static FileChannel lockChannel;
     private static FileLock lock;
+    private static ServerSocket ipcServerSocket;
+    private static Thread ipcServerThread;
+    private static String ipcToken;
+    private static Runnable focusRequestHandler;
+    private static boolean pendingFocusRequest;
 
     /**
      * Checks if another instance of LogHog is already running.
@@ -54,37 +75,52 @@ public class SingleInstanceManager {
      * @return true if another instance is running, false if this is the first instance
      */
     public static boolean isAnotherInstanceRunning() {
+        RandomAccessFile candidateFile = null;
+        FileChannel candidateChannel = null;
         try {
             // Create lock file directory if needed
-            Path lockDir = Path.of(System.getProperty("user.home"), ".loghog");
+            Path lockDir = getLockDirectory();
             Files.createDirectories(lockDir);
             SecurityFilePolicy.ensureOwnerOnlyPermissions(lockDir);
             lockFilePath = lockDir.resolve(LOCK_FILE_NAME);
-            
+
             // Try to acquire exclusive lock
-            lockFile = new RandomAccessFile(lockFilePath.toFile(), "rw");
-            lockChannel = lockFile.getChannel();
-            lock = lockChannel.tryLock();
+            candidateFile = new RandomAccessFile(lockFilePath.toFile(), "rw");
+            candidateChannel = candidateFile.getChannel();
+            FileLock candidateLock = candidateChannel.tryLock();
             SecurityFilePolicy.ensureOwnerOnlyPermissions(lockFilePath);
-            
-            if (lock == null) {
+
+            if (candidateLock == null) {
                 // Could not acquire lock - another instance holds it
-                closeLockResources();
+                closeResources(candidateLock, candidateChannel, candidateFile);
                 return true;
             }
-            
-            // Write PID to lock file for debugging purposes
+
+            lockFile = candidateFile;
+            lockChannel = candidateChannel;
+            lock = candidateLock;
+            startFocusRequestServer();
+
+            // Write IPC details and PID to lock file for authenticated focus requests.
             lockFile.setLength(0);
-            lockFile.writeUTF("LogHog instance running since " + java.time.Instant.now());
+            String lockData = "port=" + ipcServerSocket.getLocalPort() + System.lineSeparator()
+                + "token=" + ipcToken + System.lineSeparator()
+                + "since=" + java.time.Instant.now() + System.lineSeparator();
+            lockFile.write(lockData.getBytes(StandardCharsets.UTF_8));
+            lockFile.getChannel().force(true);
             
             // Register shutdown hook to release lock
             Runtime.getRuntime().addShutdownHook(new Thread(SingleInstanceManager::releaseLock));
             
             return false; // No other instance running, we acquired the lock
             
+        } catch (OverlappingFileLockException e) {
+            closeResources(null, candidateChannel, candidateFile);
+            return true;
         } catch (IOException e) {
             // If we can't create/access the lock file, allow the app to start
             // This handles edge cases like read-only filesystems
+            closeResources(null, candidateChannel, candidateFile);
             return false;
         }
     }
@@ -95,6 +131,13 @@ public class SingleInstanceManager {
      */
     public static void releaseLock() {
         try {
+            if (ipcServerSocket != null) {
+                ipcServerSocket.close();
+            }
+        } catch (IOException ignored) {
+            // Best effort
+        }
+        try {
             if (lock != null && lock.isValid()) {
                 lock.release();
             }
@@ -102,6 +145,11 @@ public class SingleInstanceManager {
             // Best effort
         }
         closeLockResources();
+        ipcServerSocket = null;
+        ipcServerThread = null;
+        ipcToken = null;
+        focusRequestHandler = null;
+        pendingFocusRequest = false;
     }
     
     private static void closeLockResources() {
@@ -115,6 +163,93 @@ public class SingleInstanceManager {
                 lockFile.close();
             }
         } catch (IOException ignored) {}
+    }
+
+    private static void closeResources(FileLock fileLock, FileChannel channel, RandomAccessFile file) {
+        try {
+            if (fileLock != null && fileLock.isValid()) {
+                fileLock.release();
+            }
+        } catch (IOException ignored) {}
+        try {
+            if (channel != null) {
+                channel.close();
+            }
+        } catch (IOException ignored) {}
+        try {
+            if (file != null) {
+                file.close();
+            }
+        } catch (IOException ignored) {}
+    }
+
+    private static Path getLockDirectory() {
+        String configuredLockDir = System.getProperty(LOCK_DIR_PROPERTY);
+        if (configuredLockDir != null && !configuredLockDir.isBlank()) {
+            return Path.of(configuredLockDir);
+        }
+        return Path.of(System.getProperty("user.home"), ".loghog");
+    }
+
+    private static void startFocusRequestServer() throws IOException {
+        ipcToken = generateToken();
+        ipcServerSocket = new ServerSocket();
+        ipcServerSocket.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
+        ipcServerThread = new Thread(SingleInstanceManager::serveFocusRequests, "loghog-single-instance-ipc");
+        ipcServerThread.setDaemon(true);
+        ipcServerThread.start();
+    }
+
+    private static String generateToken() {
+        byte[] tokenBytes = new byte[TOKEN_BYTES];
+        new SecureRandom().nextBytes(tokenBytes);
+        StringBuilder tokenBuilder = new StringBuilder(tokenBytes.length * 2);
+        for (byte tokenByte : tokenBytes) {
+            tokenBuilder.append(String.format("%02x", tokenByte));
+        }
+        return tokenBuilder.toString();
+    }
+
+    private static void serveFocusRequests() {
+        while (ipcServerSocket != null && !ipcServerSocket.isClosed()) {
+            try (Socket socket = ipcServerSocket.accept()) {
+                handleFocusRequest(socket);
+            } catch (IOException ignored) {
+                // Server socket is closed during normal shutdown.
+            }
+        }
+    }
+
+    private static void handleFocusRequest(Socket socket) throws IOException {
+        socket.setSoTimeout(CONNECT_TIMEOUT_MS);
+        try (BufferedReader reader = new BufferedReader(
+                 new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+             PrintWriter writer = new PrintWriter(
+                 new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true)) {
+            String request = reader.readLine();
+            if ((ipcToken + " " + COMMAND_FOCUS).equals(request)) {
+                requestFocus();
+                writer.println("OK");
+            } else {
+                writer.println("DENIED");
+            }
+        }
+    }
+
+    private static synchronized void requestFocus() {
+        if (focusRequestHandler == null) {
+            pendingFocusRequest = true;
+            return;
+        }
+        focusRequestHandler.run();
+    }
+
+    public static synchronized void registerFocusRequestHandler(Runnable handler) {
+        focusRequestHandler = handler;
+        if (pendingFocusRequest && focusRequestHandler != null) {
+            pendingFocusRequest = false;
+            focusRequestHandler.run();
+        }
     }
 
     /**
@@ -131,8 +266,33 @@ public class SingleInstanceManager {
      * With file-based locking, we cannot directly communicate with the other instance.
      * The user must manually switch to the existing window.
      */
-    public static void notifyExistingInstance() {
-        // With file locking, we cannot send messages to the other instance.
-        // The dialog in showAlreadyRunningDialog() informs the user.
+    public static boolean notifyExistingInstance() {
+        try {
+            if (lockFilePath == null) {
+                lockFilePath = getLockDirectory().resolve(LOCK_FILE_NAME);
+            }
+            Properties lockProperties = new Properties();
+            try (BufferedReader reader = Files.newBufferedReader(lockFilePath, StandardCharsets.UTF_8)) {
+                lockProperties.load(reader);
+            }
+            int port = Integer.parseInt(lockProperties.getProperty("port", "-1"));
+            String token = lockProperties.getProperty("token", "");
+            if (port <= 0 || token.isBlank()) {
+                return false;
+            }
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress(InetAddress.getLoopbackAddress(), port), CONNECT_TIMEOUT_MS);
+                socket.setSoTimeout(CONNECT_TIMEOUT_MS);
+                try (BufferedReader reader = new BufferedReader(
+                         new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+                     PrintWriter writer = new PrintWriter(
+                         new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true)) {
+                    writer.println(token + " " + COMMAND_FOCUS);
+                    return "OK".equals(reader.readLine());
+                }
+            }
+        } catch (IOException | NumberFormatException e) {
+            return false;
+        }
     }
 }
