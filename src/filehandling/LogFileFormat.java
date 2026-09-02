@@ -78,6 +78,21 @@ public class LogFileFormat {
     }
     
     /**
+     * Ensures the given lines end with exactly FILE_ENTRY_SEPARATOR_BLANKS blank lines
+     * so that a following timestamp line is recognized as a new entry boundary.
+     * Does nothing when the list is empty or contains only blank lines.
+     * @param lines The lines to terminate with an entry separator
+     */
+    public static void ensureEntrySeparator(List<String> lines) {
+        if (lines == null) return;
+        removeTrailingBlanks(lines);
+        if (lines.isEmpty()) return;
+        for (int i = 0; i < FILE_ENTRY_SEPARATOR_BLANKS; i++) {
+            lines.add("");
+        }
+    }
+
+    /**
      * Normalizes spacing in a list of lines by removing excessive blank lines.
      * Allows up to MAX_CONSECUTIVE_BLANKS consecutive blanks, removes anything beyond that.
      * @param lines The lines to normalize

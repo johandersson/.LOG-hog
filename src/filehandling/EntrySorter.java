@@ -167,9 +167,8 @@ public class EntrySorter {
             if (skipping) {
                 // stop skipping when we hit the next timestamp line
                 if (timestampBoundary) {
-                    if (!updatedLines.isEmpty() && updatedLines.get(updatedLines.size() - 1).isBlank()) {
-                        updatedLines.remove(updatedLines.size() - 1);
-                    }
+                    // Keep exactly one blank line so this timestamp stays an entry boundary
+                    LogFileFormat.ensureEntrySeparator(updatedLines);
                     skipping = false;
                     // This line is the next timestamp; it should be kept
                     updatedLines.add(line);
