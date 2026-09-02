@@ -120,12 +120,17 @@ public class ClipboardSecurityWarner {
         Object[] options = {"Clear Now", "Keep Content"};
 
         final int[] result = new int[1];
-        try {
-            SwingUtilities.invokeAndWait(() -> result[0] = JOptionPane.showOptionDialog(parent, htmlPane,
-                "Secure Clipboard Status", JOptionPane.YES_NO_OPTION,
-                JOptionPane.INFORMATION_MESSAGE, null, options, options[1]));
-        } catch (Exception e) {
-            result[0] = JOptionPane.CLOSED_OPTION;
+        Runnable showDialog = () -> result[0] = JOptionPane.showOptionDialog(parent, htmlPane,
+            "Secure Clipboard Status", JOptionPane.YES_NO_OPTION,
+            JOptionPane.INFORMATION_MESSAGE, null, options, options[1]);
+        if (SwingUtilities.isEventDispatchThread()) {
+            showDialog.run();
+        } else {
+            try {
+                SwingUtilities.invokeAndWait(showDialog);
+            } catch (Exception e) {
+                result[0] = JOptionPane.CLOSED_OPTION;
+            }
         }
 
         switch (result[0]) {
@@ -203,12 +208,17 @@ public class ClipboardSecurityWarner {
         Object[] options = {confirmText, cancelText};
 
         final int[] result = new int[1];
-        try {
-            SwingUtilities.invokeAndWait(() -> result[0] = JOptionPane.showOptionDialog(parent, htmlPane, title,
-                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
-                null, options, options[1]));
-        } catch (Exception e) {
-            return false;
+        Runnable showDialog = () -> result[0] = JOptionPane.showOptionDialog(parent, htmlPane, title,
+            JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
+            null, options, options[1]);
+        if (SwingUtilities.isEventDispatchThread()) {
+            showDialog.run();
+        } else {
+            try {
+                SwingUtilities.invokeAndWait(showDialog);
+            } catch (Exception e) {
+                return false;
+            }
         }
 
         switch (result[0]) {
