@@ -52,7 +52,7 @@ public class SystemIntegrationTest {
 
     @Test
     void testEncryptionFileHandlingIntegration() {
-        System.out.println("🧪 Testing encryption and file handling integration...");
+        testsupport.TestLog.out("🧪 Testing encryption and file handling integration...");
 
         String testContent = "This is a test entry for encryption integration";
 
@@ -70,12 +70,12 @@ public class SystemIntegrationTest {
                       "Should have proper timestamp format");
         });
 
-        System.out.println("✅ Encryption and file handling integration works correctly");
+        testsupport.TestLog.out("✅ Encryption and file handling integration works correctly");
     }
 
     @Test
     void testBackupWithEncryptionIntegration() {
-        System.out.println("🧪 Testing backup with encryption integration...");
+        testsupport.TestLog.out("🧪 Testing backup with encryption integration...");
 
         assertDoesNotThrow(() -> {
             // Create some content
@@ -96,12 +96,12 @@ public class SystemIntegrationTest {
                       "Backup should contain the test content");
         });
 
-        System.out.println("✅ Backup with encryption integration works correctly");
+        testsupport.TestLog.out("✅ Backup with encryption integration works correctly");
     }
 
     @Test
     void testEncryptionDecryptionRoundTrip() throws EncryptionException {
-        System.out.println("🧪 Testing encryption/decryption round-trip...");
+        testsupport.TestLog.out("🧪 Testing encryption/decryption round-trip...");
 
         String originalText = "Sensitive information that needs encryption";
         char[] password = "testPassword123!".toCharArray();
@@ -118,12 +118,12 @@ public class SystemIntegrationTest {
             assertEquals(originalText, decrypted, "Decrypted text should match original");
         });
 
-        System.out.println("✅ Encryption/decryption round-trip works correctly");
+        testsupport.TestLog.out("✅ Encryption/decryption round-trip works correctly");
     }
 
     @Test
     void testFileHandlingWithLargeContent() {
-        System.out.println("🧪 Testing file handling with large content...");
+        testsupport.TestLog.out("🧪 Testing file handling with large content...");
 
         // Create a large text content
         StringBuilder largeContent = new StringBuilder();
@@ -144,12 +144,12 @@ public class SystemIntegrationTest {
             assertNotNull(timestamp, "Should have timestamp");
         });
 
-        System.out.println("✅ File handling with large content works correctly");
+        testsupport.TestLog.out("✅ File handling with large content works correctly");
     }
 
     @Test
     void testBackupFileIntegrity() {
-        System.out.println("🧪 Testing backup file integrity...");
+        testsupport.TestLog.out("🧪 Testing backup file integrity...");
 
         assertDoesNotThrow(() -> {
             // Create multiple entries
@@ -173,12 +173,12 @@ public class SystemIntegrationTest {
             assertTrue(content.length() > 0, "Backup should have content");
         });
 
-        System.out.println("✅ Backup file integrity verified");
+        testsupport.TestLog.out("✅ Backup file integrity verified");
     }
 
     @Test
     void testConcurrentOperations() {
-        System.out.println("🧪 Testing concurrent operations...");
+        testsupport.TestLog.out("🧪 Testing concurrent operations...");
 
         assertDoesNotThrow(() -> {
             // Simulate concurrent file operations
@@ -210,12 +210,12 @@ public class SystemIntegrationTest {
             assertTrue(listModel.getSize() > 0, "Save operation should have succeeded");
         });
 
-        System.out.println("✅ Concurrent operations handled correctly");
+        testsupport.TestLog.out("✅ Concurrent operations handled correctly");
     }
 
     @Test
     void testErrorRecoveryScenarios() {
-        System.out.println("🧪 Testing error recovery scenarios...");
+        testsupport.TestLog.out("🧪 Testing error recovery scenarios...");
 
         // Test with invalid backup directory
         testSettings.setProperty("backupDirectory", "/invalid/path/that/does/not/exist");
@@ -234,12 +234,12 @@ public class SystemIntegrationTest {
             backupManager.performAutomaticBackup();
         });
 
-        System.out.println("✅ Error recovery scenarios handled correctly");
+        testsupport.TestLog.out("✅ Error recovery scenarios handled correctly");
     }
 
     @Test
     void testSystemStateConsistency() {
-        System.out.println("🧪 Testing system state consistency...");
+        testsupport.TestLog.out("🧪 Testing system state consistency...");
 
         assertDoesNotThrow(() -> {
             // Perform a series of operations
@@ -263,6 +263,6 @@ public class SystemIntegrationTest {
             }
         });
 
-        System.out.println("✅ System state consistency maintained");
+        testsupport.TestLog.out("✅ System state consistency maintained");
     }
 }

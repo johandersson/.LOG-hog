@@ -241,27 +241,20 @@ public class LogFileFormatter {
 
                     // Write to disk securely and memory-efficiently
                     progress.setStatus("Writing formatted file...");
-                    if (isEncrypted) {
-                        // For encrypted files: encrypt the formatted content using streaming API
-                        logFileHandler.getEncryptionManager().encryptFileFromLines(formatted);
-                        // Update the cache with the formatted content so subsequent reads are fast
-                        logFileHandler.updateCachedLines(formatted);
-                    } else {
-                        // Write directly to file
-                        Files.write(logPath, formatted);
-                        try { encryption.CryptoUtils.setOwnerOnlyPermissions(logPath); } catch (Exception ignored) {}
+                    if (!isEncrypted) {
+                        throw new IllegalStateException("Formatting requires encrypted mode.");
                     }
+
+                    // Encrypt the formatted content using streaming API.
+                    logFileHandler.getEncryptionManager().encryptFileFromLines(formatted);
+                    // Update the cache with the formatted content so subsequent reads are fast.
+                    logFileHandler.updateCachedLines(formatted);
 
                     // Clear any pending writes that might overwrite our formatted content
                     logFileHandler.clearPendingWrites();
 
-                    // For encrypted files, the cache is already updated above
-                    // For non-encrypted files, invalidate to force reload from disk
-                    // This ensures the view picks up the newly formatted content
+                    // Cache is already updated above; finalize and refresh UI.
                     progress.setStatus("Finalizing...");
-                    if (!isEncrypted) {
-                        logFileHandler.invalidateCaches();
-                    }
 
                     // Success - reload the view
                     SwingUtilities.invokeLater(() -> {

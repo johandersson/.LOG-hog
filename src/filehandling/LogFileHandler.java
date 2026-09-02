@@ -34,12 +34,16 @@ import encryption.EncryptionManager;
 import encryption.Encryptor;
 import encryption.FileEncryptionManager;
 import main.BackupManager;
+import utils.SafeExecution;
 import utils.DateHandler;
 
 public class LogFileHandler implements LogFileOperations {
         // Listeners for UI components to refresh when file caches change
         private final java.util.List<Runnable> cacheInvalidationListeners = new java.util.ArrayList<>();
     private static final Path DEFAULT_FILE_PATH = Path.of(System.getProperty("user.home"), "log.txt");
+    private static final String LOG_HEADER = ".LOG";
+    private static final String BACKUP_EXT_ENCRYPTED = ".bak.enc";
+    private static final String ENCRYPTED_ONLY_MSG = "Encrypted-only mode is enforced by security policy.";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
 
     // Use centralized resource limits to prevent memory exhaustion and DoS
@@ -49,7 +53,7 @@ public class LogFileHandler implements LogFileOperations {
     @Deprecated
     public static void setTestFilePath(Path testPath) {
         // This method is deprecated. Use constructor injection instead.
-        // Keeping for backward compatibility but this violates immutability.
+        // Intentionally unsupported in production flow.
         throw new UnsupportedOperationException("Use constructor with custom path instead");
     }
 
@@ -67,7 +71,7 @@ public class LogFileHandler implements LogFileOperations {
     private EntryEditor entryEditor;
     private final AsyncSaver asyncSaver;
 
-    // Default constructor for backward compatibility
+    // Default constructor used by current app and tests.
     public LogFileHandler() {
         this(DEFAULT_FILE_PATH, EncryptionManager.getInstance());
     }
@@ -102,7 +106,10 @@ public class LogFileHandler implements LogFileOperations {
      */
     public static List<String> readAllLinesSafe(Path path) throws java.io.IOException {
         long size = -1;
-        try { size = Files.size(path); } catch (Exception ignored) {}
+        try {
+            size = Files.size(path);
+        } catch (java.io.IOException ignored) {
+        }
         if (size > 0 && size > ResourceLimits.MAX_FILE_SIZE) {
             throw new java.io.IOException("File too large to read into memory: " + size + " bytes");
         }
@@ -116,7 +123,10 @@ public class LogFileHandler implements LogFileOperations {
 
     public static List<String> readAllLinesSafe(Path path, java.nio.charset.Charset cs) throws java.io.IOException {
         long size = -1;
-        try { size = Files.size(path); } catch (Exception ignored) {}
+        try {
+            size = Files.size(path);
+        } catch (java.io.IOException ignored) {
+        }
         if (size > 0 && size > ResourceLimits.MAX_FILE_SIZE) {
             throw new java.io.IOException("File too large to read into memory: " + size + " bytes");
         }
@@ -216,6 +226,8 @@ public class LogFileHandler implements LogFileOperations {
                 // Fall back to just invalidation on error
                 writeDebug("saveTextAsync: reload failed - " + e.getMessage());
             }
+            // Keep Full Log and other cache-aware views in sync after async saves.
+            notifyCacheInvalidationListeners();
             if (onComplete != null) onComplete.run();
         });
         // PMD: Avoid unused private methods such as 'sortAndNormalizeFile()'.
@@ -237,10 +249,11 @@ public class LogFileHandler implements LogFileOperations {
             int occurrence = parseOccurrenceIndex(displayTimestamp);
             
             List<String> lines;
-            if (encrypted) {
-                lines = new ArrayList<>(getLines());
-            } else {
-                lines = readAllLinesSafe(filePath);
+            lines = new ArrayList<>(getLines());
+
+            if (!containsTimestampOccurrence(lines, rawTs, occurrence)) {
+                showErrorDialog("<html><b>✏️ Update Failed</b><br><br>Unable to locate the selected log entry.<br>Please reload and try again.</html>");
+                return;
             }
             
             List<String> updatedLines = entryEditor.updateEntry(rawTs, occurrence, newText, lines);
@@ -263,6 +276,36 @@ public class LogFileHandler implements LogFileOperations {
             showErrorDialog("<html><b>✏️ Update Failed</b><br><br>Unable to update the log entry.<br>Please try again.<br><br><i>Tip: Ensure the entry exists and the file is writable.</i></html>");
         }
     }
+
+    private boolean containsTimestampOccurrence(List<String> lines, String rawTimestamp, int occurrence) {
+        if (lines == null || rawTimestamp == null) {
+            return false;
+        }
+
+        int currentOccurrence = 0;
+        for (String line : lines) {
+            String normalizedLineTs = normalizeTimestampForMatching(line);
+            if (normalizedLineTs.equals(rawTimestamp.trim())) {
+                if (currentOccurrence == occurrence) {
+                    return true;
+                }
+                currentOccurrence++;
+            }
+        }
+
+        return false;
+    }
+
+    private String normalizeTimestampForMatching(String ts) {
+        if (ts == null) {
+            return "";
+        }
+
+        String normalized = ts.trim();
+        normalized = normalized.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2");
+        normalized = normalized.replaceAll(" \\(\\d+\\)$", "");
+        return normalized;
+    }
     
     /**
      * Parses occurrence index from display timestamp.
@@ -283,20 +326,19 @@ public class LogFileHandler implements LogFileOperations {
         
         try {
             List<String> pendingLines = cache.getPendingLines();
-            if (encryptionManager.isEncrypted()) {
-                // Create numbered backup before encryption
-                if (backupManager != null) {
-                    backupManager.createNumberedBackup();
-                }
-                encryptionManager.encryptFileFromLines(pendingLines);
-            } else {
-                // Create numbered backup before writing
-                if (backupManager != null) {
-                    backupManager.createNumberedBackup();
-                }
-                Files.write(filePath, pendingLines);
-                try { encryption.CryptoUtils.setOwnerOnlyPermissions(filePath); } catch (Exception ignored) {}
+            if (!encryptionManager.isEncrypted()) {
+                throw new IllegalStateException(ENCRYPTED_ONLY_MSG);
             }
+
+            // Create numbered backup before encryption
+            if (backupManager != null) {
+                backupManager.createNumberedBackup();
+            }
+            encryptionManager.encryptFileFromLines(pendingLines);
+            // Keep the in-memory hydration cache and incremental journal in sync with
+            // the authoritative content we just wrote, otherwise the next read could
+            // fall back to stale pre-write content.
+            entryEditor.syncAfterFullEncryptedWrite(pendingLines);
             
             cache.clearPendingWrites();
             // Notify UI that pending writes were flushed to disk and caches may need refresh
@@ -311,7 +353,16 @@ public class LogFileHandler implements LogFileOperations {
      * Async version of flushPendingWrites - shows a progress dialog and runs write off-EDT.
      */
     public void flushPendingWritesAsync(Runnable onComplete) {
-        asyncSaver.flushPendingWritesAsync(onComplete);
+        asyncSaver.flushPendingWritesAsync(() -> {
+            // On successful flush, pending writes are cleared and views can safely refresh
+            // from disk. Skip notification if write failed and pending writes remain.
+            if (!cache.hasPendingWrites()) {
+                notifyCacheInvalidationListeners();
+            }
+            if (onComplete != null) {
+                onComplete.run();
+            }
+        });
     }
     
     /**
@@ -330,11 +381,7 @@ public class LogFileHandler implements LogFileOperations {
             int targetOccurrence = parseOccurrenceIndex(displayTimestamp);
             
             List<String> lines;
-            if (encrypted) {
-                lines = new ArrayList<>(getLines());
-            } else {
-                lines = readAllLinesSafe(filePath);
-            }
+            lines = new ArrayList<>(getLines());
             
             // Find and replace the correct occurrence
             int currentOccurrence = 0;
@@ -356,20 +403,19 @@ public class LogFileHandler implements LogFileOperations {
             
             if (!found) return;
 
-            if (encryptionManager.isEncrypted()) {
-                // Create numbered backup before encryption
-                if (backupManager != null) {
-                    backupManager.createNumberedBackup();
-                }
-                encryptionManager.encryptFileFromLines(lines);
-            } else {
-                // Create numbered backup before writing
-                if (backupManager != null) {
-                    backupManager.createNumberedBackup();
-                }
-                Files.write(filePath, lines);
-                try { encryption.CryptoUtils.setOwnerOnlyPermissions(filePath); } catch (Exception ignored) {}
+            if (!encryptionManager.isEncrypted()) {
+                throw new IllegalStateException(ENCRYPTED_ONLY_MSG);
             }
+
+            // Create numbered backup before encryption
+            if (backupManager != null) {
+                backupManager.createNumberedBackup();
+            }
+            encryptionManager.encryptFileFromLines(lines);
+            // Keep the in-memory hydration cache and incremental journal in sync with
+            // the authoritative content we just wrote, otherwise the next read could
+            // fall back to stale pre-write content.
+            entryEditor.syncAfterFullEncryptedWrite(lines);
             
             // Invalidate caches and reload list for proper display suffix regeneration
             invalidateEntryCache();
@@ -407,11 +453,7 @@ public class LogFileHandler implements LogFileOperations {
 
         try {
             List<String> lines;
-            if (encrypted) {
-                lines = new ArrayList<>(getLines());
-            } else {
-                lines = readAllLinesSafe(filePath);
-            }
+            lines = new ArrayList<>(getLines());
             
             List<String> updatedLines = entryEditor.deleteEntries(timestamps, lines);
 
@@ -488,47 +530,18 @@ public class LogFileHandler implements LogFileOperations {
             }
         }
         
-        if (encryptionManager.isEncrypted()) {
-            return encryptionManager.decryptFileToLines();
-        } else {
-            // Try UTF-8 first, fall back to ISO-8859-1 if invalid bytes are found
-            List<String> lines;
-            try {
-                // Stream lines to avoid allocating a single large byte[] for very big files
-                try (var stream = Files.lines(filePath, java.nio.charset.StandardCharsets.UTF_8)) {
-                    lines = stream.collect(java.util.stream.Collectors.toList());
-                }
-            } catch (java.nio.charset.MalformedInputException e) {
-                // File contains bytes invalid for UTF-8; fall back to ISO-8859-1
-                try (var stream = Files.lines(filePath, java.nio.charset.StandardCharsets.ISO_8859_1)) {
-                    lines = stream.collect(java.util.stream.Collectors.toList());
-                }
-            }
-            // Keep .LOG in unencrypted files for Notepad compatibility
-            return lines;
+        if (!encryptionManager.isEncrypted()) {
+            throw new IllegalStateException(ENCRYPTED_ONLY_MSG);
         }
+
+        return entryEditor.getMergedEncryptedWorkingLines();
     }
 
     /**
-     * Returns a stream of lines for unencrypted files. Caller must close the stream.
+     * Streaming plaintext access is intentionally disabled in encrypted-only mode.
      */
     public java.util.stream.Stream<String> getLinesStreamed() throws Exception {
-        if (Files.exists(filePath)) {
-            long fileSize = Files.size(filePath);
-            if (fileSize > MAX_FILE_SIZE) {
-                String shortTitle = "File Too Large";
-                String longMessage = "The log file is larger than the allowed limit (" + (MAX_FILE_SIZE / (1024 * 1024)) + " MB).\n\n" +
-                    "Loading very large files can cause the application to run out of memory.";
-                DialogHandler.showLimitExceeded(shortTitle, longMessage);
-                throw new IllegalStateException("File exceeds maximum size limit");
-            }
-        }
-
-        try {
-            return Files.lines(filePath, java.nio.charset.StandardCharsets.UTF_8);
-        } catch (java.nio.charset.MalformedInputException e) {
-            return Files.lines(filePath, java.nio.charset.StandardCharsets.ISO_8859_1);
-        }
+        throw new UnsupportedOperationException("Streaming plaintext access is disabled in encrypted-only mode.");
     }
 
     @Override
@@ -539,10 +552,15 @@ public class LogFileHandler implements LogFileOperations {
         }
         
         this.salt = encryptor.generateSalt();
-        List<String> lines = readAllLinesSafe(filePath);
-        if (lines.isEmpty() || !".LOG".equalsIgnoreCase(lines.get(0).trim())) {
+        List<String> lines;
+        if (Files.exists(filePath)) {
+            lines = readAllLinesSafe(filePath);
+        } else {
+            lines = new ArrayList<>();
+        }
+        if (lines.isEmpty() || !LOG_HEADER.equalsIgnoreCase(lines.get(0).trim())) {
             List<String> withHeader = new ArrayList<>();
-            withHeader.add(".LOG");
+            withHeader.add(LOG_HEADER);
             withHeader.add("");
             withHeader.addAll(lines);
             lines = withHeader;
@@ -553,7 +571,7 @@ public class LogFileHandler implements LogFileOperations {
         encryptionManager.encryptFileFromLines(lines);
         // Create an encrypted backup copy to preserve previous state without leaving plaintext on disk
         try {
-            Path backupPathEnc = getBackupPath(filePath.getFileName().toString() + ".bak.enc");
+            Path backupPathEnc = getBackupPath(filePath.getFileName().toString() + BACKUP_EXT_ENCRYPTED);
             Files.copy(filePath, backupPathEnc, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         } catch (Exception ignored) {
             // Don't fail encryption if backup copy can't be created
@@ -617,7 +635,9 @@ public class LogFileHandler implements LogFileOperations {
                 } else {
                     javax.swing.SwingUtilities.invokeLater(r);
                 }
-            } catch (Exception ignore) {}
+            } catch (RuntimeException ignore) {
+                writeDebug("notifyCacheInvalidationListeners: listener failure");
+            }
         }
     }
 
@@ -636,118 +656,16 @@ public class LogFileHandler implements LogFileOperations {
         if (!Files.exists(filePath)) {
             return new ArrayList<>();
         }
-
-        if (encryptionManager.isEncrypted()) {
-            return LogParser.parseAllEntries(getLines());
-        }
-
-        long currentModified = Files.getLastModifiedTime(filePath).toMillis();
-        if (cache.getCachedEntries() == null || currentModified > cache.getCachedEntriesLastModified()) {
-            List<String> lines = getLines();
-            List<List<String>> entries = LogParser.parseAllEntries(lines);
-            cache.setCachedEntries(entries, currentModified);
-        }
-
-        return cache.getCachedEntries();
+        return LogParser.parseAllEntries(getLines());
     }
 
     public void enableEncryption() throws Exception {
-        // Read lines safely (with size checks) and encrypt via streaming API when possible
-        List<String> lines = readAllLinesSafe(filePath);
-
-        // Ensure .LOG header is present
-        if (lines.isEmpty() || !lines.get(0).startsWith(".LOG")) {
-            List<String> withHeader = new ArrayList<>();
-            withHeader.add(".LOG");
-            withHeader.add("");
-            withHeader.addAll(lines);
-            lines = withHeader;
-        }
-
-        // Save plain text to backup first (use copy to avoid large in-memory allocation)
-        Path backupPath = getBackupPath(filePath.getFileName().toString() + ".bak");
-        Files.copy(filePath, backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-
-        // Use streaming encrypt-from-lines helper to avoid building a giant String
-        encryptionManager.encryptFileFromLines(lines);
-
-        // Set encryption state
-        encrypted = true;
-        this.salt = encryptionManager.getSalt().clone();
-
-        // Clear any cached data since encryption state changed
-        cache.invalidateCaches();
-        notifyCacheInvalidationListeners();
+        throw new UnsupportedOperationException("Use enableEncryption(char[] pwd) in encrypted-only mode.");
     }
 
     @Override
     public void disableEncryption() throws Exception {
-        if (!encryptionManager.isEncrypted()) {
-            throw new IllegalStateException("File is not encrypted");
-        }
-        // Back up the encrypted file bytes first
-        Path backupPath = getBackupPath(filePath.getFileName().toString() + ".bak");
-        Files.copy(filePath, backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-
-        // Decrypt stream-to-temp file to avoid holding full plaintext in heap
-        Path temp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), "loghog-decrypt-", ".tmp", true);
-        try {
-            try (java.io.InputStream encIn = Files.newInputStream(filePath)) {
-                encryptionManager.withDecryptedStream(encIn, (decIn) -> {
-                    try (java.io.OutputStream out = Files.newOutputStream(temp, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
-                        byte[] buf = new byte[8192];
-                        int r;
-                        while ((r = decIn.read(buf)) != -1) {
-                            out.write(buf, 0, r);
-                        }
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-            }
-        } catch (Exception e) {
-            // Ensure temp is removed on failure
-            try { Files.deleteIfExists(temp); } catch (Exception ignored) {}
-            throw e;
-        }
-
-        // Ensure .LOG header is present; if missing, prepend it when moving into place
-        boolean hasHeader = false;
-        try (java.io.BufferedReader br = Files.newBufferedReader(temp, java.nio.charset.StandardCharsets.UTF_8)) {
-            String first = br.readLine();
-            if (first != null && first.startsWith(".LOG")) hasHeader = true;
-        }
-
-        if (hasHeader) {
-            Files.move(temp, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        } else {
-            Path temp2 = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), "loghog-decrypt-final-", ".tmp", true);
-            try (java.io.BufferedWriter bw = Files.newBufferedWriter(temp2, java.nio.charset.StandardCharsets.UTF_8)) {
-                bw.write(".LOG\n\n");
-                try (java.io.InputStream in2 = Files.newInputStream(temp);
-                     java.io.InputStreamReader isr = new java.io.InputStreamReader(in2, java.nio.charset.StandardCharsets.UTF_8);
-                     java.io.BufferedReader br2 = new java.io.BufferedReader(isr)) {
-                    String line;
-                    while ((line = br2.readLine()) != null) {
-                        bw.write(line);
-                        bw.newLine();
-                    }
-                }
-            }
-            try {
-                Files.move(temp2, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            } finally {
-                try { Files.deleteIfExists(temp); } catch (Exception ignored) {}
-                try { Files.deleteIfExists(temp2); } catch (Exception ignored) {}
-            }
-        }
-        
-        // Clear encryption state
-        encrypted = false;
-        this.salt = null;
-        encryptionManager.disableEncryption();
-        // Notify UI that encryption was disabled and caches should be invalidated
-        notifyCacheInvalidationListeners();
+        throw new UnsupportedOperationException("Decryption is disabled by encrypted-only security policy.");
     }
 
     private void sortListModel(DefaultListModel<String> listModel) {
@@ -915,7 +833,7 @@ public class LogFileHandler implements LogFileOperations {
             }
             try {
                 Files.createDirectories(dir);
-            } catch (Exception e) {
+            } catch (java.io.IOException | SecurityException e) {
                 // If can't create, fall back to sibling
                 return filePath.resolveSibling(filename);
             }
@@ -941,6 +859,14 @@ public class LogFileHandler implements LogFileOperations {
 
     public List<String> getRecentLogEntries(int i) {
         return entryLoader.getRecentLogEntries(i);
+    }
+
+    public void compactEncryptedJournal() throws Exception {
+        if (!encrypted) {
+            return;
+        }
+        entryEditor.compactEncryptedJournal();
+        notifyCacheInvalidationListeners();
     }
 
     public void clearSensitiveData() {

@@ -38,7 +38,8 @@ import javax.swing.SpinnerNumberModel;
 
 import clipboard.SecureClipboardManager;
 
-public class PasswordGeneratorDialog extends JDialog {
+public final class PasswordGeneratorDialog extends JDialog {
+    private static final long serialVersionUID = 1L;
     private JTextField resultField;
     private JRadioButton passwordRadio;
     private JRadioButton passphraseRadio;

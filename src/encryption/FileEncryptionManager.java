@@ -17,6 +17,8 @@ import utils.ProgressCallback;
  */
 public class FileEncryptionManager {
 
+    private static final char[] EMPTY_PASSWORD = new char[0];
+
     private final Path filePath;
     private final Encryptor encryptor;
     private byte[] sessionKeyBytes;
@@ -86,6 +88,14 @@ public class FileEncryptionManager {
         }
     }
 
+    public FileEncryptionManager duplicateFor(Path targetPath) {
+        FileEncryptionManager duplicate = new FileEncryptionManager(targetPath, encryptor);
+        duplicate.encrypted = this.encrypted;
+        duplicate.sessionKeyBytes = this.sessionKeyBytes != null ? this.sessionKeyBytes.clone() : null;
+        duplicate.salt = this.salt != null ? this.salt.clone() : null;
+        return duplicate;
+    }
+
     public void setEncryption(char[] pwd, byte[] slt) throws EncryptionException {
         clearSessionKey();
         SecretKey derivedKey = encryptor.deriveKey(pwd, slt);
@@ -133,7 +143,7 @@ public class FileEncryptionManager {
     }
 
     public char[] getPassword() {
-        return null;
+        return EMPTY_PASSWORD;
     }
 
     public byte[] getSalt() {
@@ -178,9 +188,13 @@ public class FileEncryptionManager {
              var out = Files.newOutputStream(outputPath);
              var dec = requireSessionEncryptor().openDecryptedStream(in, requireSessionKey(), null)) {
             byte[] buf = new byte[8192];
-            int r;
-            while ((r = dec.read(buf)) != -1) {
-                out.write(buf, 0, r);
+            try {
+                int r;
+                while ((r = dec.read(buf)) != -1) {
+                    out.write(buf, 0, r);
+                }
+            } finally {
+                CryptoUtils.zeroize(buf);
             }
         }
         CryptoUtils.setOwnerOnlyPermissions(outputPath);

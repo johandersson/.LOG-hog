@@ -31,6 +31,8 @@ import gui.DialogHelper;
 import gui.LoadingProgressDialog;
 import gui.PasswordDialog;
 import gui.SecurityDelayDialog;
+import security.AuthenticationFailureClassifier;
+import security.PersistentAuthLockout;
 
 /**
  * Handles encryption setup, password authentication, and related security operations.
@@ -92,16 +94,17 @@ public class EncryptionHandler {
                 // Inspect what the user did and act accordingly
                 DialogHandler.MissingFileAction action = DialogHandler.getLastMissingFileAction();
                 if (action == DialogHandler.MissingFileAction.CREATED) {
-                    // New file created -> clear encryption state (in-memory)
-                    settings.setProperty("encrypted", "false");
-                    settings.remove("salt");
-                    // Persist the cleared settings immediately
+                    settings.setProperty("encrypted", "true");
                     try {
                         if (saveSettingsCallback != null) saveSettingsCallback.run();
                     } catch (Exception ex) {
-                        logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist settings after creating new log file.</html>");
+                        logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist secure settings after log file creation.</html>");
                     }
-                    // Note: DialogHandler already showed the "Not Encrypted" info dialog during file creation
+                    DialogHelper.showWarning(parentFrame,
+                        "Encrypted-Only Policy",
+                        "Encrypted File Required",
+                        "A plain log file cannot be used in encrypted-only mode.<br><br>" +
+                        "Please initialize or restore an encrypted log file to continue.");
                     return false;
                 } else if (action == DialogHandler.MissingFileAction.COPIED || action == DialogHandler.MissingFileAction.RESTORED) {
                     // If user copied/restored a file into place, fall through and let detector decide
@@ -117,15 +120,18 @@ public class EncryptionHandler {
 
             boolean looksEncrypted = EncryptionDetector.isFileEncrypted(pathNow);
             if (!looksEncrypted) {
-                // File is plain text -> clear encryption state
-                settings.setProperty("encrypted", "false");
-                settings.remove("salt");
-                // Persist the cleared settings
+                settings.setProperty("encrypted", "true");
+                // Persist secure state
                 try {
                     if (saveSettingsCallback != null) saveSettingsCallback.run();
                 } catch (Exception ex) {
-                    logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist settings after detecting an unencrypted log file.</html>");
+                    logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist secure settings after detecting a non-encrypted log file.</html>");
                 }
+                DialogHelper.showError(parentFrame,
+                    "Encrypted File Required",
+                    "Encrypted-Only Policy",
+                    "The selected log file is not encrypted.<br><br>" +
+                    "Please restore an encrypted log file backup.");
                 return false;
             }
 
@@ -135,7 +141,7 @@ public class EncryptionHandler {
                 // Settings file may have been lost. Since the LOGH format embeds the salt
                 // in the file header, we can recover it — no data is permanently lost.
                 byte[] recoveredSalt = EncryptionDetector.extractSaltFromHeader(pathNow);
-                if (recoveredSalt != null) {
+                if (recoveredSalt.length > 0) {
                     DialogHelper.showInfo(parentFrame, "Settings File Lost — Recovering",
                         "<html><b>Your settings file appears to have been lost or reset.</b><br><br>"
                         + "Don't worry — your encrypted log is still fully accessible.<br>"
@@ -181,7 +187,7 @@ public class EncryptionHandler {
         } catch (IllegalArgumentException | NullPointerException e) {
             // Salt missing from settings — try to recover from the file header
             byte[] recovered = EncryptionDetector.extractSaltFromHeader(logFileHandler.getFilePath());
-            if (recovered != null) {
+            if (recovered.length > 0) {
                 settings.setProperty("salt", Base64.getEncoder().encodeToString(recovered));
                 try { if (saveSettingsCallback != null) saveSettingsCallback.run(); } catch (Exception ignored) {}
                 salt = recovered;
@@ -206,6 +212,18 @@ public class EncryptionHandler {
     private boolean performPasswordAuthentication(byte[] salt, String dialogTitle, boolean exitOnCancel) {
         boolean success = false;
         int attempts = 0;
+        final int maxSessionAttempts = PersistentAuthLockout.getMaxSessionAttempts();
+
+        long remainingLockoutMs = PersistentAuthLockout.getRemainingLockoutMillis(settings);
+        if (remainingLockoutMs > 0) {
+            long minutes = Math.max(1L, (remainingLockoutMs + 59999L) / 60000L);
+            DialogHelper.showError(parentFrame,
+                "Security Lock",
+                "Account Temporarily Locked",
+                "Too many failed attempts were detected.<br><br>Please wait about " + minutes + " minute(s) and try again.");
+            return false;
+        }
+
         while (!success) {
             PasswordDialog.PasswordResult result;
             // Ensure the password dialog is shown on the EDT regardless of caller thread
@@ -223,10 +241,12 @@ public class EncryptionHandler {
             }
             char[] pwd = result.password;
             if (pwd == null) {
+                // Startup/recovery flow should terminate when auth is cancelled.
                 if (exitOnCancel) {
                     System.exit(0);
                 }
-                return false; // User cancelled
+                // Treat cancel as a non-fatal abort for manual unlock flow.
+                return false;
             }
             try {
                 logFileHandler.setEncryption(pwd, salt);
@@ -242,6 +262,12 @@ public class EncryptionHandler {
                 try {
                     loadLogEntriesCallback.run();
                     success = true;
+
+                    PersistentAuthLockout.clear(settings);
+                    try {
+                        if (saveSettingsCallback != null) saveSettingsCallback.run();
+                    } catch (Exception ignored) {
+                    }
 
                     // Derive the backup HMAC key from credentials so it is never stored in settings.
                     // The key is only computable with the correct password.
@@ -263,38 +289,39 @@ public class EncryptionHandler {
                 java.util.Arrays.fill(pwd, '\0');
                 
                 attempts++;
-                if (attempts >= 4) {
-                    DialogHelper.showError(parentFrame, "Security Error", "🚫 Security Lock", "Too many failed password attempts.<br>The application is now locked for security.<br><br>Please restart the application to try again.");
-                    System.exit(0);
+                if (attempts >= maxSessionAttempts) {
+                    PersistentAuthLockout.registerFailure(settings);
+                    try {
+                        if (saveSettingsCallback != null) saveSettingsCallback.run();
+                    } catch (Exception ignored) {
+                    }
+
+                    long lockoutNow = PersistentAuthLockout.getRemainingLockoutMillis(settings);
+                    if (lockoutNow > 0) {
+                        long minutes = Math.max(1L, (lockoutNow + 59999L) / 60000L);
+                        DialogHelper.showError(parentFrame,
+                            "Security Lock",
+                            "Account Temporarily Locked",
+                            "Too many failed sessions were detected.<br><br>Please wait about " + minutes + " minute(s) before trying again.");
+                    } else {
+                        DialogHelper.showError(parentFrame,
+                            "Authentication Failed",
+                            "Session Attempts Exhausted",
+                            "You have used all 3 tries for this session.<br><br>Please restart the unlock flow and try again.");
+                    }
+                    if (exitOnCancel) {
+                        System.exit(1);
+                    }
+                    return false;
                 }
                 
-                String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-                String exceptionType = e.getClass().getSimpleName().toLowerCase();
-                
-                // Check if this is a decryption/authentication error
-                boolean isAuthError = errorMsg.contains("tag mismatch") ||
-                    errorMsg.contains("bad tag") ||
-                    errorMsg.contains("badpadding") ||
-                    errorMsg.contains("illegal block size") ||
-                    errorMsg.contains("aeadbadtag") ||
-                    errorMsg.contains("integrity check failed") ||
-                    errorMsg.contains("mac check failed") ||
-                    errorMsg.contains("decryption failed") ||
-                    errorMsg.contains("unable to open your file") ||
-                    errorMsg.contains("your password might be incorrect") ||
-                    errorMsg.contains("malformedinput") ||
-                    errorMsg.contains("input length") ||
-                    exceptionType.contains("indexoutofbounds") ||
-                    exceptionType.contains("nullpointer") ||
-                    errorMsg.contains("malformed") ||
-                    errorMsg.contains("index") ||
-                    errorMsg.contains("split");
+                boolean isAuthError = AuthenticationFailureClassifier.isLikelyAuthenticationFailure(e);
                 
                 if (isAuthError) {
-                    int remaining = 4 - attempts;
+                    int remaining = maxSessionAttempts - attempts;
                     DialogHelper.showError(parentFrame, "Authentication Failed", "🔒 Authentication Failed",
                         "The password you entered appears to be incorrect, or the encrypted file has an unexpected format.<br><br>" +
-                        "You have <b>" + remaining + "</b> attempt" + (remaining == 1 ? "" : "s") + " remaining before the application locks for security.<br><br>Tip: Double-check your password or password manager.");
+                        "You have <b>" + remaining + "</b> attempt" + (remaining == 1 ? "" : "s") + " remaining in this session.<br><br>Tip: Double-check your password or password manager.");
                     // WindowShakeAnimation.shake(parentFrame);
                     // Add progressive delay after failed attempts
                     long delay = switch (attempts) {
@@ -318,9 +345,6 @@ public class EncryptionHandler {
                 } else {
                     // For non-authentication errors, show error and exit/return
                     logFileHandler.showErrorDialog("<html><b>📁 Load Failed</b><br><br>Unable to load log entries due to a file error.<br><br><i>Technical details: " + e.getClass().getSimpleName() + "</i><br><br><i>Tip: The file may be corrupted. Try restoring from a backup.</i></html>");
-                    if (exitOnCancel) {
-                        System.exit(0);
-                    }
                     return false; // Don't retry on non-authentication errors
                 }
             }

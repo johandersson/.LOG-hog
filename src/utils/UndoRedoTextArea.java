@@ -28,7 +28,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 
-public class UndoRedoTextArea extends JTextArea {
+public final class UndoRedoTextArea extends JTextArea {
+    private static final long serialVersionUID = 1L;
     private final UndoManager undoManager = new UndoManager();
 
     public UndoRedoTextArea() {

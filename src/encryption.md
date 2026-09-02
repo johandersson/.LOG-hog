@@ -1,283 +1,178 @@
-# 🔐 .LOG-hog Security & Encryption Documentation
+# .LOG-hog Security and Encryption Documentation
 
-## Security Review Status (June 2026)
+This document restores the full encryption documentation and aligns it with the current codebase.
 
-* No critical CWE-class vulnerabilities (e.g., path traversal, command injection, insecure deserialization, hardcoded credentials) were identified during internal code review and static analysis.
-* No hardcoded keys or credentials present.
-* File and path handling follow secure practices.
-* The codebase is regularly analyzed using tools such as SpotBugs / FindSecBugs.
+## Security Review Status
 
-***
+- Critical cryptography regressions: not identified in current implementation.
+- Primary hardening updates reflected in this revision:
+  - sensitive local key files are now protected at rest with AES-GCM wrapping derived from a protected per-user random master secret,
+  - settings persistence is unified to a single canonical path,
+  - user-facing error messages are sanitized in key UI paths.
 
 ## Overview
 
-.LOG-hog provides **secure local encrypted storage for personal logs and notes**, using modern cryptographic standards and secure coding practices.
+.LOG-hog protects local logs and notes with authenticated encryption, integrity-checked backups, tamper-evident lockout state, and security event anchoring.
 
-It is designed to protect sensitive data **at rest on a trusted local machine**, particularly against offline threats such as unauthorized file access or backup extraction.
+It is designed for local data-at-rest protection on a trusted machine. It is not designed to defend against active malware, keyloggers, or a fully compromised OS account.
 
-This document outlines the system’s cryptographic design, architecture, and security controls.
+## Threat Model
 
-***
+Designed to protect against:
 
-## Threat Model (Important)
+- offline theft/copying of log and backup files,
+- accidental exposure through weak filesystem defaults,
+- tampering/rollback of authentication lockout state,
+- silent corruption of backups.
 
-.LOG-hog is designed to protect against:
+Not designed to protect against:
 
-* Unauthorized access to stored files (e.g., stolen disk or backups)
-* Offline brute-force attacks on encrypted data
-* Accidental data exposure through filesystem access
+- host compromise during runtime,
+- memory scraping with elevated local privileges,
+- clipboard interception by malware,
+- social engineering/password disclosure.
 
-It does **not** protect against:
+## Cryptography
 
-* Malware or keyloggers on the host system
-* Attackers with access to system memory during an active session
-* Social engineering or password disclosure
+### Core profile
 
-***
+- Encryption: AES-256-GCM (AES/GCM/NoPadding)
+- KDF: PBKDF2WithHmacSHA256
+- PBKDF2 iterations: 600,000
+- AES key size: 256-bit
+- GCM IV length: 12 bytes
+- GCM tag length: 16 bytes
 
-## 🔐 Cryptography & Encryption
+### File format
 
-### Implementation
+Encrypted file header format:
 
-* **Encryption Algorithm**: AES-256-GCM
-* **Key Derivation**: PBKDF2 (HMAC-SHA256)
-* **Iterations**: 600,000
-* **Key Length**: 256 bits
-* **IV Length**: 96 bits
-* **Authentication Tag**: 128 bits
+MAGIC(4) | VERSION(1) | SALT_LEN(1) | SALT | IV_LEN(1) | IV | CIPHERTEXT
 
-***
+Salt is embedded in the encrypted file header and can be recovered for disaster-recovery decryption with the user password.
 
-### Security Properties
+### Security properties
 
-* **Authenticated Encryption**  
-  AES-GCM ensures both confidentiality and integrity.
+- Authenticated encryption (confidentiality + integrity) with GCM
+- Unique random IV per encryption operation
+- Random per-file salt for KDF hardening
+- Constant-time integrity comparisons in critical verification paths
 
-* **Unique IV per encryption**  
-  Prevents nonce reuse vulnerabilities.
+## Settings and Metadata Storage
 
-* **Secure Salt Generation**  
-  128-bit cryptographically secure random salts.
+### Canonical settings path
 
-* **Memory Handling**  
-  Sensitive data (passwords, keys) stored in mutable arrays and explicitly cleared (`CryptoUtils.zeroize`) after use.  
-  The primary **streaming path** processes plaintext via streams and avoids creating a full plaintext `byte[]` in one allocation; intermediate plaintext byte arrays are zeroized before the method returns.  
-  Some helper paths still materialize plaintext as Java `String` objects, which are immutable and cannot be zeroed from memory — this remains a JVM limitation.
+Settings are now unified at:
 
-* **Session Password Handling**  
-  The raw password is not retained for the active session. A derived session key is kept in memory for re-encryption and is cleared on lock or when encryption is disabled.
+- ~/.loghog/settings.properties
 
-* **Streaming Decryption**  
-  Large files are processed in streams to avoid full in-memory plaintext allocation.
+Legacy loghog_settings.properties is treated as migration input when present.
 
-* **File Permissions**  
-  Enforced owner-only access where supported (POSIX).  
-  Windows fallback uses standard JDK file permission APIs (limited by OS-level ACL behavior).
+### Sensitive key material at rest
 
-***
+Security key files (for lockout HMAC and security-event signing/HMAC) are protected with AES-GCM wrapping instead of raw plaintext/base64 storage.
 
-### File Format
+Red-team caveat: this is stronger than plaintext/base64 key storage but is still not a hardware-backed secret store.
 
-```
-MAGIC(4) | VERSION(1) | SALT-LEN | SALT | IV-LEN | IV | CIPHERTEXT
-```
+Protection flow:
 
-This structured header enables forward compatibility and safe parsing.
+1. load or create a protected per-user random master secret,
+2. derive a purpose/context-bound wrapping key using HMAC-SHA256,
+3. encrypt key blob with AES-GCM + purpose-bound AAD,
+4. enforce owner-only permissions on wrapped key artifacts.
 
-The **salt is embedded in every encrypted file**. This makes each file fully self-contained:
-recovering access requires only the file and the correct password — the settings file
-(`loghog_settings.properties`) is not required. If settings are lost or the app is reinstalled,
-.LOG-hog will automatically extract the salt from the file header on next launch and restore
-the settings file.
+## Authentication Lockout Model
 
-***
+Current behavior:
 
-### Backup Integrity
+- 3 attempts per session,
+- each exhausted session increments failed-session count,
+- lockout triggers after 10 failed sessions,
+- lockout duration: 30 minutes,
+- tamper/missing lockout artifacts are auto-healed to a reset state to avoid sticky lockout loops.
 
-Backups include an **HMAC-SHA256** for integrity verification.  
-Integrity is verified immediately after backup creation.
+Lockout state includes sequence/hash anchor checks to detect rollback attempts.
 
-***
+## Backup and Integrity Model
 
-### Testing
+- Backups preserve encrypted bytes.
+- Backup integrity uses HMAC-SHA256 append/verify.
+- Lock and backup flows compact encrypted journal into snapshot where needed.
+- Secure deletion is best-effort and may not be absolute on SSD wear-leveling devices.
 
-Unit tests cover:
+## Security Event Logging
 
-* Header parsing
-* Stream-based decryption
-* Corrupt and truncated file handling
+- Security events are chain-anchored with sequence/hash metadata.
+- Anchor integrity is checked with HMAC and Ed25519 signature verification.
+- Signing private key and HMAC key are stored as protected key blobs.
 
-***
+## Memory Handling
 
-## 🏗️ System Architecture
+- Sensitive byte arrays are zeroized after use where practical.
+- Password handling uses mutable arrays where possible.
+- Runtime plaintext exposure remains possible in normal JVM process memory during active use.
 
-The encryption system is modular and designed with separation of concerns:
-
-### Core Components
-
-* **EncryptionManager** – orchestrates high-level operations
-* **Encryptor** – AES-GCM and key derivation
-* **FileEncryptionManager** – file I/O integration
-* **CryptoUtils** – shared security primitives (zeroization, comparison, permissions)
-
-***
-
-### Design Characteristics
-
-* Clear API boundaries and responsibilities
-* Dependency injection for testability
-* Minimal external dependencies (JDK crypto only)
-* Thread-safe operation
-* Consistent handling of sensitive data
-
-***
-
-## 🔑 Password Security
-
-### Brute-force Mitigation
-
-* Progressive delays (3s → 15s → 30s)
-* Randomized delay variation to reduce predictability
-* Maximum attempt limit with restart requirement
-
-***
-
-### Security Considerations
-
-* High PBKDF2 iteration count slows offline attacks
-* Password strength requirements enforced
-* Passwords cleared from memory when no longer needed
-
-***
-
-## 💾 Data Protection
-
-### File Security
-
-* Full-file encryption at rest
-* AES-GCM authentication prevents undetected tampering
-* Lock operation clears sensitive data from memory
-
-***
-
-### Application Behavior
-
-* Single-instance execution
-* Input validation for sensitive operations
-* Secure error handling
-
-***
-
-## 📋 Clipboard Security
-
-### Features
-
-* Automatic clearing after configurable timeout
-* Manual clear controls
-* Clipboard clearing on application shutdown
-
-***
-
-### ⚠️ Known Limitation
-
-If the application is terminated unexpectedly (e.g., crash, forced kill):
-
-* Clipboard contents are **not cleared**
-* Sensitive data may remain accessible to other processes
-
-**Mitigation:** manually clear clipboard after abnormal termination.
-
-***
-
-## 📊 Attack Surface Summary
-
-### Strong Protection Against
-
-* Offline file access
-* Casual brute-force attempts
-* Automated guessing attacks
-* Data tampering
-
-***
-
-### Limitations
-
-* No protection against system compromise (malware/keyloggers)
-* Password remains in memory during active session
-* Clipboard exposure on unexpected termination
-* Secure deletion is not guaranteed on SSDs
-
-***
-
-## 🔧 Technical Parameters
-
-```java
-ALGORITHM = "AES/GCM/NoPadding"
-GCM_IV_LENGTH = 12
-GCM_TAG_LENGTH = 16
-PBKDF2_ITERATIONS = 600000
-AES_KEY_LENGTH = 256
+## Data Flow Diagram
+
+```mermaid
+flowchart LR
+    PW[Password char[]] --> KDF[PBKDF2-HMAC-SHA256]
+    KDF --> ENC[AES-GCM Encrypt or Decrypt]
+    ENC --> SNAP[(Encrypted snapshot file)]
+    ENC --> JOUR[(Encrypted journal sidecar)]
+
+    SNAP --> BKP[Backup Manager]
+    JOUR --> BKP
+    BKP --> HMAC[HMAC append and verify]
+    HMAC --> BFILE[(Encrypted backup artifact)]
+
+    AUTH[Auth attempts] --> LOCK[PersistentAuthLockout]
+    LOCK --> LSTATE[(auth-lockout.properties)]
+    LOCK --> LKEY[(auth-lockout.key wrapped)]
+    LOCK --> LANCH[(auth-lockout.anchor)]
+
+    SEVT[Security events] --> SELOG[SecurityEventLog]
+    SELOG --> ELOG[(security-events.log)]
+    SELOG --> EANCH[(security-events.anchor)]
+    SELOG --> EKEY[(security-events.key wrapped)]
+    SELOG --> EPRIV[(signing-private.key wrapped)]
 ```
 
-***
+## Key Protection Diagram
 
-## 🧠 Memory Security Model
+```mermaid
+sequenceDiagram
+    participant App as App
+    participant Salt as key-protection.salt
+    participant Master as key-protection.master
+    participant KDF as HMAC-SHA256 key derivation
+    participant AES as AES-GCM
+    participant File as Wrapped key file
 
-* Sensitive arrays zeroized after use
-* AES keys exist only during operations
-* Raw password not retained after unlock
-* Derived session key retained temporarily for usability
-* Cleared on lock or shutdown
+    App->>Salt: load or create random salt
+    App->>Master: load or create random master secret
+    App->>KDF: derive context-bound wrapping key
+    App->>AES: encrypt sensitive key blob with AAD purpose
+    AES->>File: write LHK1 + IV + ciphertext
+    App->>File: enforce owner-only permissions
+```
 
-***
+## Operational Limits
 
-## 🔄 Backup Security
+- Host compromise can defeat local-at-rest controls.
+- Memory dumps from an unlocked session can expose plaintext UI buffers and live session keys.
+- Clipboard security cannot guarantee clearing after forced process termination.
+- File-level secure deletion is best-effort on SSD/flash media.
 
-### Features
+## User Guidance
 
-* Automatic backups on critical operations
-* Encrypted backups preserve original state
-* Atomic file operations prevent corruption
+- Use a strong password (20+ chars recommended).
+- Keep full-disk encryption enabled at OS level.
+- Lock the app when unattended.
+- Keep secure backups and test restore procedures.
 
-***
+## Summary
 
-### Secure Deletion
+.LOG-hog currently combines modern authenticated encryption, hardened lockout persistence, tamper-evident event logging, and stronger at-rest handling for local security key artifacts. The design provides strong local protection for personal sensitive data when used on a trusted and hardened host.
 
-Best-effort 3-pass overwrite:
-
-1. Random data
-2. Pattern overwrite
-3. Zeroing
-
-**Note:** ineffective against SSD wear-leveling.
-
-***
-
-## ⚙️ Settings
-
-* No sensitive data stored in configuration
-* All settings currently plaintext
-
-***
-
-## 📏 Standards & Practices
-
-* NIST-recommended algorithms (AES-GCM, PBKDF2)
-* OWASP-aligned secure coding practices
-* No claim of formal certification (e.g., FIPS validation)
-
-***
-
-## ✅ Summary
-
-.LOG-hog implements **modern, well-established cryptographic techniques** and secure handling practices to protect local data at rest.
-
-It provides a **strong level of security for personal use**, assuming:
-
-* a trusted host system
-* a strong user password
-
-For higher-risk scenarios, additional protections (e.g., full-disk encryption, hardened OS environment) are recommended.
-
-***
 

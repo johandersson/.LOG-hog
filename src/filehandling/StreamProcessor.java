@@ -86,46 +86,4 @@ public final class StreamProcessor {
         return new ParseResult(totalCount, result);
     }
 
-    // Keep the old method for compatibility (heavier)
-    public static List<List<String>> parseAllEntriesStream(java.util.stream.Stream<String> linesStream) {
-        var entries = new ArrayList<List<String>>();
-        var currentEntry = new ArrayList<String>();
-        final int MAX_COLLECTION_SIZE = ResourceLimits.MAX_COLLECTION_SIZE;
-
-        var it = linesStream.iterator();
-        while (it.hasNext()) {
-            String line = it.next();
-            var trimmed = line.trim();
-                if (".LOG".equalsIgnoreCase(trimmed)) continue;
-            if (TS_PATTERN.matcher(trimmed).matches()) {
-                if (!currentEntry.isEmpty()) {
-                    if (entries.size() >= MAX_COLLECTION_SIZE) {
-                        filehandling.DialogHandler.showLimitExceeded(
-                            "Too Many Entries",
-                            "The log file contains too many entries to process safely (max " + MAX_COLLECTION_SIZE + ")."
-                        );
-                        throw new IllegalStateException("Too many entries (max " + MAX_COLLECTION_SIZE + ")");
-                    }
-                    entries.add(new ArrayList<>(currentEntry));
-                    currentEntry.clear();
-                }
-                currentEntry.add(line);
-            } else {
-                if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
-                    currentEntry.add(line);
-                }
-            }
-        }
-        if (!currentEntry.isEmpty()) {
-            if (entries.size() >= MAX_COLLECTION_SIZE) {
-                filehandling.DialogHandler.showLimitExceeded(
-                    "Too Many Entries",
-                    "The log file contains too many entries to process safely (max " + MAX_COLLECTION_SIZE + ")."
-                );
-                throw new IllegalStateException("Too many entries (max " + MAX_COLLECTION_SIZE + ")");
-            }
-            entries.add(currentEntry);
-        }
-        return entries;
-    }
 }

@@ -55,7 +55,7 @@ public class MarkdownEntryProcessor {
             boolean isTimestamp = (i == 0) && isTimestampLine(line);
             boolean isCodeBlockMarker = "```".equals(line.trim());
             boolean isBlank = line.isBlank();
-            boolean isList = !line.isEmpty() && line.charAt(0) == '-' && line.length() > 1 && line.charAt(1) == ' ';
+            boolean isList = isUnorderedListLine(line);
             boolean isQuote = !line.isEmpty() && line.charAt(0) == '>';
             boolean isHeading = isHeadingLine(line);
 
@@ -164,10 +164,18 @@ public class MarkdownEntryProcessor {
 
     private List<String> collectListLines(int startIndex) {
         List<String> listLines = new ArrayList<>();
-        for (int j = startIndex; j < entry.size() && entry.get(j).startsWith("- "); j++) {
+        for (int j = startIndex; j < entry.size() && isUnorderedListLine(entry.get(j)); j++) {
             listLines.add(entry.get(j));
         }
         return listLines;
+    }
+
+    private static boolean isUnorderedListLine(String line) {
+        if (line == null || line.length() < 2) {
+            return false;
+        }
+        char marker = line.charAt(0);
+        return (marker == '-' || marker == '*' || marker == '+') && line.charAt(1) == ' ';
     }
 
     private int handleList(int i) throws BadLocationException {

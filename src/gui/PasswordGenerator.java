@@ -27,6 +27,7 @@ import java.util.List;
 
 public class PasswordGenerator {
     private static final SecureRandom random = new SecureRandom();
+    private static final char[] ALLOWED_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?".toCharArray();
     private static List<String> wordList; // default null, no initializer needed
 
     private static void loadWordList() {
@@ -45,7 +46,7 @@ public class PasswordGenerator {
             }
         } catch (IOException e) {
             // Fallback words if dict.txt not found
-            wordList.addAll(List.of("correct", "horse", "battery", "staple", "random", "secure", "password", "generator"));
+            wordList.addAll(List.of("correct", "horse", "battery", "staple", "random", "secure", "vault", "generator"));
         }
     }
 
@@ -57,15 +58,27 @@ public class PasswordGenerator {
      * @throws IllegalArgumentException if length is outside valid bounds
      */
     public static String generatePassword(int length) {
+        char[] generated = generatePasswordChars(length);
+        try {
+            return new String(generated);
+        } finally {
+            encryption.CryptoUtils.zeroize(generated);
+        }
+    }
+
+    /**
+     * Generates a random password as a mutable char array for callers that want
+     * to minimize immutable String exposure.
+     */
+    public static char[] generatePasswordChars(int length) {
         if (length < 1 || length > 1000) {
             throw new IllegalArgumentException("Password length must be between 1 and 1000 characters");
         }
-        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
-        StringBuilder sb = new StringBuilder(length);
+        char[] generated = new char[length];
         for (int i = 0; i < length; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
+            generated[i] = ALLOWED_CHARS[random.nextInt(ALLOWED_CHARS.length)];
         }
-        return sb.toString();
+        return generated;
     }
 
     /**

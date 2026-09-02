@@ -35,7 +35,8 @@ import javax.swing.KeyStroke;
 
 import utils.TooltipHelper;
 
-public class SearchDialog extends JDialog {
+public final class SearchDialog extends JDialog {
+    private static final long serialVersionUID = 1L;
     private final HighlightableTextPane textPane;
     private final JTextField searchField;
     private final JCheckBox wholeWordCheck;

@@ -64,11 +64,6 @@ public class ActionHandler {
     public ActionListener createCopyLogEntryAction() {
         return e -> {
             String selectedItem = logList.getSelectedValue();
-            // Debug: show which item the menu action is attempting to copy
-            try {
-                String dbg = selectedItem == null ? "(no selection)" : selectedItem;
-                Toast.showToast(editor, "Copy action invoked for: " + dbg);
-            } catch (Exception ignored) {}
             if (selectedItem != null) {
                 // Check if file is encrypted and show enhanced warning
                 if (logFileHandler.isEncrypted()) {
@@ -81,19 +76,6 @@ public class ActionHandler {
                 try {
                     var rawTs = logFileHandler.getRawTimestamp(selectedItem);
                     String logContent = logFileHandler.loadEntry(rawTs);
-
-                    // Show debug dialog with internal values to help diagnose copy issues
-                    String snippet = "(no content)";
-                    int len = 0;
-                    if (logContent != null && !logContent.isEmpty()) {
-                        len = logContent.length();
-                        snippet = logContent.length() > 200 ? logContent.substring(0, 200) + "..." : logContent;
-                    }
-                    // Basic HTML-escape to avoid breaking the dialog when showing raw snippets
-                    String escaped = snippet.replace("&", "&amp;").replace("<", "&lt;")
-                        .replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
-                    String details = "Raw timestamp: " + rawTs + "<br>Length: " + len + "<br><br>Snippet:<br>" + escaped;
-                    DialogHelper.showInfo(editor, "Copy Debug", "Preparing to copy entry:", details);
 
                     clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(
                         selectedItem + "\n\n" + logContent, editor,
@@ -121,7 +103,7 @@ public class ActionHandler {
                     logFileHandler.saveTextAsync(newEntry, listModel, () -> {
                         try {
                             editor.loadLogEntries();
-                            fullLogPanel.loadFullLog();
+                            fullLogPanel.refreshIfVisible();
                             SystemTrayMenu.updateRecentLogsMenu();
                         } catch (Exception ex) {
                             // Security: Don't expose internal error details
@@ -178,11 +160,21 @@ public class ActionHandler {
         // updateEntry handles parsing to find correct occurrence in file
         logFileHandler.updateEntry(selectedItem, logListPanel.getEntryArea().getText());
 
+        // If no pending write was produced, the update did not apply.
+        if (!logFileHandler.hasPendingWrites()) {
+            DialogHelper.showEntryNotFound(editor);
+            return;
+        }
+
         // Make a final copy for use inside the async lambda (must be effectively final)
         final String selectedCopy = selectedItem;
 
         // Flush writes asynchronously to avoid blocking UI on large files
         logFileHandler.flushPendingWritesAsync(() -> {
+            if (logFileHandler.hasPendingWrites()) {
+                logFileHandler.showErrorDialog("<html><b>💾 Save Failed</b><br><br>Changes are still pending and were not written to disk.<br>Please check file access/permissions and try again.</html>");
+                return;
+            }
             // Do NOT reload the entire entry list (this would reset filters).
             // Instead, reselect the updated item in the existing model when possible.
             try {
@@ -208,7 +200,7 @@ public class ActionHandler {
                 // If anything goes wrong, avoid resetting filters; just show a toast
             }
             // Refresh Full Log view to reflect updated content
-            fullLogPanel.loadFullLog();
+            fullLogPanel.refreshIfVisible();
             SystemTrayMenu.updateRecentLogsMenu();
             Toast.showToast(editor, "Entry updated successfully!");
         });
@@ -225,7 +217,7 @@ public class ActionHandler {
             javax.swing.SwingUtilities.invokeLater(() -> {
                 editor.getEntryPanel().getTextArea().setText("");
                 editor.updateLogListView();
-                fullLogPanel.loadFullLog(); // update full log view after save
+                fullLogPanel.refreshIfVisible();
                 SystemTrayMenu.updateRecentLogsMenu();
                 Toast.showToast(editor, "Entry saved successfully!");
             });

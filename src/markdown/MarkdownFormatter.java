@@ -37,6 +37,8 @@ import javax.swing.text.StyledDocument;
 public class MarkdownFormatter {
     
     private static final Pattern LINK_PATTERN = Pattern.compile("\\[([^\\]]+)\\]\\(([^\\)]+)\\)");
+    private static final Pattern AUTOLINK_PATTERN = Pattern.compile("<((?:https?|file)://[^>\\s]+)>");
+    private static final Pattern PLAIN_URL_PATTERN = Pattern.compile("(?<![\\]\\)\\w])(https?://[^\\s<]+|file:///[^\\s<]+)");
     private static final Pattern BOLD_PATTERN = Pattern.compile("\\*\\*(.*?)\\*\\*");
     private static final Pattern ITALIC_PATTERN = Pattern.compile("\\*(.*?)\\*");
     private static final Pattern INLINE_CODE_PATTERN = Pattern.compile("`([^`]*)`");
@@ -88,49 +90,131 @@ public class MarkdownFormatter {
      * Finds all formatted elements in a line of text.
      */
     private static List<FormattedElement> findFormattedElements(String line) {
-        List<FormattedElement> elements = new ArrayList<>(10);
-        
-        // Find bold
-        Matcher boldMatcher = BOLD_PATTERN.matcher(line);
-        while (boldMatcher.find()) {
-            elements.add(new FormattedElement(boldMatcher.start(), boldMatcher.end(), 
-                "bold", boldMatcher.group(1), null));
+        if (line == null || line.isEmpty()) {
+            return new ArrayList<>(0);
         }
-        
-        // Find italic
-        Matcher italicMatcher = ITALIC_PATTERN.matcher(line);
-        while (italicMatcher.find()) {
-            elements.add(new FormattedElement(italicMatcher.start(), italicMatcher.end(), 
-                "italic", italicMatcher.group(1), null));
+
+        List<FormattedElement> elements = new ArrayList<>(10);
+        boolean[] reservedRanges = new boolean[line.length()];
+
+        // Inline code has highest precedence. Reserve ranges first so links and
+        // other formatting do not activate inside code spans.
+        Matcher codeMatcher = INLINE_CODE_PATTERN.matcher(line);
+        while (codeMatcher.find()) {
+            int start = codeMatcher.start();
+            int end = codeMatcher.end();
+            elements.add(new FormattedElement(start, end, "inlineCode", codeMatcher.group(1), null));
+            reserveRange(reservedRanges, start, end);
         }
         
         // Find links
         Matcher linkMatcher = LINK_PATTERN.matcher(line);
         while (linkMatcher.find()) {
+            int start = linkMatcher.start();
+            int end = linkMatcher.end();
+            if (overlapsReserved(reservedRanges, start, end)) {
+                continue;
+            }
             String display = linkMatcher.group(1);
             String target = linkMatcher.group(2);
-            elements.add(new FormattedElement(linkMatcher.start(), linkMatcher.end(), 
-                "link", display, target));
+            elements.add(new FormattedElement(start, end, "link", display, target));
+            reserveRange(reservedRanges, start, end);
         }
-        
-        // Find inline code
-        Matcher codeMatcher = INLINE_CODE_PATTERN.matcher(line);
-        while (codeMatcher.find()) {
-            elements.add(new FormattedElement(codeMatcher.start(), codeMatcher.end(), 
-                "inlineCode", codeMatcher.group(1), null));
+
+        // Find angle-bracket autolinks, e.g. <http://example.com>
+        Matcher autoLinkMatcher = AUTOLINK_PATTERN.matcher(line);
+        while (autoLinkMatcher.find()) {
+            int start = autoLinkMatcher.start();
+            int end = autoLinkMatcher.end();
+            if (overlapsReserved(reservedRanges, start, end)) continue;
+            String target = autoLinkMatcher.group(1);
+            elements.add(new FormattedElement(start, end, "link", target, target));
+            reserveRange(reservedRanges, start, end);
         }
-        
+
+        // Find plain URLs not already part of another markdown token
+        Matcher plainUrlMatcher = PLAIN_URL_PATTERN.matcher(line);
+        while (plainUrlMatcher.find()) {
+            int start = plainUrlMatcher.start();
+            int end = plainUrlMatcher.end();
+            if (overlapsReserved(reservedRanges, start, end)) continue;
+            String target = trimTrailingUrlPunctuation(plainUrlMatcher.group(1));
+            if (!target.isEmpty()) {
+                int adjustedEnd = start + target.length();
+                elements.add(new FormattedElement(start, adjustedEnd, "link", target, target));
+                reserveRange(reservedRanges, start, adjustedEnd);
+            }
+        }
+
         // Find red text spans
         Matcher redMatcher = RED_PATTERN.matcher(line);
         while (redMatcher.find()) {
-            elements.add(new FormattedElement(redMatcher.start(), redMatcher.end(), 
-                "red", redMatcher.group(1), null));
+            int start = redMatcher.start();
+            int end = redMatcher.end();
+            if (overlapsReserved(reservedRanges, start, end)) continue;
+            elements.add(new FormattedElement(start, end, "red", redMatcher.group(1), null));
+            reserveRange(reservedRanges, start, end);
+        }
+
+        // Find bold
+        Matcher boldMatcher = BOLD_PATTERN.matcher(line);
+        while (boldMatcher.find()) {
+            int start = boldMatcher.start();
+            int end = boldMatcher.end();
+            if (overlapsReserved(reservedRanges, start, end)) continue;
+            elements.add(new FormattedElement(start, end, "bold", boldMatcher.group(1), null));
+            reserveRange(reservedRanges, start, end);
+        }
+
+        // Find italic
+        Matcher italicMatcher = ITALIC_PATTERN.matcher(line);
+        while (italicMatcher.find()) {
+            int start = italicMatcher.start();
+            int end = italicMatcher.end();
+            if (overlapsReserved(reservedRanges, start, end)) continue;
+            elements.add(new FormattedElement(start, end, "italic", italicMatcher.group(1), null));
+            reserveRange(reservedRanges, start, end);
         }
         
         // Sort by start position
         elements.sort(Comparator.comparingInt(FormattedElement::start));
         
         return elements;
+    }
+
+    private static boolean overlapsReserved(boolean[] reservedRanges, int start, int end) {
+        int safeStart = Math.max(0, start);
+        int safeEnd = Math.min(end, reservedRanges.length);
+        for (int i = safeStart; i < safeEnd; i++) {
+            if (reservedRanges[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void reserveRange(boolean[] reservedRanges, int start, int end) {
+        int safeStart = Math.max(0, start);
+        int safeEnd = Math.min(end, reservedRanges.length);
+        for (int i = safeStart; i < safeEnd; i++) {
+            reservedRanges[i] = true;
+        }
+    }
+
+    private static String trimTrailingUrlPunctuation(String url) {
+        if (url == null || url.isEmpty()) {
+            return "";
+        }
+        int end = url.length();
+        while (end > 0) {
+            char c = url.charAt(end - 1);
+            if (c == '.' || c == ',' || c == ';' || c == ':' || c == '!' || c == '?') {
+                end--;
+                continue;
+            }
+            break;
+        }
+        return url.substring(0, end);
     }
     
     /**

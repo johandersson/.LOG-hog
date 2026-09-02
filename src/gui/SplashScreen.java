@@ -34,6 +34,9 @@ import javax.swing.JPanel;
 import utils.WindowShakeAnimation;
 
 public class SplashScreen extends JDialog {
+    private static final int SPLASH_WIDTH = 450;
+    private static final int SPLASH_HEIGHT = 300;
+    private static final int CORNER_ARC = 18;
     private int animationFrame; // default 0
     private javax.swing.Timer animationTimer;
     private StandardButton okButton;
@@ -44,11 +47,25 @@ public class SplashScreen extends JDialog {
     public SplashScreen() {
         super((Frame) null, "Splash", true); // modal dialog
         setUndecorated(true);
-        setSize(450, 300);
+        setSize(SPLASH_WIDTH, SPLASH_HEIGHT);
         setLocationRelativeTo(null);
 
-        // Set rounded shape for the window (not too rounded)
-        setShape(new java.awt.geom.RoundRectangle2D.Float(0, 0, 450, 300, 25, 25));
+        // Required on some platforms to render custom window shapes cleanly.
+        setBackground(new Color(0, 0, 0, 0));
+
+        // Keep rounded shape in sync with real runtime window size.
+        applyRoundedShape();
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                applyRoundedShape();
+            }
+
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                applyRoundedShape();
+            }
+        });
 
         // Load and shuffle entries once
         entriesList = SplashEntryLoader.loadSplashEntries();
@@ -65,13 +82,13 @@ public class SplashScreen extends JDialog {
                     int offset = i * 2;
                     int alpha = 60 / i; // Decreasing opacity for glow effect
                     g2d.setColor(new Color(255, 255, 255, alpha));
-                    g2d.fillRoundRect(offset, offset, getWidth() - offset, getHeight() - offset, 25, 25);
+                    g2d.fillRoundRect(offset, offset, getWidth() - offset, getHeight() - offset, CORNER_ARC, CORNER_ARC);
                 }
 
                 // Gradient background from blue to cyan
                 var gp = new GradientPaint(0, 0, new Color(0, 102, 204), getWidth(), getHeight(), new Color(0, 204, 255));
                 g2d.setPaint(gp);
-                g2d.fillRect(0, 0, getWidth(), getHeight());
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), CORNER_ARC, CORNER_ARC);
 
                 // Draw man and notepad
                 drawManAndNotepad(g2d);
@@ -123,6 +140,12 @@ public class SplashScreen extends JDialog {
         // Ensure splash screen is visible and on top
         toFront();
         requestFocus();
+    }
+
+    private void applyRoundedShape() {
+        int w = Math.max(1, getWidth());
+        int h = Math.max(1, getHeight());
+        setShape(new java.awt.geom.RoundRectangle2D.Float(0, 0, w, h, CORNER_ARC, CORNER_ARC));
     }
 
     private void drawManAndNotepad(Graphics2D g2d) {
@@ -378,10 +401,12 @@ public class SplashScreen extends JDialog {
             g2d.drawLine(notepadX + 10, y, notepadX + 240, y);
         }
 
-        g2d.setFont(new Font("Monospaced", Font.PLAIN, 8));
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_GASP);
+        g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g2d.setFont(new Font("Monospaced", Font.PLAIN, 11));
         g2d.setColor(Color.BLACK);
         for (int i = 0; i < animationFrame && i < entriesList.size(); i++) {
-            g2d.drawString(entriesList.get(i), notepadX + 10, notepadY + 30 + i * 15);
+            g2d.drawString(entriesList.get(i), notepadX + 10, notepadY + 31 + i * 16);
         }
     }
 

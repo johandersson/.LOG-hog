@@ -23,6 +23,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import security.SecurityFilePolicy;
 
 import gui.DialogHelper;
 
@@ -57,12 +58,14 @@ public class SingleInstanceManager {
             // Create lock file directory if needed
             Path lockDir = Path.of(System.getProperty("user.home"), ".loghog");
             Files.createDirectories(lockDir);
+            SecurityFilePolicy.ensureOwnerOnlyPermissions(lockDir);
             lockFilePath = lockDir.resolve(LOCK_FILE_NAME);
             
             // Try to acquire exclusive lock
             lockFile = new RandomAccessFile(lockFilePath.toFile(), "rw");
             lockChannel = lockFile.getChannel();
             lock = lockChannel.tryLock();
+            SecurityFilePolicy.ensureOwnerOnlyPermissions(lockFilePath);
             
             if (lock == null) {
                 // Could not acquire lock - another instance holds it

@@ -28,14 +28,16 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTextPane;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.StyledDocument;
+import security.LinkOpenPolicy;
 
 public class LinkHandler {
+    private static final String LINK_LISTENERS_INSTALLED_KEY = "loghog.link.listeners.installed";
 
     public static void addLinkListeners(JTextPane pane) {
-        // Don't remove existing listeners - TimestampClickHandler and other handlers should coexist
-        // Multiple calls to this method will add duplicate listeners, but that's preferable to
-        // breaking other functionality. Ideally, call this only once after rendering.
-        
+        if (Boolean.TRUE.equals(pane.getClientProperty(LINK_LISTENERS_INSTALLED_KEY))) {
+            return;
+        }
+
         pane.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -63,9 +65,14 @@ public class LinkHandler {
                 handleLinkHover(pane, e);
             }
         });
+
+        pane.putClientProperty(LINK_LISTENERS_INSTALLED_KEY, Boolean.TRUE);
     }
 
     private static void handleLinkClick(JTextPane pane, MouseEvent e) {
+        if (e == null || e.isPopupTrigger() || !javax.swing.SwingUtilities.isLeftMouseButton(e)) {
+            return;
+        }
         try {
             int pos = pane.viewToModel2D(e.getPoint());
             if (pos < 0) return;
@@ -90,11 +97,10 @@ public class LinkHandler {
             return;
         }
 
-        java.io.File file;
+        java.nio.file.Path target;
         try {
-            // First try to parse as URI
             java.net.URI uri = java.net.URI.create(href);
-            file = new java.io.File(uri);
+            target = java.nio.file.Paths.get(uri).toAbsolutePath().normalize();
         } catch (Exception uriEx) {
             // Fallback: try to extract path manually
             try {
@@ -106,7 +112,7 @@ public class LinkHandler {
                 } else {
                     filePath = href.substring(5); // Remove "file:"
                 }
-                file = new java.io.File(filePath);
+                target = java.nio.file.Path.of(filePath).toAbsolutePath().normalize();
             } catch (Exception pathEx) {
                 // Security: Don't expose internal path details
                 showLinkError(pane, "Invalid file link format.");
@@ -115,21 +121,33 @@ public class LinkHandler {
         }
 
         // Check if file exists
-        if (!file.exists()) {
+        if (!java.nio.file.Files.exists(target)) {
             // Security: Don't expose absolute paths
             showLinkError(pane, "File not found. The linked file may have been moved or deleted.");
             return;
         }
 
         // Check if it's actually a file (not a directory)
-        if (!file.isFile()) {
+        if (!java.nio.file.Files.isRegularFile(target)) {
             showLinkError(pane, "Cannot open: path is not a file.");
+            return;
+        }
+
+        if (!LinkOpenPolicy.isSafeToOpen(target)) {
+            showLinkError(pane, "Cannot open this file due to security policy.");
+            return;
+        }
+        if (!LinkOpenPolicy.isWithinAllowedRoots(target)) {
+            showLinkError(pane, "This file is outside allowed local directories.");
+            return;
+        }
+        if (LinkOpenPolicy.isLikelyExecutable(target) && !confirmHighRiskFileOpen(pane, target)) {
             return;
         }
 
         // Try to open the file
         try {
-            Desktop.getDesktop().open(file);
+            Desktop.getDesktop().open(target.toFile());
         } catch (java.io.IOException ioEx) {
             // Security: Don't expose internal error details
             showLinkError(pane, "Unable to open file. Check if you have the appropriate application installed.");
@@ -168,7 +186,7 @@ public class LinkHandler {
             if (pos < 0) {
                 if (Boolean.TRUE.equals(pane.getClientProperty("linkHover"))) {
                     pane.putClientProperty("linkHover", false);
-                    if (pane.getCursor().getType() != Cursor.HAND_CURSOR) {
+                    if (pane.getCursor().getType() == Cursor.HAND_CURSOR) {
                         pane.setCursor(Cursor.getDefaultCursor());
                     }
                 }
@@ -183,14 +201,14 @@ public class LinkHandler {
                 pane.putClientProperty("linkHover", hasLink);
                 if (hasLink) {
                     pane.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                } else if (pane.getCursor().getType() != Cursor.HAND_CURSOR) {
+                } else if (pane.getCursor().getType() == Cursor.HAND_CURSOR) {
                     pane.setCursor(Cursor.getDefaultCursor());
                 }
             }
         } catch (Exception ex) {
             if (Boolean.TRUE.equals(pane.getClientProperty("linkHover"))) {
                 pane.putClientProperty("linkHover", false);
-                if (pane.getCursor().getType() != Cursor.HAND_CURSOR) {
+                if (pane.getCursor().getType() == Cursor.HAND_CURSOR) {
                     pane.setCursor(Cursor.getDefaultCursor());
                 }
             }
@@ -220,5 +238,19 @@ public class LinkHandler {
         // Find the parent window to show the error dialog
         java.awt.Window parent = javax.swing.SwingUtilities.getWindowAncestor(pane);
         gui.DialogHelper.showError(parent, "Link Error", message);
+    }
+
+    private static boolean confirmHighRiskFileOpen(JTextPane pane, java.nio.file.Path target) {
+        java.awt.Window parent = javax.swing.SwingUtilities.getWindowAncestor(pane);
+        int choice = gui.DialogHelper.showOptions(
+            parent,
+            "Security Confirmation",
+            "Open Potentially Executable File",
+            "This file type can execute code. Open only if you trust the source.<br><br><b>File:</b> " + target.getFileName(),
+            javax.swing.JOptionPane.WARNING_MESSAGE,
+            new Object[] {"Open", "Cancel"},
+            "Cancel"
+        );
+        return choice == 0;
     }
 }

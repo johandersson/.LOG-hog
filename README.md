@@ -1,8 +1,8 @@
-# 📦 .LOG-hog - secure personal notes or logs
+# 📦 .LOG-hog
 
-**A lightweight, cross-platform Java application for fast note-taking with built-in protection for your data.**
+**A lightweight, cross-platform Java application for fast note-taking with built-in protection for sensitive local notes.**
 
-.LOG-hog runs on **Windows, macOS, and Linux** and provides a simple, efficient workflow for creating timestamped notes, diary entries or log entries—while offering stronger privacy controls than typical plain-text note applications or logging tools.
+.LOG-hog runs on **Windows, macOS, and Linux** and provides a simple, efficient workflow for creating timestamped log entries with encryption-first storage and practical local hardening.
 
 ***
 
@@ -18,17 +18,17 @@ This workflow is optimized for rapid, continuous logging/writing a diary or just
 
 ## 🗂️ Format & Compatibility
 
-.LOG-hog works with standard `.LOG` files:
+.LOG-hog keeps the familiar `.LOG`-style workflow but now uses **encrypted storage by policy**.
 
-* Files remain **plain text by default**
-* You can open and edit them in any text editor
-* Additional features (encryption, search, formatting) are optional layers
+* Primary storage is encrypted (AES-GCM) when initialized
+* Entry workflow, timestamps, search, and markdown rendering stay integrated in the app
+* Backups preserve encrypted data format
 
-Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.com/258545/how-to-use-notepad-to-create-a-dated-log-or-journal-file/) .LOG-hog extends this format with:
+Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.com/258545/how-to-use-notepad-to-create-a-dated-log-or-journal-file/), .LOG-hog extends the workflow with:
 
 * structured entries
 * advanced search and filtering
-* optional encryption
+* encryption-first storage
 * automatic backups
 * markdown rendering
 
@@ -42,10 +42,16 @@ Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.co
 
 * **AES-256-GCM authenticated encryption**
 * **PBKDF2 (600,000 iterations)** for password-based key derivation
+* Encrypted-only save path (plaintext mode removed)
+* Incremental encrypted journal writes with compaction on lock/threshold
+* Tamper-evident backup integrity (HMAC for numbered backups)
+* Persistent lockout state with fail-closed behavior on tamper/missing state
+* Tamper-evident security event log with sequence and hash-chain anchoring
 * Progressive delay on failed password attempts
 * No hardcoded keys or credentials
 * Sensitive data cleared from memory after use
-* Optional encrypted backups
+* Encrypted backups and journal sidecar handling
+* Strict owner-only permission enforcement for security-critical artifacts
 * Clipboard auto-clear to reduce accidental exposure
 * Static analysis (SpotBugs / FindSecBugs) used to detect common vulnerability classes
 
@@ -53,12 +59,9 @@ Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.co
 
 ### Why this matters
 
-Most note-taking tools:
+Many lightweight note tools optimize for convenience first and security second.
 
-* store data entirely in plaintext
-* provide minimal protection against local access
-
-.LOG-hog keeps the simplicity of text files while allowing you to **add meaningful protection when handling sensitive information**.
+.LOG-hog is designed to keep fast logging UX while enforcing encrypted storage and adding practical hardening around backup integrity, lockout persistence, and local file handling.
 
 ***
 
@@ -68,12 +71,16 @@ Most note-taking tools:
 
 * Unauthorized access to local files or backups
 * Offline attacks on encrypted data
+* Opportunistic tampering of local security metadata
 
 It does **not protect against**:
 
 * Malware or keyloggers
 * System-level compromise
 * Memory access during an active session
+* Attackers with full access to your user profile and host metadata
+
+Note: local lockout/audit metadata keys are protected with a host-profile-bound envelope for practical hardening. This improves resistance to casual tampering but is not equivalent to a hardware-backed secret store.
 
 👉 Security depends on:
 
@@ -86,11 +93,12 @@ It does **not protect against**:
 
 * Tabbed interface for writing and browsing logs
 * Fast entry workflow with automatic timestamps
-* Optional encryption (AES-GCM)
+* Encrypted storage (AES-GCM)
 * Secure password handling with retry delays
 * Built-in password generator (random + passphrase)
 * Clipboard auto-clear for sensitive content
 * Manual lock/unlock
+* Incremental encrypted journaling for faster secure saves
 * Advanced search (case sensitivity, navigation, filtering)
 * Markdown rendering in full log view
 * Info panel (entries, days logged, file size)
@@ -114,7 +122,7 @@ It does **not protect against**:
 
 ## 📦 Footprint
 
-* Application JAR: \~450 KB
+* Application JAR: \~230 KB
 * No external dependencies
 * Single-file distribution
 
@@ -123,7 +131,6 @@ This results in:
 * fast startup
 * easy portability
 * minimal installation complexity
-* **no risk for security breaches related to old or manipulated external packages**
 
 ***
 
@@ -133,6 +140,9 @@ This results in:
 * Keys derived from your password using PBKDF2
 * Password is never written to disk
 * Sensitive memory is cleared after use
+* Lockout state is persisted with tamper-evident integrity checks
+* Security events are persisted in a tamper-evident anchored chain
+* Backup copies can be integrity-verified
 
 ⚠️ **Important:**  
 If you forget your password, encrypted data cannot be recovered.

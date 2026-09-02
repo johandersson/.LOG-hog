@@ -31,9 +31,11 @@ import encryption.Encryptor;
 public class EntryLoader {
     private final LogFileHandler logFileHandler;
     private final Encryptor encryptor;
+    private static final long ENTRY_CONTENT_CACHE_TTL_MS = 15_000L;
     
     // Performance caches - invalidated when file changes
     private final Map<String, String> entryContentCache = new HashMap<>();
+    private long entryContentCacheExpiresAt;
     private List<String> timestampListCache;
     private final Map<String, Integer> duplicateCountCache = new HashMap<>();
     private long cacheLastModified;
@@ -121,6 +123,7 @@ public class EntryLoader {
             // Setting to null helps GC reclaim memory faster
         }
         entryContentCache.clear();
+        entryContentCacheExpiresAt = 0L;
         
         // Overwrite timestamp list cache
         if (timestampListCache != null) {
@@ -158,6 +161,13 @@ public class EntryLoader {
             return currentModified == cacheLastModified && cacheLastModified > 0;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    private void expireEntryContentCacheIfNeeded() {
+        if (!entryContentCache.isEmpty() && System.currentTimeMillis() >= entryContentCacheExpiresAt) {
+            entryContentCache.clear();
+            entryContentCacheExpiresAt = 0L;
         }
     }
     
@@ -265,8 +275,9 @@ public class EntryLoader {
             sortedEntries.addAll(nonTimestampEntries); // preamble notes at top
             sortedEntries.addAll(timestampEntries);
             
-            // Populate caches while building list model
+            // Do not eagerly cache decrypted entry content during list loading.
             entryContentCache.clear();
+            entryContentCacheExpiresAt = 0L;
             List<String> timestamps = new ArrayList<>();
             
             // Track occurrence counts for display suffixes
@@ -282,13 +293,6 @@ public class EntryLoader {
                     // Strip any existing suffix from file (for backwards compatibility)
                     String cleanTs = rawTs.replaceAll(" \\(\\d+\\)$", "");
                     
-                    // PMD: Suppress warning - StringBuilder is required per entry
-                    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
-                    StringBuilder content = new StringBuilder();
-                    for (int i = 1; i < entry.size(); i++) {
-                        content.append(entry.get(i)).append('\n');
-                    }
-                    
                     if (tsPattern.matcher(cleanTs).matches()) {
                         // Track occurrence for display suffix
                         int occurrence = occurrenceCount.getOrDefault(cleanTs, 0);
@@ -296,9 +300,6 @@ public class EntryLoader {
                         
                         // Generate display timestamp with suffix for duplicates
                         String displayTs = occurrence > 0 ? cleanTs + " (" + occurrence + ")" : cleanTs;
-                        
-                        // Use display timestamp as cache key
-                        entryContentCache.put(displayTs, content.toString().trim());
                         elementsToAdd.add(displayTs);
                         timestamps.add(displayTs);
                     }
@@ -522,8 +523,26 @@ public class EntryLoader {
             }
             return b.dateTime.compareTo(a.dateTime);
         });
-        
-        parsedEntriesCache = parsed;
+
+        // Normalize duplicate timestamps to display keys used by the UI/list model
+        // so search/filter operations never return indistinguishable duplicate rows.
+        Map<String, Integer> occurrenceCount = new HashMap<>();
+        List<ParsedEntry> normalized = new ArrayList<>(parsed.size());
+        Pattern baseTsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}$");
+        for (ParsedEntry pe : parsed) {
+            String rawTs = pe.timestamp == null ? "" : pe.timestamp.trim();
+            String cleanTs = rawTs.replaceAll(" \\(\\d+\\)$", "");
+            if (baseTsPattern.matcher(cleanTs).matches()) {
+                int occurrence = occurrenceCount.getOrDefault(cleanTs, 0);
+                occurrenceCount.put(cleanTs, occurrence + 1);
+                String displayTs = occurrence > 0 ? cleanTs + " (" + occurrence + ")" : cleanTs;
+                normalized.add(new ParsedEntry(displayTs, pe.dateTime));
+            } else {
+                normalized.add(pe);
+            }
+        }
+
+        parsedEntriesCache = normalized;
         updateCacheTimestamp();
     }
 
@@ -547,6 +566,7 @@ public class EntryLoader {
         if (!Files.exists(logFileHandler.getFilePath())) return "";
 
         try {
+            expireEntryContentCacheIfNeeded();
             // Check cache first - O(1) lookup!
             if (isCacheValid()) {
                 String cached = entryContentCache.get(timeStamp.trim());
@@ -554,7 +574,7 @@ public class EntryLoader {
                     return cached;
                 }
                 
-                // Try without suffix for backward compatibility
+                // Try without suffix when caller provides a raw timestamp.
                 String baseTsParam = timeStamp.trim().replaceAll(" \\([0-9]+\\)$", "");
                 for (Map.Entry<String, String> entry : entryContentCache.entrySet()) {
                     String entryTs = entry.getKey();
@@ -599,6 +619,7 @@ public class EntryLoader {
                 }
                 entryContentCache.put(displayTs, content.toString().trim());
             }
+            entryContentCacheExpiresAt = System.currentTimeMillis() + ENTRY_CONTENT_CACHE_TTL_MS;
             
             updateCacheTimestamp();
             
@@ -648,6 +669,7 @@ public class EntryLoader {
         if (!Files.exists(logFileHandler.getFilePath())) {
             return Collections.emptyList();
         }
+        expireEntryContentCacheIfNeeded();
         
         // Ensure cache is populated
         if (!isCacheValid() || parsedEntriesCache == null) {

@@ -94,6 +94,10 @@ public class AsyncSaver {
                         if (encryptionManager != null) {
                             encryptionManager.encryptFileFromLines(pendingLines);
                         }
+                        // Keep the in-memory hydration cache and incremental journal in sync
+                        // with the authoritative content we just wrote, otherwise the next
+                        // read could fall back to stale pre-write content.
+                        entryEditor.syncAfterFullEncryptedWrite(pendingLines);
                 } else {
                     if (backupManager != null) backupManager.createNumberedBackup();
                     Files.write(filePath, pendingLines);

@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 /**
  * Parses log file lines into entries.
- * Handles both encrypted and plain text logs.
+ * Works on decrypted in-memory lines from encrypted storage.
  */
 public class LogParser {
 

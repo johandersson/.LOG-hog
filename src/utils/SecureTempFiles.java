@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import security.AppPathPolicy;
+
 /**
  * Helper for creating secure temporary files with restrictive permissions.
  * Best-effort: sets POSIX perms when available, falls back to java.io.File owner-only flags.
@@ -45,7 +47,8 @@ public final class SecureTempFiles {
      * This is best-effort and attempts to delete files in a shutdown hook to cover crash/abnormal exits.
      */
     public static Path createSecureTempFile(Path dir, String prefix, String suffix, boolean deleteOnExit) throws java.io.IOException {
-        Path parent = dir != null ? dir : Path.of(System.getProperty("java.io.tmpdir"));
+        Path parent = resolveSafeTempParent(dir);
+        AppPathPolicy.assertSafeDirectory(parent);
         Files.createDirectories(parent);
         Path tmp = Files.createTempFile(parent, prefix, suffix);
 
@@ -89,5 +92,17 @@ public final class SecureTempFiles {
         }
         DELETE_ON_EXIT.add(p);
         registerShutdownHookIfNeeded();
+    }
+
+    private static Path resolveSafeTempParent(Path requested) {
+        Path defaultTemp = AppPathPolicy.normalizeUserPath(System.getProperty("java.io.tmpdir"));
+        if (defaultTemp == null) {
+            defaultTemp = AppPathPolicy.currentWorkingDirectory();
+        }
+        if (requested == null) {
+            return defaultTemp;
+        }
+        Path normalized = AppPathPolicy.normalizeUserPath(requested.toString());
+        return normalized != null ? normalized : defaultTemp;
     }
 }

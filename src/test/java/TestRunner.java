@@ -12,13 +12,13 @@ public class TestRunner {
         Path testFile = Files.createTempFile("loghog_test_runner", ".txt");
 
         try {
-            System.out.println("Running extended FileHandlingTest methods...");
+            testsupport.TestLog.out("Running extended FileHandlingTest methods...");
 
             // We can't easily run JUnit tests directly, but we can test the logic
             testTimestampHandlingLogic(testFile);
             testLoadEntryEdgeCases(testFile);
 
-            System.out.println("SUCCESS: All extended tests passed");
+            testsupport.TestLog.out("SUCCESS: All extended tests passed");
 
         } finally {
             Files.deleteIfExists(testFile);
@@ -50,7 +50,7 @@ public class TestRunner {
                 throw new RuntimeException("FAIL: Multi-digit suffix stripping failed: " + rawTs3);
             }
 
-            System.out.println("✓ Timestamp handling logic verified");
+            testsupport.TestLog.out("✓ Timestamp handling logic verified");
         } finally {
             logFileHandler.clearSensitiveData();
         }
@@ -78,7 +78,7 @@ public class TestRunner {
                 throw new RuntimeException("FAIL: Whitespace timestamp should return empty string");
             }
 
-            System.out.println("✓ LoadEntry edge cases verified");
+            testsupport.TestLog.out("✓ LoadEntry edge cases verified");
         } finally {
             logFileHandler.clearSensitiveData();
         }
