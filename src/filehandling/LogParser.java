@@ -13,6 +13,23 @@ public class LogParser {
 
     private static final Pattern TS_PATTERN = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$");
 
+    public static boolean isPrimaryTimestampLine(String line) {
+        return line != null && TS_PATTERN.matcher(line.trim()).matches();
+    }
+
+    private static boolean isTimestampEntryBoundary(String trimmed, List<String> currentEntry) {
+        if (!TS_PATTERN.matcher(trimmed).matches()) {
+            return false;
+        }
+        return currentEntry.isEmpty() || currentEntry.get(currentEntry.size() - 1).isBlank();
+    }
+
+    private static void removeSeparatorBlank(List<String> entry) {
+        if (!entry.isEmpty() && entry.get(entry.size() - 1).isBlank()) {
+            entry.remove(entry.size() - 1);
+        }
+    }
+
     /**
      * Parses the lines into entries, filtering by year and month, and sorting.
      */
@@ -22,8 +39,9 @@ public class LogParser {
         for (String line : lines) {
             var trimmed = line.trim();
             if (".LOG".equalsIgnoreCase(trimmed)) continue;
-            if (TS_PATTERN.matcher(trimmed).matches()) {
+            if (isTimestampEntryBoundary(trimmed, currentEntry)) {
                 if (!currentEntry.isEmpty()) {
+                    removeSeparatorBlank(currentEntry);
                     entries.add(new ArrayList<>(currentEntry));
                     currentEntry.clear();
                 }
@@ -80,8 +98,9 @@ public class LogParser {
         for (String line : lines) {
             var trimmed = line.trim();
             if (".LOG".equalsIgnoreCase(trimmed)) continue;
-            if (TS_PATTERN.matcher(trimmed).matches()) {
+            if (isTimestampEntryBoundary(trimmed, currentEntry)) {
                 if (!currentEntry.isEmpty()) {
+                    removeSeparatorBlank(currentEntry);
                     if (entries.size() >= MAX_COLLECTION_SIZE) {
                         filehandling.DialogHandler.showLimitExceeded(
                             "Too Many Entries",

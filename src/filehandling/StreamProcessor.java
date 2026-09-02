@@ -42,9 +42,13 @@ public final class StreamProcessor {
             String line = it.next();
             String trimmed = line.trim();
             if (".LOG".equalsIgnoreCase(trimmed)) continue;
-            boolean isHeader = TS_PATTERN.matcher(trimmed).matches();
+            boolean isHeader = TS_PATTERN.matcher(trimmed).matches()
+                && (currentEntry.isEmpty() || currentEntry.get(currentEntry.size() - 1).isBlank());
             if (isHeader) {
                 if (!currentEntry.isEmpty()) {
+                    if (currentEntry.get(currentEntry.size() - 1).isBlank()) {
+                        currentEntry.remove(currentEntry.size() - 1);
+                    }
                     totalCount++;
                     if (totalCount > MAX_COLLECTION_SIZE) {
                         filehandling.DialogHandler.showLimitExceeded(

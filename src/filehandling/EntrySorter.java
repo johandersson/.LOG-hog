@@ -45,22 +45,28 @@ public class EntrySorter {
         
         List<List<String>> entries = new ArrayList<>();
         List<String> currentEntry = new ArrayList<>();
+        boolean previousLineBlank = false;
 
         for (String line : lines) {
             String trimmed = line.trim();
             if (".LOG".equalsIgnoreCase(trimmed)) continue; // Skip .LOG during processing
-            if (TIMESTAMP_PATTERN.matcher(trimmed).matches()) {
+            if (LogParser.isPrimaryTimestampLine(trimmed) && (currentEntry.isEmpty() || previousLineBlank)) {
                 if (!currentEntry.isEmpty()) {
+                    if (!currentEntry.isEmpty() && currentEntry.get(currentEntry.size() - 1).isBlank()) {
+                        currentEntry.remove(currentEntry.size() - 1);
+                    }
                     entries.add(new ArrayList<>(currentEntry));
                     currentEntry.clear();
                 }
                 currentEntry.add(line);
+                previousLineBlank = false;
             } else {
                 // Only add non-blank lines to the entry body
                 // Use centralized format rules
                 if (LogFileFormat.shouldIncludeInEntry(line, !currentEntry.isEmpty())) {
                     currentEntry.add(line);
                 }
+                previousLineBlank = line.isBlank();
             }
         }
         if (!currentEntry.isEmpty()) {
@@ -145,27 +151,41 @@ public class EntrySorter {
     public static List<String> removeEntry(String timeStamp, List<String> lines) {
         List<String> updatedLines = new ArrayList<>();
         boolean skipping = false;
+        boolean previousLineBlank = false;
+        boolean hasSeenEntryTimestamp = false;
 
         for (String line : lines) {
+            boolean timestampBoundary = utils.DateHandler.isTimestamp(line) && (!hasSeenEntryTimestamp || previousLineBlank);
             // timestamp lines are exact matches (whitespace trimmed)
-            if (!skipping && line.trim().equals(timeStamp.trim())) {
+            if (!skipping && timestampBoundary && line.trim().equals(timeStamp.trim())) {
+                hasSeenEntryTimestamp = true;
                 skipping = true; // start skipping this timestamp and its body
+                previousLineBlank = line.isBlank();
                 continue;
             }
 
             if (skipping) {
                 // stop skipping when we hit the next timestamp line
-                if (utils.DateHandler.isTimestamp(line)) {
+                if (timestampBoundary) {
+                    if (!updatedLines.isEmpty() && updatedLines.get(updatedLines.size() - 1).isBlank()) {
+                        updatedLines.remove(updatedLines.size() - 1);
+                    }
                     skipping = false;
                     // This line is the next timestamp; it should be kept
                     updatedLines.add(line);
+                    hasSeenEntryTimestamp = true;
                 } else {
                     // while skipping, simply continue (this drops blank lines and body lines)
+                    previousLineBlank = line.isBlank();
                     continue;
                 }
             } else {
                 updatedLines.add(line);
             }
+            if (timestampBoundary) {
+                hasSeenEntryTimestamp = true;
+            }
+            previousLineBlank = line.isBlank();
         }
         return updatedLines;
     }
