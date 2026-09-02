@@ -470,9 +470,37 @@ public class LogFileHandler implements LogFileOperations {
                 for (String ts : timestamps) {
                     listModel.removeElement(ts);
                 }
+                // Re-number "(n)" occurrence suffixes for any remaining entries that share a
+                // raw timestamp with a deleted entry. Without this, stale suffixes (e.g. "(2)")
+                // can remain in the list after an earlier occurrence (e.g. "(1)") was deleted,
+                // causing the display label to no longer match the entry's position in the
+                // freshly-rebuilt content cache. Selecting such a stale label falls back to an
+                // ambiguous "match by raw timestamp" lookup, which can display the wrong entry.
+                renumberDuplicateTimestampSuffixes(listModel);
             }
         } catch (Exception e) {
             showErrorDialog("<html><b>🗑️ Delete Failed</b><br><br>Unable to delete the log entries.<br>Please try again.<br><br><i>Tip: Ensure the entries exist and the file is not locked.</i></html>");
+        }
+    }
+
+    /**
+     * Recomputes the "(n)" occurrence suffixes for entries in the list model that share the
+     * same raw timestamp, based on their current relative order in the model. This keeps the
+     * displayed suffixes consistent with the ones the content cache assigns when it is rebuilt,
+     * which is essential after a batch delete removes some but not all occurrences of a
+     * duplicated timestamp.
+     */
+    private void renumberDuplicateTimestampSuffixes(DefaultListModel<String> listModel) {
+        java.util.Map<String, Integer> occurrenceCount = new java.util.HashMap<>();
+        for (int i = 0; i < listModel.getSize(); i++) {
+            String display = listModel.getElementAt(i);
+            String rawTs = getRawTimestamp(display);
+            int occurrence = occurrenceCount.getOrDefault(rawTs, 0);
+            occurrenceCount.put(rawTs, occurrence + 1);
+            String correctDisplay = occurrence > 0 ? rawTs + " (" + occurrence + ")" : rawTs;
+            if (!correctDisplay.equals(display)) {
+                listModel.set(i, correctDisplay);
+            }
         }
     }
 
