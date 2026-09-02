@@ -18,7 +18,7 @@ pkill -f "java.*loghog" 2>/dev/null || true
 
 # Compile Java files (excluding test files)
 echo "Compiling Java files..."
-find . -name "*.java" ! -path "*/test/*" -print0 | xargs -0 javac -d .
+find . -name "*.java" ! -path "*/test/*" -print0 | xargs -0 javac -encoding UTF-8 -d .
 if [ $? -ne 0 ]; then
     echo "Compilation failed!"
     exit 1

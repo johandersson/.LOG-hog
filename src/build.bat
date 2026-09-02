@@ -28,7 +28,7 @@ set "SOURCES_FILE=%TEMP%\loghog-javac-%RANDOM%%RANDOM%.args"
         @echo !SRC_FILE!
     )
 )
-javac -d . @"%SOURCES_FILE%"
+javac -encoding UTF-8 -d . @"%SOURCES_FILE%"
 set "JAVAC_EXIT=%ERRORLEVEL%"
 del /q "%SOURCES_FILE%" >nul 2>&1
 if %JAVAC_EXIT% neq 0 (

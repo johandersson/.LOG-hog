@@ -187,7 +187,7 @@ chmod +x build.sh
 
 ```bash
 cd src
-javac -d . $(find . -name "*.java" ! -path "*/test/*")
+javac -encoding UTF-8 -d . $(find . -name "*.java" ! -path "*/test/*")
 jar cvfm ../build/loghog.jar manifest.txt \
 LogHog.class main/*.class gui/*.class filehandling/*.class \
 clipboard/*.class notepad/*.class browser/*.class \
