@@ -548,13 +548,19 @@ public class EntryLoader {
                     return cached;
                 }
                 
-                // Try without suffix when caller provides a raw timestamp.
-                String baseTsParam = timeStamp.trim().replaceAll(" \\([0-9]+\\)$", "");
-                for (Map.Entry<String, String> entry : entryContentCache.entrySet()) {
-                    String entryTs = entry.getKey();
-                    String baseTsEntry = entryTs.replaceAll(" \\([0-9]+\\)$", "");
-                    if (baseTsEntry.equals(baseTsParam)) {
-                        return entry.getValue();
+                // Try without suffix, but only when the caller's timestamp had no suffix of
+                // its own. If the caller asked for a specific occurrence (e.g. "... (2)") that
+                // is no longer in the cache, matching any entry sharing the base timestamp would
+                // silently return the wrong entry's content instead of a clear miss.
+                String trimmedTimeStamp = timeStamp.trim();
+                String baseTsParam = trimmedTimeStamp.replaceAll(" \\([0-9]+\\)$", "");
+                if (baseTsParam.equals(trimmedTimeStamp)) {
+                    for (Map.Entry<String, String> entry : entryContentCache.entrySet()) {
+                        String entryTs = entry.getKey();
+                        String baseTsEntry = entryTs.replaceAll(" \\([0-9]+\\)$", "");
+                        if (baseTsEntry.equals(baseTsParam)) {
+                            return entry.getValue();
+                        }
                     }
                 }
             }
@@ -602,13 +608,17 @@ public class EntryLoader {
                 return result;
             }
             
-            // Try without suffix
-            String baseTsParam = timeStamp.trim().replaceAll(" \\([0-9]+\\)$", "");
-            for (Map.Entry<String, String> entry : entryContentCache.entrySet()) {
-                String entryTs = entry.getKey();
-                String baseTsEntry = entryTs.replaceAll(" \\([0-9]+\\)$", "");
-                if (baseTsEntry.equals(baseTsParam)) {
-                    return entry.getValue();
+            // Try without suffix, but only when the caller's timestamp had no suffix of its own
+            // (see comment above for why matching by base timestamp must not apply otherwise).
+            String trimmedTimeStampRetry = timeStamp.trim();
+            String baseTsParamRetry = trimmedTimeStampRetry.replaceAll(" \\([0-9]+\\)$", "");
+            if (baseTsParamRetry.equals(trimmedTimeStampRetry)) {
+                for (Map.Entry<String, String> entry : entryContentCache.entrySet()) {
+                    String entryTs = entry.getKey();
+                    String baseTsEntry = entryTs.replaceAll(" \\([0-9]+\\)$", "");
+                    if (baseTsEntry.equals(baseTsParamRetry)) {
+                        return entry.getValue();
+                    }
                 }
             }
 
