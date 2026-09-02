@@ -952,7 +952,13 @@ public final class LogListPanel extends JPanel {
                     if (idx >= 0) {
                         java.awt.Rectangle cell = logList.getCellBounds(idx, idx);
                         if (cell != null && cell.contains(e.getPoint())) {
-                            logList.setSelectedIndex(idx);
+                            // Preserve an existing multi-selection when right-clicking on an
+                            // item that's already part of it (e.g. to delete several entries).
+                            // Only collapse to a single selection when the clicked item isn't
+                            // already selected.
+                            if (!logList.isSelectedIndex(idx)) {
+                                logList.setSelectedIndex(idx);
+                            }
                         } else {
                             logList.clearSelection();
                         }
