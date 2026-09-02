@@ -70,6 +70,9 @@ public final class SecurityFilePolicy {
             Set<PosixFilePermission> perms = new HashSet<>();
             perms.add(PosixFilePermission.OWNER_READ);
             perms.add(PosixFilePermission.OWNER_WRITE);
+            if (Files.isDirectory(path)) {
+                perms.add(PosixFilePermission.OWNER_EXECUTE);
+            }
             Files.setPosixFilePermissions(path, perms);
             return true;
         } catch (UnsupportedOperationException | SecurityException ignored) {
