@@ -26,7 +26,8 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingConstants;
 
-public class PasswordStrengthIndicator extends JPanel {
+public final class PasswordStrengthIndicator extends JPanel {
+    private static final long serialVersionUID = 1L;
     private JProgressBar strengthBar;
     private JLabel strengthLabel;
 

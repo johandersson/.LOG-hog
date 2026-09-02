@@ -25,7 +25,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
-public class StatusBar extends JPanel {
+public final class StatusBar extends JPanel {
+    private static final long serialVersionUID = 1L;
     private final JLabel messageLabel;
 
     public StatusBar() {

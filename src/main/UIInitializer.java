@@ -238,9 +238,9 @@ public class UIInitializer {
         tabPane.addTab("Log Entries", editor.getLogListPanel());
         tabPane.addTab("Full Log", editor.getFullLogPanel());
         tabPane.addTab("Settings", editor.getSettingsPanel());
-        tabPane.addTab("Help", new InformationPanel(tabPane, "help.md", "Help", false, true));
+        tabPane.addTab("Help", new InformationPanel("help.md", "Help", false, true));
         // Load About immediately (no lazy splash gating) so license is always available
-        tabPane.addTab("About", new InformationPanel(tabPane, "LICENSE.md", "About", false, false));
+        tabPane.addTab("About", new InformationPanel("LICENSE.md", "About", false, false));
 
         tabPane.addChangeListener(new javax.swing.event.ChangeListener() {
             @Override
@@ -258,6 +258,8 @@ public class UIInitializer {
             handleLogEntriesTabSelection();
         } else if (idx == 3) {
             editor.getSettingsPanel().loadCurrentSettings();
+        } else if (idx == 4) {
+            ((InformationPanel) tabPane.getComponentAt(4)).loadText();
         } else if (idx == 5) {
             ((InformationPanel) tabPane.getComponentAt(5)).loadText();
         } else if (idx == 0) {
@@ -266,16 +268,21 @@ public class UIInitializer {
     }
 
     private void handleFullLogTabSelection() {
-        if (!editor.getFullLogPanel().isSuppressAutoLoad()) {
-            LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
-            final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
-            showTimer.setRepeats(false);
-            showTimer.start();
-            editor.getFullLogPanel().loadFullLog(() -> {
-                if (showTimer.isRunning()) showTimer.stop();
-                progress.close();
-            });
+        if (editor.getFullLogPanel().isSuppressAutoLoad()) {
+            // Suppression is used for "Preview in Full Log" one-shot loads.
+            // Clear it here so later manual tab switches always trigger refresh.
+            editor.getFullLogPanel().setSuppressAutoLoad(false);
+            return;
         }
+
+        LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
+        final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+        showTimer.setRepeats(false);
+        showTimer.start();
+        editor.getFullLogPanel().loadFullLog(() -> {
+            if (showTimer.isRunning()) showTimer.stop();
+            progress.close();
+        });
     }
 
     private void handleLogEntriesTabSelection() {

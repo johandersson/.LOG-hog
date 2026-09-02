@@ -35,7 +35,7 @@ public class EntryEditorLimitsTest {
 
             String ts = editor.createAndSaveEntry(longText);
             if (ts == null) {
-                System.err.println("Failed to create entry");
+                testsupport.TestLog.err("Failed to create entry");
                 System.exit(2);
             }
 
@@ -46,10 +46,10 @@ public class EntryEditorLimitsTest {
             }
 
             if (foundTruncated) {
-                System.out.println("PASS: Truncation marker found in file");
+                testsupport.TestLog.out("PASS: Truncation marker found in file");
                 System.exit(0);
             } else {
-                System.err.println("FAIL: Truncation marker NOT found in file");
+                testsupport.TestLog.err("FAIL: Truncation marker NOT found in file");
                 System.exit(3);
             }
         } finally {

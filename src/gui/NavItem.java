@@ -23,7 +23,8 @@ import java.awt.event.MouseEvent;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
-public class NavItem extends JPanel {
+public final class NavItem extends JPanel {
+    private static final long serialVersionUID = 1L;
     private final JLabel label;
     private final int tabIndex;
     private final JTabbedPane tabPane;

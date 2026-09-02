@@ -27,7 +27,9 @@ fi
 # Create JAR file in top-level build directory
 echo "Creating JAR file..."
 mkdir -p "$SCRIPT_DIR/../build"
-jar cvfm "$SCRIPT_DIR/../build/loghog.jar" "$SCRIPT_DIR/manifest.txt" \
+BUILD_TS="$(date +"%Y-%m-%d-%H_%M")"
+JAR_NAME="loghog-$BUILD_TS.jar"
+jar cvfm "$SCRIPT_DIR/../build/$JAR_NAME" "$SCRIPT_DIR/manifest.txt" \
     LogHog.class \
     main/LogTextEditor.class \
     gui/*.class \
@@ -42,8 +44,21 @@ jar cvfm "$SCRIPT_DIR/../build/loghog.jar" "$SCRIPT_DIR/manifest.txt" \
     utils/*.class \
     -C "$SCRIPT_DIR" resources/
 
+INVENTORY_FILE="$SCRIPT_DIR/../build/component-inventory-$BUILD_TS.txt"
+{
+  echo "Build Timestamp: $BUILD_TS"
+  echo "Artifact: $JAR_NAME"
+  echo "Runtime: Pure JDK (no external runtime dependencies)"
+  echo
+  echo "Java Version:"
+  java -version 2>&1
+  echo
+  echo "Source Inventory:"
+  echo "Java Files: $(find . -name '*.java' ! -path '*/test/*' | wc -l | tr -d ' ')"
+} > "$INVENTORY_FILE"
+
 if [ $? -eq 0 ]; then
-    echo "Production build completed: $SCRIPT_DIR/../build/loghog.jar"
+    echo "Production build completed: $SCRIPT_DIR/../build/$JAR_NAME"
 else
     echo "JAR creation failed!"
     exit 1

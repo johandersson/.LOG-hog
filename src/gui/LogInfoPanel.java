@@ -15,7 +15,8 @@ import filehandling.ResourceLimits;
  * A reusable info panel component that displays log statistics.
  * Features a clean, professional design with proper spacing and typography.
  */
-public class LogInfoPanel extends JPanel {
+public final class LogInfoPanel extends JPanel {
+    private static final long serialVersionUID = 1L;
 
     private final JLabel entriesLabel;
     private final JLabel daysLabel;

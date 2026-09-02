@@ -8,8 +8,6 @@ When the application starts, the editor is immediately focused so you can begin 
 
 This workflow allows rapid, continuous note-taking with minimal friction.
 
-***
-
 ## ⚡ Lightweight & Cross-Platform
 
 * **Small footprint (\~230 KB)** with no external runtime dependencies
@@ -18,14 +16,12 @@ This workflow allows rapid, continuous note-taking with minimal friction.
 
 The application starts quickly and is designed to be efficient for everyday use.
 
-***
-
 ## 🗂️ .LOG Format Compatibility
 
 .LOG-hog is fully compatible with standard `.LOG` files.
 
-* Open an existing `.LOG` file and continue working immediately
-* Your data remains **plain text by default**, editable in any text editor
+* Open your existing encrypted log file and continue working immediately
+* New files are created **encrypted**
 * Advanced features (encryption, search, formatting) are layered on top
 
 ### About the Format
@@ -35,11 +31,9 @@ It extends this concept with:
 
 * structured entries
 * search and filtering
-* optional encryption
+* always-on encryption
 * backups
 * markdown rendering
-
-***
 
 # 🔐 Security Overview
 
@@ -52,13 +46,11 @@ It extends this concept with:
 * Progressive delay on failed password attempts
 * Sensitive data stored in memory as mutable arrays and cleared after use
 * Clipboard auto-clearing for sensitive content
-* Optional encrypted backups
+* Encrypted backups
 * Secure file handling and path validation
 * Static analysis tools used to detect common vulnerability classes
 
 👉 See `encryption.md` for detailed technical information.
-
-***
 
 ## ⚠️ Security Model (Important)
 
@@ -78,13 +70,11 @@ It does **not protect against**:
 * a **trusted system**
 * and a **strong password**
 
-***
-
 ## 📋 Clipboard Security
 
 Sensitive data copied from .LOG-hog is protected with:
 
-* **Automatic clearing** after a configurable timeout (default: 15 seconds)
+* **Automatic clearing** after a configurable timeout (default: 15 seconds, always enabled)
 * Manual "Clear Clipboard" option
 * User warnings when copying sensitive content
 
@@ -96,8 +86,6 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 
 👉 Always manually clear the clipboard after unexpected termination.
 
-***
-
 # ✨ Key Features
 
 * **Tabbed interface** for writing and browsing logs
@@ -105,12 +93,11 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 * **Advanced search and filtering**
 * **Single-instance enforcement**
 * **Right-click actions** (edit date, delete, copy)
-* **Optional encryption**
+* **Always-on encryption**
+* **Always-on auto-lock and clipboard auto-clear**
 * **Manual lock / unlock**
 * **Backup and restore support**
 * **System tray integration**
-
-***
 
 # ⌨️ Keyboard Shortcuts
 
@@ -119,14 +106,10 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 * **Ctrl+R** – Refresh log
 * **Ctrl+F** – Search
 
-***
-
 # 🔎 Filtering Entries
 
 * **Search bar** for keyword filtering
 * **Date range filtering** for time-based queries
-
-***
 
 # 🧩 System Tray Features
 
@@ -135,14 +118,12 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 * Clipboard control (clear sensitive data)
 * Access clipboard security settings
 
-***
-
 # 💾 Backup and Restore
 
 ### Backups
 
 * Manual backup from Settings
-* Optional automatic backups
+* Automatic backups (optional)
 * Backups preserve encryption state
 
 ### Important Notes
@@ -154,17 +135,13 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 
 Replace your log file manually with a backup file if needed.
 
-***
-
 # 🔐 Encryption
 
-### Enabling Encryption
+### Encryption Policy
 
-* Enable from the Settings tab
+* Encryption is always enabled
 * Requires a strong password
 * Password is never stored on disk
-
-***
 
 ### Security Notes
 
@@ -176,21 +153,16 @@ Replace your log file manually with a backup file if needed.
 If you forget your password, your data **cannot** be recovered.  
 Your password is the only thing that cannot be recovered — write it down and store it safely.
 
-***
-
 ### File Self-Containment and Recovery
 
-Your encrypted log file is **self-contained**: the encryption metadata (salt) is embedded  
-directly in the file header. This means:
+Your encrypted log data keeps its encryption metadata in the file headers, but active storage may now include a small encrypted journal sidecar during editing. This means:
 
-* If you lose your `loghog_settings.properties` file, your data is **not** permanently lost
-* .LOG-hog will automatically recover the salt from the file when you next open it
-* You only need your **password** and the encrypted **.logh file** to regain full access
-* Reinstalling the app or moving the file to a new machine works seamlessly
+* If you lose your `.loghog/settings.properties` file, your data is **not** permanently lost
+* .LOG-hog will automatically recover the salt from the encrypted file headers when you next open it
+* You need your **password** plus the encrypted snapshot and any journal sidecar still present to regain full access
+* Reinstalling the app or moving the files to a new machine works seamlessly
 
 The only unrecoverable scenario is losing your password.
-
-***
 
 ### Password Recommendations
 
@@ -198,8 +170,6 @@ The only unrecoverable scenario is losing your password.
 * Prefer random or passphrase-based passwords
 * Avoid reuse across services
 * Use a password manager
-
-***
 
 ### Password Generator
 
@@ -209,22 +179,16 @@ The only unrecoverable scenario is losing your password.
 * Diceware-style passphrases
 * Strength indicator
 
-***
-
 ### Password Dialog
 
 * Type your password in the masked field
 * Click the **eye button** (or hold **ESC**) to peek at the password while typing — release to re-mask it
 * Press **Enter** to confirm, **Cancel** to abort
 
-***
-
 ### Usage
 
 * Password is required on application startup
-* Failed attempts trigger increasing delays
-
-***
+* Failed attempts trigger increasing delays and keep the file locked after repeated failures
 
 ### Lock / Unlock
 
@@ -232,14 +196,10 @@ The only unrecoverable scenario is losing your password.
 * Unlock requires password re-entry
 * Unlock from any view: click the **Unlock** link in the locked entry or log list area, or use the **Unlock File** button in the Full Log tab
 
-***
-
 ### Performance Note
 
 Encryption introduces a small delay during loading and saving.  
-Decrypted data is read on demand; active UI state and pending edits may still keep plaintext in memory during use.
-
-***
+Decrypted data is read on demand; active UI state and pending edits may still keep plaintext in memory during use. Incremental appends are buffered into a journal sidecar and compacted back into the main snapshot on lock or after the journal grows.
 
 # ✏️ Editing Entries
 
@@ -247,14 +207,12 @@ Decrypted data is read on demand; active UI state and pending edits may still ke
 * **Delete Entries** with confirmation
 * **Copy to clipboard** (with auto-clear protection)
 
-***
-
 # 🔗 Links
 
 You can include:
 
 * URLs
-* Local file links
+* Local file links (opening executable/script-like files requires explicit confirmation)
 
 Example:
 
@@ -262,8 +220,6 @@ Example:
 http://example.com
 file:///path/to/file
 ```
-
-***
 
 # 📝 Markdown Support
 
@@ -278,25 +234,20 @@ Supported formatting:
 
 Rendering applies in the Full Log view.
 
-***
-
 # ⚙️ Performance Notes
 
 * Large logs are partially rendered for responsiveness
 * Use filters to access older entries
-
-***
 
 # 📄 License
 
 .LOG-hog is licensed under **GPL v3**.  
 See `LICENSE.md` for details.
 
-***
-
 # 📦 Repository
 
 GitHub:  
 <http://github.com/johandersson/.LOG-hog>
 
-***
+Production builds now use timestamped artifact names, e.g. `loghog-2026-07-06-18_15.jar`.
+

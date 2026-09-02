@@ -45,12 +45,14 @@ public class EntryEditor {
     private final Path filePath;
     private final FileEncryptionManager encryptionManager;
     private final FileCache cache;
+    private final EncryptedIncrementalJournal incrementalJournal;
     private BackupManager backupManager;
     
     public EntryEditor(Path filePath, FileEncryptionManager encryptionManager, FileCache cache) {
         this.filePath = filePath;
         this.encryptionManager = encryptionManager;
         this.cache = cache;
+        this.incrementalJournal = new EncryptedIncrementalJournal(filePath, encryptionManager);
     }
     
     public void setBackupManager(BackupManager backupManager) {
@@ -67,23 +69,12 @@ public class EntryEditor {
         String entry = LogFileFormat.createEntry(uniqueTimeStamp, text);
 
         if (encrypted) {
-            List<String> cachedLines = cache.getCachedLines();
-            cachedLines.addAll(Arrays.asList(entry.split("\r?\n", -1)));
-            // Restore fullText assignment for encrypted block
-            StringBuilder fullTextBuilder = new StringBuilder();
-            for (String line : cachedLines) {
-                fullTextBuilder.append(line).append(LogFileFormat.INTERNAL_LINE_SEPARATOR);
-            }
-            String fullText = fullTextBuilder.toString();
-            // Ensure .LOG header is present for encrypted files
-            if (!fullText.startsWith(".LOG")) {
-                fullText = ".LOG" + LogFileFormat.INTERNAL_LINE_SEPARATOR + LogFileFormat.INTERNAL_LINE_SEPARATOR + fullText;
-                cachedLines = new ArrayList<>(Arrays.asList(fullText.split("\r?\n", -1)));
-            }
-            // Normalize spacing to prevent accumulation of blank lines
+            List<String> cachedLines = getEncryptedWorkingLines();
+            List<String> entryLines = Arrays.asList(entry.split("\r?\n", -1));
+            cachedLines.addAll(entryLines);
             List<String> normalized = LogFileFormat.normalizeSpacing(cachedLines);
+            incrementalJournal.appendEntryLines(entryLines);
             cache.updateCachedLines(normalized);
-            encryptionManager.encryptFileFromLines(cache.getCachedLines());
         } else {
             // Normalize content lines: remove trailing blank lines from user-supplied text
             List<String> contentLines = Arrays.asList(text.split("\r?\n", -1));
@@ -134,15 +125,15 @@ public class EntryEditor {
         } catch (Exception ignore) {
         }
         
-        String rawTs = timeStamp.trim();
+        String rawTs = normalizeTimestampForMatching(timeStamp);
         List<String> updatedLines = new ArrayList<>();
         boolean inTargetEntry = false;
         int currentOccurrence = 0;
 
         for (String line : lines) {
-            String trimmed = line.trim();
-            // Match the raw timestamp (file doesn't store suffix)
-            if (trimmed.equals(rawTs) || trimmed.startsWith(rawTs + " (")) {
+            // Normalize file line timestamps for robust matching with display timestamps.
+            String normalizedLineTs = normalizeTimestampForMatching(line);
+            if (normalizedLineTs.equals(rawTs)) {
                 // Found a matching timestamp
                 if (currentOccurrence == occurrence) {
                     inTargetEntry = true;
@@ -156,7 +147,7 @@ public class EntryEditor {
 
             if (inTargetEntry) {
                 // stop skipping when we hit the next timestamp line
-                if (utils.DateHandler.isTimestamp(line)) {
+                if (isTimestampLine(line)) {
                     inTargetEntry = false;
                     updatedLines.add(line); // add the next timestamp line
                 }
@@ -167,6 +158,22 @@ public class EntryEditor {
         }
 
         return updatedLines;
+    }
+
+    private String normalizeTimestampForMatching(String ts) {
+        if (ts == null) {
+            return "";
+        }
+
+        String normalized = ts.trim();
+        normalized = normalized.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2");
+        normalized = normalized.replaceAll(" \\(\\d+\\)$", "");
+        return normalized;
+    }
+
+    private boolean isTimestampLine(String line) {
+        String normalized = normalizeTimestampForMatching(line);
+        return utils.DateHandler.isTimestamp(normalized);
     }
     
     /**
@@ -288,7 +295,7 @@ public class EntryEditor {
 
         // Determine duplicate count using cache or file read
         if (Files.exists(filePath)) {
-            List<String> existingLines = encryptionManager.isEncrypted() ? cache.getCachedLines() : Files.readAllLines(filePath);
+            List<String> existingLines = encryptionManager.isEncrypted() ? getEncryptedWorkingLines() : Files.readAllLines(filePath);
             if (existingLines != null) {
                 count = (int) existingLines.stream().filter(line -> line.trim().startsWith(timeStamp)).count();
             }
@@ -298,6 +305,49 @@ public class EntryEditor {
         // Use StringBuilder for string appends if needed in future logic
         saveEntry(inputText, unique, encryptionManager.isEncrypted());
         return unique;
+    }
+
+    /**
+     * Returns the working line set for encrypted writes.
+     * If the cache is empty, it is hydrated from the encrypted file to avoid accidental overwrite.
+     */
+    private List<String> getEncryptedWorkingLines() throws Exception {
+        List<String> cachedLines = cache.getCachedLines();
+        if (!cachedLines.isEmpty()) {
+            return cachedLines;
+        }
+
+        List<String> decryptedLines = incrementalJournal.readMergedLines();
+        if (decryptedLines == null || decryptedLines.isEmpty()) {
+            throw new IllegalStateException("Refusing encrypted save: source file is non-empty but decrypted content is empty. This prevents accidental overwrite.");
+        }
+
+        cache.updateCachedLines(decryptedLines);
+        return new ArrayList<>(decryptedLines);
+    }
+
+    public List<String> getMergedEncryptedWorkingLines() throws Exception {
+        return getEncryptedWorkingLines();
+    }
+
+    public void compactEncryptedJournal() throws Exception {
+        incrementalJournal.compactNow();
+        cache.clearCachedLines();
+    }
+
+    /**
+     * Must be called after any operation that writes a full, authoritative
+     * content snapshot directly to the base encrypted file (bypassing the
+     * incremental journal's append path). Without this, the in-memory
+     * hydration cache ({@link FileCache#getCachedLines()}) would keep
+     * returning stale pre-write content on the next read, since it is
+     * consulted before the journal/snapshot are re-read from disk. This
+     * caused edits and timestamp changes to appear to "revert" after a
+     * tab switch or subsequent save.
+     */
+    public void syncAfterFullEncryptedWrite(List<String> lines) {
+        incrementalJournal.clear();
+        cache.updateCachedLines(lines);
     }
     
     /**
@@ -313,6 +363,7 @@ public class EntryEditor {
                 backupManager.createNumberedBackup();
             }
             encryptionManager.encryptFileFromLines(normalized);
+            syncAfterFullEncryptedWrite(normalized);
         } else {
             if (backupManager != null) {
                 backupManager.createNumberedBackup();

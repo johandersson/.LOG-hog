@@ -14,7 +14,8 @@ import javax.swing.SwingConstants;
 import main.LogTextEditor;
 import javax.swing.SwingUtilities;
 
-public class LockOverlay extends JPanel {
+public final class LockOverlay extends JPanel {
+    private static final long serialVersionUID = 1L;
     private static final java.awt.Color OVERLAY_COLOR = new java.awt.Color(0, 0, 0, 140);
     private final LogTextEditor owner;
 

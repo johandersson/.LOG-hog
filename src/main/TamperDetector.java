@@ -1,24 +1,23 @@
 package main;
 
-import java.nio.file.*;
-import java.security.MessageDigest;
+import java.nio.file.Path;
 import java.util.Arrays;
+
+import security.StreamingHash;
 
 public class TamperDetector {
     private byte[] lastKnownHash;
 
-    public void recordBaseline(Path file) throws Exception {
+    public void recordBaseline(Path file) throws java.io.IOException {
         lastKnownHash = computeHash(file);
     }
 
-    public boolean isTampered(Path file) throws Exception {
+    public boolean isTampered(Path file) throws java.io.IOException {
         byte[] currentHash = computeHash(file);
         return !Arrays.equals(lastKnownHash, currentHash);
     }
 
-    private byte[] computeHash(Path file) throws Exception {
-        MessageDigest md = MessageDigest.getInstance("SHA-256");
-        byte[] data = Files.readAllBytes(file);
-        return md.digest(data);
+    private byte[] computeHash(Path file) throws java.io.IOException {
+        return StreamingHash.sha256(file);
     }
 }

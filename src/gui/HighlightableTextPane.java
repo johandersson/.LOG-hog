@@ -29,6 +29,7 @@ import javax.swing.text.DefaultHighlighter;
 import javax.swing.text.Highlighter;
 
 public class HighlightableTextPane extends JTextPane {
+    private static final long serialVersionUID = 1L;
     private final Highlighter.HighlightPainter highlightPainter = new DefaultHighlighter.DefaultHighlightPainter(java.awt.Color.YELLOW);
 
     public HighlightableTextPane() {

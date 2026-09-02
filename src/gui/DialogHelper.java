@@ -25,23 +25,26 @@ import javax.swing.SwingUtilities;
  * Utility class for showing consistent, formatted dialogs throughout the application.
  * Provides HTML-formatted messages with icons and standard styling.
  */
-public class DialogHelper {
+public final class DialogHelper {
+
+    private DialogHelper() {
+    }
     // Builds a safe HTML message. If `message` already contains an <html> block
     // we avoid double-wrapping and try to inject `details` before the closing
     // </html> tag if present. This prevents orphan closing tags from appearing
     // when callers already pass fully-formed HTML.
     private static String buildHtml(String message, String details) {
-        if (message == null) message = "";
-        String trimmed = message.trim();
+        String messageValue = message == null ? "" : message;
+        String trimmed = messageValue.trim();
         if (trimmed.toLowerCase().startsWith("<html")) {
-            if (details == null || details.isEmpty()) return message;
+            if (details == null || details.isEmpty()) return messageValue;
             int closeIdx = trimmed.toLowerCase().lastIndexOf("</html>");
             if (closeIdx != -1) {
                 // insert details before the closing tag
-                String beforeClose = message.substring(0, message.length() - (trimmed.length() - closeIdx));
+                String beforeClose = messageValue.substring(0, messageValue.length() - (trimmed.length() - closeIdx));
                 return beforeClose + "<br><br>" + details + "</html>";
             }
-            return message + "<br><br>" + details;
+            return messageValue + "<br><br>" + details;
         }
         // Strip any <html>…</html> wrapper from details before embedding it,
         // so callers that pass fully-formed HTML don't create nested <html> tags.
@@ -56,7 +59,7 @@ public class DialogHelper {
                 if (closeIdx != -1) safeDetails = safeDetails.substring(0, closeIdx);
             }
         }
-        StringBuilder htmlBuilder = new StringBuilder("<html><b>").append(message).append("</b>");
+        StringBuilder htmlBuilder = new StringBuilder("<html><b>").append(messageValue).append("</b>");
         if (safeDetails != null && !safeDetails.isEmpty()) {
             htmlBuilder.append("<br><br>").append(safeDetails);
         }

@@ -66,7 +66,8 @@ import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 import utils.UndoRedoTextArea;
 
-public class LogListPanel extends JPanel {
+public final class LogListPanel extends JPanel {
+    private static final long serialVersionUID = 1L;
     private final JList<String> logList;
     private final DefaultListModel<String> listModel;
     private final JTextArea entryArea;
@@ -660,6 +661,9 @@ public class LogListPanel extends JPanel {
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 String selectedText = entryArea.getSelectedText();
                 if (selectedText != null && !selectedText.isEmpty()) {
+                    if (!clipboard.ClipboardSecurityWarner.showEncryptedFileWarning(entryArea)) {
+                        return;
+                    }
                     clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(selectedText, entryArea);
                 }
             }
@@ -1136,6 +1140,7 @@ public class LogListPanel extends JPanel {
         
         if (locked) {
             entryArea.setText("");
+            previewPane.setText("");
             // Switch back to edit mode if in preview mode
             if (isPreviewMode) {
                 entryContainer.remove(previewScrollPane);

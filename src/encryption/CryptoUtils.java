@@ -1,13 +1,9 @@
 package encryption;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermission;
 import java.security.MessageDigest;
 import java.util.Arrays;
-import java.util.Set;
+import security.SecurityFilePolicy;
 
 public class CryptoUtils {
     /**
@@ -23,21 +19,7 @@ public class CryptoUtils {
      * Best effort: works on Unix, ignored on Windows.
      */
     public static void setOwnerOnlyPermissions(Path path) {
-        try {
-            Set<PosixFilePermission> perms = Set.of(
-                PosixFilePermission.OWNER_READ,
-                PosixFilePermission.OWNER_WRITE
-            );
-            Files.setPosixFilePermissions(path, perms);
-        } catch (UnsupportedOperationException | IOException e) {
-            // Not POSIX or not permitted; ignore
-        }
-        // On Windows, fallback: try to make file hidden (not secure, but best effort)
-        try {
-            File file = path.toFile();
-            file.setReadable(true, true);
-            file.setWritable(true, true);
-        } catch (Exception ignored) {}
+        SecurityFilePolicy.ensureOwnerOnlyPermissions(path);
     }
 
     /**

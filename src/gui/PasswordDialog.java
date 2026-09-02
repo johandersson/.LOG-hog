@@ -37,6 +37,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import javax.swing.text.AbstractDocument;
+
+import encryption.CryptoUtils;
 /**
  * Secure password dialog with automatic memory cleanup.
  * 
@@ -47,7 +49,8 @@ import javax.swing.text.AbstractDocument;
  * - PasswordResult supports AutoCloseable for try-with-resources cleanup
  * - All copies are made and returned to prevent exposure of internal buffers
  */
-public class PasswordDialog extends JDialog {
+public final class PasswordDialog extends JDialog {
+    private static final long serialVersionUID = 1L;
     private JPasswordField passwordField;
     private JButton toggleButton;
     private JButton okButton;
@@ -56,10 +59,12 @@ public class PasswordDialog extends JDialog {
     private boolean visible; // default false, no initializer needed
     private String customMessage;
     private PasswordStrengthIndicator strengthIndicator;
+    private final boolean enforceStrongPolicy;
 
     public PasswordDialog(Frame parent, String title, String customMessage, boolean showStrength) {
         super(parent, title, true);
         this.customMessage = customMessage;
+        this.enforceStrongPolicy = showStrength;
         initComponents(showStrength);
         
         // SECURITY: Set close operation to dispose to ensure cleanup
@@ -189,7 +194,12 @@ public class PasswordDialog extends JDialog {
                 @Override
                 public void changedUpdate(javax.swing.event.DocumentEvent e) { updateStrength(); }
                 private void updateStrength() {
-                    strengthIndicator.updateStrength(passwordField.getPassword());
+                    char[] current = passwordField.getPassword();
+                    try {
+                        strengthIndicator.updateStrength(current);
+                    } finally {
+                        CryptoUtils.zeroize(current);
+                    }
                 }
             });
         }
@@ -202,7 +212,19 @@ public class PasswordDialog extends JDialog {
         cancelButton = new StandardButton("Cancel", new Color(0xE0E0E0), new Color(0xB0B0B0));
 
         okButton.addActionListener(e -> {
-            password = passwordField.getPassword();
+            char[] candidate = passwordField.getPassword();
+            if (enforceStrongPolicy) {
+                String policyError = security.PasswordPolicy.validateForNewEncryption(candidate);
+                if (policyError != null) {
+                    javax.swing.JOptionPane.showMessageDialog(this,
+                        policyError,
+                        "Password Too Weak",
+                        javax.swing.JOptionPane.WARNING_MESSAGE);
+                    java.util.Arrays.fill(candidate, '\0');
+                    return;
+                }
+            }
+            password = candidate;
             setVisible(false);
         });
 
@@ -217,21 +239,23 @@ public class PasswordDialog extends JDialog {
         if (showStrength) {
             var generateButton = new StandardButton("Generate", new Color(0xE0E0E0), new Color(0xB0B0B0));
             generateButton.addActionListener(e -> {
-                // Generate a strong password as char array to avoid String in memory
-                char[] generated = PasswordGenerator.generatePassword(20).toCharArray();
-                // SECURITY: Use Document manipulation to avoid internal String copies
+                char[] generated = PasswordGenerator.generatePasswordChars(20);
+                String generatedText = null;
                 try {
+                    // JPasswordField still requires String insertion internally, so keep that copy short-lived.
+                    generatedText = String.valueOf(generated);
                     passwordField.getDocument().remove(0, passwordField.getDocument().getLength());
-                    passwordField.getDocument().insertString(0, new String(generated), null);
+                    passwordField.getDocument().insertString(0, generatedText, null);
                 } catch (Exception ex) {
-                    // Fallback to setText if document manipulation fails
-                    passwordField.setText(new String(generated));
+                    if (generatedText == null) {
+                        generatedText = String.valueOf(generated);
+                    }
+                    passwordField.setText(generatedText);
                 }
                 if (strengthIndicator != null) {
                     strengthIndicator.updateStrength(generated);
                 }
-                // Clear the generated char array from memory
-                java.util.Arrays.fill(generated, '\0');
+                CryptoUtils.zeroize(generated);
             });
             buttonPanel.add(generateButton);
         }
@@ -301,24 +325,36 @@ public class PasswordDialog extends JDialog {
         var dialog = new PasswordDialog(parent, title, null, false);
         dialog.setVisible(true);
         char[] pw = dialog.getPassword();
-        dialog.dispose(); // Explicitly dispose to trigger cleanup
-        return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
+        try {
+            return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
+        } finally {
+            dialog.dispose(); // Explicitly dispose to trigger cleanup
+            CryptoUtils.zeroize(pw);
+        }
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String customMessage) {
         var dialog = new PasswordDialog(parent, title, customMessage, false);
         dialog.setVisible(true);
         char[] pw = dialog.getPassword();
-        dialog.dispose(); // Explicitly dispose to trigger cleanup
-        return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
+        try {
+            return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
+        } finally {
+            dialog.dispose(); // Explicitly dispose to trigger cleanup
+            CryptoUtils.zeroize(pw);
+        }
     }
 
     public static PasswordResult showPasswordDialog(Frame parent, String title, String customMessage, boolean showStrength) {
         var dialog = new PasswordDialog(parent, title, customMessage, showStrength);
         dialog.setVisible(true);
         char[] pw = dialog.getPassword();
-        dialog.dispose(); // Explicitly dispose to trigger cleanup
-        return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
+        try {
+            return new PasswordResult(pw == null ? null : java.util.Arrays.copyOf(pw, pw.length));
+        } finally {
+            dialog.dispose(); // Explicitly dispose to trigger cleanup
+            CryptoUtils.zeroize(pw);
+        }
     }
 
     /**

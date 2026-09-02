@@ -50,6 +50,7 @@ public class TimestampClickHandler {
     /**
      * Callback interface for timestamp clicks.
      */
+    @FunctionalInterface
     public interface TimestampClickListener {
         void onTimestampClick(String timestamp);
     }

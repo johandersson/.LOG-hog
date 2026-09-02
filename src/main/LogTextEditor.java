@@ -24,6 +24,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.util.Base64;
 import java.util.ArrayList;
 
 import javax.swing.AbstractAction;
@@ -50,8 +51,11 @@ import gui.NavItem;
 import gui.SettingsPanel;
 import gui.SystemTrayMenu;
 import gui.LoadingProgressDialog;
+import security.AppPathPolicy;
+import security.SecurityFilePolicy;
 
-public class LogTextEditor extends JFrame {
+public final class LogTextEditor extends JFrame {
+    private static final long serialVersionUID = 1L;
 
     private final Application application;
     private final JList<String> logList = new JList<>();
@@ -108,7 +112,7 @@ public class LogTextEditor extends JFrame {
     private SettingsPanel settingsPanel;
 
     private final java.util.Properties settings = new java.util.Properties();
-    private final java.nio.file.Path settingsPath = java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
+    private final java.nio.file.Path settingsPath = AppPathPolicy.settingsFilePath();
 
     private boolean isLocked;
     private final Object lockObject = new Object();
@@ -159,14 +163,8 @@ public class LogTextEditor extends JFrame {
 
         logFileHandler = (LogFileHandler) application.getLogFileOperations();
 
-        // Load settings file FIRST so all features can use existing settings
-        if (java.nio.file.Files.exists(settingsPath)) {
-            try (java.io.InputStream fis = java.nio.file.Files.newInputStream(settingsPath)) {
-                settings.load(fis);
-            } catch (Exception e) {
-                // Settings will use defaults if load fails
-            }
-        }
+        // Load settings file FIRST so all features can use existing settings.
+        loadSettingsFromDisk();
 
         // Initialize backup manager
         backupManager = new BackupManager(settings);
@@ -221,6 +219,9 @@ public class LogTextEditor extends JFrame {
             // Initialize auto-lock timer
             initializeAutoLock();
 
+            // Persist always-on security defaults to normalize legacy settings.
+            saveSettings();
+
             // Update system tray recent logs menu now that settings are loaded
             SystemTrayMenu.updateRecentLogsMenu();
             
@@ -245,6 +246,28 @@ public class LogTextEditor extends JFrame {
         logListPanel = new LogListPanel(this, logFileHandler, listModel, logList);
         fullLogPanel = new FullLogPanel(this, logFileHandler);
         settingsPanel = new SettingsPanel(this, settings, settingsPath, logFileHandler);
+    }
+
+    private java.nio.file.Path getLegacySettingsPath() {
+        return java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
+    }
+
+    private void loadSettingsFromDisk() {
+        java.nio.file.Path legacyPath = getLegacySettingsPath();
+        java.nio.file.Path sourcePath = java.nio.file.Files.exists(settingsPath) ? settingsPath : legacyPath;
+
+        if (sourcePath == null || !java.nio.file.Files.exists(sourcePath)) {
+            return;
+        }
+
+        try (java.io.InputStream fis = java.nio.file.Files.newInputStream(sourcePath)) {
+            settings.load(fis);
+            if (sourcePath.equals(legacyPath)) {
+                saveSettings();
+            }
+        } catch (Exception e) {
+            // Settings will use defaults if load fails
+        }
     }
 
     public ActionListener copyLogEntryTextToClipBoard() {
@@ -445,6 +468,8 @@ public class LogTextEditor extends JFrame {
         if (java.nio.file.Files.exists(settingsPath)) {
             try (java.io.InputStream fis = java.nio.file.Files.newInputStream(settingsPath)) {
                 settings.load(fis);
+                settings.setProperty("encrypted", "true");
+                saveSettings();
                 settingsPanel.loadCurrentSettings();
                 // Show splash screen on startup if enabled
                 if ("true".equals(settings.getProperty("showSplashOnStartup", "true"))) {
@@ -452,17 +477,15 @@ public class LogTextEditor extends JFrame {
                 }
                 String backupDir = settings.getProperty("backupDirectory", "");
                 logFileHandler.setBackupDirectory(backupDir);
-                String enc = settings.getProperty("encrypted");
                 boolean dataLoaded = false;
-                if ("true".equals(enc)) {
-                    dataLoaded = encryptionHandler.handleEncryptionSetup();
-                } else if (java.nio.file.Files.exists(logFileHandler.getFilePath())
-                           && encryption.EncryptionDetector.hasMagicHeader(logFileHandler.getFilePath())) {
-                    // Mismatch: settings say unencrypted but the file has the LOGH encrypted header.
-                    // Auto-correct settings and route through the normal auth flow to prevent
-                    // loading binary ciphertext as plain text (which causes double error dialogs).
-                    settings.setProperty("encrypted", "true");
-                    dataLoaded = encryptionHandler.handleEncryptionSetup();
+                if (!java.nio.file.Files.exists(logFileHandler.getFilePath())) {
+                    bootstrapEncryptedLogIfNeeded();
+                }
+
+                dataLoaded = encryptionHandler.handleEncryptionSetup();
+                if (!dataLoaded) {
+                    setLocked(true);
+                    return;
                 }
                 if (!dataLoaded) {
                     LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
@@ -495,6 +518,11 @@ public class LogTextEditor extends JFrame {
                 logFileHandler.showErrorDialog("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
             }
         } else {
+            settings.setProperty("encrypted", "true");
+            if (!java.nio.file.Files.exists(logFileHandler.getFilePath())) {
+                bootstrapEncryptedLogIfNeeded();
+            }
+
             LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
             if (java.nio.file.Files.exists(logFileHandler.getFilePath())) {
                 progressDialog.setStatus("Loading log entries...");
@@ -519,18 +547,77 @@ public class LogTextEditor extends JFrame {
     }
 
     private void saveSettings() {
+        try {
+            AppPathPolicy.assertSafeDirectory(settingsPath.getParent());
+            AppPathPolicy.assertSafeRegularFile(settingsPath);
+            java.nio.file.Files.createDirectories(settingsPath.getParent());
+        } catch (Exception ignored) {
+            // Fall through to write attempt for consistent user-facing error behavior.
+        }
+
         try (java.io.OutputStream fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
+            SecurityFilePolicy.ensureOwnerOnlyPermissions(settingsPath);
+            if (!SecurityFilePolicy.isOwnerOnlyAccessEnforced(settingsPath)
+                && !"true".equals(settings.getProperty("permissionsWarningShown", "false"))) {
+                settings.setProperty("permissionsWarningShown", "true");
+                logFileHandler.showErrorDialog("<html><b>⚠️ Security Notice</b><br><br>Strict owner-only file permission verification is unavailable on this platform.<br><br><i>Tip: Ensure your OS account and disk are protected.</i></html>");
+            }
         } catch (Exception e) {
             // Security: Don't expose exception details (Guideline 2-1)
             logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to save application settings.<br><br><i>Tip: Settings may not persist between sessions.</i></html>");
         }
     }
 
+    private void bootstrapEncryptedLogIfNeeded() {
+        Object[] options = {"Create Encrypted", "Cancel"};
+        int choice = DialogHelper.showOptions(
+            this,
+            "Secure Setup",
+            "No Log File Found",
+            "For better security, create an encrypted log file now.",
+            JOptionPane.QUESTION_MESSAGE,
+            options,
+            options[0]
+        );
+
+        if (choice != 0) {
+            return;
+        }
+
+        try (gui.PasswordDialog.PasswordResult pwdResult =
+                 gui.PasswordDialog.showPasswordDialog(this,
+                     "Create Encryption Password",
+                     "Create a password to protect your new log file.",
+                     true)) {
+            char[] password = pwdResult.password;
+            if (password == null || password.length == 0) {
+                return;
+            }
+
+            java.nio.file.Path logPath = logFileHandler.getFilePath();
+            java.nio.file.Files.createDirectories(logPath.getParent());
+
+            logFileHandler.enableEncryption(password);
+            byte[] salt = logFileHandler.getSalt();
+            if (salt != null) {
+                settings.setProperty("encrypted", "true");
+                settings.setProperty("salt", Base64.getEncoder().encodeToString(salt));
+                saveSettings();
+            }
+        } catch (Exception e) {
+            logFileHandler.showErrorDialog("<html><b>🔐 Encryption Setup Failed</b><br><br>Unable to initialize encrypted storage.<br><br><i>Tip: You can retry from Settings.</i></html>");
+        }
+    }
+
     public void manualLock() {
         synchronized (lockObject) {
+            try {
+                logFileHandler.compactEncryptedJournal();
+            } catch (Exception ignored) {}
             logFileHandler.clearSensitiveData();
             backupManager.clearInMemoryHmacKey();
+            fullLogPanel.clearRuntimeCaches();
             // Clear secure clipboard state when locking to minimize exposure
             try {
                 clipboard.SecureClipboardManager.onLock();
@@ -573,7 +660,8 @@ public class LogTextEditor extends JFrame {
      * Reads settings and sets up activity tracking.
      */
     private void initializeAutoLock() {
-        autoLockEnabled = "true".equals(settings.getProperty("autoLockEnabled", "false"));
+        autoLockEnabled = true;
+        settings.setProperty("autoLockEnabled", "true");
         try {
             autoLockTimeoutSeconds = Integer.parseInt(settings.getProperty("autoLockTimeout", "900"));
             // Validate timeout is within reasonable bounds (10 seconds to 24 hours)
@@ -594,7 +682,8 @@ public class LogTextEditor extends JFrame {
      * Updates auto-lock settings and restarts timer if needed.
      */
     public void updateAutoLockSettings(boolean enabled, String timeoutStr) {
-        autoLockEnabled = enabled;
+        autoLockEnabled = true;
+        settings.setProperty("autoLockEnabled", "true");
         try {
             autoLockTimeoutSeconds = Integer.parseInt(timeoutStr);
             // Validate timeout is within reasonable bounds (10 seconds to 24 hours)
@@ -611,7 +700,7 @@ public class LogTextEditor extends JFrame {
             autoLockTimer = null;
         }
 
-        // Start new timer if enabled
+        // Keep auto-lock always enabled.
         if (autoLockEnabled && !isLocked) {
             startAutoLockTimer();
         }
@@ -687,15 +776,17 @@ public class LogTextEditor extends JFrame {
     }
 
     private void initializeSecureClipboard() {
-        // Initialize secure clipboard settings from saved preferences
-        boolean autoClear = "true".equals(settings.getProperty("clipboardAutoClear", "true"));
+        // Keep clipboard auto-clear always enabled.
+        settings.setProperty("clipboardAutoClear", "true");
+        // If a previous run crashed after copying sensitive content, clear clipboard on next start.
+        clipboard.SecureClipboardManager.recoverClipboardAfterCrash();
         int timeout = Integer.parseInt(settings.getProperty("clipboardTimeout", "30"));
         // Validate timeout is within SecureClipboardManager bounds (5-30 seconds)
         if (timeout < 5 || timeout > 30) {
             timeout = 15; // Default to 15 seconds
         }
 
-        clipboard.SecureClipboardManager.setAutoClearEnabled(autoClear);
+        clipboard.SecureClipboardManager.setAutoClearEnabled(true);
         try {
             clipboard.SecureClipboardManager.setTimeoutSeconds(timeout);
         } catch (IllegalArgumentException e) {

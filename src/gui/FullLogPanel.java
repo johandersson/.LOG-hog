@@ -52,8 +52,9 @@ import filehandling.LogFileHandler;
 import filehandling.ParsedLogData;
 import main.LogTextEditor;
 import notepad.NotepadOpener;
+import utils.SafeExecution;
 
-public class FullLogPanel extends LogPanel {
+public final class FullLogPanel extends LogPanel {
     private final HighlightableTextPane fullLogPane;
     private final JLabel fullLogPathLabel;
     private final LogFileHandler logFileHandler;
@@ -88,8 +89,6 @@ public class FullLogPanel extends LogPanel {
         // Register listener so FullLogFileLoader cache and markdown caches are invalidated when filehandler updates
         this.cacheInvalidationListener = () -> {
             fileLoader.invalidateCache();
-            // Invalidate markdown renderer caches so document-level and entry-level caches are cleared
-            markdown.MarkdownRenderer.invalidateAllCaches();
             // If this panel is currently visible, refresh the view so newly saved entries appear
             try {
                 // If part of the tab pane and currently selected, reload without forcing scroll
@@ -242,7 +241,7 @@ public class FullLogPanel extends LogPanel {
     }
 
     public void performSearchInFullLog(String query) {
-        // Legacy method, now handled by SearchDialog
+        // Search interaction is handled by SearchDialog.
         openSearchDialog();
     }
 
@@ -272,7 +271,7 @@ public class FullLogPanel extends LogPanel {
                 return;
             }
             updateButtonStates(false);
-            java.nio.file.Path logPath = java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt");
+            Path logPath = logFileHandler.getFilePath();
             if (!Files.exists(logPath)) {
                 showLogNotFound();
                 return;
@@ -312,12 +311,31 @@ public class FullLogPanel extends LogPanel {
     }
 
     /**
-     * Compatibility overload allowing callers to request a load and receive a callback when started.
+     * Refresh the full log only when this panel is currently visible.
+     * Avoids reparsing and rerendering after saves when the user is not on this tab.
+     */
+    public void refreshIfVisible() {
+        if (isShowing()) {
+            loadFullLog();
+        }
+    }
+
+    /**
+     * Clear cached full-log parsed state and rendered markdown caches.
+     * Used when sensitive runtime state should be dropped immediately.
+     */
+    public void clearRuntimeCaches() {
+        fileLoader.invalidateCache();
+        markdown.MarkdownRenderer.invalidateAllCaches();
+    }
+
+    /**
+     * Loads the full log and invokes a callback after triggering the load.
      */
     public void loadFullLog(Runnable onStarted) {
         loadFullLog();
         if (onStarted != null) {
-            try { onStarted.run(); } catch (Exception ignore) {}
+            SafeExecution.run(onStarted::run);
         }
     }
 
@@ -330,12 +348,20 @@ public class FullLogPanel extends LogPanel {
         SwingUtilities.invokeLater(() -> {
             if (editor.isLocked()) {
                 handleLockedState();
+                suppressAutoLoad = false;
+                if (callback != null) {
+                    callback.run();
+                }
                 return;
             }
             updateButtonStates(false);
-            java.nio.file.Path logPath = java.nio.file.Paths.get(System.getProperty("user.home"), "log.txt");
+            Path logPath = logFileHandler.getFilePath();
             if (!Files.exists(logPath)) {
                 showLogNotFound();
+                suppressAutoLoad = false;
+                if (callback != null) {
+                    callback.run();
+                }
                 return;
             }
             clearEditorForNewLoad(logPath);
@@ -359,13 +385,8 @@ public class FullLogPanel extends LogPanel {
                     fullLoadProgress.setVisible(false);
                     try {
                         ParsedLogData parsedData = get();
-                        // Render on EDT and always scroll to bottom when loading
-                        fileLoader.renderParsedData(parsedData, true);
-                        // Ensure caret is at end and visible
-                        try {
-                            fullLogPane.setCaretPosition(fullLogPane.getDocument().getLength());
-                            fullLogPane.requestFocusInWindow();
-                        } catch (Exception ignored) {}
+                        // Render on EDT without forcing scroll position.
+                        fileLoader.renderParsedData(parsedData, false);
                         LogStatistics stats = new LogStatistics(parsedData.getTotalEntryCount(), parsedData.entriesToRender, logPath);
                         infoPanel.updateStatistics(stats);
                     } catch (Exception ex) {

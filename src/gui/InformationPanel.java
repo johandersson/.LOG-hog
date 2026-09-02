@@ -38,17 +38,18 @@ import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 import markdown.MarkdownStyle;
 
-public class InformationPanel extends JPanel {
+public final class InformationPanel extends JPanel {
+    private static final long serialVersionUID = 1L;
     private String fileName;
     private JTextPane textPane;
 
-    public InformationPanel(JTabbedPane tabPane, String fileNameForText, String title, boolean lazyLoad, boolean showSplash) {
+    public InformationPanel(String fileNameForText, String title, boolean lazyLoad, boolean showSplash) {
         super(new BorderLayout(8, 8));
         this.fileName = fileNameForText;
-        createPanel(tabPane, title, lazyLoad, showSplash);
+        createPanel(title, lazyLoad, showSplash);
     }
 
-    private void createPanel(JTabbedPane tabPanel, String title, boolean lazyLoad, boolean showSplash) {
+    private void createPanel(String title, boolean lazyLoad, boolean showSplash) {
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(12, 12, 12, 12));
 
@@ -71,8 +72,6 @@ public class InformationPanel extends JPanel {
         sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         // vertical scrollbar policy left to default (AS_NEEDED)
         add(sp, BorderLayout.CENTER);
-
-        // 'tabPanel' parameter is unused, kept for compatibility (PMD fix)
 
         if (lazyLoad && !showSplash) {
             var bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -105,7 +104,7 @@ public class InformationPanel extends JPanel {
                 try {
                     String informationTextToDisplay = get();
                     java.util.List<String> lines = informationTextToDisplay == null ? java.util.List.of() : informationTextToDisplay.lines().toList();
-                    MarkdownRenderer.renderMarkdownDirect(textPane, lines);
+                    MarkdownRenderer.renderMarkdownDocument(textPane, lines);
                     LinkHandler.addLinkListeners(textPane);
                     textPane.setCaretPosition(0);
                 } catch (InterruptedException ie) {
@@ -139,7 +138,7 @@ public class InformationPanel extends JPanel {
             if (Files.exists(p2)) return Files.readString(p2, StandardCharsets.UTF_8);
             if (Files.exists(p3)) return Files.readString(p3, StandardCharsets.UTF_8);
         } catch (IOException couldNotReadFile) {
-            return "Could not read " + fileName + " from file system: " + couldNotReadFile.getMessage();
+            return "Could not read " + fileName + " from file system. Code: LHG-INF-1001";
         }
 
         // 2) Try resource locations inside the JAR (several common packaging locations)
@@ -150,7 +149,7 @@ public class InformationPanel extends JPanel {
                     return new String(is.readAllBytes(), StandardCharsets.UTF_8);
                 }
             } catch (IOException e) {
-                return "Could not read " + fileName + " from resources: " + e.getMessage();
+                return "Could not read " + fileName + " from resources. Code: LHG-INF-1002";
             }
         }
 

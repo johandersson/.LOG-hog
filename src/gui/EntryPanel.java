@@ -43,7 +43,8 @@ import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
 import utils.UndoRedoTextArea;
 
-public class EntryPanel extends JPanel {
+public final class EntryPanel extends JPanel {
+    private static final long serialVersionUID = 1L;
     private final JTextArea textArea;
     private final LogTextEditor editor;
     private final JButton saveBtn;
@@ -181,6 +182,7 @@ public class EntryPanel extends JPanel {
         previewBtn.setEnabled(!locked);
         if (locked) {
             textArea.setText("");
+            previewPane.setText("");
             // Switch back to edit mode if in preview mode
             if (isPreviewMode) {
                 togglePreview();

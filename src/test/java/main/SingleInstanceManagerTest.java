@@ -50,7 +50,7 @@ public class SingleInstanceManagerTest {
 
     @Test
     void testIsAnotherInstanceRunningWhenNoInstance() {
-        System.out.println("🧪 Testing instance detection when no other instance running...");
+        testsupport.TestLog.out("🧪 Testing instance detection when no other instance running...");
 
         // First call should return false (no instance running)
         boolean result = SingleInstanceManager.isAnotherInstanceRunning();
@@ -59,36 +59,36 @@ public class SingleInstanceManagerTest {
         // Clean up for other tests
         SingleInstanceManager.releaseLock();
 
-        System.out.println("✅ Instance detection works (no other instance detected)");
+        testsupport.TestLog.out("✅ Instance detection works (no other instance detected)");
     }
 
     @Test
     void testNotifyExistingInstance() {
-        System.out.println("🧪 Testing notification of existing instance...");
+        testsupport.TestLog.out("🧪 Testing notification of existing instance...");
 
         // This method should not throw exceptions (no-op with file locking)
         assertDoesNotThrow(() -> {
             SingleInstanceManager.notifyExistingInstance();
         });
 
-        System.out.println("✅ Notify existing instance handles gracefully");
+        testsupport.TestLog.out("✅ Notify existing instance handles gracefully");
     }
 
     @Test
     void testShowAlreadyRunningDialog() {
-        System.out.println("🧪 Testing already running dialog...");
+        testsupport.TestLog.out("🧪 Testing already running dialog...");
 
         // In headless testing environment, it should not throw exceptions
         assertDoesNotThrow(() -> {
             SingleInstanceManager.showAlreadyRunningDialog();
         });
 
-        System.out.println("✅ Already running dialog handles headless environment gracefully");
+        testsupport.TestLog.out("✅ Already running dialog handles headless environment gracefully");
     }
 
     @Test
     void testFileLockBasics() {
-        System.out.println("🧪 Testing basic file lock behavior...");
+        testsupport.TestLog.out("🧪 Testing basic file lock behavior...");
 
         assertDoesNotThrow(() -> {
             // Test that we can create and lock a file
@@ -104,12 +104,12 @@ public class SingleInstanceManagerTest {
             }
         });
 
-        System.out.println("✅ Basic file lock behavior works correctly");
+        testsupport.TestLog.out("✅ Basic file lock behavior works correctly");
     }
 
     @Test
     void testLockConflict() {
-        System.out.println("🧪 Testing lock conflict detection...");
+        testsupport.TestLog.out("🧪 Testing lock conflict detection...");
 
         assertDoesNotThrow(() -> {
             // Acquire first lock
@@ -131,12 +131,12 @@ public class SingleInstanceManagerTest {
             }
         });
 
-        System.out.println("✅ Lock conflict detection works correctly");
+        testsupport.TestLog.out("✅ Lock conflict detection works correctly");
     }
 
     @Test
     void testReleaseLockIdempotent() {
-        System.out.println("🧪 Testing releaseLock is idempotent...");
+        testsupport.TestLog.out("🧪 Testing releaseLock is idempotent...");
 
         // Calling releaseLock multiple times should not throw
         assertDoesNotThrow(() -> {
@@ -145,12 +145,12 @@ public class SingleInstanceManagerTest {
             SingleInstanceManager.releaseLock();
         });
 
-        System.out.println("✅ releaseLock is idempotent");
+        testsupport.TestLog.out("✅ releaseLock is idempotent");
     }
 
     @Test
     void testLockDirectoryCreation() {
-        System.out.println("🧪 Testing lock directory creation...");
+        testsupport.TestLog.out("🧪 Testing lock directory creation...");
 
         Path lockDir = Path.of(System.getProperty("user.home"), ".loghog");
         
@@ -161,6 +161,6 @@ public class SingleInstanceManagerTest {
         
         SingleInstanceManager.releaseLock();
 
-        System.out.println("✅ Lock directory creation works correctly");
+        testsupport.TestLog.out("✅ Lock directory creation works correctly");
     }
 }

@@ -26,7 +26,7 @@ public class UIIntegrationTest {
             testLogListPanelHelperMethods();
             testUIIntegration();
 
-            System.out.println("SUCCESS: All UI integration tests passed");
+            testsupport.TestLog.out("SUCCESS: All UI integration tests passed");
 
         } finally {
             Files.deleteIfExists(testFile);
@@ -34,7 +34,7 @@ public class UIIntegrationTest {
     }
 
     private static void testLogTextEditorHelperMethods() throws Exception {
-        System.out.println("Testing LogTextEditor helper methods...");
+        testsupport.TestLog.out("Testing LogTextEditor helper methods...");
 
         // Create test data
         LogFileHandler logFileHandler = new LogFileHandler();
@@ -58,11 +58,11 @@ public class UIIntegrationTest {
             throw new RuntimeException("FAIL: Could not load entry content");
         }
 
-        System.out.println("✓ LogTextEditor helper method logic verified");
+        testsupport.TestLog.out("✓ LogTextEditor helper method logic verified");
     }
 
     private static void testLogListPanelHelperMethods() throws Exception {
-        System.out.println("Testing LogListPanel helper methods...");
+        testsupport.TestLog.out("Testing LogListPanel helper methods...");
 
         // Create test data
         LogFileHandler logFileHandler = new LogFileHandler();
@@ -100,11 +100,11 @@ public class UIIntegrationTest {
             throw new RuntimeException("FAIL: loadAndDisplayEntry should handle empty timestamp");
         }
 
-        System.out.println("✓ LogListPanel helper method logic verified");
+        testsupport.TestLog.out("✓ LogListPanel helper method logic verified");
     }
 
     private static void testUIIntegration() throws Exception {
-        System.out.println("Testing UI component integration...");
+        testsupport.TestLog.out("Testing UI component integration...");
 
         // Create test data
         LogFileHandler logFileHandler = new LogFileHandler();
@@ -140,7 +140,7 @@ public class UIIntegrationTest {
             throw new RuntimeException("FAIL: Selected item loading failed");
         }
 
-        System.out.println("✓ UI integration logic verified");
+        testsupport.TestLog.out("✓ UI integration logic verified");
     }
 
     private static void createTestEntries(LogFileHandler logFileHandler, DefaultListModel<String> listModel) throws Exception {
