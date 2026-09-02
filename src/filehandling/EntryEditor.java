@@ -129,32 +129,46 @@ public class EntryEditor {
         List<String> updatedLines = new ArrayList<>();
         boolean inTargetEntry = false;
         int currentOccurrence = 0;
+        boolean previousLineBlank = false;
+        boolean hasSeenEntryTimestamp = false;
 
         for (String line : lines) {
             // Normalize file line timestamps for robust matching with display timestamps.
             String normalizedLineTs = normalizeTimestampForMatching(line);
-            if (normalizedLineTs.equals(rawTs)) {
+            boolean timestampBoundary = isTimestampLine(line) && (!hasSeenEntryTimestamp || previousLineBlank);
+            if (timestampBoundary && normalizedLineTs.equals(rawTs)) {
                 // Found a matching timestamp
                 if (currentOccurrence == occurrence) {
                     inTargetEntry = true;
                     updatedLines.add(line); // keep the timestamp line
                     updatedLines.addAll(Arrays.asList(updatedText.split("\r?\n", -1)));
                     currentOccurrence++;
+                    hasSeenEntryTimestamp = true;
+                    previousLineBlank = line.isBlank();
                     continue;
                 }
                 currentOccurrence++;
+                hasSeenEntryTimestamp = true;
             }
 
             if (inTargetEntry) {
                 // stop skipping when we hit the next timestamp line
-                if (isTimestampLine(line)) {
+                if (timestampBoundary) {
+                    if (!updatedLines.isEmpty() && updatedLines.get(updatedLines.size() - 1).isBlank()) {
+                        updatedLines.remove(updatedLines.size() - 1);
+                    }
                     inTargetEntry = false;
                     updatedLines.add(line); // add the next timestamp line
+                    hasSeenEntryTimestamp = true;
                 }
                 // skip old body lines
             } else {
                 updatedLines.add(line);
             }
+            if (timestampBoundary) {
+                hasSeenEntryTimestamp = true;
+            }
+            previousLineBlank = line.isBlank();
         }
 
         return updatedLines;
@@ -209,12 +223,15 @@ public class EntryEditor {
         // Remove matching entries in one pass
         List<String> updatedLines = new ArrayList<>();
         boolean inDeletedEntry = false;
+        boolean previousLineBlank = false;
+        boolean hasSeenEntryTimestamp = false;
         
         for (String line : lines) {
             String trimmed = line.trim();
             
             // Check if this is a timestamp line
-            if (utils.DateHandler.isTimestamp(trimmed)) {
+            if (utils.DateHandler.isTimestamp(trimmed) && (!hasSeenEntryTimestamp || previousLineBlank)) {
+                hasSeenEntryTimestamp = true;
                 // Get raw timestamp (without any old suffix that might exist in file)
                 String rawTs = trimmed.replaceAll(" \\(\\d+\\)$", "");
                 int currentOccurrence = occurrenceCount.getOrDefault(rawTs, 0);
@@ -224,21 +241,28 @@ public class EntryEditor {
                 Set<Integer> occurrencesToDelete = toDelete.get(rawTs);
                 if (occurrencesToDelete != null && occurrencesToDelete.contains(currentOccurrence)) {
                     inDeletedEntry = true;
+                    previousLineBlank = line.isBlank();
                     continue; // Skip this timestamp line
                 }
                 
                 // Not deleting - if we were in a deleted entry, we're now past it
+                if (inDeletedEntry && !updatedLines.isEmpty() && updatedLines.get(updatedLines.size() - 1).isBlank()) {
+                    updatedLines.remove(updatedLines.size() - 1);
+                }
                 inDeletedEntry = false;
                 updatedLines.add(line);
+                previousLineBlank = line.isBlank();
                 continue;
             }
             
             // Skip lines that are part of a deleted entry
             if (inDeletedEntry) {
+                previousLineBlank = line.isBlank();
                 continue;
             }
             
             updatedLines.add(line);
+            previousLineBlank = line.isBlank();
         }
         
         return updatedLines;

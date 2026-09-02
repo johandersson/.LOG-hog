@@ -24,7 +24,6 @@ import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 import encryption.Encryptor;
 
@@ -239,10 +238,8 @@ public class EntryLoader {
             // Pre-parse timestamps for O(N) instead of O(N log N) parsing during sort
             var timestampEntriesWithDates = new ArrayList<TimestampEntry>();
             var nonTimestampEntries = new ArrayList<List<String>>();
-            var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$");
-            
             for (List<String> entry : allEntries) {
-                if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
+                if (!entry.isEmpty() && LogParser.isPrimaryTimestampLine(entry.get(0))) {
                     // Pre-parse timestamp once
                     LocalDateTime dateTime = null;
                     try {
@@ -293,7 +290,7 @@ public class EntryLoader {
                     // Strip any existing suffix from file (for backwards compatibility)
                     String cleanTs = rawTs.replaceAll(" \\(\\d+\\)$", "");
                     
-                    if (tsPattern.matcher(cleanTs).matches()) {
+                    if (LogParser.isPrimaryTimestampLine(cleanTs)) {
                         // Track occurrence for display suffix
                         int occurrence = occurrenceCount.getOrDefault(cleanTs, 0);
                         occurrenceCount.put(cleanTs, occurrence + 1);
@@ -476,34 +473,12 @@ public class EntryLoader {
             .map(line -> line.replaceAll("^\\d+\\|(\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2})(.*)$", "$1$2"))
             .collect(Collectors.toList());
         
-        // Parse entries
-        List<List<String>> entries = new ArrayList<>();
-        List<String> currentEntry = new ArrayList<>();
-        Pattern tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", Pattern.MULTILINE);
-        
-        for (String line : lines) {
-            String trimmed = line.trim();
-            if (".LOG".equalsIgnoreCase(trimmed)) continue;
-            if (tsPattern.matcher(trimmed).matches()) {
-                if (!currentEntry.isEmpty()) {
-                    entries.add(new ArrayList<>(currentEntry));
-                    currentEntry.clear();
-                }
-                currentEntry.add(line);
-            } else {
-                if (!currentEntry.isEmpty() || !trimmed.isEmpty()) {
-                    currentEntry.add(line);
-                }
-            }
-        }
-        if (!currentEntry.isEmpty()) {
-            entries.add(currentEntry);
-        }
+        List<List<String>> entries = LogParser.parseAllEntries(lines);
         
         // Parse timestamps and create cached entries
         List<ParsedEntry> parsed = new ArrayList<>(entries.size());
         for (List<String> entry : entries) {
-            if (!entry.isEmpty() && tsPattern.matcher(entry.get(0).trim()).matches()) {
+            if (!entry.isEmpty() && LogParser.isPrimaryTimestampLine(entry.get(0))) {
                 String timestamp = entry.get(0).trim();
                 LocalDateTime dateTime = null;
                 try {
@@ -528,11 +503,10 @@ public class EntryLoader {
         // so search/filter operations never return indistinguishable duplicate rows.
         Map<String, Integer> occurrenceCount = new HashMap<>();
         List<ParsedEntry> normalized = new ArrayList<>(parsed.size());
-        Pattern baseTsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}$");
         for (ParsedEntry pe : parsed) {
             String rawTs = pe.timestamp == null ? "" : pe.timestamp.trim();
             String cleanTs = rawTs.replaceAll(" \\(\\d+\\)$", "");
-            if (baseTsPattern.matcher(cleanTs).matches()) {
+            if (LogParser.isPrimaryTimestampLine(cleanTs)) {
                 int occurrence = occurrenceCount.getOrDefault(cleanTs, 0);
                 occurrenceCount.put(cleanTs, occurrence + 1);
                 String displayTs = occurrence > 0 ? cleanTs + " (" + occurrence + ")" : cleanTs;
@@ -600,13 +574,12 @@ public class EntryLoader {
             // timestamps (e.g. "14:30 2025-01-15", "14:30 2025-01-15 (1)", …) each
             // map to their own content, matching exactly what the list model shows.
             entryContentCache.clear();
-            var tsPattern = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}$");
             Map<String, Integer> occCount = new HashMap<>();
             for (List<String> entry : allEntries) {
                 if (entry.isEmpty()) continue;
                 // Strip any existing suffix to get the canonical raw timestamp
                 String rawTs = entry.get(0).trim().replaceAll(" \\(\\d+\\)$", "");
-                if (!tsPattern.matcher(rawTs).matches()) continue;
+                if (!LogParser.isPrimaryTimestampLine(rawTs)) continue;
                 // Assign display key: first occurrence has no suffix, subsequent ones get (1), (2), …
                 int occ = occCount.getOrDefault(rawTs, 0);
                 occCount.put(rawTs, occ + 1);
