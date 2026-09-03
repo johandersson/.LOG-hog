@@ -48,35 +48,40 @@ public class FileEncryptionManager {
         SessionKeyEncryptor sessionEncryptor = requireSessionEncryptor();
         SecretKey activeSessionKey = requireSessionKey();
         gui.LoadingProgressDialog progressDialog = null;
+        boolean showProgress = !java.awt.GraphicsEnvironment.isHeadless();
         Path tmp = utils.SecureTempFiles.createSecureTempFile(filePath.getParent(), filePath.getFileName().toString() + "-", ".tmp", true);
         boolean completed = false;
         try (var in = new utils.LinesInputStream(toEncrypt, LogFileFormat.INTERNAL_LINE_SEPARATOR, java.nio.charset.StandardCharsets.UTF_8);
              var out = Files.newOutputStream(tmp)) {
 
-            progressDialog = new gui.LoadingProgressDialog(null, "Encrypting");
-            progressDialog.setStatus("Encrypting file...");
-            progressDialog.setIndeterminate(false);
+            if (showProgress) {
+                progressDialog = new gui.LoadingProgressDialog(null, "Encrypting");
+                progressDialog.setStatus("Encrypting file...");
+                progressDialog.setIndeterminate(false);
+            }
 
             long total = 0;
             for (String line : toEncrypt) {
                 total += line.getBytes(java.nio.charset.StandardCharsets.UTF_8).length
                     + LogFileFormat.INTERNAL_LINE_SEPARATOR.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
             }
-            progressDialog.setTotalBytes(total);
-            progressDialog.show();
+            ProgressCallback cb = null;
+            if (progressDialog != null) {
+                progressDialog.setTotalBytes(total);
+                progressDialog.show();
+                final gui.LoadingProgressDialog dlg = progressDialog;
+                cb = new ProgressCallback() {
+                    @Override
+                    public void setTotalBytes(long bytes) {
+                        javax.swing.SwingUtilities.invokeLater(() -> dlg.setTotalBytes(bytes));
+                    }
 
-            final gui.LoadingProgressDialog dlg = progressDialog;
-            ProgressCallback cb = new ProgressCallback() {
-                @Override
-                public void setTotalBytes(long bytes) {
-                    javax.swing.SwingUtilities.invokeLater(() -> dlg.setTotalBytes(bytes));
-                }
-
-                @Override
-                public void setProcessedBytes(long bytes) {
-                    javax.swing.SwingUtilities.invokeLater(() -> dlg.setProcessedBytes(bytes));
-                }
-            };
+                    @Override
+                    public void setProcessedBytes(long bytes) {
+                        javax.swing.SwingUtilities.invokeLater(() -> dlg.setProcessedBytes(bytes));
+                    }
+                };
+            }
 
             sessionEncryptor.encryptStream(in, out, activeSessionKey, salt, cb);
             completed = true;

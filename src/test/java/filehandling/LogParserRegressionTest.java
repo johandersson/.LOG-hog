@@ -1,14 +1,15 @@
 package filehandling;
 
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.util.Arrays;
 import java.util.List;
 
-public class LogParserRegressionTest {
-    public static void main(String[] args) {
-        timestampTextInsideEntryDoesNotCreateDuplicateEntry();
-    }
+class LogParserRegressionTest {
 
-    private static void timestampTextInsideEntryDoesNotCreateDuplicateEntry() {
+    @Test
+    void timestampTextInsideEntryDoesNotCreateDuplicateEntry() {
         List<String> lines = Arrays.asList(
             ".LOG",
             "",
@@ -23,14 +24,9 @@ public class LogParserRegressionTest {
         );
 
         List<List<String>> entries = LogParser.parseAllEntries(lines);
-        if (entries.size() != 2) {
-            throw new AssertionError("Expected 2 saved entries, got " + entries.size());
-        }
-        if (!entries.get(0).contains("12:00 2026-09-02")) {
-            throw new AssertionError("Timestamp-like content line should stay in the first entry body");
-        }
-        if (!"12:00 2026-09-02".equals(entries.get(1).get(0))) {
-            throw new AssertionError("The real second saved entry should still be parsed at the separator boundary");
-        }
+        assertEquals(2, entries.size());
+        assertTrue(entries.get(0).contains("12:00 2026-09-02"),
+            "Timestamp-like content line should stay in the first entry body");
+        assertEquals("12:00 2026-09-02", entries.get(1).get(0));
     }
 }

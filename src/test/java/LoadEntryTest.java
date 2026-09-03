@@ -1,104 +1,70 @@
-import javax.swing.*;
-import java.nio.file.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-// Unused import removed for PMD compliance
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
+import static org.junit.jupiter.api.Assertions.*;
 
-import filehandling.LogFileHandler;
+import javax.swing.DefaultListModel;
+import java.nio.file.Path;
+
+import encryption.EncryptionManager;
 import filehandling.EntryLoader;
+import filehandling.LogFileHandler;
 
-/**
- * Simple test to simulate loading entries after encryption unlock
- */
-public class LoadEntryTest {
+class LoadEntryTest {
 
-    public static void main(String[] args) throws Exception {
-        // Use temp file
-        Path testFile = Files.createTempFile("loghog_test", ".txt");
-        LogFileHandler.setTestFilePath(testFile);
+    @TempDir
+    Path tempDir;
 
-        LogFileHandler logFileHandler = new LogFileHandler();
-        EntryLoader entryLoader = new EntryLoader(logFileHandler);
-        DefaultListModel<String> listModel = new DefaultListModel<>();
+    private Path testFile;
+    private LogFileHandler logFileHandler;
+    private EntryLoader entryLoader;
+    private DefaultListModel<String> listModel;
 
-        try {
-            // Create some test data
-            createTestLogFile(logFileHandler, listModel);
-
-            // Load entries to get a timestamp
-            entryLoader.loadLogEntries(listModel);
-            if (listModel.getSize() == 0) {
-                testsupport.TestLog.out("FAIL: No entries loaded");
-                return;
-            }
-            String originalTimestamp = listModel.getElementAt(0);
-            testsupport.TestLog.out("Original timestamp: " + originalTimestamp);
-
-            // Load the entry content before encryption
-            String originalContent = entryLoader.loadEntry(originalTimestamp);
-            if (originalContent == null || originalContent.isEmpty()) {
-                testsupport.TestLog.out("FAIL: Original content empty");
-                return;
-            }
-            testsupport.TestLog.out("Original content: '" + originalContent + "'");
-
-            // Now enable encryption (simulate locking)
-            try {
-                logFileHandler.enableEncryption("testpassword".toCharArray());
-                testsupport.TestLog.out("Encryption enabled");
-                testsupport.TestLog.out("isEncrypted: " + logFileHandler.isEncrypted());
-            } catch (Exception e) {
-                testsupport.TestLog.out("Encryption failed: " + e);
-                return;
-            }
-
-            // Clear list and reload (simulate unlock)
-            listModel.clear();
-            entryLoader.loadLogEntries(listModel);
-            if (listModel.getSize() == 0) {
-                testsupport.TestLog.out("FAIL: No entries after encryption");
-                return;
-            }
-
-            // The timestamp should be the same (display format)
-            String encryptedTimestamp = listModel.getElementAt(0);
-            testsupport.TestLog.out("Encrypted timestamp: " + encryptedTimestamp);
-            if (!originalTimestamp.equals(encryptedTimestamp)) {
-                testsupport.TestLog.out("FAIL: Timestamps don't match");
-                return;
-            }
-
-            // Load the entry content after encryption
-            String encryptedContent = entryLoader.loadEntry(encryptedTimestamp);
-            if (encryptedContent == null || encryptedContent.isEmpty()) {
-                testsupport.TestLog.out("FAIL: Encrypted content empty");
-                return;
-            }
-            testsupport.TestLog.out("Encrypted content: '" + encryptedContent + "'");
-
-            // Content should be the same
-            if (!originalContent.equals(encryptedContent)) {
-                testsupport.TestLog.out("FAIL: Contents don't match");
-                return;
-            }
-
-            testsupport.TestLog.out("SUCCESS: LoadEntry works after encryption unlock");
-
-        } finally {
-            // Clean up
-            Files.deleteIfExists(testFile);
-            logFileHandler.clearSensitiveData();
-        }
+    @BeforeEach
+    void setUp() {
+        testFile = tempDir.resolve("load-entry-test.txt");
+        logFileHandler = new LogFileHandler(testFile, EncryptionManager.getInstance());
+        entryLoader = new EntryLoader(logFileHandler);
+        listModel = new DefaultListModel<>();
     }
 
-    private static void createTestLogFile(LogFileHandler logFileHandler, DefaultListModel<String> listModel) throws Exception {
-        // Create some test entries
-        LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd");
+    @AfterEach
+    void tearDown() {
+        logFileHandler.clearSensitiveData();
+    }
 
-        // Save a few entries
+    @Test
+    void loadEntryStillWorksAfterEnablingEncryption() throws Exception {
+        logFileHandler.enableEncryption("testpassword".toCharArray());
+        createTestEntries();
+        flushEdt();
+
+        entryLoader.loadLogEntries(listModel);
+        flushEdt();
+        assertFalse(listModel.isEmpty());
+
+        String originalTimestamp = listModel.getElementAt(0);
+        String originalContent = entryLoader.loadEntry(originalTimestamp);
+
+        byte[] salt = logFileHandler.getSalt().clone();
+        logFileHandler.clearSensitiveData();
+        logFileHandler.setEncryption("testpassword".toCharArray(), salt);
+        listModel.clear();
+        entryLoader.loadLogEntries(listModel);
+        flushEdt();
+
+        String encryptedTimestamp = listModel.getElementAt(0);
+        String encryptedContent = entryLoader.loadEntry(encryptedTimestamp);
+        assertEquals(originalTimestamp, encryptedTimestamp);
+        assertEquals(originalContent, encryptedContent);
+    }
+
+    private void createTestEntries() {
         logFileHandler.saveText("First test entry\nWith multiple lines\nAnd content that might look like timestamps: 15:30 2025-12-17", listModel);
         logFileHandler.saveText("Second entry", listModel);
         logFileHandler.saveText("Third entry with timestamp-like content: Meeting at 14:00 2025-12-17", listModel);
+    }
+
+    private static void flushEdt() throws Exception {
+        javax.swing.SwingUtilities.invokeAndWait(() -> { });
     }
 }

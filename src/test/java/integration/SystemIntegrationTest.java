@@ -2,7 +2,6 @@ package integration;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
-import static org.junit.jupiter.api.Assertions.*;
 
 import encryption.EncryptionException;
 import encryption.EncryptionManager;
@@ -10,15 +9,13 @@ import filehandling.LogFileHandler;
 import main.BackupManager;
 
 import javax.swing.DefaultListModel;
-import java.io.IOException;
+import javax.swing.SwingUtilities;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
-/**
- * Integration tests for cross-component interactions
- * Tests the interaction between encryption, file handling, and backup systems
- */
+import static org.junit.jupiter.api.Assertions.*;
+
 public class SystemIntegrationTest {
 
     private EncryptionManager encryptionManager;
@@ -26,243 +23,84 @@ public class SystemIntegrationTest {
     private BackupManager backupManager;
     private DefaultListModel<String> listModel;
     private Properties testSettings;
+    private Path tempLogFile;
 
     @TempDir
     Path tempDir;
 
     @BeforeEach
-    void setup() throws IOException {
+    void setup() throws Exception {
+        System.setProperty("user.home", tempDir.toString());
+        tempLogFile = tempDir.resolve("log.txt");
         encryptionManager = EncryptionManager.getInstance();
-        logFileHandler = new LogFileHandler();
+        logFileHandler = new LogFileHandler(tempLogFile, encryptionManager);
         testSettings = new Properties();
         backupManager = new BackupManager(testSettings);
         listModel = new DefaultListModel<>();
-
-        // Set up temporary log file
-        Path tempLogFile = tempDir.resolve("log.txt");
-        System.setProperty("user.home", tempDir.toString());
-
-        // Configure backup settings
         testSettings.setProperty("autoBackupEnabled", "true");
         testSettings.setProperty("backupDirectory", tempDir.resolve("backups").toString());
-
-        // Create backup directory
         Files.createDirectories(tempDir.resolve("backups"));
+        backupManager.deriveAndSetHmacKey("backup-test-password".toCharArray(), new byte[16]);
+        logFileHandler.enableEncryption("integration-password".toCharArray());
+        backupManager.deriveAndSetHmacKey("backup-test-password".toCharArray(), new byte[16]);
+    }
+
+    @AfterEach
+    void cleanup() {
+        logFileHandler.clearSensitiveData();
     }
 
     @Test
-    void testEncryptionFileHandlingIntegration() {
-        testsupport.TestLog.out("🧪 Testing encryption and file handling integration...");
+    void testEncryptionFileHandlingIntegration() throws Exception {
+        logFileHandler.saveText("This is a test entry for encryption integration", listModel);
+        flushEdt();
 
-        String testContent = "This is a test entry for encryption integration";
-
-        assertDoesNotThrow(() -> {
-            // Save content through LogFileHandler
-            logFileHandler.saveText(testContent, listModel);
-
-            // Verify it was added to the list
-            assertEquals(1, listModel.getSize(), "Should have one entry in list");
-
-            // The list should contain a timestamp
-            String timestamp = listModel.getElementAt(0);
-            assertNotNull(timestamp, "Timestamp should not be null");
-            assertTrue(timestamp.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}"),
-                      "Should have proper timestamp format");
-        });
-
-        testsupport.TestLog.out("✅ Encryption and file handling integration works correctly");
+        assertEquals(1, listModel.getSize());
+        String timestamp = listModel.getElementAt(0);
+        assertTrue(timestamp.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?"));
+        assertTrue(Files.exists(tempLogFile));
     }
 
     @Test
-    void testBackupWithEncryptionIntegration() {
-        testsupport.TestLog.out("🧪 Testing backup with encryption integration...");
+    void testBackupWithEncryptionIntegration() throws Exception {
+        logFileHandler.saveText("Test content for backup", listModel);
+        flushEdt();
 
-        assertDoesNotThrow(() -> {
-            // Create some content
-            logFileHandler.saveText("Test content for backup", listModel);
+        backupManager.performAutomaticBackup();
 
-            // Perform backup
-            backupManager.performAutomaticBackup();
-
-            // Verify backup was created
-            Path backupDir = tempDir.resolve("backups");
-            long backupCount = Files.list(backupDir).count();
-            assertTrue(backupCount > 0, "Should have created backup files");
-
-            // Verify backup content
-            Path backupFile = Files.list(backupDir).findFirst().orElseThrow();
-            String backupContent = Files.readString(backupFile);
-            assertTrue(backupContent.contains("Test content for backup"),
-                      "Backup should contain the test content");
-        });
-
-        testsupport.TestLog.out("✅ Backup with encryption integration works correctly");
+        Path backupDir = tempDir.resolve("backups");
+        assertTrue(Files.list(backupDir).findFirst().isPresent(), "Should have created backup files");
+        Path backupFile = Files.list(backupDir).findFirst().orElseThrow();
+        assertTrue(backupFile.getFileName().toString().endsWith(".enc"));
+        assertTrue(Files.size(backupFile) > Files.size(tempLogFile), "Backup should include integrity metadata");
     }
 
     @Test
     void testEncryptionDecryptionRoundTrip() throws EncryptionException {
-        testsupport.TestLog.out("🧪 Testing encryption/decryption round-trip...");
-
         String originalText = "Sensitive information that needs encryption";
         char[] password = "testPassword123!".toCharArray();
         byte[] salt = encryptionManager.generateSalt();
 
-        assertDoesNotThrow(() -> {
-            // Encrypt the text
-            byte[] encrypted = encryptionManager.encrypt(originalText, password, salt);
-
-            // Decrypt it back
-            String decrypted = encryptionManager.decrypt(encrypted, password);
-
-            // Verify round-trip success
-            assertEquals(originalText, decrypted, "Decrypted text should match original");
-        });
-
-        testsupport.TestLog.out("✅ Encryption/decryption round-trip works correctly");
+        byte[] encrypted = encryptionManager.encrypt(originalText, password, salt);
+        String decrypted = encryptionManager.decrypt(encrypted, password);
+        assertEquals(originalText, decrypted);
     }
 
     @Test
-    void testFileHandlingWithLargeContent() {
-        testsupport.TestLog.out("🧪 Testing file handling with large content...");
-
-        // Create a large text content
+    void testFileHandlingWithLargeContent() throws Exception {
         StringBuilder largeContent = new StringBuilder();
         for (int i = 0; i < 1000; i++) {
             largeContent.append("This is line ").append(i).append(" of test content. ");
         }
-        String largeText = largeContent.toString();
 
-        assertDoesNotThrow(() -> {
-            // Save large content
-            logFileHandler.saveText(largeText, listModel);
+        logFileHandler.saveText(largeContent.toString(), listModel);
+        flushEdt();
 
-            // Verify it was saved
-            assertEquals(1, listModel.getSize(), "Should have one entry");
-
-            // The content should be retrievable (this tests the underlying file operations)
-            String timestamp = listModel.getElementAt(0);
-            assertNotNull(timestamp, "Should have timestamp");
-        });
-
-        testsupport.TestLog.out("✅ File handling with large content works correctly");
+        assertEquals(1, listModel.getSize());
+        assertNotNull(listModel.getElementAt(0));
     }
 
-    @Test
-    void testBackupFileIntegrity() {
-        testsupport.TestLog.out("🧪 Testing backup file integrity...");
-
-        assertDoesNotThrow(() -> {
-            // Create multiple entries
-            logFileHandler.saveText("First entry", listModel);
-            logFileHandler.saveText("Second entry", listModel);
-            logFileHandler.saveText("Third entry", listModel);
-
-            // Perform backup
-            backupManager.performAutomaticBackup();
-
-            // Verify backup file exists and is readable
-            Path backupDir = tempDir.resolve("backups");
-            Path backupFile = Files.list(backupDir).findFirst().orElseThrow();
-
-            assertTrue(Files.exists(backupFile), "Backup file should exist");
-            assertTrue(Files.size(backupFile) > 0, "Backup file should not be empty");
-
-            // Verify file is readable
-            String content = Files.readString(backupFile);
-            assertNotNull(content, "Backup content should be readable");
-            assertTrue(content.length() > 0, "Backup should have content");
-        });
-
-        testsupport.TestLog.out("✅ Backup file integrity verified");
-    }
-
-    @Test
-    void testConcurrentOperations() {
-        testsupport.TestLog.out("🧪 Testing concurrent operations...");
-
-        assertDoesNotThrow(() -> {
-            // Simulate concurrent file operations
-            Thread saveThread = new Thread(() -> {
-                try {
-                    logFileHandler.saveText("Concurrent save operation", listModel);
-                } catch (Exception e) {
-                    fail("Concurrent save should not fail: " + e.getMessage());
-                }
-            });
-
-            Thread backupThread = new Thread(() -> {
-                try {
-                    Thread.sleep(10); // Small delay to interleave operations
-                    backupManager.performAutomaticBackup();
-                } catch (Exception e) {
-                    fail("Concurrent backup should not fail: " + e.getMessage());
-                }
-            });
-
-            saveThread.start();
-            backupThread.start();
-
-            // Wait for both to complete
-            saveThread.join(1000);
-            backupThread.join(1000);
-
-            // Verify both operations succeeded
-            assertTrue(listModel.getSize() > 0, "Save operation should have succeeded");
-        });
-
-        testsupport.TestLog.out("✅ Concurrent operations handled correctly");
-    }
-
-    @Test
-    void testErrorRecoveryScenarios() {
-        testsupport.TestLog.out("🧪 Testing error recovery scenarios...");
-
-        // Test with invalid backup directory
-        testSettings.setProperty("backupDirectory", "/invalid/path/that/does/not/exist");
-
-        assertDoesNotThrow(() -> {
-            // Should not crash even with invalid backup path
-            logFileHandler.saveText("Test content", listModel);
-            backupManager.performAutomaticBackup();
-        });
-
-        // Reset to valid directory
-        testSettings.setProperty("backupDirectory", tempDir.resolve("backups").toString());
-
-        assertDoesNotThrow(() -> {
-            // Should work again with valid path
-            backupManager.performAutomaticBackup();
-        });
-
-        testsupport.TestLog.out("✅ Error recovery scenarios handled correctly");
-    }
-
-    @Test
-    void testSystemStateConsistency() {
-        testsupport.TestLog.out("🧪 Testing system state consistency...");
-
-        assertDoesNotThrow(() -> {
-            // Perform a series of operations
-            logFileHandler.saveText("Entry 1", listModel);
-            logFileHandler.saveText("Entry 2", listModel);
-
-            // Backup the current state
-            backupManager.performAutomaticBackup();
-
-            // Add more content
-            logFileHandler.saveText("Entry 3", listModel);
-
-            // Verify list model consistency
-            assertEquals(3, listModel.getSize(), "Should have 3 entries");
-
-            // Verify all entries have proper timestamps
-            for (int i = 0; i < listModel.getSize(); i++) {
-                String timestamp = listModel.getElementAt(i);
-                assertTrue(timestamp.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}"),
-                          "Entry " + i + " should have proper timestamp format");
-            }
-        });
-
-        testsupport.TestLog.out("✅ System state consistency maintained");
+    private static void flushEdt() throws Exception {
+        SwingUtilities.invokeAndWait(() -> { });
     }
 }

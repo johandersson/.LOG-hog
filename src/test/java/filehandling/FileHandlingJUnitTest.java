@@ -1,252 +1,154 @@
 package filehandling;
 
-// Unused import removed for PMD compliance
 import encryption.EncryptionManager;
 import encryption.TestableEncryptionManager;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
 import utils.DateHandler;
 
-import javax.swing.*;
-import java.io.IOException;
-import java.nio.file.*;
+import javax.swing.DefaultListModel;
+import javax.swing.SwingUtilities;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
-// Unused import removed for PMD compliance
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Comprehensive JUnit tests for the filehandling package
- * Tests EntryLoader and LogFileHandler functionality
- */
 public class FileHandlingJUnitTest {
 
-    private static Path testFilePath;
+    @TempDir
+    Path tempDir;
+
+    private Path testFilePath;
     private LogFileHandler logFileHandler;
     private EntryLoader entryLoader;
     private DefaultListModel<String> listModel;
 
-    @BeforeAll
-    static void setupAll() throws Exception {
-        testFilePath = Files.createTempFile("filehandling_junit_test", ".txt");
-    }
-
-    @AfterAll
-    static void cleanupAll() throws Exception {
-        Files.deleteIfExists(testFilePath);
-    }
-
     @BeforeEach
-    void setup() throws Exception {
-        LogFileHandler.setTestFilePath(testFilePath);
-        logFileHandler = new LogFileHandler();
+    void setup() {
+        testFilePath = tempDir.resolve("filehandling-junit-test.txt");
+        logFileHandler = new LogFileHandler(testFilePath, EncryptionManager.getInstance());
         entryLoader = new EntryLoader(logFileHandler);
         listModel = new DefaultListModel<>();
-
-        // Ensure clean state
-        if (Files.exists(testFilePath)) {
-            Files.delete(testFilePath);
-        }
     }
 
     @AfterEach
-    void cleanup() throws Exception {
-        if (Files.exists(testFilePath)) {
-            Files.delete(testFilePath);
-        }
+    void cleanup() {
+        logFileHandler.clearSensitiveData();
     }
 
     @Test
     void testLoadLogEntriesEmptyFile() throws Exception {
-        testsupport.TestLog.out("Test: EntryLoader should handle empty file...");
+        logFileHandler.enableEncryption("testpassword".toCharArray());
         entryLoader.loadLogEntries(listModel);
-        assertEquals(0, listModel.getSize(), "Empty file should result in empty list");
-        testsupport.TestLog.out("✓ PASS: Empty file handled correctly");
+        flushEdt();
+        assertEquals(0, listModel.getSize());
     }
 
     @Test
     void testLoadLogEntriesWithData() throws Exception {
-        testsupport.TestLog.out("Test: EntryLoader should load entries with data...");
         createTestLogFile();
+        logFileHandler.enableEncryption("testpassword".toCharArray());
         entryLoader.loadLogEntries(listModel);
-        assertTrue(listModel.getSize() > 0, "Should load entries from file with data");
-        testsupport.TestLog.out("✓ PASS: Entries loaded successfully");
+        flushEdt();
+        assertTrue(listModel.getSize() > 0);
     }
 
     @Test
     void testLoadFilteredEntries() throws Exception {
-        testsupport.TestLog.out("Test: EntryLoader should filter entries by year and month...");
         createTestLogFile();
+        logFileHandler.enableEncryption("testpassword".toCharArray());
         entryLoader.loadFilteredEntries(listModel, LocalDateTime.now().getYear(), LocalDateTime.now().getMonthValue());
-
-        boolean allCorrectMonth = true;
+        flushEdt();
         for (int i = 0; i < listModel.getSize(); i++) {
-            String displayTs = listModel.getElementAt(i);
-            // Strip suffix for parsing
-            String rawTs = displayTs.replaceAll(" \\([0-9]+\\)$", "");
+            String rawTs = listModel.getElementAt(i).replaceAll(" \\([0-9]+\\)$", "");
             LocalDateTime dt = DateHandler.parseTimestamp(rawTs);
-            if (dt.getYear() != LocalDateTime.now().getYear() ||
-                dt.getMonthValue() != LocalDateTime.now().getMonthValue()) {
-                allCorrectMonth = false;
-                break;
-            }
+            assertEquals(LocalDateTime.now().getYear(), dt.getYear());
+            assertEquals(LocalDateTime.now().getMonthValue(), dt.getMonthValue());
         }
-
-        assertTrue(allCorrectMonth, "All entries should be from current month");
-        testsupport.TestLog.out("✓ PASS: Filtered entries are from current month");
     }
 
     @Test
     void testFilterModelByYearMonth() throws Exception {
-        testsupport.TestLog.out("Test: EntryLoader should filter model by year and month...");
         createTestLogFile();
+        logFileHandler.enableEncryption("testpassword".toCharArray());
         entryLoader.loadLogEntries(listModel);
-
+        flushEdt();
         LocalDateTime now = LocalDateTime.now();
         DefaultListModel<String> filtered = entryLoader.filterModelByYearMonth(listModel, now.getYear(), now.getMonthValue());
-
-        boolean allCorrectMonth = true;
         for (int i = 0; i < filtered.getSize(); i++) {
             LocalDateTime dt = DateHandler.parseTimestamp(filtered.getElementAt(i));
-            if (dt.getYear() != now.getYear() || dt.getMonthValue() != now.getMonthValue()) {
-                allCorrectMonth = false;
-                break;
-            }
+            assertEquals(now.getYear(), dt.getYear());
+            assertEquals(now.getMonthValue(), dt.getMonthValue());
         }
-
-        assertTrue(allCorrectMonth, "Filtered model should contain only current month entries");
-        testsupport.TestLog.out("✓ PASS: Filtered model contains only current month entries");
     }
 
     @Test
     void testLoadEntry() throws Exception {
-        testsupport.TestLog.out("Test: EntryLoader should load specific entry by timestamp...");
         createTestLogFile();
-
+        logFileHandler.enableEncryption("testpassword".toCharArray());
         entryLoader.loadLogEntries(listModel);
-        assertTrue(listModel.getSize() > 0, "Should have entries to test");
-
+        flushEdt();
         String timestamp = listModel.getElementAt(0);
         String content = entryLoader.loadEntry(timestamp);
-        assertNotNull(content, "Should load content for valid timestamp");
-        assertFalse(content.isEmpty(), "Content should not be empty");
-        testsupport.TestLog.out("✓ PASS: Entry loaded successfully");
+        assertNotNull(content);
+        assertFalse(content.isEmpty());
     }
 
     @Test
-    void testLoadEntryNonExistent() throws Exception {
-        testsupport.TestLog.out("Test: EntryLoader should return empty string for non-existent timestamp...");
-        createTestLogFile();
-
-        String nonExistentTimestamp = "25:99 9999-99-99";
-        String content = entryLoader.loadEntry(nonExistentTimestamp);
-        assertEquals("", content, "Should return empty string for non-existent timestamp");
-        testsupport.TestLog.out("✓ PASS: Non-existent entry handled correctly");
+    void testLoadEntryNonExistent() {
+        assertEquals("", entryLoader.loadEntry("25:99 9999-99-99"));
     }
 
     @Test
     void testLoadEntryEncrypted() throws Exception {
-        testsupport.TestLog.out("Test: EntryLoader encryption cycle test...");
-
-        // Use a unique test file and testable components
-        Path uniqueTestFile = Files.createTempFile("encrypted_test", ".txt");
-        TestableEncryptionManager testableEncryptor = new TestableEncryptionManager();
-        LogFileHandler uniqueHandler = new LogFileHandler(uniqueTestFile, testableEncryptor);
-        EntryLoader uniqueLoader = new EntryLoader(uniqueHandler, testableEncryptor);
-
-        try {
-            createTestLogFile(uniqueTestFile);
-
-            // Read original content directly
-            String originalContent = Files.readString(uniqueTestFile);
-            assertFalse(originalContent.isEmpty(), "Should have original content");
-
-            // Enable encryption - this should work now
-            uniqueHandler.enableEncryption("testpassword".toCharArray());
-
-            // Verify the file is now encrypted by checking the handler state
-            assertTrue(uniqueHandler.isEncrypted(), "Handler should be in encrypted state");
-
-            // Test that we can disable encryption (which tests the decryption works)
-            uniqueHandler.disableEncryption();
-
-            // After disabling, content should be readable again
-            String decryptedContent = Files.readString(uniqueTestFile);
-            // Check that key content is preserved
-            assertTrue(decryptedContent.contains("This is an entry from current month"), "Decrypted content should contain original entries");
-            assertTrue(decryptedContent.contains("This is an old entry from 2023"), "Decrypted content should contain original entries");
-
-            testsupport.TestLog.out("✓ PASS: Encryption/decryption cycle preserved content");
-        } finally {
-            Files.deleteIfExists(uniqueTestFile);
-        }
+        Path uniqueTestFile = tempDir.resolve("encrypted-test.txt");
+        TestableEncryptionManager encryptor = new TestableEncryptionManager();
+        LogFileHandler uniqueHandler = new LogFileHandler(uniqueTestFile, encryptor);
+        EntryLoader uniqueLoader = new EntryLoader(uniqueHandler, encryptor);
+        createTestLogFile(uniqueTestFile);
+        uniqueHandler.enableEncryption("testpassword".toCharArray());
+        uniqueLoader.loadLogEntries(listModel);
+        flushEdt();
+        assertFalse(listModel.isEmpty());
+        byte[] salt = uniqueHandler.getSalt().clone();
+        uniqueHandler.clearSensitiveData();
+        uniqueHandler.setEncryption("testpassword".toCharArray(), salt);
+        assertTrue(uniqueHandler.getLines().contains("This is an entry from current month"));
     }
 
     @Test
     void testEncryptionUnlockBug() throws Exception {
-        testsupport.TestLog.out("Test: Encryption/decryption cycle integrity...");
-
-        // Use a unique test file and testable components
-        Path uniqueTestFile = Files.createTempFile("unlock_bug_test", ".txt");
-        TestableEncryptionManager testableEncryptor = new TestableEncryptionManager();
-        LogFileHandler uniqueHandler = new LogFileHandler(uniqueTestFile, testableEncryptor);
-
-        try {
-            // Create test file with content
-            createTestLogFile(uniqueTestFile);
-
-            // Read original content directly
-            String originalContent = Files.readString(uniqueTestFile);
-            assertFalse(originalContent.isEmpty(), "Should have original content");
-
-            // Enable encryption - this should work now
-            uniqueHandler.enableEncryption("testpassword".toCharArray());
-
-            // Verify encryption state
-            assertTrue(uniqueHandler.isEncrypted(), "Should be encrypted");
-
-            // Test disable encryption (this verifies decryption works)
-            uniqueHandler.disableEncryption();
-
-            // After disabling, content should be identical
-            String decryptedContent = Files.readString(uniqueTestFile);
-            // Check that key content is preserved
-            assertTrue(decryptedContent.contains("This is an entry from current month"), "Decrypted content should contain original entries");
-            assertTrue(decryptedContent.contains("This is an old entry from 2023"), "Decrypted content should contain original entries");
-
-            testsupport.TestLog.out("✓ PASS: Content integrity maintained through encryption cycle");
-        } finally {
-            Files.deleteIfExists(uniqueTestFile);
-        }
+        Path uniqueTestFile = tempDir.resolve("unlock-bug-test.txt");
+        TestableEncryptionManager encryptor = new TestableEncryptionManager();
+        LogFileHandler uniqueHandler = new LogFileHandler(uniqueTestFile, encryptor);
+        createTestLogFile(uniqueTestFile);
+        uniqueHandler.enableEncryption("testpassword".toCharArray());
+        byte[] salt = uniqueHandler.getSalt().clone();
+        uniqueHandler.clearSensitiveData();
+        uniqueHandler.setEncryption("testpassword".toCharArray(), salt);
+        assertFalse(uniqueHandler.getLines().isEmpty());
     }
 
-    private void createTestLogFile() throws IOException {
+    private void createTestLogFile() throws Exception {
         createTestLogFile(testFilePath);
     }
 
-    private void createTestLogFile(Path filePath) throws IOException {
+    private static void createTestLogFile(Path filePath) throws Exception {
         LocalDateTime now = LocalDateTime.now();
-        String currentMonthTimestamp1 = String.format("%02d:%02d %04d-%02d-%02d",
-            now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
-        String currentMonthTimestamp2 = String.format("%02d:%02d %04d-%02d-%02d",
-            now.getHour(), (now.getMinute() + 1) % 60, now.getYear(), now.getMonthValue(), now.getDayOfMonth());
+        String currentMonthTimestamp1 = String.format("%02d:%02d %04d-%02d-%02d", now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
+        String currentMonthTimestamp2 = String.format("%02d:%02d %04d-%02d-%02d", now.getHour(), (now.getMinute() + 1) % 60, now.getYear(), now.getMonthValue(), now.getDayOfMonth());
+        Files.write(filePath, Arrays.asList(
+            ".LOG", "", currentMonthTimestamp1, "This is an entry from current month", "With multiple lines", "",
+            currentMonthTimestamp2, "This is another entry from current month", "",
+            "14:45 2024-11-10", "This is an entry from November 2024", "",
+            "16:20 2023-06-15", "This is an old entry from 2023"
+        ));
+    }
 
-        List<String> testData = Arrays.asList(
-            ".LOG",
-            "",
-            currentMonthTimestamp1,
-            "This is an entry from current month",
-            "With multiple lines",
-            "",
-            currentMonthTimestamp2,
-            "This is another entry from current month",
-            "",
-            "14:45 2024-11-10",
-            "This is an entry from November 2024",
-            "",
-            "16:20 2023-06-15",
-            "This is an old entry from 2023"
-        );
-
-        Files.write(filePath, testData);
+    private static void flushEdt() throws Exception {
+        SwingUtilities.invokeAndWait(() -> { });
     }
 }

@@ -378,8 +378,11 @@ public class EntryEditor {
         }
 
         List<String> decryptedLines = incrementalJournal.readMergedLines();
-        if (decryptedLines == null || decryptedLines.isEmpty()) {
+        if (decryptedLines == null) {
             throw new IllegalStateException("Refusing encrypted save: source file is non-empty but decrypted content is empty. This prevents accidental overwrite.");
+        }
+        if (decryptedLines.isEmpty()) {
+            return new ArrayList<>();
         }
 
         cache.updateCachedLines(decryptedLines);
