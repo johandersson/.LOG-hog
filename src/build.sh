@@ -35,7 +35,6 @@ jar cvfm "$SCRIPT_DIR/../build/$JAR_NAME" "$SCRIPT_DIR/manifest.txt" \
     gui/*.class \
     filehandling/*.class \
     clipboard/*.class \
-    notepad/*.class \
     browser/*.class \
     encryption/*.class \
     markdown/*.class \

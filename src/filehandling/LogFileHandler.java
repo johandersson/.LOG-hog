@@ -452,6 +452,21 @@ public class LogFileHandler implements LogFileOperations {
         }
     }
 
+    /**
+     * Runs {@link #changeTimestamp} on a background thread while showing a progress
+     * dialog, so rewriting a large log file does not freeze the UI.
+     *
+     * @param displayTimestamp the timestamp as shown in the UI
+     * @param newTimestamp the new raw timestamp
+     * @param listModel the list model to refresh after the change
+     * @param onComplete callback run on the EDT once the change has been applied
+     */
+    public void changeTimestampAsync(String displayTimestamp, String newTimestamp,
+                                     DefaultListModel<String> listModel, Runnable onComplete) {
+        asyncSaver.runWithProgressAsync("Saving", "Updating timestamp...",
+            () -> changeTimestamp(displayTimestamp, newTimestamp, listModel), onComplete);
+    }
+
     // delete certain log entry
     private void deleteLogEntry(String timeStamp, DefaultListModel<String> listModel) {
         deleteLogEntries(List.of(timeStamp), listModel);

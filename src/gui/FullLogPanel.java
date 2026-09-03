@@ -47,11 +47,9 @@ import javax.swing.JProgressBar;
 import java.time.LocalDateTime;
 
 import filehandling.FullLogFileLoader;
-import filehandling.LogFileFormatter;
 import filehandling.LogFileHandler;
 import filehandling.ParsedLogData;
 import main.LogTextEditor;
-import notepad.NotepadOpener;
 import utils.SafeExecution;
 
 public final class FullLogPanel extends LogPanel {
@@ -61,9 +59,7 @@ public final class FullLogPanel extends LogPanel {
     private final LogTextEditor editor;
     private final JButton lockFileButton;
     private final JButton copyFullLogButton;
-    private final JButton openInNotepadButton;
     private final JButton searchButton;
-    private final JButton formatButton;
     private final LogInfoPanel infoPanel;
     private final JProgressBar fullLoadProgress;
     private SearchDialog searchDialog;
@@ -101,14 +97,7 @@ public final class FullLogPanel extends LogPanel {
         this.fullLogPathLabel = new JLabel("Log file: (not loaded)");
         this.lockFileButton = new AccentButton(editor.isLocked() ? "Unlock File" : "Lock File");
         this.copyFullLogButton = new AccentButton("Copy Full Log to Clipboard");
-
-        // Platform-specific button label
-        String os = System.getProperty("os.name").toLowerCase();
-        String buttonLabel = os.contains("windows") ? "Open in Notepad" : "Open in Text Editor";
-        this.openInNotepadButton = new AccentButton(buttonLabel);
-
         this.searchButton = new AccentButton("Search");
-        this.formatButton = new AccentButton("Fix Linebreak Formatting");
 
         // Initialize info panel component
         this.infoPanel = new LogInfoPanel();
@@ -179,8 +168,6 @@ public final class FullLogPanel extends LogPanel {
         buttonPanel.setOpaque(false);
         copyFullLogButton.addActionListener(e -> copyFullLogToClipboard());
         buttonPanel.add(copyFullLogButton);
-        openInNotepadButton.addActionListener(e -> openInExternalEditor());
-        buttonPanel.add(openInNotepadButton);
         lockFileButton.addActionListener(e -> {
             if (editor.isLocked()) {
                 editor.manualUnlock();
@@ -204,9 +191,6 @@ public final class FullLogPanel extends LogPanel {
         searchButton.addActionListener(e -> openSearchDialog());
         rightBottomPanel.add(searchButton);
 
-        formatButton.addActionListener(e -> fixLinebreakFormatting());
-        rightBottomPanel.add(formatButton);
-
         return rightBottomPanel;
     }
 
@@ -224,7 +208,6 @@ public final class FullLogPanel extends LogPanel {
     public void updateLockButton() {
         lockFileButton.setText(editor.isLocked() ? "Unlock File" : "Lock File");
         searchButton.setEnabled(!editor.isLocked());
-        formatButton.setEnabled(!editor.isLocked());
     }
 
     public void clearSearch() {
@@ -236,7 +219,6 @@ public final class FullLogPanel extends LogPanel {
 
     private void updateButtonStates(boolean locked) {
         copyFullLogButton.setEnabled(!locked);
-        openInNotepadButton.setEnabled(!locked);
         updateLockButton();
     }
 
@@ -449,32 +431,6 @@ public final class FullLogPanel extends LogPanel {
         resetLogStatistics();
     }
     
-    private void openInExternalEditor() {
-        // Warn if file is encrypted
-        if (logFileHandler.isEncrypted()) {
-            int choice = DialogHelper.showOptions(
-                this,
-                "Encrypted File Warning",
-                "⚠️ File is Encrypted",
-                "Your log file is encrypted with AES-256 encryption.<br>" +
-                "Opening it in a text editor will show encrypted data (unreadable gibberish),<br>" +
-                "not your actual log entries.<br><br>" +
-                "<b>To read the content:</b><br>" +
-                "• Use the Full Log view in .LOG-hog (decrypts automatically)<br>" +
-                "• Or disable encryption first in Settings<br><br>" +
-                "Do you still want to open the encrypted file?",
-                JOptionPane.WARNING_MESSAGE,
-                new Object[]{"Open Anyway", "Cancel"},
-                "Cancel"
-            );
-            
-            if (choice != 0) { // User chose Cancel or closed dialog
-                return;
-            }
-        }
-        
-        NotepadOpener.openLogInNotepad();
-    }
 
     @Override
     public void loadLog() {
@@ -491,29 +447,6 @@ public final class FullLogPanel extends LogPanel {
         return fullLogPane;
     }
 
-    /**
-     * Fixes linebreak formatting in the log file by normalizing spacing between entries.
-     * Creates a backup before modifying the file and shows progress during the operation.
-     */
-    private void fixLinebreakFormatting() {
-        if (editor.isLocked()) {
-            DialogHelper.showFileLocked(this);
-            return;
-        }
-        
-        // Confirm action
-        if (!DialogHelper.confirm(this,
-            "Confirm Formatting",
-            "Fix Linebreak Formatting",
-            "This will normalize spacing between log entries to ensure consistency.<br>" +
-            "A backup will be created automatically before making changes.<br><br>" +
-            "Do you want to continue?")) {
-            return;
-        }
-        
-        Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
-        LogFileFormatter.performFormatting(parentFrame, logFileHandler, this::loadFullLog);
-    }
     
     /**
      * Opens the specified entry for editing in the Log List tab.
@@ -765,7 +698,9 @@ public final class FullLogPanel extends LogPanel {
 
         Thread loader = new Thread(() -> {
             try {
-                editor.loadLogEntries();
+                // Load without the date filter: this fallback runs when the timestamp
+                // could not be parsed, so the entry may be outside the active filter.
+                editor.loadAllLogEntries();
                 SwingUtilities.invokeLater(() -> {
                     int idx = findMatchingEntry(listModel, timestamp, targetContent);
                     if (idx >= 0) {

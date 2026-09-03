@@ -326,7 +326,22 @@ public final class LogTextEditor extends JFrame {
         actionHandler.saveLogEntry();
     }
 
+    /**
+     * Reloads all entries from the log file and then re-applies the filter that is
+     * currently selected in the Log List view, so the list content always matches
+     * the year/month selection shown to the user.
+     */
     public void loadLogEntries() throws Exception {
+        loadAllLogEntries();
+        if (logListPanel != null) {
+            logListPanel.refreshYearsAndApplyFilter();
+        }
+    }
+
+    /**
+     * Reloads all entries without applying the Log List date filter.
+     */
+    public void loadAllLogEntries() throws Exception {
         logFileHandler.loadLogEntries(listModel);
         updateLogListView();
     }

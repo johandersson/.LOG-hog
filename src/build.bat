@@ -43,7 +43,7 @@ REM Include compiled classes, resource directory and any top-level text resource
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format \"yyyy-MM-dd-HH_mm\""') do set "BUILD_TS=%%i"
 if "%BUILD_TS%"=="" set "BUILD_TS=unknown"
 set "JAR_NAME=loghog-%BUILD_TS%.jar"
-jar cvfm "%~dp0build\%JAR_NAME%" manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class notepad/*.class browser/*.class encryption/*.class security/*.class markdown/*.class main/*.class services/*.class utils/*.class resources/ *.txt resources/*
+jar cvfm "%~dp0build\%JAR_NAME%" manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class browser/*.class encryption/*.class security/*.class markdown/*.class main/*.class services/*.class utils/*.class resources/ *.txt resources/*
 if %errorlevel% neq 0 (
     popd
     echo JAR packaging failed.
