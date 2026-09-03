@@ -498,8 +498,21 @@ public class LogFileHandler implements LogFileOperations {
             
             // Update list model if provided
             if (listModel != null) {
-                for (String ts : timestamps) {
-                    listModel.removeElement(ts);
+                // Rebuild the model in a single O(n) pass instead of calling
+                // removeElement() per timestamp, which is O(n) per call (linear
+                // search + shift) and O(n * k) overall for a batch of k deletions.
+                java.util.Set<String> toRemove = new java.util.HashSet<>(timestamps);
+                int size = listModel.getSize();
+                List<String> remaining = new ArrayList<>(size);
+                for (int i = 0; i < size; i++) {
+                    String el = listModel.getElementAt(i);
+                    if (!toRemove.contains(el)) {
+                        remaining.add(el);
+                    }
+                }
+                listModel.removeAllElements();
+                for (String el : remaining) {
+                    listModel.addElement(el);
                 }
                 // Re-number "(n)" occurrence suffixes for any remaining entries that share a
                 // raw timestamp with a deleted entry. Without this, stale suffixes (e.g. "(2)")
