@@ -33,6 +33,7 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
@@ -54,7 +55,9 @@ public final class EntryPanel extends JPanel {
     private final JScrollPane previewScrollPane;
     private final JPanel textContainer;
     private final HighlightableTextPane previewPane;
+    private final JProgressBar saveProgressBar;
     private boolean isPreviewMode; // default false, no initializer needed
+    private boolean isLockedState; // default false, no initializer needed
 
     public EntryPanel(LogTextEditor editor) {
         this.editor = editor;
@@ -66,6 +69,7 @@ public final class EntryPanel extends JPanel {
         this.previewPane = new HighlightableTextPane();
         this.previewScrollPane = new JScrollPane(previewPane);
         this.textContainer = new JPanel(new BorderLayout());
+        this.saveProgressBar = new JProgressBar();
         initPanel();
     }
 
@@ -107,6 +111,11 @@ public final class EntryPanel extends JPanel {
         bottom.setBackground(Color.WHITE);
         previewBtn.addActionListener(e -> togglePreview());
         saveBtn.addActionListener(e -> editor.saveLogEntry());
+        // Integrated progress indicator, matching the Full Log view
+        saveProgressBar.setIndeterminate(true);
+        saveProgressBar.setVisible(false);
+        saveProgressBar.setPreferredSize(new java.awt.Dimension(140, 16));
+        bottom.add(saveProgressBar);
         bottom.add(previewBtn);
         bottom.add(saveBtn);
         add(bottom, BorderLayout.SOUTH);
@@ -172,11 +181,30 @@ public final class EntryPanel extends JPanel {
         return outer;
     }
 
+    /**
+     * Shows or hides the inline progress bar used while an entry is being saved.
+     * Safe to call from any thread.
+     *
+     * @param inProgress true while a save is running
+     */
+    public void setSaveInProgress(boolean inProgress) {
+        Runnable update = () -> {
+            saveProgressBar.setVisible(inProgress);
+            saveBtn.setEnabled(!inProgress && !isLockedState);
+        };
+        if (javax.swing.SwingUtilities.isEventDispatchThread()) {
+            update.run();
+        } else {
+            javax.swing.SwingUtilities.invokeLater(update);
+        }
+    }
+
     public JTextArea getTextArea() {
         return textArea;
     }
 
     public void setLocked(boolean locked) {
+        isLockedState = locked;
         textArea.setEditable(!locked);
         saveBtn.setEnabled(!locked);
         previewBtn.setEnabled(!locked);

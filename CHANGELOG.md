@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **"Open in Notepad" / "Open in Text Editor" button** and the underlying `NotepadOpener` helper
+- **"Fix Linebreak Formatting" button** and the underlying `LogFileFormatter` helper
+
+### Fixed
+- **Log list date filter now applied on load** - the list no longer shows every entry while the filter controls show the current year/month
+- **All years selectable** in the log list year selector; the selection is preserved when the year list is refreshed
+- **Faster date/time editing** - the timestamp change runs off the UI thread with progress feedback and no longer reparses the log file multiple times
+- **Integrated progress bar on the entry tab** while saving, matching the full log view
+
 ### Security (April 2026)
 - **Clipboard default timeout reduced** from 30s to 15s for tighter security
 - **Secure cache clearing on lock** - all cached data overwritten before clearing to prevent memory forensics

@@ -221,10 +221,15 @@ public class ActionHandler {
         }
         // Save asynchronously to avoid UI freeze
         String textToSave = editor.getEntryPanel().getTextArea().getText();
+        if (textToSave == null || textToSave.isBlank()) return;
+        // Show the integrated progress bar for the whole save + list refresh
+        editor.getEntryPanel().setSaveInProgress(true);
         logFileHandler.saveTextAsync(textToSave, listModel, () -> {
             javax.swing.SwingUtilities.invokeLater(() -> {
+                editor.getEntryPanel().setSaveInProgress(false);
                 editor.getEntryPanel().getTextArea().setText("");
                 editor.updateLogListView();
+                logListPanel.refreshYearsAndApplyFilter();
                 fullLogPanel.refreshIfVisible();
                 SystemTrayMenu.updateRecentLogsMenu();
                 Toast.showToast(editor, "Entry saved successfully!");
@@ -334,15 +339,20 @@ public class ActionHandler {
         // Store plain timestamp (no suffix) - suffixes are display-only
         String plainTimestamp = newDateTime.trim();
 
-        // update
-        logFileHandler.changeTimestamp(selectedItem, plainTimestamp, listModel);
-        try {
-            editor.loadLogEntries();
-        } catch (Exception e) {
-            // Failed to reload entries after timestamp change
-        }
-        // reload full log and update menu
-        fullLogPanel.loadFullLog();
-        SystemTrayMenu.updateRecentLogsMenu();
+        // Update off the EDT with progress feedback. changeTimestamp already rebuilds the
+        // entry list from the freshly parsed file, so only the filter needs re-applying —
+        // reloading the entries again here would reparse the whole file a second time.
+        logFileHandler.changeTimestampAsync(selectedItem, plainTimestamp, listModel, () -> {
+            // Keep the edited entry visible by filtering on its (possibly new) year/month
+            try {
+                java.time.LocalDateTime dt = utils.DateHandler.parseTimestamp(plainTimestamp);
+                logListPanel.setFilterAndApply(dt.getYear(), dt.getMonthValue());
+            } catch (Exception ex) {
+                logListPanel.applyCurrentFilter(null);
+            }
+            // Only re-render the full log when it is actually visible
+            fullLogPanel.refreshIfVisible();
+            SystemTrayMenu.updateRecentLogsMenu();
+        });
     }
 }

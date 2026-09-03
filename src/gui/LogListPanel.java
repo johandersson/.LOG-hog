@@ -80,6 +80,7 @@ public final class LogListPanel extends JPanel {
     private final JScrollPane previewScrollPane;
     private boolean isPreviewMode = false;
     private boolean suppressFilterEvents = false;
+    private boolean initialFilterApplied = false;
     private JComboBox<Integer> yearCombo;
     private JComboBox<String> monthCombo;
     private final LogInfoPanel infoPanel;
@@ -258,6 +259,16 @@ public final class LogListPanel extends JPanel {
      * and update the combo model on the EDT. Safe to call repeatedly.
      */
     public void refreshAvailableYearsAsync() {
+        refreshAvailableYearsAsync(null);
+    }
+
+    /**
+     * Refresh the available years and run a callback on the EDT once the year
+     * selector has been updated.
+     *
+     * @param onComplete callback run on the EDT after the combo has been refreshed (may be null)
+     */
+    public void refreshAvailableYearsAsync(Runnable onComplete) {
         new SwingWorker<java.util.List<Integer>, Void>() {
             @Override
             protected java.util.List<Integer> doInBackground() throws Exception {
@@ -290,20 +301,93 @@ public final class LogListPanel extends JPanel {
             protected void done() {
                 try {
                     java.util.List<Integer> yearsList = get();
-                    if (yearsList != null && !yearsList.isEmpty()) {
-                        Integer[] yearsArr = yearsList.toArray(new Integer[0]);
-                        // Update combo model without triggering filter/search events
-                        boolean prevSuppress = suppressFilterEvents;
-                        suppressFilterEvents = true;
-                        try {
-                            yearCombo.setModel(new javax.swing.DefaultComboBoxModel<>(yearsArr));
-                            yearCombo.setSelectedItem(yearsArr[0]);
-                        } finally {
-                            suppressFilterEvents = prevSuppress;
-                        }
+                    // Always keep the current year and the active selection selectable so the
+                    // user can never end up with a year they cannot pick again.
+                    java.util.TreeSet<Integer> years = new java.util.TreeSet<>(java.util.Comparator.reverseOrder());
+                    if (yearsList != null) {
+                        years.addAll(yearsList);
+                    }
+                    years.add(Year.now().getValue());
+                    Integer previousSelection = (Integer) yearCombo.getSelectedItem();
+                    if (previousSelection != null) {
+                        years.add(previousSelection);
+                    }
+
+                    Integer[] yearsArr = years.toArray(new Integer[0]);
+                    // Update combo model without triggering filter/search events
+                    boolean prevSuppress = suppressFilterEvents;
+                    suppressFilterEvents = true;
+                    try {
+                        yearCombo.setModel(new javax.swing.DefaultComboBoxModel<>(yearsArr));
+                        // Preserve the user's selection; fall back to the most recent year
+                        yearCombo.setSelectedItem(previousSelection != null ? previousSelection : yearsArr[0]);
+                    } finally {
+                        suppressFilterEvents = prevSuppress;
                     }
                 } catch (Exception ignored) {
                     // keep current year fallback
+                } finally {
+                    if (onComplete != null) {
+                        onComplete.run();
+                    }
+                }
+            }
+        }.execute();
+    }
+
+    /**
+     * Applies the filter currently selected in the year/month combos.
+     *
+     * @param onComplete callback run on the EDT after the list model has been updated (may be null)
+     */
+    public void applyCurrentFilter(Runnable onComplete) {
+        applyFilterWithCallback(onComplete);
+    }
+
+    /**
+     * Refreshes the year selector and then applies the currently selected filter, so the
+     * list content always matches what the filter controls show. On the very first
+     * application the filter falls back to the most recent entry's year/month when the
+     * default (current year/month) yields no entries.
+     */
+    public void refreshYearsAndApplyFilter() {
+        boolean firstApply = !initialFilterApplied;
+        initialFilterApplied = true;
+        refreshAvailableYearsAsync(() ->
+            applyFilterWithCallback(firstApply ? this::fallbackToMostRecentIfEmpty : null));
+    }
+
+    /**
+     * When the default filter shows nothing, switch to the year/month of the most
+     * recent entry so the list is not confusingly empty on startup.
+     */
+    private void fallbackToMostRecentIfEmpty() {
+        if (listModel.getSize() > 0) return;
+        if (searchField != null && !searchField.getText().trim().isEmpty()) return;
+
+        new SwingWorker<java.time.LocalDateTime, Void>() {
+            @Override
+            protected java.time.LocalDateTime doInBackground() {
+                try {
+                    java.util.List<String> recent = logFileHandler.getRecentLogEntries(1);
+                    if (recent == null || recent.isEmpty()) return null;
+                    return utils.DateHandler.parseTimestamp(recent.get(0));
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    java.time.LocalDateTime dt = get();
+                    if (dt != null) {
+                        setFilterAndApply(dt.getYear(), dt.getMonthValue());
+                    }
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                } catch (Exception ignored) {
+                    // keep the empty default filter
                 }
             }
         }.execute();
@@ -442,6 +526,7 @@ public final class LogListPanel extends JPanel {
     public void setFilterAndApply(int year, int month, Runnable onComplete) {
         // Clear search when jumping to specific entry
         clearSearch();
+        initialFilterApplied = true;
         setFilterSelection(year, month);
         applyFilterWithCallback(onComplete);
     }
