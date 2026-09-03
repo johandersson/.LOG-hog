@@ -79,6 +79,12 @@ public final class LogListPanel extends JPanel {
     private final HighlightableTextPane previewPane;
     private final JScrollPane previewScrollPane;
     private boolean isPreviewMode = false;
+    // Raw display-timestamp of the entry currently shown in entryArea/preview, or null
+    // when nothing is displayed. Used to (a) avoid redundant reloads and (b) prevent
+    // the edit view/preview from being cleared just because a save elsewhere caused a
+    // transient or permanent loss of the list selection - it must only change when the
+    // user actively picks a different entry from the list.
+    private String displayedEntryTimestamp;
     private boolean suppressFilterEvents = false;
     private boolean initialFilterApplied = false;
     private JComboBox<Integer> yearCombo;
@@ -251,7 +257,7 @@ public final class LogListPanel extends JPanel {
     }
     
     private void applyFilterAndSearch() {
-        applyFilter(yearCombo, monthCombo);
+        applyFilterWithCallback(null);
     }
 
     /**
@@ -442,98 +448,6 @@ public final class LogListPanel extends JPanel {
         }.execute();
     }
 
-    private void applyFilter(JComboBox<Integer> yearCombo, JComboBox<String> monthCombo) {
-        if (suppressFilterEvents) return;
-        // Don't filter if locked - controls should be disabled but add extra safety
-        if (editor.isLocked()) {
-            return;
-        }
-        
-        var year = (Integer) yearCombo.getSelectedItem();
-        var monthIndex = monthCombo.getSelectedIndex();
-        if (year == null) return;
-        
-        // Get search parameters
-        String searchQuery = searchField != null ? searchField.getText().trim() : "";
-        boolean wholeWord = wholeWordCheck != null && wholeWordCheck.isSelected();
-        boolean caseSensitive = caseSensitiveCheck != null && caseSensitiveCheck.isSelected();
-        
-        // Create search options (null if no search)
-        LogEntrySearcher.SearchOptions searchOptions = searchQuery.isEmpty() 
-            ? null 
-            : new LogEntrySearcher.SearchOptions(searchQuery, wholeWord, caseSensitive);
-        
-        // Store for highlighting in entry area
-        currentSearchOptions = searchOptions;
-        
-        // When search is active, search ALL entries (ignore date filter)
-        final int searchYear = searchQuery.isEmpty() ? year : -1;
-        final int searchMonth = searchQuery.isEmpty() ? monthIndex : -1;
-
-        // Provide quick feedback: show an indeterminate progress bar while computing off-EDT
-        SwingUtilities.invokeLater(() -> {
-            listModel.removeAllElements();
-            filterProgressBar.setVisible(true);
-            if (searchResultLabel != null) {
-                searchResultLabel.setText(searchQuery.isEmpty() ? "" : "Searching...");
-            }
-        });
-
-        // Compute filtered timestamps off the EDT and update model on completion
-        new SwingWorker<List<String>, Void>() {
-            @Override
-            protected List<String> doInBackground() throws Exception {
-                try {
-                    // Use combined search - when searchYear < 0, all entries are searched
-                    return logFileHandler.getEntryLoader().searchEntries(searchYear, searchMonth, searchOptions);
-                } catch (IllegalStateException ise) {
-                    // Propagate to done() to show limit dialog on EDT
-                    throw ise;
-                }
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    List<String> filtered = get();
-                    listModel.removeAllElements();
-                    filterProgressBar.setVisible(false);
-                    
-                    // Update search result label
-                    if (searchResultLabel != null && clearSearchBtn != null) {
-                        if (!searchQuery.isEmpty()) {
-                            int count = filtered != null ? filtered.size() : 0;
-                            searchResultLabel.setText(count == 0 ? "No matches" : count + " match" + (count == 1 ? "" : "es"));
-                            clearSearchBtn.setEnabled(true);
-                        } else {
-                            searchResultLabel.setText("");
-                            clearSearchBtn.setEnabled(false);
-                        }
-                    }
-                    
-                    if (filtered == null || filtered.isEmpty()) {
-                        // Keep empty list if nothing found
-                        return;
-                    }
-                    for (String ts : filtered) {
-                        listModel.addElement(ts);
-                    }
-                } catch (java.util.concurrent.ExecutionException ee) {
-                    filterProgressBar.setVisible(false);
-                    Throwable cause = ee.getCause();
-                    if (cause instanceof IllegalStateException) {
-                        // File too large - show friendly dialog handled by DialogHandler
-                        DialogHandler.showLimitExceeded("File Too Large", "The log file exceeds configured limits and cannot be filtered.");
-                    } else {
-                        logFileHandler.showErrorDialog("<html><b>🔍 Search Failed</b><br><br>Unable to search entries.<br><br><i>Tip: Check search query and try again.</i></html>");
-                    }
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        }.execute();
-    }
-
     /**
      * Programmatically set the filter selection without triggering the filter action.
      * @param year year value (e.g. 2026)
@@ -661,6 +575,12 @@ public final class LogListPanel extends JPanel {
                             listModel.addElement(ts);
                         }
                     }
+
+                    // Re-highlight the selection on the entry currently shown in the
+                    // edit view/preview, if it is still present. Its content is never
+                    // reloaded here - a filter refresh must never change what the user
+                    // is looking at; only explicitly picking a different entry does.
+                    restoreDisplayedSelectionIfPresent();
                     
                     // Run callback after all entries are loaded
                     if (onComplete != null) {
@@ -950,11 +870,14 @@ public final class LogListPanel extends JPanel {
 
     private void loadAndDisplayEntry(String timestamp) {
         if (timestamp == null || timestamp.trim().isEmpty()) {
+            displayedEntryTimestamp = null;
             entryArea.setText("");
             entryArea.getHighlighter().removeAllHighlights();
             if (isPreviewMode) renderPreview();
             return;
         }
+
+        displayedEntryTimestamp = timestamp;
 
         // Load heavy content off the EDT and update the editor on completion
         entryProgressBar.setIndeterminate(true);
@@ -983,6 +906,22 @@ public final class LogListPanel extends JPanel {
                 }
             }
         }.execute();
+    }
+
+    /**
+     * Re-selects (highlights) the entry currently shown in the edit view/preview if it
+     * is still present in the (possibly just rebuilt or refiltered) list model. Never
+     * reloads its content - only the row highlight is restored. If the entry is no
+     * longer present (e.g. filtered out), the selection is simply left empty; the
+     * edit view/preview keeps showing what it already had.
+     */
+    private void restoreDisplayedSelectionIfPresent() {
+        if (displayedEntryTimestamp == null) return;
+        int idx = listModel.indexOf(displayedEntryTimestamp);
+        if (idx >= 0) {
+            logList.setSelectedIndex(idx);
+            logList.ensureIndexIsVisible(idx);
+        }
     }
     
     /**
@@ -1119,13 +1058,15 @@ public final class LogListPanel extends JPanel {
         logList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 var selectedItem = logList.getSelectedValue();
-                // Only load if the selected item is still in the model
-                if (selectedItem != null && listModel.contains(selectedItem)) {
+                // Only reload when the user actually picked a different entry than what's
+                // already shown. When the selection becomes null/invalid (e.g. a save or
+                // filter refresh elsewhere transiently rebuilt the list model), intentionally
+                // leave the entry area/preview untouched - it must only change when the user
+                // actively selects another entry from the list, never as a side effect of a
+                // save/reload.
+                if (selectedItem != null && listModel.contains(selectedItem)
+                        && !selectedItem.equals(displayedEntryTimestamp)) {
                     loadAndDisplayEntry(selectedItem);
-                } else {
-                    // Clear entry area if selection is invalid (e.g., after deletion)
-                    entryArea.setText("");
-                    if (isPreviewMode) renderPreview();
                 }
             }
         });
@@ -1163,6 +1104,7 @@ public final class LogListPanel extends JPanel {
             loadAndDisplayEntry(item);
         } else {
             logList.clearSelection();
+            displayedEntryTimestamp = null;
             entryArea.setText("");
             if (isPreviewMode) renderPreview();
         }
