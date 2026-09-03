@@ -48,7 +48,9 @@ public class LogHog {
                 }
             }
         }
-    } catch (Exception ignored) {
+    } catch (Throwable ignored) {
+        // Some JDK/OS combinations throw ExceptionInInitializerError (an Error, not
+        // an Exception) here when a native L&F fails to load its resources.
     }
 
     // Let the OS draw the title bar and buttons (native chrome)
