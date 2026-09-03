@@ -345,6 +345,55 @@ public final class LogListPanel extends JPanel {
     }
 
     /**
+     * Selects the list entry whose raw timestamp matches {@code rawTimestamp}, using
+     * {@code content} to disambiguate when multiple entries share that timestamp.
+     * Unlike {@link #setFilterAndApply(int, int)}, this never changes the active
+     * year/month filter selection - if the entry falls outside the current filter it
+     * simply will not be found, which is expected (the filter is left as the user set it).
+     *
+     * @param rawTimestamp the raw (unsuffixed) timestamp to look for
+     * @param content the entry body to match when timestamps collide (may be null)
+     * @return true if a matching entry was found and selected
+     */
+    public boolean selectEntryByTimestampAndContent(String rawTimestamp, String content) {
+        if (rawTimestamp == null || listModel == null) return false;
+        String targetRaw = rawTimestamp.trim();
+
+        List<Integer> candidates = new ArrayList<>();
+        for (int i = 0; i < listModel.getSize(); i++) {
+            String entry = listModel.getElementAt(i);
+            if (entry == null) continue;
+            String entryRaw = entry.replaceAll(" \\(\\d+\\)$", "").trim();
+            if (entryRaw.equals(targetRaw)) {
+                candidates.add(i);
+            }
+        }
+        if (candidates.isEmpty()) return false;
+
+        // Default to the last candidate; when multiple entries share the timestamp,
+        // try to disambiguate using the entry body content instead.
+        int selectedIndex = candidates.get(candidates.size() - 1);
+        if (candidates.size() > 1 && content != null) {
+            for (int idx : candidates) {
+                String displayTs = listModel.getElementAt(idx);
+                try {
+                    String entryContent = logFileHandler.loadEntry(displayTs);
+                    if (entryContent != null && entryContent.trim().equals(content.trim())) {
+                        selectedIndex = idx;
+                        break;
+                    }
+                } catch (Exception ignored) {
+                    // Skip entries that fail to load
+                }
+            }
+        }
+
+        logList.setSelectedIndex(selectedIndex);
+        logList.ensureIndexIsVisible(selectedIndex);
+        return true;
+    }
+
+    /**
      * Refreshes the year selector and then applies the currently selected filter, so the
      * list content always matches what the filter controls show. On the very first
      * application the filter falls back to the most recent entry's year/month when the
