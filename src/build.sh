@@ -14,7 +14,10 @@ fi
 echo "Skipping class file cleanup to avoid build issues"
 
 # Stop any running loghog instances
-pkill -f "java.*loghog" 2>/dev/null || true
+PIDS="$(pgrep -f "java.*loghog" 2>/dev/null || true)"
+if [ -n "$PIDS" ]; then
+    echo "$PIDS" | xargs -r kill
+fi
 
 # Compile Java files (excluding test files)
 echo "Compiling Java files..."

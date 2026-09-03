@@ -1,64 +1,42 @@
 package filehandling;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import javax.swing.DefaultListModel;
 
-/**
- * Regression test for a bug where deleting a non-first occurrence of a
- * duplicated timestamp left stale "(n)" suffixes in the list model, causing
- * the wrong entry's content to be displayed (or a false "file may be
- * corrupted" style error) after a batch delete.
- */
-public class DeleteEntriesSuffixRegressionTest {
-    public static void main(String[] args) throws Exception {
-        deletingMiddleDuplicateRenumbersRemainingSuffixes();
-        System.out.println("DeleteEntriesSuffixRegressionTest passed");
-    }
+class DeleteEntriesSuffixRegressionTest {
 
-    private static void deletingMiddleDuplicateRenumbersRemainingSuffixes() throws Exception {
-        Path tempFile = Files.createTempFile("loghog_dup_suffix_test", ".txt");
+    @TempDir
+    Path tempDir;
+
+    @Test
+    void deletingMiddleDuplicateRenumbersRemainingSuffixes() throws Exception {
+        Path tempFile = tempDir.resolve("dup-suffix-regression.txt");
         Files.deleteIfExists(tempFile);
-        try {
-            LogFileHandler handler = new LogFileHandler(tempFile, new NoOpEncryptor());
+        LogFileHandler handler = new LogFileHandler(tempFile, new NoOpEncryptor());
 
-            DefaultListModel<String> listModel = new DefaultListModel<>();
-            // Simulate the state after loading 3 entries sharing the same timestamp:
-            // occurrence 0 has no suffix, occurrence 1 and 2 use "(1)" and "(2)".
-            listModel.addElement("10:00 2025-01-01");
-            listModel.addElement("10:00 2025-01-01 (1)");
-            listModel.addElement("10:00 2025-01-01 (2)");
+        DefaultListModel<String> listModel = new DefaultListModel<>();
+        listModel.addElement("10:00 2025-01-01");
+        listModel.addElement("10:00 2025-01-01 (1)");
+        listModel.addElement("10:00 2025-01-01 (2)");
+        listModel.removeElement("10:00 2025-01-01 (1)");
 
-            // Simulate deleting the middle occurrence "(1)", as deleteLogEntries() would
-            // right before it calls the renumbering helper.
-            listModel.removeElement("10:00 2025-01-01 (1)");
+        Method renumber = LogFileHandler.class.getDeclaredMethod(
+            "renumberDuplicateTimestampSuffixes", javax.swing.DefaultListModel.class);
+        renumber.setAccessible(true);
+        renumber.invoke(handler, listModel);
 
-            Method renumber = LogFileHandler.class.getDeclaredMethod(
-                "renumberDuplicateTimestampSuffixes", DefaultListModel.class);
-            renumber.setAccessible(true);
-            renumber.invoke(handler, listModel);
-
-            List<String> expected = List.of("10:00 2025-01-01", "10:00 2025-01-01 (1)");
-            List<String> actual = List.of(
-                listModel.getElementAt(0),
-                listModel.getElementAt(1)
-            );
-
-            if (listModel.getSize() != 2) {
-                throw new AssertionError("Expected 2 remaining entries, got " + listModel.getSize());
-            }
-            if (!expected.equals(actual)) {
-                throw new AssertionError("Expected suffixes to be renumbered to " + expected
-                    + " but got " + actual + ". Stale suffixes cause wrong-entry lookups after delete.");
-            }
-        } finally {
-            Files.deleteIfExists(tempFile);
-        }
+        assertEquals(2, listModel.getSize());
+        assertEquals(List.of("10:00 2025-01-01", "10:00 2025-01-01 (1)"),
+            List.of(listModel.getElementAt(0), listModel.getElementAt(1)));
     }
 
-    /** Minimal Encryptor stub; encryption is never exercised by this test. */
     private static class NoOpEncryptor implements encryption.Encryptor {
         @Override
         public byte[] generateSalt() {

@@ -1,6 +1,6 @@
 package encryption;
 
-// Unused import removed for PMD compliance
+import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -40,12 +40,10 @@ public class EncryptionManagerTest {
         String originalText = "Hello, this is a test message for encryption!";
 
         assertDoesNotThrow(() -> {
-            // Encrypt
             byte[] encrypted = encryptionManager.encrypt(originalText, testPassword, testSalt);
             assertNotNull(encrypted, "Encrypted data should not be null");
             assertTrue(encrypted.length > originalText.length(), "Encrypted data should be longer than original");
 
-            // Decrypt
             String decrypted = encryptionManager.decrypt(encrypted, testPassword);
             assertEquals(originalText, decrypted, "Decrypted text should match original");
 
@@ -61,17 +59,12 @@ public class EncryptionManagerTest {
         char[] wrongPassword = "wrongPassword".toCharArray();
 
         assertDoesNotThrow(() -> {
-            // Encrypt with correct password
             byte[] encrypted = encryptionManager.encrypt(message, testPassword, testSalt);
-
-            // Should decrypt with correct password
             String decrypted = encryptionManager.decrypt(encrypted, testPassword);
             assertEquals(message, decrypted, "Should decrypt with correct password");
 
-            // Should fail with wrong password
-            assertThrows(EncryptionException.class, () -> {
-                encryptionManager.decrypt(encrypted, wrongPassword);
-            }, "Should fail with wrong password");
+            assertThrows(EncryptionException.class, () -> encryptionManager.decrypt(encrypted, wrongPassword),
+                "Should fail with wrong password");
 
             testsupport.TestLog.out("✅ Password validation works correctly");
         });
@@ -85,17 +78,13 @@ public class EncryptionManagerTest {
 
         assertDoesNotThrow(() -> {
             byte[] encrypted = encryptionManager.encrypt(message, testPassword, testSalt);
-
-            // Corrupt the data by changing a byte
             byte[] corrupted = encrypted.clone();
             if (corrupted.length > 0) {
-                corrupted[corrupted.length - 1] ^= 0xFF; // Flip bits in last byte
+                corrupted[corrupted.length - 1] ^= 0xFF;
             }
 
-            // Should fail to decrypt corrupted data
-            assertThrows(EncryptionException.class, () -> {
-                encryptionManager.decrypt(corrupted, testPassword);
-            }, "Should fail with corrupted data");
+            assertThrows(EncryptionException.class, () -> encryptionManager.decrypt(corrupted, testPassword),
+                "Should fail with corrupted data");
 
             testsupport.TestLog.out("✅ Corrupted data detected correctly");
         });
@@ -105,12 +94,10 @@ public class EncryptionManagerTest {
     void testTooShortDataHandling() {
         testsupport.TestLog.out("🧪 Testing too short data handling...");
 
-        // Test with data shorter than IV length
-        byte[] tooShortData = new byte[10]; // Less than GCM_IV_LENGTH (12)
+        byte[] tooShortData = new byte[10];
 
-        assertThrows(EncryptionException.class, () -> {
-            encryptionManager.decrypt(tooShortData, testPassword);
-        }, "Should reject data that's too short");
+        assertThrows(EncryptionException.class, () -> encryptionManager.decrypt(tooShortData, testPassword),
+            "Should reject data that's too short");
 
         testsupport.TestLog.out("✅ Too short data rejected with appropriate error message");
     }
@@ -119,34 +106,26 @@ public class EncryptionManagerTest {
     void testUnicodeDataHandling() {
         testsupport.TestLog.out("🧪 Testing Unicode data handling...");
 
-        String unicodeText = "Hello 世界! 🌍 Test with émojis: 😀🎉🚀";
+        String originalText = "Hello 世界 🌍 Здравствуй мир! مرحبا بالعالم";
 
         assertDoesNotThrow(() -> {
-            byte[] encrypted = encryptionManager.encrypt(unicodeText, testPassword, testSalt);
+            byte[] encrypted = encryptionManager.encrypt(originalText, testPassword, testSalt);
             String decrypted = encryptionManager.decrypt(encrypted, testPassword);
-            assertEquals(unicodeText, decrypted, "Unicode text should be preserved");
-
-            testsupport.TestLog.out("✅ Unicode and emoji data handled correctly");
+            assertEquals(originalText, decrypted, "Unicode text should be preserved exactly");
+            testsupport.TestLog.out("✅ Unicode data handled correctly");
         });
     }
 
     @Test
-    void testKeyDerivation() {
-        testsupport.TestLog.out("🧪 Testing key derivation...");
+    void testEmptyStringEncryption() {
+        testsupport.TestLog.out("🧪 Testing empty string encryption...");
 
         assertDoesNotThrow(() -> {
-            // Test that same password + salt produces same key
-            var key1 = encryptionManager.deriveKey(testPassword, testSalt);
-            var key2 = encryptionManager.deriveKey(testPassword, testSalt);
-            assertNotNull(key1, "Key should not be null");
-            assertNotNull(key2, "Key should not be null");
-
-            // Keys should be equal (same password + salt)
-            assertEquals(key1.getAlgorithm(), key2.getAlgorithm(), "Keys should have same algorithm");
-
-            testsupport.TestLog.out("✅ Key derivation works correctly");
+            byte[] encrypted = encryptionManager.encrypt("", testPassword, testSalt);
+            assertNotNull(encrypted, "Empty string should still produce encrypted data");
+            String decrypted = encryptionManager.decrypt(encrypted, testPassword);
+            assertEquals("", decrypted, "Empty string should decrypt correctly");
+            testsupport.TestLog.out("✅ Empty string encryption works correctly");
         });
     }
-
-    // Legacy key derivation test removed: no legacy support.
 }

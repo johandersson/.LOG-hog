@@ -211,13 +211,16 @@ java -jar build/loghog.jar
 
 ### Running Tests
 
-* Use `run_tests_simple.bat`
-* Tests output PASS/FAIL results in console
+```bash
+bash src/run_tests.sh
+```
+
+The script caches `junit-platform-console-standalone-1.10.2.jar` in `.tools/`, compiles the main sources plus `src/test/java/`, and runs the full JUnit 5 suite. If the JUnit download is unavailable and the jar is not already cached, the script exits with a clear error message.
 
 ### Notes
 
 * Test classes are in `src/test/java/`
-* JUnit 5 required on classpath
+* JUnit 5 is fetched automatically by `src/run_tests.sh`; no separate local installation is required
 
 ***
 

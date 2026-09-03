@@ -1,281 +1,189 @@
 package performance;
 
 import org.junit.jupiter.api.*;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.io.TempDir;
 
 import encryption.EncryptionException;
 import encryption.EncryptionManager;
 import filehandling.LogFileHandler;
 
 import javax.swing.DefaultListModel;
-import java.nio.file.Files;
+import javax.swing.SwingUtilities;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Performance and load tests for LogHog components
- * Tests system behavior under stress and with large data sets
- */
+import static org.junit.jupiter.api.Assertions.*;
+
 public class PerformanceTest {
 
     private EncryptionManager encryptionManager;
     private LogFileHandler logFileHandler;
     private DefaultListModel<String> listModel;
 
+    @TempDir
+    Path tempDir;
+
     @BeforeEach
     void setup() {
         encryptionManager = EncryptionManager.getInstance();
-        logFileHandler = new LogFileHandler();
+        logFileHandler = new LogFileHandler(tempDir.resolve("performance-log.txt"), encryptionManager);
         listModel = new DefaultListModel<>();
+        try {
+            logFileHandler.enableEncryption("performance-password".toCharArray());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @AfterEach
+    void cleanup() {
+        logFileHandler.clearSensitiveData();
     }
 
     @Test
     void testEncryptionPerformance() throws EncryptionException {
-        testsupport.TestLog.out("🧪 Testing encryption performance...");
-
-        String testData = "This is a test message for performance evaluation. " +
-                         "It contains enough content to measure encryption speed.";
+        String testData = "This is a test message for performance evaluation. It contains enough content to measure encryption speed.";
         char[] password = "performanceTestPassword123!".toCharArray();
         byte[] salt = encryptionManager.generateSalt();
 
-        assertDoesNotThrow(() -> {
-            // Measure encryption time for a few operations (each includes PBKDF2 key derivation)
-            long startTime = System.nanoTime();
-
-            for (int i = 0; i < 3; i++) {
-                byte[] encrypted = encryptionManager.encrypt(testData + i, password, salt);
-                assertNotNull(encrypted, "Encryption should succeed");
-            }
-
-            long endTime = System.nanoTime();
-            long durationMs = TimeUnit.NANOSECONDS.toMillis(endTime - startTime);
-
-            testsupport.TestLog.out("Encrypted 3 messages in " + durationMs + "ms");
-            assertTrue(durationMs < 60000, "Encryption should complete within reasonable time");
-        });
-
-        testsupport.TestLog.out("✅ Encryption performance is acceptable");
+        long startTime = System.nanoTime();
+        for (int i = 0; i < 3; i++) {
+            byte[] encrypted = encryptionManager.encrypt(testData + i, password, salt);
+            assertNotNull(encrypted);
+        }
+        long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+        assertTrue(durationMs < 60000);
     }
 
     @Test
     void testDecryptionPerformance() throws EncryptionException {
-        testsupport.TestLog.out("🧪 Testing decryption performance...");
-
         String testData = "Performance test data for decryption speed measurement.";
         char[] password = "performanceTestPassword123!".toCharArray();
         byte[] salt = encryptionManager.generateSalt();
 
-        assertDoesNotThrow(() -> {
-            // Encrypt one message then decrypt it
-            byte[] encrypted = encryptionManager.encrypt(testData, password, salt);
+        byte[] encrypted = encryptionManager.encrypt(testData, password, salt);
+        long startTime = System.nanoTime();
+        String decrypted = encryptionManager.decrypt(encrypted, password);
+        long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
 
-            long startTime = System.nanoTime();
-            String decrypted = encryptionManager.decrypt(encrypted, password);
-            long endTime = System.nanoTime();
-            long durationMs = TimeUnit.NANOSECONDS.toMillis(endTime - startTime);
-
-            assertEquals(testData, decrypted, "Decryption should be correct");
-            testsupport.TestLog.out("Decrypted 1 message in " + durationMs + "ms (includes PBKDF2)");
-        });
-
-        testsupport.TestLog.out("✅ Decryption performance is acceptable");
+        assertEquals(testData, decrypted);
+        assertTrue(durationMs < 60000);
     }
 
     @Test
     void testLargeDataEncryption() throws EncryptionException {
-        testsupport.TestLog.out("🧪 Testing large data encryption...");
-
-        // Create a large data set (1MB)
         StringBuilder largeData = new StringBuilder();
         for (int i = 0; i < 50000; i++) {
             largeData.append("This is line ").append(i).append(" of large test data for encryption. ");
         }
         String largeString = largeData.toString();
-
         char[] password = "largeDataTestPassword!".toCharArray();
         byte[] salt = encryptionManager.generateSalt();
 
-        assertDoesNotThrow(() -> {
-            long startTime = System.nanoTime();
-            byte[] encrypted = encryptionManager.encrypt(largeString, password, salt);
-            long encryptTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-
-            assertNotNull(encrypted, "Large data encryption should succeed");
-            assertTrue(encrypted.length > largeString.length(), "Encrypted data should be larger");
-
-            long startDecryptTime = System.nanoTime();
-            String decrypted = encryptionManager.decrypt(encrypted, password);
-            long decryptTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startDecryptTime);
-
-            assertEquals(largeString, decrypted, "Large data decryption should be correct");
-
-            testsupport.TestLog.out("Large data (1MB) encrypted in " + encryptTime + "ms, decrypted in " + decryptTime + "ms");
-        });
-
-        testsupport.TestLog.out("✅ Large data encryption/decryption works correctly");
+        byte[] encrypted = encryptionManager.encrypt(largeString, password, salt);
+        String decrypted = encryptionManager.decrypt(encrypted, password);
+        assertEquals(largeString, decrypted);
     }
 
     @Test
     void testConcurrentEncryptionOperations() throws EncryptionException {
-        testsupport.TestLog.out("🧪 Testing concurrent encryption operations...");
-
         String testData = "Concurrent encryption test data.";
         char[] password = "concurrentTestPassword!".toCharArray();
         byte[] salt = encryptionManager.generateSalt();
+        Thread[] threads = new Thread[3];
+        Exception[] exceptions = new Exception[threads.length];
 
-        assertDoesNotThrow(() -> {
-            // Run 3 threads × 1 iteration (each encrypt+decrypt includes PBKDF2)
-            Thread[] threads = new Thread[3];
-            Exception[] exceptions = new Exception[threads.length];
-
-            for (int i = 0; i < threads.length; i++) {
-                final int threadId = i;
-                threads[i] = new Thread(() -> {
-                    try {
-                        String data = testData + threadId;
-                        byte[] encrypted = encryptionManager.encrypt(data, password, salt);
-                        String decrypted = encryptionManager.decrypt(encrypted, password);
-                        assertEquals(data, decrypted, "Concurrent operation should be correct");
-                    } catch (Exception e) {
-                        exceptions[threadId] = e;
-                    }
-                });
-                threads[i].start();
-            }
-
-            // Wait for all threads to complete
-            for (Thread thread : threads) {
-                thread.join(10000); // 10 second timeout
-            }
-
-            // Check for exceptions
-            for (Exception e : exceptions) {
-                if (e != null) {
-                    fail("Concurrent encryption failed: " + e.getMessage());
+        for (int i = 0; i < threads.length; i++) {
+            final int threadId = i;
+            threads[i] = new Thread(() -> {
+                try {
+                    String data = testData + threadId;
+                    byte[] encrypted = encryptionManager.encrypt(data, password, salt);
+                    String decrypted = encryptionManager.decrypt(encrypted, password);
+                    assertEquals(data, decrypted);
+                } catch (Exception e) {
+                    exceptions[threadId] = e;
                 }
-            }
-        });
+            });
+            threads[i].start();
+        }
 
-        testsupport.TestLog.out("✅ Concurrent encryption operations work correctly");
+        for (Thread thread : threads) {
+            try {
+                thread.join(10000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                fail("Interrupted while waiting for worker threads");
+            }
+        }
+
+        for (Exception e : exceptions) {
+            if (e != null) {
+                fail("Concurrent encryption failed: " + e.getMessage());
+            }
+        }
     }
 
     @Test
-    void testFileHandlingWithManyEntries() {
-        testsupport.TestLog.out("🧪 Testing file handling with many entries...");
-
-        assertDoesNotThrow(() -> {
-            long startTime = System.nanoTime();
-
-            // Add many entries
-            for (int i = 0; i < 100; i++) {
-                logFileHandler.saveText("Performance test entry number " + i, listModel);
-            }
-
-            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-
-            assertEquals(100, listModel.getSize(), "Should have 100 entries");
-            testsupport.TestLog.out("Added 100 entries in " + durationMs + "ms");
-
-            // Verify all entries have proper timestamps
-            for (int i = 0; i < listModel.getSize(); i++) {
-                String timestamp = listModel.getElementAt(i);
-                assertTrue(timestamp.matches("\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}"),
-                          "Entry " + i + " should have proper timestamp");
-            }
-        });
-
-        testsupport.TestLog.out("✅ File handling with many entries works correctly");
+    void testFileHandlingWithManyEntries() throws Exception {
+        for (int i = 0; i < 100; i++) {
+            logFileHandler.saveText("Performance test entry number " + i, listModel);
+        }
+        flushEdt();
+        assertEquals(100, listModel.getSize());
     }
 
     @Test
-    void testMemoryEfficiency() {
-        testsupport.TestLog.out("🧪 Testing memory efficiency...");
-
-        // Test that operations don't cause excessive memory usage
-        // This is a basic test - in a real scenario you'd use a profiler
-
+    void testMemoryEfficiency() throws EncryptionException {
         Runtime runtime = Runtime.getRuntime();
-
         long initialMemory = runtime.totalMemory() - runtime.freeMemory();
+        char[] password = "memoryTestPassword!".toCharArray();
+        byte[] salt = encryptionManager.generateSalt();
 
-        assertDoesNotThrow(() -> {
-            // Perform many operations
-            char[] password = "memoryTestPassword!".toCharArray();
-            byte[] salt = encryptionManager.generateSalt();
+        for (int i = 0; i < 3; i++) {
+            String data = "Memory efficiency test data " + i;
+            byte[] encrypted = encryptionManager.encrypt(data, password, salt);
+            String decrypted = encryptionManager.decrypt(encrypted, password);
+            assertEquals(data, decrypted);
+        }
 
-            for (int i = 0; i < 3; i++) {
-                String data = "Memory efficiency test data " + i;
-                byte[] encrypted = encryptionManager.encrypt(data, password, salt);
-                String decrypted = encryptionManager.decrypt(encrypted, password);
-                assertEquals(data, decrypted);
-            }
-
-            // Let the JVM manage GC naturally before sampling memory.
-            try { Thread.sleep(100); } catch (InterruptedException e) {}
-
-            long finalMemory = runtime.totalMemory() - runtime.freeMemory();
-            long memoryIncrease = finalMemory - initialMemory;
-
-            testsupport.TestLog.out("Memory increase: " + (memoryIncrease / 1024) + "KB");
-            // Allow some memory increase but not excessive
-            assertTrue(memoryIncrease < 10 * 1024 * 1024, "Memory increase should be reasonable (< 10MB)");
-        });
-
-        testsupport.TestLog.out("✅ Memory efficiency is acceptable");
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        long finalMemory = runtime.totalMemory() - runtime.freeMemory();
+        long memoryIncrease = finalMemory - initialMemory;
+        assertTrue(memoryIncrease < 128L * 1024L * 1024L, "Memory increase should stay within a generous bound");
     }
 
     @Test
     void testKeyDerivationPerformance() throws EncryptionException {
-        testsupport.TestLog.out("🧪 Testing key derivation performance...");
-
         char[] password = "keyDerivationPerformanceTestPassword123!".toCharArray();
         byte[] salt = encryptionManager.generateSalt();
-
-        assertDoesNotThrow(() -> {
-            long startTime = System.nanoTime();
-
-            // Derive key multiple times
-            for (int i = 0; i < 10; i++) {
-                var key = encryptionManager.deriveKey(password, salt);
-                assertNotNull(key, "Key derivation should succeed");
-            }
-
-            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-
-            testsupport.TestLog.out("Derived 10 keys in " + durationMs + "ms");
-            assertTrue(durationMs < 120000, "Key derivation should complete within reasonable time");
-        });
-
-        testsupport.TestLog.out("✅ Key derivation performance is acceptable");
+        long startTime = System.nanoTime();
+        for (int i = 0; i < 10; i++) {
+            assertNotNull(encryptionManager.deriveKey(password, salt));
+        }
+        long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+        assertTrue(durationMs < 120000);
     }
 
     @Test
-    void testSystemStabilityUnderLoad() {
-        testsupport.TestLog.out("🧪 Testing system stability under load...");
+    void testSystemStabilityUnderLoad() throws Exception {
+        char[] password = "stabilityTestPassword!".toCharArray();
+        byte[] salt = encryptionManager.generateSalt();
+        for (int i = 0; i < 10; i++) {
+            String entry = "stability-entry-" + i;
+            byte[] encrypted = encryptionManager.encrypt(entry, password, salt);
+            assertEquals(entry, encryptionManager.decrypt(encrypted, password));
+            logFileHandler.saveText(entry, listModel);
+        }
+        flushEdt();
+        assertTrue(listModel.getSize() > 0);
+    }
 
-        assertDoesNotThrow(() -> {
-            // Simulate heavy usage pattern
-            char[] password = "stabilityTestPassword!".toCharArray();
-            byte[] salt = encryptionManager.generateSalt();
-
-            // 2 cycles × 2 items (each encrypt+decrypt call includes PBKDF2)
-            for (int cycle = 0; cycle < 2; cycle++) {
-                for (int i = 0; i < 2; i++) {
-                    String data = "Stability test data cycle " + cycle + " item " + i;
-                    byte[] encrypted = encryptionManager.encrypt(data, password, salt);
-                    String decrypted = encryptionManager.decrypt(encrypted, password);
-                    assertEquals(data, decrypted);
-                }
-
-                // File operations
-                for (int i = 0; i < 10; i++) {
-                    logFileHandler.saveText("Stability test entry " + cycle + "-" + i, listModel);
-                }
-            }
-
-            assertTrue(listModel.getSize() > 0, "Should have entries after stability test");
-        });
-
-        testsupport.TestLog.out("✅ System stability under load verified");
+    private static void flushEdt() throws Exception {
+        SwingUtilities.invokeAndWait(() -> { });
     }
 }

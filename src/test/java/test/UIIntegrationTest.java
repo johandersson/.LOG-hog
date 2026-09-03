@@ -1,160 +1,84 @@
 package test;
 
-import main.LogTextEditor;
-import gui.LogListPanel;
-import filehandling.LogFileHandler;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
+import static org.junit.jupiter.api.Assertions.*;
+
+import encryption.EncryptionManager;
 import filehandling.EntryLoader;
+import filehandling.LogFileHandler;
 
-import javax.swing.*;
-import java.nio.file.Files;
+import javax.swing.DefaultListModel;
+import javax.swing.JList;
+import javax.swing.SwingUtilities;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
-/**
- * Tests for the refactored helper methods and UI integration
- */
-public class UIIntegrationTest {
+class UIIntegrationTest {
 
-    public static void main(String[] args) throws Exception {
-        // Use temp file for testing
-        Path testFile = Files.createTempFile("loghog_ui_test", ".txt");
-        LogFileHandler.setTestFilePath(testFile);
+    @TempDir
+    Path tempDir;
 
-        try {
-            testLogTextEditorHelperMethods();
-            testLogListPanelHelperMethods();
-            testUIIntegration();
+    private LogFileHandler logFileHandler;
+    private EntryLoader entryLoader;
+    private DefaultListModel<String> listModel;
 
-            testsupport.TestLog.out("SUCCESS: All UI integration tests passed");
-
-        } finally {
-            Files.deleteIfExists(testFile);
-        }
+    @BeforeEach
+    void setUp() throws Exception {
+        Path testFile = tempDir.resolve("ui-integration-test.txt");
+        logFileHandler = new LogFileHandler(testFile, EncryptionManager.getInstance());
+        entryLoader = new EntryLoader(logFileHandler);
+        listModel = new DefaultListModel<>();
+        logFileHandler.enableEncryption("testpassword".toCharArray());
+        createTestEntries();
+        flushEdt();
+        entryLoader.loadLogEntries(listModel);
+        flushEdt();
     }
 
-    private static void testLogTextEditorHelperMethods() throws Exception {
-        testsupport.TestLog.out("Testing LogTextEditor helper methods...");
+    @AfterEach
+    void tearDown() {
+        logFileHandler.clearSensitiveData();
+    }
 
-        // Create test data
-        LogFileHandler logFileHandler = new LogFileHandler();
-        EntryLoader entryLoader = new EntryLoader(logFileHandler);
-        DefaultListModel<String> listModel = new DefaultListModel<>();
-
-        createTestEntries(logFileHandler, listModel);
-        entryLoader.loadLogEntries(listModel);
-
-        if (listModel.getSize() == 0) {
-            throw new RuntimeException("FAIL: No test entries loaded");
-        }
-
-        // Create a minimal LogTextEditor instance for testing
-        // Note: This is a simplified test since full GUI initialization is complex
+    @Test
+    void logTextEditorRelatedLoadingLogicFindsContent() {
+        assertFalse(listModel.isEmpty());
         String timestamp = listModel.getElementAt(0);
         String expectedContent = entryLoader.loadEntry(timestamp);
-
-        // Test that loadEntry works (we can't easily test the UI part without full setup)
-        if (expectedContent == null || expectedContent.isEmpty()) {
-            throw new RuntimeException("FAIL: Could not load entry content");
-        }
-
-        testsupport.TestLog.out("✓ LogTextEditor helper method logic verified");
+        assertNotNull(expectedContent);
+        assertFalse(expectedContent.isEmpty());
     }
 
-    private static void testLogListPanelHelperMethods() throws Exception {
-        testsupport.TestLog.out("Testing LogListPanel helper methods...");
-
-        // Create test data
-        LogFileHandler logFileHandler = new LogFileHandler();
-        EntryLoader entryLoader = new EntryLoader(logFileHandler);
-        DefaultListModel<String> listModel = new DefaultListModel<>();
-
-        createTestEntries(logFileHandler, listModel);
-        entryLoader.loadLogEntries(listModel);
-
-        if (listModel.getSize() == 0) {
-            throw new RuntimeException("FAIL: No test entries loaded");
-        }
-
-        // Create a mock LogListPanel (we can't easily create full GUI components)
-        // Test the logic that would be in loadAndDisplayEntry
+    @Test
+    void logListPanelRelatedLoadingLogicHandlesMissingSelections() {
         String timestamp = listModel.getElementAt(0);
         String content = logFileHandler.loadEntry(timestamp);
 
-        if (content == null) {
-            throw new RuntimeException("FAIL: loadAndDisplayEntry logic failed - null content");
-        }
-
-        if (content.isEmpty()) {
-            throw new RuntimeException("FAIL: loadAndDisplayEntry logic failed - empty content");
-        }
-
-        // Test with null/empty timestamp
-        String nullContent = logFileHandler.loadEntry(null);
-        if (!"".equals(nullContent)) {
-            throw new RuntimeException("FAIL: loadAndDisplayEntry should handle null timestamp");
-        }
-
-        String emptyContent = logFileHandler.loadEntry("");
-        if (!"".equals(emptyContent)) {
-            throw new RuntimeException("FAIL: loadAndDisplayEntry should handle empty timestamp");
-        }
-
-        testsupport.TestLog.out("✓ LogListPanel helper method logic verified");
+        assertNotNull(content);
+        assertFalse(content.isEmpty());
+        assertEquals("", logFileHandler.loadEntry(null));
+        assertEquals("", logFileHandler.loadEntry(""));
     }
 
-    private static void testUIIntegration() throws Exception {
-        testsupport.TestLog.out("Testing UI component integration...");
-
-        // Create test data
-        LogFileHandler logFileHandler = new LogFileHandler();
-        EntryLoader entryLoader = new EntryLoader(logFileHandler);
-        DefaultListModel<String> listModel = new DefaultListModel<>();
-
-        createTestEntries(logFileHandler, listModel);
-        entryLoader.loadLogEntries(listModel);
-
-        if (listModel.getSize() == 0) {
-            throw new RuntimeException("FAIL: No test entries for integration test");
-        }
-
-        // Test that selectFirstLogIfAny logic works
-        String firstItem = listModel.getElementAt(0);
-        String content = logFileHandler.loadEntry(firstItem);
-
-        if (content == null || content.isEmpty()) {
-            throw new RuntimeException("FAIL: selectFirstLogIfAny logic failed");
-        }
-
-        // Test list selection simulation
+    @Test
+    void listSelectionAndEntryLoadingStayInSync() {
         JList<String> mockList = new JList<>(listModel);
         mockList.setSelectedIndex(0);
+
+        String firstItem = listModel.getElementAt(0);
         String selectedItem = mockList.getSelectedValue();
-
-        if (!firstItem.equals(selectedItem)) {
-            throw new RuntimeException("FAIL: List selection logic failed");
-        }
-
-        String selectedContent = logFileHandler.loadEntry(selectedItem);
-        if (!content.equals(selectedContent)) {
-            throw new RuntimeException("FAIL: Selected item loading failed");
-        }
-
-        testsupport.TestLog.out("✓ UI integration logic verified");
+        assertEquals(firstItem, selectedItem);
+        assertEquals(logFileHandler.loadEntry(firstItem), logFileHandler.loadEntry(selectedItem));
     }
 
-    private static void createTestEntries(LogFileHandler logFileHandler, DefaultListModel<String> listModel) throws Exception {
-        // Create test entries with different content
+    private void createTestEntries() {
         logFileHandler.saveText("Test entry 1\nWith multiple lines\nAnd content", listModel);
         logFileHandler.saveText("Test entry 2 - simple", listModel);
         logFileHandler.saveText("Test entry 3\nWith timestamp-like content: 14:30 2025-12-18", listModel);
-
-        // Force duplicate to test suffix handling
-        LocalDateTime now = LocalDateTime.now();
-        String timestamp = String.format("%02d:%02d %04d-%02d-%02d",
-            now.getHour(), now.getMinute(), now.getYear(), now.getMonthValue(), now.getDayOfMonth());
-
-        // Manually create duplicate timestamp scenario
         logFileHandler.saveText("Duplicate timestamp entry", listModel);
+    }
+
+    private static void flushEdt() throws Exception {
+        SwingUtilities.invokeAndWait(() -> { });
     }
 }

@@ -2,18 +2,15 @@ package main;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
-import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Properties;
 
-/**
- * Comprehensive tests for BackupManager
- * Tests automatic backups, manual backups, secure deletion, and error handling
- */
+import static org.junit.jupiter.api.Assertions.*;
+
 public class BackupManagerTest {
 
     private BackupManager backupManager;
@@ -25,211 +22,108 @@ public class BackupManagerTest {
     Path tempDir;
 
     @BeforeEach
-    void setup() throws IOException {
+    void setup() throws Exception {
         testSettings = new Properties();
         backupManager = new BackupManager(testSettings);
-
-        // Create a temporary log file
         tempLogFile = tempDir.resolve("log.txt");
         Files.writeString(tempLogFile, "Test log content for backup testing");
-
-        // Create a temporary backup directory
         tempBackupDir = tempDir.resolve("backups");
         Files.createDirectories(tempBackupDir);
-
-        // Override the log file path for testing
         System.setProperty("user.home", tempDir.toString());
         testSettings.setProperty("backupDirectory", tempBackupDir.toString());
     }
 
     @Test
     void testIsAutoBackupEnabled() {
-        testsupport.TestLog.out("🧪 Testing auto backup enabled check...");
-
-        // Default should be false
-        assertFalse(backupManager.isAutoBackupEnabled(), "Auto backup should be disabled by default");
-
-        // Enable auto backup
+        assertFalse(backupManager.isAutoBackupEnabled());
         testSettings.setProperty("autoBackupEnabled", "true");
-        assertTrue(backupManager.isAutoBackupEnabled(), "Auto backup should be enabled when set to true");
-
-        // Disable auto backup
+        assertTrue(backupManager.isAutoBackupEnabled());
         testSettings.setProperty("autoBackupEnabled", "false");
-        assertFalse(backupManager.isAutoBackupEnabled(), "Auto backup should be disabled when set to false");
-
-        testsupport.TestLog.out("✅ Auto backup enabled check works correctly");
+        assertFalse(backupManager.isAutoBackupEnabled());
     }
 
     @Test
     void testGetAutoBackupDirectory() {
-        testsupport.TestLog.out("🧪 Testing auto backup directory retrieval...");
-
-        // Test with backup directory set
         testSettings.setProperty("backupDirectory", "/custom/backup/path");
         assertEquals("/custom/backup/path", backupManager.getAutoBackupDirectory());
-
-        // Test fallback to user home
         testSettings.remove("backupDirectory");
-        String expectedHome = System.getProperty("user.home");
-        assertEquals(expectedHome, backupManager.getAutoBackupDirectory());
-
-        testsupport.TestLog.out("✅ Auto backup directory retrieval works correctly");
+        assertEquals(System.getProperty("user.home"), backupManager.getAutoBackupDirectory());
     }
 
     @Test
-    void testPerformAutomaticBackupWhenDisabled() throws IOException {
-        testsupport.TestLog.out("🧪 Testing automatic backup when disabled...");
-
-        // Ensure auto backup is disabled
+    void testPerformAutomaticBackupWhenDisabled() throws Exception {
         testSettings.setProperty("autoBackupEnabled", "false");
-
-        // Should not create any backup files
         long initialFileCount = Files.list(tempBackupDir).count();
-
-        assertDoesNotThrow(() -> {
-            backupManager.performAutomaticBackup();
-        });
-
-        long finalFileCount = Files.list(tempBackupDir).count();
-        assertEquals(initialFileCount, finalFileCount, "No backup files should be created when auto backup is disabled");
-
-        testsupport.TestLog.out("✅ Automatic backup correctly skips when disabled");
+        backupManager.performAutomaticBackup();
+        assertEquals(initialFileCount, Files.list(tempBackupDir).count());
     }
 
     @Test
-    void testPerformAutomaticBackupWhenEnabled() throws IOException {
-        testsupport.TestLog.out("🧪 Testing automatic backup when enabled...");
-
-        // Enable auto backup
+    void testPerformAutomaticBackupWhenEnabled() throws Exception {
         testSettings.setProperty("autoBackupEnabled", "true");
+        backupManager.performAutomaticBackup();
 
-        long initialFileCount = Files.list(tempBackupDir).count();
-
-        assertDoesNotThrow(() -> {
-            backupManager.performAutomaticBackup();
-        });
-
-        long finalFileCount = Files.list(tempBackupDir).count();
-        assertEquals(initialFileCount + 1, finalFileCount, "One backup file should be created");
-
-        // Verify backup content matches original
         Path backupFile = Files.list(tempBackupDir).findFirst().orElseThrow();
-        String backupContent = Files.readString(backupFile);
-        String originalContent = Files.readString(tempLogFile);
-        assertEquals(originalContent, backupContent, "Backup content should match original");
+        assertTrue(backupFile.getFileName().toString().endsWith(".enc"));
 
-        testsupport.TestLog.out("✅ Automatic backup works correctly when enabled");
+        byte[] original = Files.readAllBytes(tempLogFile);
+        byte[] backup = Files.readAllBytes(backupFile);
+        assertTrue(backup.length >= original.length);
+        assertArrayEquals(original, Arrays.copyOf(backup, original.length));
     }
 
     @Test
-    void testPerformAutomaticBackupWithNonexistentLogFile() {
-        testsupport.TestLog.out("🧪 Testing automatic backup with nonexistent log file...");
-
-        // Delete the log file
-        assertDoesNotThrow(() -> Files.deleteIfExists(tempLogFile));
-
-        // Enable auto backup
+    void testPerformAutomaticBackupWithNonexistentLogFile() throws Exception {
+        Files.deleteIfExists(tempLogFile);
         testSettings.setProperty("autoBackupEnabled", "true");
-
-        // Should handle gracefully without throwing exceptions
-        assertDoesNotThrow(() -> {
-            backupManager.performAutomaticBackup();
-        });
-
-        testsupport.TestLog.out("✅ Automatic backup handles nonexistent log file gracefully");
+        assertDoesNotThrow(() -> backupManager.performAutomaticBackup());
     }
 
     @Test
     void testPerformAutomaticBackupWithInvalidBackupDirectory() {
-        testsupport.TestLog.out("🧪 Testing automatic backup with invalid backup directory...");
-
-        // Set invalid backup directory
         testSettings.setProperty("autoBackupEnabled", "true");
         testSettings.setProperty("backupDirectory", "/invalid/path/that/does/not/exist");
-
-        // Should handle gracefully without throwing exceptions
-        assertDoesNotThrow(() -> {
-            backupManager.performAutomaticBackup();
-        });
-
-        testsupport.TestLog.out("✅ Automatic backup handles invalid backup directory gracefully");
+        assertDoesNotThrow(() -> backupManager.performAutomaticBackup());
     }
 
     @Test
     void testCreateManualBackup() {
-        testsupport.TestLog.out("🧪 Testing manual backup creation...");
-
-        // Manual backup is not implemented in BackupManager (handled by UI)
-        Path result = backupManager.createManualBackup();
-        assertNull(result, "Manual backup should return null (handled by UI layer)");
-
-        testsupport.TestLog.out("✅ Manual backup correctly delegates to UI layer");
+        assertNull(backupManager.createManualBackup());
     }
 
     @Test
-    void testBackupFileNaming() throws IOException {
-        testsupport.TestLog.out("🧪 Testing backup file naming...");
-
+    void testBackupFileNaming() throws Exception {
         testSettings.setProperty("autoBackupEnabled", "true");
-
         backupManager.performAutomaticBackup();
 
-        Path backupFile = Files.list(tempBackupDir).findFirst().orElseThrow();
-        String filename = backupFile.getFileName().toString();
-
-        // Should follow pattern: loghog-auto-backup-YYYY-MM-DD_HH-mm-ss.txt
-        assertTrue(filename.startsWith("loghog-auto-backup-"), "Filename should start with correct prefix");
-        assertTrue(filename.endsWith(".txt"), "Filename should end with .txt");
-        assertTrue(filename.matches("loghog-auto-backup-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}\\.txt"),
-                  "Filename should match expected timestamp pattern");
-
-        testsupport.TestLog.out("✅ Backup file naming follows correct pattern");
+        String filename = Files.list(tempBackupDir).findFirst().orElseThrow().getFileName().toString();
+        assertTrue(filename.startsWith("loghog-auto-backup-"));
+        assertTrue(filename.endsWith(".enc"));
+        assertTrue(filename.matches("loghog-auto-backup-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}\\.enc"));
     }
 
     @Test
-    void testMultipleBackupsCreateSeparateFiles() throws IOException {
-        testsupport.TestLog.out("🧪 Testing multiple backups create separate files...");
-
+    void testMultipleBackupsCreateSeparateFiles() throws Exception {
         testSettings.setProperty("autoBackupEnabled", "true");
-
-        // Create multiple backups
         backupManager.performAutomaticBackup();
-        // Small delay to ensure different timestamps
-        try { Thread.sleep(10); } catch (InterruptedException e) {}
+        Thread.sleep(1100);
         backupManager.performAutomaticBackup();
-
-        long fileCount = Files.list(tempBackupDir).count();
-        assertEquals(2, fileCount, "Should create two separate backup files");
-
-        testsupport.TestLog.out("✅ Multiple backups create separate files");
+        assertEquals(2, Files.list(tempBackupDir).count());
     }
 
     @Test
-    void testBackupOverwritesExistingFile() throws IOException {
-        testsupport.TestLog.out("🧪 Testing backup overwrites existing file...");
-
+    void testBackupOverwritesExistingFile() throws Exception {
         testSettings.setProperty("autoBackupEnabled", "true");
-
-        // Create first backup
         backupManager.performAutomaticBackup();
-        Path backupFile = Files.list(tempBackupDir).findFirst().orElseThrow();
-
-        // Modify the log file
-        Files.writeString(tempLogFile, "Modified content");
-
-        // Create second backup (should overwrite or create new file)
+        Thread.sleep(1100);
+        Files.writeString(tempLogFile, "Modified content", StandardCharsets.UTF_8);
         backupManager.performAutomaticBackup();
 
-        long fileCount = Files.list(tempBackupDir).count();
-        assertTrue(fileCount >= 1, "Should have at least one backup file");
-
-        // The most recent backup should have the modified content
         Path mostRecentBackup = Files.list(tempBackupDir)
-                .max((p1, p2) -> p1.getFileName().compareTo(p2.getFileName()))
-                .orElseThrow();
-        String backupContent = Files.readString(mostRecentBackup);
-        assertEquals("Modified content", backupContent, "Most recent backup should have modified content");
-
-        testsupport.TestLog.out("✅ Backup correctly handles file overwrites");
+            .max((p1, p2) -> p1.getFileName().compareTo(p2.getFileName()))
+            .orElseThrow();
+        byte[] backup = Files.readAllBytes(mostRecentBackup);
+        byte[] modified = "Modified content".getBytes(StandardCharsets.UTF_8);
+        assertArrayEquals(modified, Arrays.copyOf(backup, modified.length));
     }
 }

@@ -1,38 +1,35 @@
 package security;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
-import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-/**
- * Simple smoke test to verify owner-only permission helpers and SecureTempFiles behavior.
- * Run manually: java -cp . security.PermissionsTest
- */
-public class PermissionsTest {
-    public static void main(String[] args) throws Exception {
-        Path tmp = null;
+class PermissionsTest {
+
+    @TempDir
+    Path tempDir;
+
+    @Test
+    void secureTempFileAppliesOwnerOnlyPermissions() throws Exception {
+        Path tmp = utils.SecureTempFiles.createSecureTempFile(tempDir, "permtest-", ".tmp", true);
+        Files.write(tmp, "permission-test".getBytes(StandardCharsets.UTF_8));
+
         try {
-            tmp = utils.SecureTempFiles.createSecureTempFile(null, "permtest-", ".tmp", true);
-            Files.write(tmp, "permission-test".getBytes(StandardCharsets.UTF_8));
-
-            boolean ok = false;
-            try {
-                Set<PosixFilePermission> perms = Files.getPosixFilePermissions(tmp);
-                ok = perms.contains(PosixFilePermission.OWNER_READ) && perms.contains(PosixFilePermission.OWNER_WRITE);
-                testsupport.TestLog.out("POSIX perms: " + perms);
-            } catch (UnsupportedOperationException e) {
-                // Non-POSIX (Windows) fallback - ensure file is readable/writable and owner-only calls didn't throw
-                File f = tmp.toFile();
-                testsupport.TestLog.out("Windows fallback permissions: readable=" + f.canRead() + " writable=" + f.canWrite());
-                ok = f.canRead() && f.canWrite();
-            }
-
-            testsupport.TestLog.out(ok ? "PASS: Owner-only permissions appear applied" : "FAIL: Owner-only permissions not verified");
-        } finally {
-            if (tmp != null) try { Files.deleteIfExists(tmp); } catch (Exception ignored) {}
+            Set<PosixFilePermission> perms = Files.getPosixFilePermissions(tmp);
+            assertTrue(perms.contains(PosixFilePermission.OWNER_READ));
+            assertTrue(perms.contains(PosixFilePermission.OWNER_WRITE));
+            assertFalse(perms.contains(PosixFilePermission.OTHERS_READ), "File should not be world-readable");
+        } catch (UnsupportedOperationException e) {
+            File f = tmp.toFile();
+            assertTrue(f.canRead(), "Fallback file should remain readable by owner");
+            assertTrue(f.canWrite(), "Fallback file should remain writable by owner");
         }
     }
 }

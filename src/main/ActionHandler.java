@@ -339,17 +339,18 @@ public class ActionHandler {
         // Store plain timestamp (no suffix) - suffixes are display-only
         String plainTimestamp = newDateTime.trim();
 
+        // Capture the entry's body content before the rename so we can re-identify it
+        // afterwards even if its new timestamp collides with another entry's timestamp.
+        final String editedContent = logFileHandler.loadEntry(selectedItem);
+
         // Update off the EDT with progress feedback. changeTimestamp already rebuilds the
         // entry list from the freshly parsed file, so only the filter needs re-applying —
         // reloading the entries again here would reparse the whole file a second time.
         logFileHandler.changeTimestampAsync(selectedItem, plainTimestamp, listModel, () -> {
-            // Keep the edited entry visible by filtering on its (possibly new) year/month
-            try {
-                java.time.LocalDateTime dt = utils.DateHandler.parseTimestamp(plainTimestamp);
-                logListPanel.setFilterAndApply(dt.getYear(), dt.getMonthValue());
-            } catch (Exception ex) {
-                logListPanel.applyCurrentFilter(null);
-            }
+            // Re-apply the filter the user already had selected instead of jumping to the
+            // edited entry's (possibly new) year/month - the filter should never reset.
+            logListPanel.applyCurrentFilter(() ->
+                logListPanel.selectEntryByTimestampAndContent(plainTimestamp, editedContent));
             // Only re-render the full log when it is actually visible
             fullLogPanel.refreshIfVisible();
             SystemTrayMenu.updateRecentLogsMenu();
