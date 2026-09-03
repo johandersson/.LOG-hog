@@ -39,6 +39,7 @@ jar cvfm "$SCRIPT_DIR/../build/$JAR_NAME" "$SCRIPT_DIR/manifest.txt" \
     encryption/*.class \
     markdown/*.class \
     main/*.class \
+    security/*.class \
     services/*.class \
     utils/*.class \
     -C "$SCRIPT_DIR" resources/
