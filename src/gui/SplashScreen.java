@@ -34,9 +34,12 @@ import javax.swing.JPanel;
 import utils.WindowShakeAnimation;
 
 public class SplashScreen extends JDialog {
-    private static final int SPLASH_WIDTH = 450;
+    private static final int SPLASH_WIDTH = 460;
     private static final int SPLASH_HEIGHT = 300;
     private static final int CORNER_ARC = 18;
+    private static final int NOTEPAD_WIDTH = 290;
+    private static final int NOTEPAD_HEIGHT = 150;
+    private static final int NOTEPAD_TEXT_FONT_SIZE = 9;
     private int animationFrame; // default 0
     private javax.swing.Timer animationTimer;
     private StandardButton okButton;
@@ -388,33 +391,57 @@ public class SplashScreen extends JDialog {
         // Draw notepad - legal pad style with shadow
         // Shadow
         g2d.setColor(new Color(200, 200, 200, 100)); // semi-transparent gray
-        g2d.fillRect(notepadX + 5, notepadY + 5, 250, 150);
+        g2d.fillRect(notepadX + 5, notepadY + 5, NOTEPAD_WIDTH, NOTEPAD_HEIGHT);
         // Pad
         g2d.setColor(new Color(255, 255, 204)); // light yellow
-        g2d.fillRect(notepadX, notepadY, 250, 150);
+        g2d.fillRect(notepadX, notepadY, NOTEPAD_WIDTH, NOTEPAD_HEIGHT);
         g2d.setColor(Color.BLACK);
-        g2d.drawRect(notepadX, notepadY, 250, 150);
+        g2d.drawRect(notepadX, notepadY, NOTEPAD_WIDTH, NOTEPAD_HEIGHT);
         // Blue lines
         g2d.setColor(new Color(173, 216, 230)); // light blue
+        int lineRight = notepadX + NOTEPAD_WIDTH - 10;
         for (int i = 1; i <= 8; i++) {
             int y = notepadY + 20 + i * 15;
-            g2d.drawLine(notepadX + 10, y, notepadX + 240, y);
+            g2d.drawLine(notepadX + 10, y, lineRight, y);
         }
 
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_GASP);
         g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-        g2d.setFont(new Font("Monospaced", Font.PLAIN, 11));
+        g2d.setFont(new Font("Monospaced", Font.PLAIN, NOTEPAD_TEXT_FONT_SIZE));
         g2d.setColor(Color.BLACK);
+        FontMetrics fm = g2d.getFontMetrics();
+        int maxTextWidth = NOTEPAD_WIDTH - 20; // keep text within the pad's left/right padding
         for (int i = 0; i < animationFrame && i < entriesList.size(); i++) {
-            g2d.drawString(entriesList.get(i), notepadX + 10, notepadY + 31 + i * 16);
+            String entry = fitTextToWidth(entriesList.get(i), fm, maxTextWidth);
+            g2d.drawString(entry, notepadX + 10, notepadY + 31 + i * 16);
         }
+    }
+
+    /**
+     * Truncates the given text with an ellipsis so it never renders past the
+     * notepad's right edge, regardless of how long the underlying entry is.
+     */
+    private String fitTextToWidth(String text, FontMetrics fm, int maxWidth) {
+        if (fm.stringWidth(text) <= maxWidth) {
+            return text;
+        }
+        String ellipsis = "...";
+        int ellipsisWidth = fm.stringWidth(ellipsis);
+        int end = text.length();
+        while (end > 0 && fm.stringWidth(text.substring(0, end)) + ellipsisWidth > maxWidth) {
+            end--;
+        }
+        return end > 0 ? text.substring(0, end) + ellipsis : ellipsis;
     }
 
     private void drawPen(Graphics2D g2d, int notepadX, int notepadY) {
         // Draw pen
         if (animationFrame > 0 && animationFrame <= entriesList.size()) {
             String lastEntry = entriesList.get(animationFrame - 1);
-            int penX = notepadX + 10 + g2d.getFontMetrics().stringWidth(lastEntry);
+            FontMetrics fm = g2d.getFontMetrics();
+            int maxTextWidth = NOTEPAD_WIDTH - 20;
+            String fitted = fitTextToWidth(lastEntry, fm, maxTextWidth);
+            int penX = notepadX + 10 + fm.stringWidth(fitted);
             int penY = notepadY + 30 + (animationFrame - 1) * 15;
             g2d.setColor(Color.BLACK);
             g2d.setStroke(new BasicStroke(2));
