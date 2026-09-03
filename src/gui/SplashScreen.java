@@ -39,7 +39,7 @@ public class SplashScreen extends JDialog {
     private static final int CORNER_ARC = 18;
     private static final int NOTEPAD_WIDTH = 290;
     private static final int NOTEPAD_HEIGHT = 150;
-    private static final int NOTEPAD_TEXT_FONT_SIZE = 10;
+    private static final int NOTEPAD_TEXT_FONT_SIZE = 11;
     private int animationFrame; // default 0
     private javax.swing.Timer animationTimer;
     private StandardButton okButton;
