@@ -29,6 +29,31 @@ public final class DialogHelper {
 
     private DialogHelper() {
     }
+
+    /**
+     * Runs a Swing dialog action, guarding against {@link Throwable}s coming from a broken
+     * look and feel (e.g. WindowsLookAndFeel throwing {@code ExceptionInInitializerError}
+     * while lazily loading its icons - see JDK-8318605-style failures). If the action fails,
+     * the UI is switched to the cross-platform (Metal) look and feel and the action is retried
+     * once; if it still fails, the failure is logged instead of crashing the caller's thread.
+     */
+    private static void runDialogSafely(Runnable action) {
+        try {
+            action.run();
+        } catch (Throwable t) {
+            try {
+                javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getCrossPlatformLookAndFeelClassName());
+            } catch (Exception ignored) {
+                // best effort fallback; proceed to retry regardless
+            }
+            try {
+                action.run();
+            } catch (Throwable retryFailure) {
+                utils.Log.error("Failed to display dialog", retryFailure instanceof Exception
+                        ? (Exception) retryFailure : new RuntimeException(retryFailure));
+            }
+        }
+    }
     // Builds a safe HTML message. If `message` already contains an <html> block
     // we avoid double-wrapping and try to inject `details` before the closing
     // </html> tag if present. This prevents orphan closing tags from appearing
@@ -76,10 +101,11 @@ public final class DialogHelper {
      */
     public static void showError(Component parent, String title, String message, String details) {
         final String htmlFinal = buildHtml(message, details);
+        Runnable showDialog = () -> JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.ERROR_MESSAGE);
         if (SwingUtilities.isEventDispatchThread()) {
-            JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.ERROR_MESSAGE);
+            runDialogSafely(showDialog);
         } else {
-            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.ERROR_MESSAGE));
+            SwingUtilities.invokeLater(() -> runDialogSafely(showDialog));
         }
     }
     
@@ -95,10 +121,11 @@ public final class DialogHelper {
      */
     public static void showWarning(Component parent, String title, String message, String details) {
         final String htmlFinal = buildHtml(message, details);
+        Runnable showDialog = () -> JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.WARNING_MESSAGE);
         if (SwingUtilities.isEventDispatchThread()) {
-            JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.WARNING_MESSAGE);
+            runDialogSafely(showDialog);
         } else {
-            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.WARNING_MESSAGE));
+            SwingUtilities.invokeLater(() -> runDialogSafely(showDialog));
         }
     }
     
@@ -114,10 +141,11 @@ public final class DialogHelper {
      */
     public static void showInfo(Component parent, String title, String message, String details) {
         final String htmlFinal = buildHtml(message, details);
+        Runnable showDialog = () -> JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.INFORMATION_MESSAGE);
         if (SwingUtilities.isEventDispatchThread()) {
-            JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.INFORMATION_MESSAGE);
+            runDialogSafely(showDialog);
         } else {
-            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.INFORMATION_MESSAGE));
+            SwingUtilities.invokeLater(() -> runDialogSafely(showDialog));
         }
     }
     
@@ -133,10 +161,11 @@ public final class DialogHelper {
      */
     public static void showSuccess(Component parent, String title, String message, String details) {
         final String htmlFinal = buildHtml("✓ " + message, details);
+        Runnable showDialog = () -> JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.INFORMATION_MESSAGE);
         if (SwingUtilities.isEventDispatchThread()) {
-            JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.INFORMATION_MESSAGE);
+            runDialogSafely(showDialog);
         } else {
-            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, htmlFinal, title, JOptionPane.INFORMATION_MESSAGE));
+            SwingUtilities.invokeLater(() -> runDialogSafely(showDialog));
         }
     }
     
@@ -154,14 +183,15 @@ public final class DialogHelper {
     public static boolean confirm(Component parent, String title, String message, String details) {
         final String htmlFinal = buildHtml(message, details);
         if (SwingUtilities.isEventDispatchThread()) {
-            int result = JOptionPane.showConfirmDialog(parent, htmlFinal, title,
-                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-            return result == JOptionPane.YES_OPTION;
+            final int[] result = {JOptionPane.NO_OPTION};
+            runDialogSafely(() -> result[0] = JOptionPane.showConfirmDialog(parent, htmlFinal, title,
+                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE));
+            return result[0] == JOptionPane.YES_OPTION;
         } else {
             final int[] result = new int[1];
             try {
-                SwingUtilities.invokeAndWait(() -> result[0] = JOptionPane.showConfirmDialog(parent, htmlFinal, title,
-                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE));
+                SwingUtilities.invokeAndWait(() -> runDialogSafely(() -> result[0] = JOptionPane.showConfirmDialog(parent, htmlFinal, title,
+                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE)));
             } catch (Exception e) {
                 return false;
             }
@@ -186,13 +216,15 @@ public final class DialogHelper {
                                    int messageType, Object[] options, Object defaultOption) {
         final String htmlFinal = buildHtml(message, details);
         if (SwingUtilities.isEventDispatchThread()) {
-            return JOptionPane.showOptionDialog(parent, htmlFinal, title,
-                JOptionPane.YES_NO_OPTION, messageType, null, options, defaultOption);
-        } else {
-            final int[] result = new int[1];
-            try {
-                SwingUtilities.invokeAndWait(() -> result[0] = JOptionPane.showOptionDialog(parent, htmlFinal, title,
+            final int[] result = {-1};
+            runDialogSafely(() -> result[0] = JOptionPane.showOptionDialog(parent, htmlFinal, title,
                     JOptionPane.YES_NO_OPTION, messageType, null, options, defaultOption));
+            return result[0];
+        } else {
+            final int[] result = new int[]{-1};
+            try {
+                SwingUtilities.invokeAndWait(() -> runDialogSafely(() -> result[0] = JOptionPane.showOptionDialog(parent, htmlFinal, title,
+                    JOptionPane.YES_NO_OPTION, messageType, null, options, defaultOption)));
             } catch (Exception e) {
                 return -1;
             }
