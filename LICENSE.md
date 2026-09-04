@@ -1,4 +1,4 @@
-# .LOG-hog - The Ultimate Log Muncher!
+# .LOG-hog - The Ultimate Writing App for Secure time stamped notes!
 
 LogHog is a powerful log file viewer and editor designed for writing secure encrypted notes (for a job diary, personal journal, or log file). It offers advanced features such as editing, searching, syntax highlighting, encryption, and a user-friendly interface.
 
