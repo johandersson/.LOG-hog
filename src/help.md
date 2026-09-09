@@ -2,7 +2,7 @@
 
 ## Purpose
 
-.LOG-hog is designed for **fast, focused note-taking**.
+.LOG-hog is designed for **fast, focused note-taking with strong encryption**. Your notes are stored safely in one file.
 
 When the application starts, the editor is immediately focused so you can begin writing without interruption. Press **Ctrl+S** or click **Save** to store your entry as a timestamped log entry and automatically clear the editor for the next note.
 
