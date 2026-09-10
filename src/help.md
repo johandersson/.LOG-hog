@@ -234,11 +234,6 @@ Supported formatting:
 
 Rendering applies in the Full Log view.
 
-# ⚙️ Performance Notes
-
-* Large logs are partially rendered for responsiveness
-* Use filters to access older entries
-
 # 📄 License
 
 .LOG-hog is licensed under **GPL v3**.  
