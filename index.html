@@ -155,23 +155,35 @@
 
     <section id="security" aria-labelledby="security-title">
       <div class="container">
-        <div class="security-panel">
-        <h2 id="security-title">
-  Your Notes, Secure by Design
-</h2>
+       <div class="security-panel">
+  <h2 id="security-title">Your Notes, Secure by Design</h2>
 
-<p>
-  .LOG-hog uses AES-256-GCM encryption, PBKDF2 key derivation (600,000
-  iterations), encrypted backups, integrity checks, and tamper-evident
-  protections to help keep your notes secure.
-</p>
+  <p>
+    .LOG-hog protects your notes with authenticated AES-256-GCM encryption,
+    per-file salts, unique initialization vectors, and PBKDF2-HMAC-SHA256
+    password derivation using 600,000 iterations. Encrypted backups,
+    integrity verification, and tamper-evident security records provide
+    additional protection against unauthorized changes and accidental
+    corruption.
+  </p>
 
-<p>
-  <b>Security still depends on a good password</b>, so .LOG-hog includes a built-in
-  generator for strong passwords and passphrases. <b>Like any local application,
-  it cannot protect against malware, keyloggers, or a compromised system.</b>
-</p>
-        </div>
+  <p>
+    Your password is the foundation of this protection. Use a long, unique
+    passphrase—.LOG-hog includes a built-in generator to help create one.
+    For additional protection, enable full-disk encryption on your operating
+    system, lock the application when unattended, and maintain secure,
+    tested backups.
+  </p>
+
+  <p>
+    .LOG-hog is designed to protect local data at rest, including against
+    offline copying or tampering with stored files. No local application can
+    protect data while a device is compromised: malware, keyloggers,
+    malicious processes, memory-access tools, or a fully compromised
+    operating system may be able to access unlocked notes or passwords.
+  </p>
+</div>
+
       </div>
     </section>
 
