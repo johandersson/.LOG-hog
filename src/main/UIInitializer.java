@@ -59,6 +59,7 @@ public class UIInitializer {
     public void initializeUI() {
         setupFrame();
         setupContent();
+        installInitialEntryFocusHook();
         setupStatusBar();
         setupLookAndFeel();
     }
@@ -258,6 +259,16 @@ public class UIInitializer {
             public void stateChanged(javax.swing.event.ChangeEvent e) {
                 int idx = tabPane.getSelectedIndex();
                 handleTabSelection(idx);
+            }
+        });
+    }
+
+    private void installInitialEntryFocusHook() {
+        editor.getEntryPanel().getTextArea().addHierarchyListener(e -> {
+            long flags = e.getChangeFlags();
+            if ((flags & (java.awt.event.HierarchyEvent.SHOWING_CHANGED
+                | java.awt.event.HierarchyEvent.DISPLAYABILITY_CHANGED)) != 0) {
+                requestInitialEntryFocus();
             }
         });
     }
