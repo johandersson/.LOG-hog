@@ -1,4 +1,4 @@
-# 📘 Welcome to .LOG-hog
+# 📘 Welcome to .LOG-hog for encrypted notes
 
 ## Purpose
 
