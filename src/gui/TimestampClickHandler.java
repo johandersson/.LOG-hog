@@ -27,6 +27,8 @@ import java.util.regex.Pattern;
 import javax.swing.JTextPane;
 import javax.swing.JWindow;
 import javax.swing.SwingConstants;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.StyleConstants;
 // PenIcon import will be added here
 
 /**
@@ -318,6 +320,9 @@ public class TimestampClickHandler {
         if (!isTimestampLine(lineText)) {
             return false;
         }
+        if (!hasTimestampStyleAtPosition(textPane.getStyledDocument(), pos)) {
+            return false;
+        }
         
         // Find the position within the line
         try {
@@ -341,6 +346,26 @@ public class TimestampClickHandler {
             // ignore
         }
         
+        return false;
+    }
+
+    static boolean hasTimestampStyleAtPosition(javax.swing.text.StyledDocument doc, int pos) {
+        if (doc == null || pos < 0 || pos >= doc.getLength()) {
+            return false;
+        }
+        try {
+            AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
+            Object name = attrs.getAttribute(StyleConstants.NameAttribute);
+            if ("timestamp".equals(name)) {
+                return true;
+            }
+            Object parent = attrs.getAttribute(AttributeSet.ResolveAttribute);
+            if (parent instanceof AttributeSet parentAttrs) {
+                Object parentName = parentAttrs.getAttribute(StyleConstants.NameAttribute);
+                return "timestamp".equals(parentName);
+            }
+        } catch (Exception ignored) {
+        }
         return false;
     }
     
