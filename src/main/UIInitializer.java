@@ -48,6 +48,7 @@ public class UIInitializer {
     private final LogTextEditor editor;
     private final JTabbedPane tabPane;
     private final List<NavItem> navItems;
+    private boolean initialEntryFocusApplied;
 
     public UIInitializer(LogTextEditor editor, JTabbedPane tabPane, List<NavItem> navItems, java.util.Properties settings) {
         this.editor = editor;
@@ -82,6 +83,16 @@ public class UIInitializer {
                     // Always exit, even if cleanup throws
                     System.exit(0);
                 }
+            }
+
+            @Override
+            public void windowOpened(java.awt.event.WindowEvent e) {
+                requestInitialEntryFocus();
+            }
+
+            @Override
+            public void windowActivated(java.awt.event.WindowEvent e) {
+                requestInitialEntryFocus();
             }
         });
         editor.setLocationRelativeTo(null);
@@ -370,6 +381,28 @@ public class UIInitializer {
             var textArea = editor.getEntryPanel().getTextArea();
             textArea.requestFocusInWindow();
             textArea.setCaretPosition(textArea.getDocument().getLength());
+        });
+    }
+
+    private void requestInitialEntryFocus() {
+        if (initialEntryFocusApplied || editor.isLocked() || tabPane.getSelectedIndex() != 0) {
+            return;
+        }
+
+        SwingUtilities.invokeLater(() -> {
+            if (initialEntryFocusApplied || editor.isLocked() || tabPane.getSelectedIndex() != 0) {
+                return;
+            }
+
+            var textArea = editor.getEntryPanel().getTextArea();
+            if (!editor.isShowing() || !textArea.isShowing()) {
+                return;
+            }
+
+            if (textArea.requestFocusInWindow()) {
+                textArea.setCaretPosition(textArea.getDocument().getLength());
+                initialEntryFocusApplied = true;
+            }
         });
     }
 
