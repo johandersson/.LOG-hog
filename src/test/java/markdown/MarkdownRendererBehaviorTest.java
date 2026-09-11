@@ -40,4 +40,28 @@ public class MarkdownRendererBehaviorTest {
         assertEquals(MarkdownStyle.FONT_SIZE_H1, StyleConstants.getFontSize(attrs));
         assertTrue(StyleConstants.isBold(attrs), "Heading style should be bold");
     }
+
+    @Test
+    void singleEditorBlankLineBetweenParagraphAndListRendersAsSingleBlankRow() throws Exception {
+        StyledDocument doc = MarkdownRenderer.buildDocumentFromEntries(List.of(
+            List.of("12:00 2026-07-15", "Paragraph", "", "- item")
+        ), null);
+
+        String text = doc.getText(0, doc.getLength());
+        assertEquals("12:00 2026-07-15\nParagraph\n\n• item", text);
+        assertFalse(text.contains("Paragraph\n\n\n• item"),
+            "Expected one blank row between paragraph and list, got: [" + text + "]");
+    }
+
+    @Test
+    void singleEditorBlankLineBetweenParagraphAndQuoteRendersAsSingleBlankRow() throws Exception {
+        StyledDocument doc = MarkdownRenderer.buildDocumentFromEntries(List.of(
+            List.of("12:00 2026-07-15", "Paragraph", "", "> quote")
+        ), null);
+
+        String text = doc.getText(0, doc.getLength());
+        assertEquals("12:00 2026-07-15\nParagraph\n\n│ quote", text);
+        assertFalse(text.contains("Paragraph\n\n\n│ quote"),
+            "Expected one blank row between paragraph and quote, got: [" + text + "]");
+    }
 }
