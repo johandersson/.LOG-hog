@@ -948,8 +948,7 @@ public class LogFileHandler implements LogFileOperations {
             salt = null;
         }
         encryptionManager.clearSensitiveData();
-        cache.invalidateCaches();
-        cache.clearPendingWrites();
+        cache.secureClear();
         // Clear all EntryLoader caches (timestamps, parsed entries, content cache)
         if (entryLoader != null) {
             entryLoader.invalidateCaches();

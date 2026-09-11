@@ -1233,6 +1233,7 @@ public final class LogListPanel extends JPanel {
         }
         
         if (locked) {
+            displayedEntryTimestamp = null;
             entryArea.setText("");
             previewPane.setText("");
             // Switch back to edit mode if in preview mode
