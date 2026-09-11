@@ -383,7 +383,7 @@ public class EncryptionManager implements SessionKeyEncryptor {
                 SecretKey key = deriveKey(password, salt);
                 try {
                     return performDecryption(encrypted, key);
-                } catch (EncryptionException e) {
+                } catch (java.security.GeneralSecurityException e) {
                     byte[] stripped = null;
                     try {
                         stripped = stripVerifiedBackupHmac(encrypted, password, salt);
