@@ -235,7 +235,7 @@ The script caches `junit-platform-console-standalone-1.10.2.jar` in `.tools/`, c
 ## 📄 License
 
 Licensed under **GNU GPL v3**.  
-See `LICENSE.md` for details.
+See the top-level [`LICENSE.md`](LICENSE.md) for details.
 
 ***
 
@@ -245,4 +245,3 @@ GitHub:
 <http://github.com/johandersson/.LOG-hog>
 
 ***
-

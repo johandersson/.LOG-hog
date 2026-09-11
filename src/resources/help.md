@@ -237,7 +237,7 @@ Rendering applies in the Full Log view.
 # 📄 License
 
 .LOG-hog is licensed under **GPL v3**.  
-See `LICENSE.md` for details.
+See the top-level repository `LICENSE.md` for details.
 
 # 📦 Repository
 
@@ -245,4 +245,3 @@ GitHub:
 <http://github.com/johandersson/.LOG-hog>
 
 Production builds now use timestamped artifact names, e.g. `loghog-2026-07-06-18_15.jar`.
-
