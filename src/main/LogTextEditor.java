@@ -458,14 +458,17 @@ public final class LogTextEditor extends JFrame {
         //return 5 most recent log entries as menu items
         recentLogsMenu.removeAll();
         java.util.List<String> recentLogs = logFileHandler.getRecentLogEntries(10);
-        checkIfWindowIsVisible();
 
         for (String logEntry : recentLogs) {
             MenuItem logItem = new MenuItem(logEntry);
             logItem.addActionListener(e -> {
-                loadAndDisplayEntry(logEntry);
-                tabPane.setSelectedIndex(1); // switch to Log Entries tab
-                logList.setSelectedValue(logEntry, true); // select the log entry in the list
+                SwingUtilities.invokeLater(() -> {
+                    checkIfWindowIsVisible();
+                    loadAndDisplayEntry(logEntry);
+                    tabPane.setSelectedIndex(1); // switch to Log Entries tab
+                    logList.setSelectedValue(logEntry, true); // select the log entry in the list
+                    logListPanel.getEntryArea().requestFocusInWindow();
+                });
             });
             recentLogsMenu.add(logItem);
         }
