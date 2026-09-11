@@ -161,10 +161,8 @@ public final class PersistentAuthLockout {
                 audit("LOCKOUT_ANCHOR_MIGRATED", "legacy_state");
                 return migrated;
             } catch (Exception ex) {
-                LockoutState failClosed = failClosedState();
-                writeState(failClosed, key);
                 audit("LOCKOUT_MIGRATION_FAILED", ex.getClass().getSimpleName());
-                return failClosed;
+                return failClosedState();
             } finally {
                 zeroize(key);
             }
