@@ -459,7 +459,7 @@ public final class LogTextEditor extends JFrame {
             return;
         }
         Thread.setDefaultUncaughtExceptionHandler((thread, throwable) ->
-            logFatal("Uncaught exception on thread " + thread.getName(), throwable));
+            logFatalAndExit("Uncaught exception on thread " + thread.getName(), throwable));
     }
 
     private static void logFatalAndExit(String message, Throwable throwable) {
