@@ -127,6 +127,49 @@ public final class PersistentAuthLockout {
             }
         }
 
+        if (stateExists && keyExists && !anchorExists) {
+            byte[] key = readKey();
+            try {
+                Properties props = new Properties();
+                try (ByteArrayInputStream in = new ByteArrayInputStream(Files.readAllBytes(statePath))) {
+                    props.load(in);
+                }
+
+                String mac = props.getProperty(KEY_MAC, "");
+                props.remove(KEY_MAC);
+                byte[] expectedMac = HmacUtils.computeHmacSha256(key, serializeState(props));
+                byte[] actualMac = Base64.getDecoder().decode(mac);
+                try {
+                    if (!java.security.MessageDigest.isEqual(expectedMac, actualMac)) {
+                        LockoutState failClosed = failClosedState();
+                        writeState(failClosed, key);
+                        audit("LOCKOUT_TAMPER_DETECTED", "legacy_state_mac_mismatch");
+                        return failClosed;
+                    }
+                } finally {
+                    zeroize(expectedMac);
+                    zeroize(actualMac);
+                }
+
+                LockoutState migrated = new LockoutState(
+                    parseInt(props.getProperty(KEY_FAILED), 0),
+                    parseLong(props.getProperty(KEY_LOCKED_UNTIL), 0L),
+                    parseLong(props.getProperty(KEY_SEQ), 0L),
+                    parseInt(props.getProperty(KEY_LOCKOUT_LEVEL), 0)
+                );
+                writeState(migrated, key);
+                audit("LOCKOUT_ANCHOR_MIGRATED", "legacy_state");
+                return migrated;
+            } catch (Exception ex) {
+                LockoutState failClosed = failClosedState();
+                writeState(failClosed, key);
+                audit("LOCKOUT_MIGRATION_FAILED", ex.getClass().getSimpleName());
+                return failClosed;
+            } finally {
+                zeroize(key);
+            }
+        }
+
         if (!stateExists || !keyExists || !anchorExists) {
             byte[] key = keyExists ? readKey() : generateKey();
             try {
