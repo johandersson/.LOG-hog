@@ -129,22 +129,22 @@ public final class InformationPanel extends JPanel {
     }
 
     private String loadPanelText(String fileName) {
-        // 1) Try file in several likely locations in the development/work directory
-        Path p1 = Path.of(fileName);
-        Path p2 = Path.of("..", fileName);
-        Path p3 = Path.of("src", fileName);
-        Path p4 = Path.of("resources", fileName);
+        boolean canonicalRootOnly = "LICENSE.md".equals(fileName);
+        Path[] fileCandidates = canonicalRootOnly
+            ? new Path[]{Path.of(fileName), Path.of("..", fileName)}
+            : new Path[]{Path.of(fileName), Path.of("..", fileName), Path.of("src", fileName), Path.of("resources", fileName)};
         try {
-            if (Files.exists(p1)) return Files.readString(p1, StandardCharsets.UTF_8);
-            if (Files.exists(p2)) return Files.readString(p2, StandardCharsets.UTF_8);
-            if (Files.exists(p3)) return Files.readString(p3, StandardCharsets.UTF_8);
-            if (Files.exists(p4)) return Files.readString(p4, StandardCharsets.UTF_8);
+            for (Path candidate : fileCandidates) {
+                if (Files.exists(candidate)) return Files.readString(candidate, StandardCharsets.UTF_8);
+            }
         } catch (IOException couldNotReadFile) {
             return "Could not read " + fileName + " from file system. Code: LHG-INF-1001";
         }
 
         // 2) Try resource locations inside the JAR (several common packaging locations)
-        String[] resourcePaths = new String[]{"/" + fileName, "/resources/" + fileName, "/src/resources/" + fileName};
+        String[] resourcePaths = canonicalRootOnly
+            ? new String[]{"/" + fileName}
+            : new String[]{"/" + fileName, "/resources/" + fileName, "/src/resources/" + fileName};
         for (String rp : resourcePaths) {
             try (var is = getClass().getResourceAsStream(rp)) {
                 if (is != null) {
