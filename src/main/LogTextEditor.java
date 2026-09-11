@@ -22,7 +22,6 @@ import java.awt.MenuItem;
 import java.awt.SystemTray;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.Base64;
 import java.util.ArrayList;
@@ -53,6 +52,7 @@ import gui.SystemTrayMenu;
 import gui.LoadingProgressDialog;
 import security.AppPathPolicy;
 import security.SecurityFilePolicy;
+import utils.PlatformSupport;
 
 public final class LogTextEditor extends JFrame {
     private static final long serialVersionUID = 1L;
@@ -356,8 +356,9 @@ public final class LogTextEditor extends JFrame {
         InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = rootPane.getActionMap();
 
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK), "load");
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "find"); // Ctrl+F
+        int shortcutMask = PlatformSupport.menuShortcutMask();
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, shortcutMask), "load");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, shortcutMask), "find");
 
         actionMap.put("load", new AbstractAction() {
             public void actionPerformed(ActionEvent e) {
@@ -825,14 +826,14 @@ public final class LogTextEditor extends JFrame {
             DialogHelper.showError(this, "Permission Error", "Cannot Read Log File",
                 "The log file exists but cannot be read:<br>" +
                 "<code>" + logFile.getAbsolutePath() + "</code><br><br>" +
-                "Possible solutions:<br>• Check file permissions<br>• Close other programs that may have locked the file<br>• Run application as administrator");
+                "Possible solutions:<br>• Check file permissions<br>• Close other programs that may have locked the file<br>• Ensure your user account has access to this file");
         }
         
         // Check if file is writable
         if (!logFile.canWrite()) {
             DialogHelper.showWarning(this, "Read-Only File", "Log File is Read-Only",
                 "The log file exists but cannot be modified:<br>" +
-                "<code>" + logFile.getAbsolutePath() + "</code><br><br>To fix this:<br>1. Right-click the file in your file manager<br>2. Select Properties (or Get Info on macOS)<br>3. Uncheck 'Read-only' attribute<br>4. Click OK and restart the application");
+                "<code>" + logFile.getAbsolutePath() + "</code><br><br>To fix this:<br>1. Open your file manager and locate the file<br>2. Open file information/properties and grant write permission to your user<br>3. Save the change and restart the application");
         }
     }
 

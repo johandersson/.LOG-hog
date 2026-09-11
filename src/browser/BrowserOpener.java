@@ -22,6 +22,7 @@ import java.net.URI;
 import gui.DialogHelper;
 import security.PathValidator;
 import utils.Log;
+import utils.PlatformSupport;
 
 public class BrowserOpener {
     public static void openInBrowser(String url) {
@@ -31,7 +32,13 @@ public class BrowserOpener {
                         "Opening this URL is not allowed. Only HTTP/HTTPS links are supported.");
                 return;
             }
-            Desktop.getDesktop().browse(new URI(url));
+            Desktop desktop = PlatformSupport.getDesktopForAction(Desktop.Action.BROWSE);
+            if (desktop == null) {
+                DialogHelper.showWarning(null, "Unsupported System", "Cannot Open Browser",
+                        "This system does not support opening URLs via the Java Desktop API.");
+                return;
+            }
+            desktop.browse(new URI(url));
         } catch (Exception e) {
             // Do not expose internal exception details to the user; log safely
             Log.error("Error opening URL in browser.", e);

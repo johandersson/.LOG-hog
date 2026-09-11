@@ -19,6 +19,7 @@ package clipboard;
 
 import javax.swing.*;
 import javax.swing.SwingUtilities;
+import java.awt.Desktop;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -194,7 +195,13 @@ public class ClipboardSecurityWarner {
                     String url = e.getURL().toString();
                     // Only allow http/https links from clickable HTML panels
                     if (security.PathValidator.isSafeHttpUrl(url)) {
-                        java.awt.Desktop.getDesktop().browse(e.getURL().toURI());
+                        Desktop desktop = utils.PlatformSupport.getDesktopForAction(Desktop.Action.BROWSE);
+                        if (desktop != null) {
+                            desktop.browse(e.getURL().toURI());
+                        } else {
+                            gui.DialogHelper.showWarning(null, "Unsupported System", "Cannot Open Browser",
+                                "This system does not support opening URLs via the Java Desktop API.");
+                        }
                     } else {
                         gui.DialogHelper.showWarning(null, "Blocked Link", "Blocked Link",
                             "This link uses an unsupported scheme and was blocked for your safety.");

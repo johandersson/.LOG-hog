@@ -50,6 +50,7 @@ import filehandling.FullLogFileLoader;
 import filehandling.LogFileHandler;
 import filehandling.ParsedLogData;
 import main.LogTextEditor;
+import utils.PlatformSupport;
 import utils.SafeExecution;
 
 public final class FullLogPanel extends LogPanel {
@@ -122,7 +123,7 @@ public final class FullLogPanel extends LogPanel {
 
         // Override ctrl+c to use secure clipboard
         fullLogPane.getInputMap(JComponent.WHEN_FOCUSED).put(
-                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, java.awt.event.InputEvent.CTRL_DOWN_MASK), "copySecure");
+                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, PlatformSupport.menuShortcutMask()), "copySecure");
         fullLogPane.getActionMap().put("copySecure", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {

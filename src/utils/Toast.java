@@ -21,6 +21,9 @@ import java.awt.*;
 import javax.swing.*;
 
 public class Toast {
+    private static final int FADE_INTERVAL_MS = 25;
+    private static final float FADE_STEP = 0.1f;
+
     public static void showToast(Component parent, String message) {
         showToast(parent, message, 1000);
     }
@@ -74,16 +77,25 @@ public class Toast {
 
         // Fade out after specified duration
         javax.swing.Timer timer = new javax.swing.Timer(duration, e -> {
-            javax.swing.Timer fadeTimer = new javax.swing.Timer(25, null);
+            if (!PlatformSupport.supportsWindowOpacity()) {
+                toast.dispose();
+                return;
+            }
+            javax.swing.Timer fadeTimer = new javax.swing.Timer(FADE_INTERVAL_MS, null);
             fadeTimer.addActionListener(ev -> {
-                float opacity = toast.getOpacity();
-                if (opacity > 0) {
-                    toast.setOpacity(Math.max(0.0f, opacity - 0.1f));
-                } else {
-                    fadeTimer.stop();
-                    toast.dispose();
+                try {
+                    float opacity = toast.getOpacity();
+                    if (opacity > 0) {
+                        toast.setOpacity(Math.max(0.0f, opacity - FADE_STEP));
+                        return;
+                    }
+                } catch (UnsupportedOperationException | IllegalComponentStateException ignored) {
+                    // Fallback: immediate close when opacity is unsupported.
                 }
+                fadeTimer.stop();
+                toast.dispose();
             });
+            fadeTimer.setDelay(FADE_INTERVAL_MS);
             fadeTimer.start();
         });
         timer.setRepeats(false);

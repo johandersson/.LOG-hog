@@ -2,10 +2,20 @@
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+BUILD_DIR="$SCRIPT_DIR/../build"
+SOURCES_FILE="$(mktemp "${TMPDIR:-/tmp}/loghog-javac.XXXXXX.args")"
+cleanup() { rm -f "$SOURCES_FILE"; }
+trap cleanup EXIT
 
 # Sync help.md to resources folder before building
 echo "Syncing help.md to resources..."
-cp -f "$SCRIPT_DIR/help.md" "$SCRIPT_DIR/resources/help.md"
+if [ -f "$SCRIPT_DIR/../help.md" ]; then
+    cp -f "$SCRIPT_DIR/../help.md" "$SCRIPT_DIR/resources/help.md"
+elif [ -f "$SCRIPT_DIR/help.md" ]; then
+    cp -f "$SCRIPT_DIR/help.md" "$SCRIPT_DIR/resources/help.md"
+else
+    echo "WARNING: help.md not found in expected locations"
+fi
 if [ $? -ne 0 ]; then
     echo "WARNING: Failed to sync help files"
 fi
@@ -21,7 +31,19 @@ fi
 
 # Compile Java files (excluding test files)
 echo "Compiling Java files..."
-find . -name "*.java" ! -path "*/test/*" -print0 | xargs -0 javac -encoding UTF-8 -d .
+(
+    cd "$SCRIPT_DIR" || exit 1
+    find . -name "*.java" ! -path "*/test/*" -print | sort > "$SOURCES_FILE"
+)
+if [ ! -s "$SOURCES_FILE" ]; then
+    echo "Compilation failed: no source files found"
+    exit 1
+fi
+
+(
+    cd "$SCRIPT_DIR" || exit 1
+    javac -encoding UTF-8 -d . @"$SOURCES_FILE"
+)
 if [ $? -ne 0 ]; then
     echo "Compilation failed!"
     exit 1
@@ -29,26 +51,29 @@ fi
 
 # Create JAR file in top-level build directory
 echo "Creating JAR file..."
-mkdir -p "$SCRIPT_DIR/../build"
+mkdir -p "$BUILD_DIR"
 BUILD_TS="$(date +"%Y-%m-%d-%H_%M")"
 JAR_NAME="loghog-$BUILD_TS.jar"
-jar cvfm "$SCRIPT_DIR/../build/$JAR_NAME" "$SCRIPT_DIR/manifest.txt" \
-    LogHog.class \
-    main/LogTextEditor.class \
-    gui/*.class \
-    filehandling/*.class \
-    clipboard/*.class \
-    browser/*.class \
-    encryption/*.class \
-    markdown/*.class \
-    main/*.class \
-    security/*.class \
-    services/*.class \
-    utils/*.class \
-    -C "$SCRIPT_DIR/.." LICENSE.md \
-    -C "$SCRIPT_DIR" resources/
+(
+    cd "$SCRIPT_DIR" || exit 1
+    jar cvfm "$BUILD_DIR/$JAR_NAME" "$SCRIPT_DIR/manifest.txt" \
+        LogHog.class \
+        main/LogTextEditor.class \
+        gui/*.class \
+        filehandling/*.class \
+        clipboard/*.class \
+        browser/*.class \
+        encryption/*.class \
+        markdown/*.class \
+        main/*.class \
+        security/*.class \
+        services/*.class \
+        utils/*.class \
+        -C "$SCRIPT_DIR/.." LICENSE.md \
+        -C "$SCRIPT_DIR" resources/
+)
 
-INVENTORY_FILE="$SCRIPT_DIR/../build/component-inventory-$BUILD_TS.txt"
+INVENTORY_FILE="$BUILD_DIR/component-inventory-$BUILD_TS.txt"
 {
   echo "Build Timestamp: $BUILD_TS"
   echo "Artifact: $JAR_NAME"
@@ -58,11 +83,29 @@ INVENTORY_FILE="$SCRIPT_DIR/../build/component-inventory-$BUILD_TS.txt"
   java -version 2>&1
   echo
   echo "Source Inventory:"
-  echo "Java Files: $(find . -name '*.java' ! -path '*/test/*' | wc -l | tr -d ' ')"
+  echo "Java Files: $(cd "$SCRIPT_DIR" && find . -name '*.java' ! -path '*/test/*' | wc -l | tr -d ' ')"
 } > "$INVENTORY_FILE"
 
 if [ $? -eq 0 ]; then
-    echo "Production build completed: $SCRIPT_DIR/../build/$JAR_NAME"
+    RUN_SH="$BUILD_DIR/run-latest.sh"
+    RUN_BAT="$BUILD_DIR/run-latest.bat"
+
+    {
+        echo "#!/usr/bin/env sh"
+        echo "SCRIPT_DIR=\"\$(CDPATH= cd -- \"\$(dirname -- \"\$0\")\" && pwd)\""
+        echo "java -jar \"\$SCRIPT_DIR/$JAR_NAME\""
+    } > "$RUN_SH"
+    chmod +x "$RUN_SH"
+
+    {
+        echo "@echo off"
+        echo "setlocal"
+        echo "java -jar \"%~dp0$JAR_NAME\""
+    } > "$RUN_BAT"
+
+    echo "Production build completed: $BUILD_DIR/$JAR_NAME"
+    echo "Run with: java -jar \"$BUILD_DIR/$JAR_NAME\""
+    echo "Or use: $RUN_SH (Linux/macOS) or $RUN_BAT (Windows)"
 else
     echo "JAR creation failed!"
     exit 1

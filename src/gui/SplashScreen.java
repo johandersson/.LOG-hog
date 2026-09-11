@@ -31,6 +31,7 @@ import java.awt.RenderingHints;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 
+import utils.PlatformSupport;
 import utils.WindowShakeAnimation;
 
 public class SplashScreen extends JDialog {
@@ -146,9 +147,16 @@ public class SplashScreen extends JDialog {
     }
 
     private void applyRoundedShape() {
+        if (!PlatformSupport.supportsShapedWindows()) {
+            return;
+        }
         int w = Math.max(1, getWidth());
         int h = Math.max(1, getHeight());
-        setShape(new java.awt.geom.RoundRectangle2D.Float(0, 0, w, h, CORNER_ARC, CORNER_ARC));
+        try {
+            setShape(new java.awt.geom.RoundRectangle2D.Float(0, 0, w, h, CORNER_ARC, CORNER_ARC));
+        } catch (UnsupportedOperationException | SecurityException ignored) {
+            // Fallback: keep default rectangular window.
+        }
     }
 
     private void drawManAndNotepad(Graphics2D g2d) {
