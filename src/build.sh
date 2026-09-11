@@ -3,7 +3,15 @@
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BUILD_DIR="$SCRIPT_DIR/../build"
-SOURCES_FILE="$(mktemp "${TMPDIR:-/tmp}/loghog-javac.XXXXXX.args")"
+SOURCES_FILE=""
+if SOURCES_FILE="$(mktemp -t loghog-javac.XXXXXX 2>/dev/null)"; then
+    :
+elif SOURCES_FILE="$(mktemp "${TMPDIR:-/tmp}/loghog-javac.XXXXXX" 2>/dev/null)"; then
+    :
+else
+    echo "Failed to create temporary source list file"
+    exit 1
+fi
 cleanup() { rm -f "$SOURCES_FILE"; }
 trap cleanup EXIT
 
@@ -26,7 +34,9 @@ echo "Skipping class file cleanup to avoid build issues"
 # Stop any running loghog instances
 PIDS="$(pgrep -f "java.*loghog" 2>/dev/null || true)"
 if [ -n "$PIDS" ]; then
-    echo "$PIDS" | xargs -r kill
+    while IFS= read -r pid; do
+        [ -n "$pid" ] && kill "$pid" 2>/dev/null || true
+    done <<< "$PIDS"
 fi
 
 # Compile Java files (excluding test files)
@@ -54,21 +64,24 @@ echo "Creating JAR file..."
 mkdir -p "$BUILD_DIR"
 BUILD_TS="$(date +"%Y-%m-%d-%H_%M")"
 JAR_NAME="loghog-$BUILD_TS.jar"
+CLASS_FILES=()
+while IFS= read -r classFile; do
+    CLASS_FILES+=("$classFile")
+done < <(
+    cd "$SCRIPT_DIR" || exit 1
+    find . -name "*.class" ! -name "*Test.class" ! -path "./test/*" -print \
+        | sed 's|^\./||' \
+        | sort
+)
+if [ "${#CLASS_FILES[@]}" -eq 0 ]; then
+    echo "JAR creation failed: no compiled classes found"
+    exit 1
+fi
+
 (
     cd "$SCRIPT_DIR" || exit 1
     jar cvfm "$BUILD_DIR/$JAR_NAME" "$SCRIPT_DIR/manifest.txt" \
-        LogHog.class \
-        main/LogTextEditor.class \
-        gui/*.class \
-        filehandling/*.class \
-        clipboard/*.class \
-        browser/*.class \
-        encryption/*.class \
-        markdown/*.class \
-        main/*.class \
-        security/*.class \
-        services/*.class \
-        utils/*.class \
+        "${CLASS_FILES[@]}" \
         -C "$SCRIPT_DIR/.." LICENSE.md \
         -C "$SCRIPT_DIR" resources/
 )

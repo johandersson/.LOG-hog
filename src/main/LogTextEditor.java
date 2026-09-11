@@ -577,9 +577,7 @@ public final class LogTextEditor extends JFrame {
         try (java.io.OutputStream fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
             SecurityFilePolicy.ensureOwnerOnlyPermissions(settingsPath);
-            if (!SecurityFilePolicy.isOwnerOnlyAccessEnforced(settingsPath)
-                && !"true".equals(settings.getProperty("permissionsWarningShown", "false"))) {
-                settings.setProperty("permissionsWarningShown", "true");
+            if (SecurityFilePolicy.persistPermissionWarningFlagIfNeeded(settings, settingsPath)) {
                 logFileHandler.showErrorDialog("<html><b>⚠️ Security Notice</b><br><br>Strict owner-only file permission verification is unavailable on this platform.<br><br><i>Tip: Ensure your OS account and disk are protected.</i></html>");
             }
         } catch (Exception e) {

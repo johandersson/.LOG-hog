@@ -736,9 +736,7 @@ public final class SettingsPanel extends JPanel {
         try (var fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
             security.SecurityFilePolicy.ensureOwnerOnlyPermissions(settingsPath);
-            if (!security.SecurityFilePolicy.isOwnerOnlyAccessEnforced(settingsPath)
-                && !VALUE_TRUE.equals(settings.getProperty("permissionsWarningShown", VALUE_FALSE))) {
-                settings.setProperty("permissionsWarningShown", VALUE_TRUE);
+            if (security.SecurityFilePolicy.persistPermissionWarningFlagIfNeeded(settings, settingsPath)) {
                 gui.DialogHelper.showWarning(editor,
                     "Security Notice",
                     "Platform Permission Limits",

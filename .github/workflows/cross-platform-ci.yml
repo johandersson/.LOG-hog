@@ -10,6 +10,8 @@ jobs:
   build-and-test:
     name: build-and-test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -43,6 +45,44 @@ jobs:
           cd src
           ./build.sh
 
-      - name: Run tests
+      - name: Run tests (Linux/macOS)
+        if: runner.os != 'Windows'
         shell: bash
         run: bash src/run_tests.sh
+
+      - name: Run tests (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $repoRoot = Get-Location
+          $srcDir = Join-Path $repoRoot "src"
+          $toolsDir = Join-Path $repoRoot ".tools"
+          $buildDir = Join-Path $toolsDir "testbuild"
+          $junitVersion = "1.10.2"
+          $junitJar = Join-Path $toolsDir "junit-platform-console-standalone-$junitVersion.jar"
+          $junitUrl = "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/$junitVersion/junit-platform-console-standalone-$junitVersion.jar"
+
+          New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
+          if (-not (Test-Path $junitJar)) {
+            Invoke-WebRequest -Uri $junitUrl -OutFile $junitJar
+          }
+
+          if (Test-Path $buildDir) {
+            Remove-Item -Recurse -Force $buildDir
+          }
+          New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
+
+          $mainSources = Get-ChildItem -Path $srcDir -Recurse -Filter *.java |
+            Where-Object { $_.FullName -notlike "$srcDir\test\*" } |
+            ForEach-Object { $_.FullName }
+          javac -encoding UTF-8 -cp ".;$junitJar" -d $buildDir $mainSources
+
+          if (Test-Path (Join-Path $srcDir "resources")) {
+            Copy-Item -Recurse -Force (Join-Path $srcDir "resources") $buildDir
+          }
+
+          $testSources = Get-ChildItem -Path (Join-Path $srcDir "test") -Recurse -Filter *.java | ForEach-Object { $_.FullName }
+          javac -encoding UTF-8 -cp "$buildDir;$junitJar" -d $buildDir $testSources
+
+          java -jar $junitJar execute --class-path $buildDir --scan-class-path --disable-banner --details=tree
