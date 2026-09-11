@@ -511,6 +511,14 @@ public final class LogTextEditor extends JFrame {
         }
     }
 
+    private void showStartupWindow() {
+        if (SwingUtilities.isEventDispatchThread()) {
+            checkIfWindowIsVisible();
+            return;
+        }
+        SwingUtilities.invokeLater(this::checkIfWindowIsVisible);
+    }
+
     private void loadSettings() {
         if (java.nio.file.Files.exists(settingsPath)) {
             try (java.io.InputStream fis = java.nio.file.Files.newInputStream(settingsPath)) {
@@ -534,31 +542,11 @@ public final class LogTextEditor extends JFrame {
                     setLocked(true);
                     return;
                 }
-                if (!dataLoaded) {
-                    LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
-                    // Only show the loading spinner when the file already exists.
-                    // If it's missing, loadLogEntries() will surface the friendly missing-file
-                    // dialog instead — no need to show a spinner at the same time.
-                    if (java.nio.file.Files.exists(logFileHandler.getFilePath())) {
-                        progressDialog.setStatus("Loading log entries...");
-                        progressDialog.setIndeterminate(true);
-                        progressDialog.show();
-                    }
-
-                    // Run load in background so dialog can display and UI remains responsive
-                    Runnable startupLoad = () -> {
-                        try {
-                            loadLogEntries();
-                            fullLogPanel.loadFullLog();
-                        } catch (Exception e) {
-                            javax.swing.SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
-                        } finally {
-                            try { progressDialog.close(); } catch (Exception ignore) {}
-                        }
-                    };
-                    Thread startupThread = new Thread(startupLoad, "loghog-startup-load");
-                    startupThread.setDaemon(true);
-                    startupThread.start();
+                try {
+                    fullLogPanel.loadFullLog();
+                    showStartupWindow();
+                } catch (Exception e) {
+                    logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load full log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
                 }
             } catch (Exception e) {
                 // Security: Don't expose exception details (Guideline 2-1)
@@ -581,6 +569,7 @@ public final class LogTextEditor extends JFrame {
                 try {
                     loadLogEntries();
                     fullLogPanel.loadFullLog();
+                    showStartupWindow();
                 } catch (Exception e) {
                     javax.swing.SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
                 } finally {
