@@ -2,14 +2,17 @@ package encryption;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.security.MessageDigest;
 
 import javax.crypto.Cipher;
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import filehandling.ResourceLimits;
+import security.BackupKeyDerivation;
 
 /*
  * Copyright (C) 2026 Johan Andersson
@@ -62,6 +65,7 @@ public class EncryptionManager implements SessionKeyEncryptor {
     private static final int SALT_LENGTH = 16;
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
+    private static final int BACKUP_HMAC_SIZE_BYTES = 32;
     private static final int PBKDF2_ITERATIONS = 600000;
     private static final int AES_KEY_LENGTH = 256; // bits
 
@@ -377,7 +381,23 @@ public class EncryptionManager implements SessionKeyEncryptor {
                 byte[] encrypted = new byte[(data.length - pos)];
                 System.arraycopy(data, pos, encrypted, 0, encrypted.length);
                 SecretKey key = deriveKey(password, salt);
-                return performDecryption(encrypted, key);
+                try {
+                    return performDecryption(encrypted, key);
+                } catch (java.security.GeneralSecurityException e) {
+                    byte[] stripped = null;
+                    try {
+                        stripped = stripVerifiedBackupHmac(encrypted, password, salt);
+                        if (stripped != null) {
+                            return performDecryption(stripped, key);
+                        }
+                    } finally {
+                        CryptoUtils.zeroize(stripped);
+                    }
+                    throw e;
+                } finally {
+                    CryptoUtils.zeroize(salt);
+                    CryptoUtils.zeroize(encrypted);
+                }
             } else {
                 throw new EncryptionException(FORMAT_UNSUPPORTED);
             }
@@ -398,7 +418,11 @@ public class EncryptionManager implements SessionKeyEncryptor {
         }
         try {
             byte[] encrypted = extractEncryptedPayload(data);
-            return performDecryption(encrypted, sessionKey);
+            try {
+                return performDecryption(encrypted, sessionKey);
+            } finally {
+                CryptoUtils.zeroize(encrypted);
+            }
         } catch (EncryptionException e) {
             throw e;
         } catch (java.security.GeneralSecurityException e) {
@@ -474,6 +498,20 @@ public class EncryptionManager implements SessionKeyEncryptor {
             byte[] plaintext = null;
             try {
                 plaintext = cipher.doFinal(encryptedPayload);
+            } catch (java.security.GeneralSecurityException primary) {
+                byte[] strippedPayload = null;
+                try {
+                    strippedPayload = stripVerifiedBackupHmac(encryptedPayload, password, actualSalt);
+                    if (strippedPayload != null) {
+                        Cipher fallbackCipher = Cipher.getInstance(ALGORITHM);
+                        fallbackCipher.init(Cipher.DECRYPT_MODE, key, spec);
+                        plaintext = fallbackCipher.doFinal(strippedPayload);
+                    } else {
+                        throw primary;
+                    }
+                } finally {
+                    CryptoUtils.zeroize(strippedPayload);
+                }
             } finally {
                 CryptoUtils.zeroize(encryptedPayload);
             }
@@ -712,6 +750,55 @@ public class EncryptionManager implements SessionKeyEncryptor {
         }
     }
 
+    private byte[] stripVerifiedBackupHmac(byte[] encryptedPayload, char[] password, byte[] salt) {
+        if (encryptedPayload == null || password == null || salt == null) {
+            return null;
+        }
+        if (encryptedPayload.length <= BACKUP_HMAC_SIZE_BYTES) {
+            return null;
+        }
+
+        byte[] candidatePayload = null;
+        byte[] candidateHmac = null;
+        byte[] backupKey = null;
+        byte[] expectedHmac = null;
+        try {
+            int payloadLength = encryptedPayload.length - BACKUP_HMAC_SIZE_BYTES;
+            candidatePayload = Arrays.copyOf(encryptedPayload, payloadLength);
+            candidateHmac = Arrays.copyOfRange(encryptedPayload, payloadLength, encryptedPayload.length);
+            backupKey = BackupKeyDerivation.deriveV2(password, salt);
+            expectedHmac = computeHmacSha256(backupKey, candidatePayload);
+            if (MessageDigest.isEqual(expectedHmac, candidateHmac)) {
+                return candidatePayload;
+            }
+            return null;
+        } catch (RuntimeException e) {
+            return null;
+        } finally {
+            boolean verified = expectedHmac != null && candidateHmac != null && MessageDigest.isEqual(expectedHmac, candidateHmac);
+            if (candidatePayload != null && !verified) {
+                CryptoUtils.zeroize(candidatePayload);
+            }
+            CryptoUtils.zeroize(candidateHmac);
+            CryptoUtils.zeroize(backupKey);
+            CryptoUtils.zeroize(expectedHmac);
+        }
+    }
+
+    private byte[] computeHmacSha256(byte[] key, byte[] data) {
+        if (key == null || data == null) {
+            throw new IllegalArgumentException("HMAC key and data are required");
+        }
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec keySpec = new SecretKeySpec(key, "HmacSHA256");
+            mac.init(keySpec);
+            return mac.doFinal(data);
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to compute HMAC-SHA256", e);
+        }
+    }
+
     private byte[] readRemainingCiphertext(java.io.InputStream in) throws java.io.IOException, EncryptionException {
         final long maxCipherBytes = ResourceLimits.MAX_FILE_SIZE + (8L * 1024L * 1024L);
         java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
@@ -751,4 +838,3 @@ public class EncryptionManager implements SessionKeyEncryptor {
 
     // ...existing code...
 }
-
