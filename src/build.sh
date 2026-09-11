@@ -20,8 +20,9 @@ if [ -n "$PIDS" ]; then
 fi
 
 # Compile Java files (excluding test files)
+JAVA_RELEASE=17
 echo "Compiling Java files..."
-find . -name "*.java" ! -path "*/test/*" -print0 | xargs -0 javac -encoding UTF-8 -d .
+find . -name "*.java" ! -path "*/test/*" -print0 | xargs -0 javac --release "$JAVA_RELEASE" -encoding UTF-8 -d .
 if [ $? -ne 0 ]; then
     echo "Compilation failed!"
     exit 1
@@ -53,6 +54,7 @@ INVENTORY_FILE="$SCRIPT_DIR/../build/component-inventory-$BUILD_TS.txt"
   echo "Build Timestamp: $BUILD_TS"
   echo "Artifact: $JAR_NAME"
   echo "Runtime: Pure JDK (no external runtime dependencies)"
+  echo "Requires Java: ${JAVA_RELEASE}+"
   echo
   echo "Java Version:"
   java -version 2>&1
@@ -63,6 +65,7 @@ INVENTORY_FILE="$SCRIPT_DIR/../build/component-inventory-$BUILD_TS.txt"
 
 if [ $? -eq 0 ]; then
     echo "Production build completed: $SCRIPT_DIR/../build/$JAR_NAME"
+    echo "Requires Java ${JAVA_RELEASE}+"
 else
     echo "JAR creation failed!"
     exit 1

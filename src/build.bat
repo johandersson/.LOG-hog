@@ -20,6 +20,7 @@ echo Skipping class file cleanup to avoid build issues
 powershell -NoProfile -NonInteractive -Command "Get-Process javaw -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*loghog*' } | Stop-Process -Force" >nul 2>&1
 REM Ensure we run from the script directory so compiled classes end up where the jar expects them
 pushd "%~dp0"
+set "JAVA_RELEASE=17"
 set "SOURCES_FILE=%TEMP%\loghog-javac-%RANDOM%%RANDOM%.args"
 > "%SOURCES_FILE%" (
     for /f "delims=" %%i in ('dir /s /b *.java ^| findstr /v test') do (
@@ -28,7 +29,7 @@ set "SOURCES_FILE=%TEMP%\loghog-javac-%RANDOM%%RANDOM%.args"
         @echo !SRC_FILE!
     )
 )
-javac -encoding UTF-8 -d . @"%SOURCES_FILE%"
+javac --release %JAVA_RELEASE% -encoding UTF-8 -d . @"%SOURCES_FILE%"
 set "JAVAC_EXIT=%ERRORLEVEL%"
 del /q "%SOURCES_FILE%" >nul 2>&1
 if %JAVAC_EXIT% neq 0 (
@@ -55,6 +56,7 @@ set "INVENTORY_FILE=%~dp0build\component-inventory-%BUILD_TS%.txt"
 echo Build Timestamp: %BUILD_TS%> "%INVENTORY_FILE%"
 echo Artifact: %JAR_NAME%>> "%INVENTORY_FILE%"
 echo Runtime: Pure JDK (no external runtime dependencies)>> "%INVENTORY_FILE%"
+echo Requires Java: %JAVA_RELEASE%+>> "%INVENTORY_FILE%"
 echo.>> "%INVENTORY_FILE%"
 echo Java Version:>> "%INVENTORY_FILE%"
 java -version 2>> "%INVENTORY_FILE%"
@@ -76,5 +78,6 @@ endlocal
 
 popd
 echo Production build completed: %~dp0build\%JAR_NAME%
+echo Requires Java %JAVA_RELEASE%+
 echo Run with: java -jar "%~dp0build\%JAR_NAME%"
 echo Or use: %~dp0build\run-latest.bat
