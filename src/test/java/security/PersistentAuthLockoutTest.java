@@ -84,4 +84,22 @@ class PersistentAuthLockoutTest {
         long remaining = PersistentAuthLockout.getRemainingLockoutMillis(settings);
         assertTrue(remaining >= MAX_LOCKOUT_MS - 1000L, "Expected fail-closed maximum lockout on read error");
     }
+
+    @Test
+    void missingAnchorAndKeyFilesOnStartupDoesNotLockUser() throws Exception {
+        Properties settings = new Properties();
+        // First initialization
+        PersistentAuthLockout.getRemainingLockoutMillis(settings);
+        Path lockoutDir = tempHome.resolve(".loghog");
+        Path keyPath = lockoutDir.resolve("auth-lockout.key");
+        Path anchorPath = lockoutDir.resolve("auth-lockout.anchor");
+
+        // Simulate file deletion (e.g., user deleted files, or permission issues)
+        Files.deleteIfExists(keyPath);
+        Files.deleteIfExists(anchorPath);
+        
+        // This is the user's issue: startup should not lock them out even if some files are missing
+        long remaining = PersistentAuthLockout.getRemainingLockoutMillis(settings);
+        assertEquals(0L, remaining, "Expected no lockout when key and anchor are missing but state exists (recovery scenario)");
+    }
 }
