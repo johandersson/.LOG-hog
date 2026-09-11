@@ -659,6 +659,7 @@ public final class LogListPanel extends JPanel {
         logList.setModel(listModel);
         logList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         logList.setBackground(Color.WHITE);
+        bindDeleteSelectedEntries(logList, editor::deleteSelectedEntry);
 
         var listScroll = new JScrollPane(logList);
         listScroll.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
@@ -762,6 +763,17 @@ public final class LogListPanel extends JPanel {
         });
 
         return split;
+    }
+
+    static void bindDeleteSelectedEntries(JList<String> logList, Runnable deleteAction) {
+        logList.getInputMap(JComponent.WHEN_FOCUSED).put(
+            KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_DELETE, 0), "deleteSelectedEntries");
+        logList.getActionMap().put("deleteSelectedEntries", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                deleteAction.run();
+            }
+        });
     }
 
     private void insertLink() {
