@@ -1,9 +1,10 @@
 @echo off
 setlocal enabledelayedexpansion
 if not defined LOGHOG_PAUSE_ON_ERROR set "LOGHOG_PAUSE_ON_ERROR=0"
+set "JAVA_RELEASE=17"
 set "files="
 for /r %%i in (*.java) do set "files=!files! "%%i""
-javac -encoding UTF-8 -cp "src/lib/*" -d . %files%
+javac --release %JAVA_RELEASE% -encoding UTF-8 -cp "src/lib/*" -d . %files%
 if %errorlevel% neq 0 exit /b %errorlevel%
 jar cvfm loghog-test.jar manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class browser/*.class encryption/*.class markdown/*.class main/*.class security/*.class services/*.class utils/*.class -C .. LICENSE.md resources/
 echo Test build completed: loghog-test.jar
