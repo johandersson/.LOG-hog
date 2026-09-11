@@ -64,4 +64,11 @@ public class MarkdownRendererBehaviorTest {
         assertFalse(text.contains("Paragraph\n\n\n│ quote"),
             "Expected one blank row between paragraph and quote, got: [" + text + "]");
     }
+
+    @Test
+    void singleEntryFromEditorContentPreservesLeadingAndTrailingBlankLines() {
+        List<List<String>> entries = MarkdownRenderer.singleEntryFromEditorContent("\n# Heading\nText\n");
+        assertEquals(1, entries.size());
+        assertEquals(List.of("", "# Heading", "Text", ""), entries.get(0));
+    }
 }

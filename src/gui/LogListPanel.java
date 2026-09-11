@@ -1184,23 +1184,14 @@ public final class LogListPanel extends JPanel {
     }
 
     private void renderPreview() {
-        String content = entryArea.getText().trim();
-        if (content.isEmpty()) {
+        String content = entryArea.getText();
+        if (content == null || content.isBlank()) {
             previewPane.setText("No content to preview");
             previewPane.setContentType("text/plain");
             return;
         }
 
-        // Parse content into lines (single entry)
-        String[] lines = content.split("\n");
-        List<String> entryLines = new ArrayList<>();
-        for (String line : lines) {
-            entryLines.add(line);
-        }
-
-        // Wrap in a list of entries (single entry)
-        List<List<String>> entries = new ArrayList<>();
-        entries.add(entryLines);
+        List<List<String>> entries = MarkdownRenderer.singleEntryFromEditorContent(content);
 
         // Render using MarkdownRenderer
         MarkdownRenderer.renderMarkdownFromEntries(previewPane, entries, false);

@@ -19,12 +19,10 @@ package gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.util.Arrays; // Import for Arrays utility
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.AbstractAction;
@@ -141,19 +139,14 @@ public final class EntryPanel extends JPanel {
     }
 
     private void renderPreview() {
-        String content = textArea.getText().trim();
-        if (content.isEmpty()) {
+        String content = textArea.getText();
+        if (content == null || content.isBlank()) {
             previewPane.setText("No content to preview");
             previewPane.setContentType("text/plain");
             return;
         }
 
-        // Use Arrays.asList instead of tight loop
-        List<String> entryLines = Arrays.asList(content.split("\n"));
-
-        // Wrap in a list of entries (single entry)
-        List<List<String>> entries = new ArrayList<>();
-        entries.add(entryLines);
+        List<List<String>> entries = MarkdownRenderer.singleEntryFromEditorContent(content);
 
         // Render using MarkdownRenderer
         MarkdownRenderer.renderMarkdownFromEntries(previewPane, entries, false);
