@@ -519,6 +519,11 @@ public final class LogTextEditor extends JFrame {
         SwingUtilities.invokeLater(this::checkIfWindowIsVisible);
     }
 
+    private void showStartupWindowWithError(String message) {
+        showStartupWindow();
+        logFileHandler.showErrorDialog(message);
+    }
+
     private void loadSettings() {
         if (java.nio.file.Files.exists(settingsPath)) {
             try (java.io.InputStream fis = java.nio.file.Files.newInputStream(settingsPath)) {
@@ -540,17 +545,18 @@ public final class LogTextEditor extends JFrame {
                 dataLoaded = encryptionHandler.handleEncryptionSetup();
                 if (!dataLoaded) {
                     setLocked(true);
+                    showStartupWindow();
                     return;
                 }
                 try {
                     fullLogPanel.loadFullLog();
                     showStartupWindow();
                 } catch (Exception e) {
-                    logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load full log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
+                    showStartupWindowWithError("<html><b>📂 Load Failed</b><br><br>Unable to load full log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
                 }
             } catch (Exception e) {
                 // Security: Don't expose exception details (Guideline 2-1)
-                logFileHandler.showErrorDialog("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
+                showStartupWindowWithError("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
             }
         } else {
             settings.setProperty("encrypted", "true");
@@ -571,7 +577,7 @@ public final class LogTextEditor extends JFrame {
                     fullLogPanel.loadFullLog();
                     showStartupWindow();
                 } catch (Exception e) {
-                    javax.swing.SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
+                    showStartupWindowWithError("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
                 } finally {
                     try { progressDialog.close(); } catch (Exception ignore) {}
                 }
