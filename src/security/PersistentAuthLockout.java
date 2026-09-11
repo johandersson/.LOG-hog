@@ -169,15 +169,84 @@ public final class PersistentAuthLockout {
         }
 
         if (!stateExists || !keyExists || !anchorExists) {
+            // Partial or corrupted state detected. Handle different scenarios:
+            // 1. If state file exists but key is missing, read state to check if there's any security-relevant info
+            // 2. If there are active lockouts or registered failures, fail-closed (can't verify)
+            // 3. If completely clean state, recover
+            
+            if (stateExists && !keyExists) {
+                try {
+                    // Try to read the state file without verification to check security status
+                    Properties props = new Properties();
+                    try (ByteArrayInputStream in = new ByteArrayInputStream(Files.readAllBytes(getStatePath()))) {
+                        props.load(in);
+                    }
+                    long currentLockedUntil = parseLong(props.getProperty(KEY_LOCKED_UNTIL), 0L);
+                    int failedAttempts = parseInt(props.getProperty(KEY_FAILED), 0);
+                    long remaining = Math.max(0L, currentLockedUntil - System.currentTimeMillis());
+                    
+                    // Fail-closed if there's any active lockout OR if there are registered failures
+                    // (failures indicate prior authentication attempts we can't verify)
+                    if (remaining > 0 || failedAttempts > 0) {
+                        // Active lockout or failures exist but key is missing - fail closed (can't verify)
+                        LockoutState failClosed = failClosedState();
+                        audit("LOCKOUT_ACTIVE_OR_FAILURES_BUT_KEY_MISSING", "remaining=" + remaining + ",failed=" + failedAttempts);
+                        try {
+                            byte[] newKey = generateKey();
+                            try {
+                                writeKey(newKey);
+                                writeState(failClosed, newKey);
+                            } finally {
+                                zeroize(newKey);
+                            }
+                        } catch (Exception ex) {
+                            audit("LOCKOUT_RECOVERY_WRITE_FAILED", ex.getClass().getSimpleName());
+                        }
+                        return failClosed;
+                    }
+                    
+                    // Completely clean state - safe to recover
+                    byte[] newKey = generateKey();
+                    try {
+                        writeKey(newKey);
+                        LockoutState recovered = new LockoutState(0, 0L, 0L, 0);
+                        writeState(recovered, newKey);
+                        audit("LOCKOUT_RECOVERED_AFTER_KEY_LOSS", "clean_state");
+                        return recovered;
+                    } finally {
+                        zeroize(newKey);
+                    }
+                } catch (Exception ex) {
+                    // If we can't even read the state file, fail closed
+                    audit("LOCKOUT_CANNOT_READ_STATE", ex.getClass().getSimpleName());
+                    LockoutState failClosed = failClosedState();
+                    try {
+                        byte[] newKey = generateKey();
+                        try {
+                            writeKey(newKey);
+                            writeState(failClosed, newKey);
+                        } finally {
+                            zeroize(newKey);
+                        }
+                    } catch (Exception ignored) {
+                        audit("LOCKOUT_RECOVERY_WRITE_FAILED_2", ignored.getClass().getSimpleName());
+                    }
+                    return failClosed;
+                }
+            }
+            
+            // For other partial states (state missing or only key/anchor present),
+            // attempt clean recovery instead of immediate lockout
             byte[] key = keyExists ? readKey() : generateKey();
             try {
                 if (!keyExists) {
                     writeKey(key);
                 }
-                LockoutState failClosed = failClosedState();
-                writeState(failClosed, key);
-                audit("LOCKOUT_MISSING_ARTIFACT", "state=" + stateExists + ",key=" + keyExists + ",anchor=" + anchorExists);
-                return failClosed;
+                // Start with a clean state (no lockout) for recovery scenarios
+                LockoutState recovered = new LockoutState(0, 0L, 0L, 0);
+                writeState(recovered, key);
+                audit("LOCKOUT_PARTIAL_STATE_RECOVERED", "state=" + stateExists + ",key=" + keyExists + ",anchor=" + anchorExists);
+                return recovered;
             } finally {
                 zeroize(key);
             }
