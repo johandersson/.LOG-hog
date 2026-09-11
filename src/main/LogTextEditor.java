@@ -476,8 +476,10 @@ public final class LogTextEditor extends JFrame {
                 }
                 try {
                     SwingUtilities.invokeAndWait(selectRecentEntry);
-                } catch (Exception ex) {
-                    SwingUtilities.invokeLater(selectRecentEntry);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                } catch (java.lang.reflect.InvocationTargetException ex) {
+                    utils.Log.error("Failed to apply Recent Logs tray selection", ex);
                 }
             });
             recentLogsMenu.add(logItem);
