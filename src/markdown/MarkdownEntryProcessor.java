@@ -112,7 +112,7 @@ public class MarkdownEntryProcessor {
         boolean wasInCodeBlock = inCodeBlock;
         boolean nowInCodeBlock = !inCodeBlock;
         if (wasInCodeBlock && !nowInCodeBlock) {
-            context.insertDoubleLineSeparator();
+            context.insertLineSeparator();
         }
         return nowInCodeBlock;
     }
@@ -129,7 +129,7 @@ public class MarkdownEntryProcessor {
             if (j < listLines.size() - 1) {
                 context.insertLineSeparator();
             } else {
-                context.insertDoubleLineSeparator();
+                context.insertLineSeparator();
             }
         }
     }
@@ -208,7 +208,7 @@ public class MarkdownEntryProcessor {
         }
 
         // Add spacing after paragraph
-        context.insertDoubleLineSeparator();
+        context.insertLineSeparator();
     }
 
     private void renderBlockquote(List<String> quoteLines) throws BadLocationException {
@@ -230,6 +230,6 @@ public class MarkdownEntryProcessor {
                 context.insertLineSeparator();
             }
         }
-        context.insertDoubleLineSeparator();
+        context.insertLineSeparator();
     }
 }

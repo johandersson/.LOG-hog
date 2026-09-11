@@ -99,6 +99,23 @@ public class MarkdownRenderer {
         // Set caret position based on scroll preference
         pane.setCaretPosition(scrollToBottom ? newDoc.getLength() : 0);
     }
+
+    /**
+     * Converts editor text into a single-entry structure for markdown rendering.
+     * Preserves intentional leading/trailing blank lines by splitting with a negative limit.
+     */
+    public static List<List<String>> singleEntryFromEditorContent(String content) {
+        List<String> entryLines = new ArrayList<>();
+        if (content != null) {
+            String[] lines = content.split("\\R", -1);
+            for (String line : lines) {
+                entryLines.add(line);
+            }
+        }
+        List<List<String>> entries = new ArrayList<>(1);
+        entries.add(entryLines);
+        return entries;
+    }
     
     /**
      * Render markdown from pre-parsed entries (avoids duplicate parsing).
