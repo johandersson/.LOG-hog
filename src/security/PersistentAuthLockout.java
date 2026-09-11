@@ -51,7 +51,7 @@ public final class PersistentAuthLockout {
             return remaining;
         } catch (Exception e) {
             audit("LOCKOUT_READ_ERROR", e.getClass().getSimpleName());
-            return 0L;
+            return getMaxLockoutMillis();
         }
     }
 
@@ -71,6 +71,7 @@ public final class PersistentAuthLockout {
                 state.failedAttempts = failedSessions;
                 audit("AUTH_FAILURE", "failedSessions=" + failedSessions);
             }
+
             writeState(state);
         } catch (Exception ex) {
             audit("LOCKOUT_WRITE_ERROR", ex.getClass().getSimpleName());
@@ -114,16 +115,28 @@ public final class PersistentAuthLockout {
         boolean keyExists = Files.exists(keyPath);
         boolean anchorExists = Files.exists(anchorPath);
 
+        if (!stateExists && !keyExists && !anchorExists) {
+            byte[] key = generateKey();
+            try {
+                writeKey(key);
+                LockoutState reset = new LockoutState(0, 0L, 0L, 0);
+                writeState(reset, key);
+                return reset;
+            } finally {
+                zeroize(key);
+            }
+        }
+
         if (!stateExists || !keyExists || !anchorExists) {
             byte[] key = keyExists ? readKey() : generateKey();
             try {
                 if (!keyExists) {
                     writeKey(key);
                 }
-                LockoutState reset = new LockoutState(0, 0L, 0L, 0);
-                writeState(reset, key);
+                LockoutState failClosed = failClosedState();
+                writeState(failClosed, key);
                 audit("LOCKOUT_MISSING_ARTIFACT", "state=" + stateExists + ",key=" + keyExists + ",anchor=" + anchorExists);
-                return reset;
+                return failClosed;
             } finally {
                 zeroize(key);
             }
@@ -142,10 +155,10 @@ public final class PersistentAuthLockout {
             byte[] actualMac = Base64.getDecoder().decode(mac);
             try {
                 if (!java.security.MessageDigest.isEqual(expectedMac, actualMac)) {
-                    LockoutState reset = new LockoutState(0, 0L, 0L, 0);
-                    writeState(reset, key);
+                    LockoutState failClosed = failClosedState();
+                    writeState(failClosed, key);
                     audit("LOCKOUT_TAMPER_DETECTED", "state_mac_mismatch");
-                    return reset;
+                    return failClosed;
                 }
             } finally {
                 zeroize(expectedMac);
@@ -160,10 +173,10 @@ public final class PersistentAuthLockout {
             );
 
             if (!verifyAnchor(state, key, props.getProperty(KEY_STATE_HASH, ""))) {
-                LockoutState reset = new LockoutState(0, 0L, 0L, 0);
-                writeState(reset, key);
+                LockoutState failClosed = failClosedState();
+                writeState(failClosed, key);
                 audit("LOCKOUT_ROLLBACK_DETECTED", "anchor_mismatch");
-                return reset;
+                return failClosed;
             }
 
             return state;
@@ -419,5 +432,9 @@ public final class PersistentAuthLockout {
 
     private static long getMaxLockoutMillis() {
         return LOCKOUT_SCHEDULE_MS[LOCKOUT_SCHEDULE_MS.length - 1];
+    }
+
+    private static LockoutState failClosedState() {
+        return new LockoutState(0, System.currentTimeMillis() + getMaxLockoutMillis(), 0L, LOCKOUT_SCHEDULE_MS.length);
     }
 }

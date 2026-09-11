@@ -3,7 +3,9 @@ package security;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -176,7 +178,8 @@ public final class SensitiveKeyProtector {
 
         Process process;
         try {
-            process = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script)
+            String powerShellExe = resolveTrustedPowerShellExecutable();
+            process = new ProcessBuilder(powerShellExe, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script)
                 .start();
         } catch (IOException ex) {
             throw new IOException("PowerShell unavailable for DPAPI", ex);
@@ -343,6 +346,47 @@ public final class SensitiveKeyProtector {
     private static byte[] aad(String purpose) {
         String normalized = purpose == null ? "generic" : purpose.trim().toLowerCase();
         return ("loghog-aad|" + normalized).getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static String resolveTrustedPowerShellExecutable() throws IOException {
+        String systemRoot = System.getenv("SystemRoot");
+        if (systemRoot == null || systemRoot.isBlank()) {
+            systemRoot = System.getenv("WINDIR");
+        }
+        if (systemRoot == null || systemRoot.isBlank()) {
+            systemRoot = "C:\\Windows";
+        }
+
+        Path root = Paths.get(systemRoot).toAbsolutePath().normalize();
+        Path primary = root.resolve("System32").resolve("WindowsPowerShell").resolve("v1.0").resolve("powershell.exe").normalize();
+        Path fallback = root.resolve("Sysnative").resolve("WindowsPowerShell").resolve("v1.0").resolve("powershell.exe").normalize();
+
+        Path candidate = isTrustedWindowsExecutable(primary, root) ? primary
+            : (isTrustedWindowsExecutable(fallback, root) ? fallback : null);
+        if (candidate == null) {
+            throw new IOException("PowerShell unavailable for DPAPI");
+        }
+        return candidate.toString();
+    }
+
+    private static boolean isTrustedWindowsExecutable(Path candidate, Path trustedRoot) {
+        if (candidate == null || trustedRoot == null) {
+            return false;
+        }
+        try {
+            Path normalized = candidate.toAbsolutePath().normalize();
+            if (!normalized.startsWith(trustedRoot)) {
+                return false;
+            }
+            if (Files.isSymbolicLink(normalized)) {
+                return false;
+            }
+            return Files.exists(normalized, LinkOption.NOFOLLOW_LINKS)
+                && Files.isRegularFile(normalized, LinkOption.NOFOLLOW_LINKS)
+                && Files.isReadable(normalized);
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     private static void zeroize(byte[] data) {
