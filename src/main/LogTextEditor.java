@@ -425,9 +425,10 @@ public final class LogTextEditor extends JFrame {
                     }
                 }
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
             // Some JDK/OS combinations throw ExceptionInInitializerError (an Error, not
             // an Exception) here when a native L&F fails to load its resources.
+            utils.Log.error("Failed to initialize native look and feel; continuing with defaults", t);
         }
 
         // Let the OS draw the title bar and buttons (native chrome)
@@ -552,10 +553,12 @@ public final class LogTextEditor extends JFrame {
                     fullLogPanel.loadFullLog();
                     showStartupWindow();
                 } catch (Exception e) {
+                    utils.Log.error("Startup failed while loading full log data (existing settings path)", e);
                     showStartupWindowWithError("<html><b>📂 Load Failed</b><br><br>Unable to load full log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
                 }
             } catch (Exception e) {
                 // Security: Don't expose exception details (Guideline 2-1)
+                utils.Log.error("Startup failed while loading settings", e);
                 showStartupWindowWithError("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
             }
         } else {
@@ -577,6 +580,7 @@ public final class LogTextEditor extends JFrame {
                     fullLogPanel.loadFullLog();
                     showStartupWindow();
                 } catch (Exception e) {
+                    utils.Log.error("Startup failed while loading log data (no settings path)", e);
                     showStartupWindowWithError("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
                 } finally {
                     try { progressDialog.close(); } catch (Exception ignore) {}
