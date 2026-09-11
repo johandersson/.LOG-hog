@@ -576,11 +576,6 @@ public final class LogTextEditor extends JFrame {
         try (java.io.OutputStream fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
             SecurityFilePolicy.ensureOwnerOnlyPermissions(settingsPath);
-            if (!SecurityFilePolicy.isOwnerOnlyAccessEnforced(settingsPath)
-                && !"true".equals(settings.getProperty("permissionsWarningShown", "false"))) {
-                settings.setProperty("permissionsWarningShown", "true");
-                logFileHandler.showErrorDialog("<html><b>⚠️ Security Notice</b><br><br>Strict owner-only file permission verification is unavailable on this platform.<br><br><i>Tip: Ensure your OS account and disk are protected.</i></html>");
-            }
         } catch (Exception e) {
             // Security: Don't expose exception details (Guideline 2-1)
             logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to save application settings.<br><br><i>Tip: Settings may not persist between sessions.</i></html>");

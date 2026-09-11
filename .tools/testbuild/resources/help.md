@@ -70,6 +70,17 @@ It does **not protect against**:
 * a **trusted system**
 * and a **strong password**
 
+## 🪟 Platform note (Windows, macOS, Linux)
+
+On some systems, file privacy rules work differently behind the scenes.  
+.LOG-hog still encrypts your notes, but your overall protection also depends on your device setup.
+
+For best protection:
+
+* Use your own user account (not a shared one)
+* Keep full-disk encryption enabled (like BitLocker or FileVault)
+* Keep your OS and antivirus/security updates current
+
 ## 📋 Clipboard Security
 
 Sensitive data copied from .LOG-hog is protected with:
