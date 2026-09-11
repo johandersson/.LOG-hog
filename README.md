@@ -1,6 +1,6 @@
 # 📦 .LOG-hog
 
-**A lightweight, cross-platform Java application for fast note-taking with built-in protection for sensitive local notes.**
+**A lightweight, cross-platform Java application for fast note-taking with built-in protection (strong encryption) for sensitive local notes.**
 
 .LOG-hog runs on **Windows, macOS, and Linux** and provides a simple, efficient workflow for creating timestamped log entries with encryption-first storage and practical local hardening.
 
