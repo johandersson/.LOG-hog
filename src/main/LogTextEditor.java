@@ -462,25 +462,11 @@ public final class LogTextEditor extends JFrame {
         for (String logEntry : recentLogs) {
             MenuItem logItem = new MenuItem(logEntry);
             logItem.addActionListener(e -> {
-                Runnable selectRecentEntry = () -> {
-                    checkIfWindowIsVisible();
-                    loadAndDisplayEntry(logEntry);
-                    tabPane.setSelectedIndex(1); // switch to Log Entries tab
-                    logList.setSelectedValue(logEntry, true); // select the log entry in the list
-                    logListPanel.getEntryArea().requestFocusInWindow();
-                };
-
-                if (SwingUtilities.isEventDispatchThread()) {
-                    selectRecentEntry.run();
-                    return;
-                }
-                try {
-                    SwingUtilities.invokeAndWait(selectRecentEntry);
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                } catch (java.lang.reflect.InvocationTargetException ex) {
-                    utils.Log.error("Failed to apply Recent Logs tray selection", ex);
-                }
+                checkIfWindowIsVisible();
+                loadAndDisplayEntry(logEntry);
+                tabPane.setSelectedIndex(1); // switch to Log Entries tab
+                logList.setSelectedValue(logEntry, true); // select the log entry in the list
+                logListPanel.getEntryArea().requestFocusInWindow();
             });
             recentLogsMenu.add(logItem);
         }
