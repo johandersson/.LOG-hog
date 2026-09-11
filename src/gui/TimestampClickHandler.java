@@ -28,6 +28,7 @@ import javax.swing.JTextPane;
 import javax.swing.JWindow;
 import javax.swing.SwingConstants;
 import javax.swing.text.AttributeSet;
+import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 // PenIcon import will be added here
 
@@ -354,8 +355,8 @@ public class TimestampClickHandler {
             return false;
         }
         AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
-        AttributeSet resolveParent = attrs.getResolveParent();
-        return resolveParent != null && resolveParent == doc.getStyle("timestamp");
+        Object styleName = attrs.getAttribute(StyleConstants.NameAttribute);
+        return "timestamp".equals(styleName);
     }
     
     /**
