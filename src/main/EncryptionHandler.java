@@ -216,11 +216,11 @@ public class EncryptionHandler {
 
         long remainingLockoutMs = PersistentAuthLockout.getRemainingLockoutMillis(settings);
         if (remainingLockoutMs > 0) {
-            long minutes = Math.max(1L, (remainingLockoutMs + 59999L) / 60000L);
+            String remaining = PersistentAuthLockout.formatRemainingLockout(remainingLockoutMs);
             DialogHelper.showError(parentFrame,
                 "Security Lock",
                 "Account Temporarily Locked",
-                "Too many failed attempts were detected.<br><br>Please wait about " + minutes + " minute(s) and try again.");
+                "Too many failed attempts were detected.<br><br>Please wait about " + remaining + " and try again.");
             return false;
         }
 
@@ -298,11 +298,11 @@ public class EncryptionHandler {
 
                     long lockoutNow = PersistentAuthLockout.getRemainingLockoutMillis(settings);
                     if (lockoutNow > 0) {
-                        long minutes = Math.max(1L, (lockoutNow + 59999L) / 60000L);
+                        String remaining = PersistentAuthLockout.formatRemainingLockout(lockoutNow);
                         DialogHelper.showError(parentFrame,
                             "Security Lock",
                             "Account Temporarily Locked",
-                            "Too many failed sessions were detected.<br><br>Please wait about " + minutes + " minute(s) before trying again.");
+                            "Too many failed sessions were detected.<br><br>Please wait about " + remaining + " before trying again.");
                     } else {
                         DialogHelper.showError(parentFrame,
                             "Authentication Failed",

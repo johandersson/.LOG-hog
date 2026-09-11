@@ -30,11 +30,14 @@ public final class AuthenticationFailureHandler {
     public static boolean handleFailure(Exception e, int attempts, JFrame parentFrame, LockOverlay lo, LogFileHandler logFileHandler, boolean exitOnCancel) {
         int maxAttemptsBeforeLockout = PersistentAuthLockout.getMaxSessionAttempts();
         if (attempts >= maxAttemptsBeforeLockout) {
+            String remaining = PersistentAuthLockout.formatRemainingLockout(
+                PersistentAuthLockout.getRemainingLockoutMillis(null));
+            String message = "Too many failed password attempts were detected.<br><br>Please wait about " + remaining + " and try again.";
             try {
                 if (lo != null) {
-                    lo.withOverlayHidden(() -> { DialogHelper.showError(parentFrame, "Security Lock", "Account Temporarily Locked", "Too many failed password attempts were detected.<br><br>Please wait about 30 minute(s) and try again."); return null; });
+                    lo.withOverlayHidden(() -> { DialogHelper.showError(parentFrame, "Security Lock", "Account Temporarily Locked", message); return null; });
                 } else {
-                    DialogHelper.showError(parentFrame, "Security Lock", "Account Temporarily Locked", "Too many failed password attempts were detected.<br><br>Please wait about 30 minute(s) and try again.");
+                    DialogHelper.showError(parentFrame, "Security Lock", "Account Temporarily Locked", message);
                 }
             } catch (Exception ignore) {}
             return false;
