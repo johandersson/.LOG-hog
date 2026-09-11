@@ -138,7 +138,18 @@ public final class PersistentAuthLockout {
                 String mac = props.getProperty(KEY_MAC, "");
                 props.remove(KEY_MAC);
                 byte[] expectedMac = HmacUtils.computeHmacSha256(key, serializeState(props));
-                byte[] actualMac = Base64.getDecoder().decode(mac);
+                byte[] actualMac = null;
+                try {
+                    if (mac.isEmpty()) {
+                        // State file is missing MAC - treat as migration failure
+                        throw new IllegalArgumentException("MAC property is missing from legacy state file");
+                    }
+                    actualMac = Base64.getDecoder().decode(mac);
+                } catch (Exception macDecodeEx) {
+                    // If MAC is invalid or can't be decoded, fail closed for security
+                    audit("LOCKOUT_LEGACY_STATE_MAC_DECODE_FAILED", macDecodeEx.getClass().getSimpleName());
+                    throw macDecodeEx;
+                }
                 try {
                     if (!java.security.MessageDigest.isEqual(expectedMac, actualMac)) {
                         LockoutState failClosed = failClosedState();
@@ -157,8 +168,22 @@ public final class PersistentAuthLockout {
                     parseLong(props.getProperty(KEY_SEQ), 0L),
                     parseInt(props.getProperty(KEY_LOCKOUT_LEVEL), 0)
                 );
-                writeState(migrated, key);
-                audit("LOCKOUT_ANCHOR_MIGRATED", "legacy_state");
+                
+                try {
+                    writeState(migrated, key);
+                    audit("LOCKOUT_ANCHOR_MIGRATED", "legacy_state");
+                } catch (Exception writeEx) {
+                    // If anchor write fails but state is clean, allow migration to proceed
+                    // The anchor can be re-created on next successful authentication
+                    if (migrated.failedAttempts == 0 && migrated.lockedUntil == 0L) {
+                        audit("LOCKOUT_ANCHOR_WRITE_FAILED_BUT_STATE_CLEAN", writeEx.getClass().getSimpleName());
+                        // Continue with migration even if anchor write failed
+                    } else {
+                        // State has active failures/lockout, fail closed for security
+                        audit("LOCKOUT_ANCHOR_WRITE_FAILED_WITH_ACTIVE_STATE", writeEx.getClass().getSimpleName());
+                        return failClosedState();
+                    }
+                }
                 return migrated;
             } catch (Exception ex) {
                 audit("LOCKOUT_MIGRATION_FAILED", ex.getClass().getSimpleName());
@@ -237,18 +262,25 @@ public final class PersistentAuthLockout {
             
             // For other partial states (state missing or only key/anchor present),
             // attempt clean recovery instead of immediate lockout
-            byte[] key = keyExists ? readKey() : generateKey();
+            byte[] key = null;
             try {
-                if (!keyExists) {
-                    writeKey(key);
+                key = keyExists ? readKey() : generateKey();
+                try {
+                    if (!keyExists) {
+                        writeKey(key);
+                    }
+                    // Start with a clean state (no lockout) for recovery scenarios
+                    LockoutState recovered = new LockoutState(0, 0L, 0L, 0);
+                    writeState(recovered, key);
+                    audit("LOCKOUT_PARTIAL_STATE_RECOVERED", "state=" + stateExists + ",key=" + keyExists + ",anchor=" + anchorExists);
+                    return recovered;
+                } finally {
+                    zeroize(key);
                 }
-                // Start with a clean state (no lockout) for recovery scenarios
-                LockoutState recovered = new LockoutState(0, 0L, 0L, 0);
-                writeState(recovered, key);
-                audit("LOCKOUT_PARTIAL_STATE_RECOVERED", "state=" + stateExists + ",key=" + keyExists + ",anchor=" + anchorExists);
-                return recovered;
-            } finally {
-                zeroize(key);
+            } catch (Exception ex) {
+                // If we can't read or write recovery state, fail closed
+                audit("LOCKOUT_PARTIAL_RECOVERY_FAILED", ex.getClass().getSimpleName());
+                return failClosedState();
             }
         }
 
@@ -262,7 +294,20 @@ public final class PersistentAuthLockout {
             String mac = props.getProperty(KEY_MAC, "");
             props.remove(KEY_MAC);
             byte[] expectedMac = HmacUtils.computeHmacSha256(key, serializeState(props));
-            byte[] actualMac = Base64.getDecoder().decode(mac);
+            byte[] actualMac = null;
+            try {
+                if (mac.isEmpty()) {
+                    // State file is missing MAC - likely corrupted or from old version
+                    throw new IllegalArgumentException("MAC property is missing from state file");
+                }
+                actualMac = Base64.getDecoder().decode(mac);
+            } catch (Exception macDecodeEx) {
+                // If MAC is invalid or can't be decoded, fail closed for security
+                audit("LOCKOUT_STATE_MAC_DECODE_FAILED", macDecodeEx.getClass().getSimpleName());
+                LockoutState failClosed = failClosedState();
+                writeState(failClosed, key);
+                return failClosed;
+            }
             try {
                 if (!java.security.MessageDigest.isEqual(expectedMac, actualMac)) {
                     LockoutState failClosed = failClosedState();
