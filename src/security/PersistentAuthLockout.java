@@ -97,6 +97,38 @@ public final class PersistentAuthLockout {
         return MAX_FAILED_SESSIONS_BEFORE_LOCKOUT;
     }
 
+    /**
+     * Formats the remaining lockout duration in a user-friendly way.
+     * Shows the most significant non-zero unit (hours, minutes, seconds) and
+     * rounds up so "18 minutes left" is shown instead of "about 30 minutes".
+     *
+     * @param remainingMs remaining lockout time in milliseconds (must be >= 0)
+     * @return human-readable string such as "18 minutes" or "1 hour 5 minutes"
+     */
+    public static String formatRemainingLockout(long remainingMs) {
+        if (remainingMs <= 0) {
+            return "0 seconds";
+        }
+        long totalSeconds = (remainingMs + 999L) / 1000L;
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+
+        if (hours > 0) {
+            if (minutes > 0) {
+                return hours + " hour" + (hours == 1 ? "" : "s") + " " + minutes + " minute" + (minutes == 1 ? "" : "s");
+            }
+            return hours + " hour" + (hours == 1 ? "" : "s");
+        }
+        if (minutes > 0) {
+            if (seconds > 0) {
+                return minutes + " minute" + (minutes == 1 ? "" : "s") + " " + seconds + " second" + (seconds == 1 ? "" : "s");
+            }
+            return minutes + " minute" + (minutes == 1 ? "" : "s");
+        }
+        return seconds + " second" + (seconds == 1 ? "" : "s");
+    }
+
     private static void purgeLegacyKeys(Properties settings) {
         if (settings == null) {
             return;
