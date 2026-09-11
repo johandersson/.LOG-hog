@@ -327,6 +327,8 @@ public final class PersistentAuthLockout {
             props.remove(KEY_MAC);
             byte[] expectedMac = HmacUtils.computeHmacSha256(key, serializeState(props));
             byte[] actualMac = null;
+            LockoutState parsedState = parseRawState(props);
+
             try {
                 if (mac.isEmpty()) {
                     // State file is missing MAC - likely corrupted or from old version
@@ -334,14 +336,30 @@ public final class PersistentAuthLockout {
                 }
                 actualMac = Base64.getDecoder().decode(mac);
             } catch (Exception macDecodeEx) {
-                // If MAC is invalid or can't be decoded, fail closed for security
+                // If the MAC property is missing or malformed, inspect the raw state first.
+                // When there is no active lockout and no failed attempts, recover cleanly
+                // rather than locking the user out for a crash-corrupted file.
+                if (parsedState.lockedUntil == 0L && parsedState.failedAttempts == 0) {
+                    audit("LOCKOUT_STATE_RECOVERED", "missing_mac_but_clean_state");
+                    return parsedState;
+                }
                 audit("LOCKOUT_STATE_MAC_DECODE_FAILED", macDecodeEx.getClass().getSimpleName());
                 LockoutState failClosed = failClosedState();
                 writeState(failClosed, key);
                 return failClosed;
             }
+
             try {
                 if (!java.security.MessageDigest.isEqual(expectedMac, actualMac)) {
+                    // If the state MAC is unverifiable, first inspect the raw state for evidence
+                    // of an active lockout or prior failures. When there is no such evidence,
+                    // recover to a clean state instead of locking the user out. This avoids
+                    // false lockouts from crash-corrupted state files while still failing closed
+                    // when the state indicates a real security event.
+                    if (parsedState.lockedUntil == 0L && parsedState.failedAttempts == 0) {
+                        audit("LOCKOUT_STATE_RECOVERED", "mac_mismatch_but_clean_state");
+                        return parsedState;
+                    }
                     LockoutState failClosed = failClosedState();
                     writeState(failClosed, key);
                     audit("LOCKOUT_TAMPER_DETECTED", "state_mac_mismatch");
@@ -352,21 +370,23 @@ public final class PersistentAuthLockout {
                 zeroize(actualMac);
             }
 
-            LockoutState state = new LockoutState(
-                parseInt(props.getProperty(KEY_FAILED), 0),
-                parseLong(props.getProperty(KEY_LOCKED_UNTIL), 0L),
-                parseLong(props.getProperty(KEY_SEQ), 0L),
-                parseInt(props.getProperty(KEY_LOCKOUT_LEVEL), 0)
-            );
-
-            if (!verifyAnchor(state, key, props.getProperty(KEY_STATE_HASH, ""))) {
+            if (!verifyAnchor(parsedState, key, props.getProperty(KEY_STATE_HASH, ""))) {
+                // If the anchor is unverifiable but the state itself shows no active lockout
+                // and no recorded failures, treat this as a recoverable consistency issue
+                // rather than a rollback attack. This prevents users from being permanently
+                // locked out due to crash-induced anchor/state desynchronization when there
+                // is no evidence of prior failed authentication attempts.
+                if (parsedState.lockedUntil == 0L && parsedState.failedAttempts == 0) {
+                    audit("LOCKOUT_ANCHOR_RECOVERED", "clean_state_anchor_mismatch");
+                    return parsedState;
+                }
                 LockoutState failClosed = failClosedState();
                 writeState(failClosed, key);
                 audit("LOCKOUT_ROLLBACK_DETECTED", "anchor_mismatch");
                 return failClosed;
             }
 
-            return state;
+            return parsedState;
         } finally {
             zeroize(key);
         }
@@ -570,6 +590,15 @@ public final class PersistentAuthLockout {
         byte[] key = new byte[32];
         new java.security.SecureRandom().nextBytes(key);
         return key;
+    }
+
+    private static LockoutState parseRawState(Properties props) {
+        return new LockoutState(
+            parseInt(props.getProperty(KEY_FAILED), 0),
+            parseLong(props.getProperty(KEY_LOCKED_UNTIL), 0L),
+            parseLong(props.getProperty(KEY_SEQ), 0L),
+            parseInt(props.getProperty(KEY_LOCKOUT_LEVEL), 0)
+        );
     }
 
     private static int parseInt(String value, int defaultValue) {
