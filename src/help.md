@@ -149,9 +149,18 @@ Replace your log file manually with a backup file if needed.
 * Keys are derived using PBKDF2 with a high iteration count
 * Sensitive data is cleared from memory after use
 
+### Password Attempts and Temporary Lockouts
+
+* You get **3 password tries per unlock session**
+* If you use all 3 tries, that session ends and you must start the unlock flow again
+* After **10 failed sessions**, .LOG-hog applies a **30-minute temporary lockout**
+* This lockout is **not permanent** — you can try again after the wait ends
+* Entering the **correct password** restores access and clears the lockout state
+
 ⚠️ **Important:**  
 If you forget your password, your data **cannot** be recovered.  
 Your password is the only thing that cannot be recovered — write it down and store it safely.
+Temporary lockouts are recoverable by waiting, but a lost password is not.
 
 ### File Self-Containment and Recovery
 
