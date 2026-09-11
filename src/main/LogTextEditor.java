@@ -660,11 +660,6 @@ public final class LogTextEditor extends JFrame {
                     startAutoLockTimer();
                 }
             }
-        } else {
-            // Show feedback that file is still locked
-            DialogHelper.showWarning(this, "File Locked", "File Still Locked",
-                "The file remains locked because the unlock operation was cancelled or failed.<br><br>" +
-                "You can try again by clicking the Unlock button.");
         }
     }    
 
