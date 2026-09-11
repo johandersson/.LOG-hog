@@ -67,7 +67,28 @@ class PersistentAuthLockoutTest {
     }
 
     @Test
-    void invalidMacEncodingFailsClosedToMaxWindow() throws Exception {
+    void invalidMacEncodingWithFailedAttemptsFailsClosed() throws Exception {
+        Properties settings = new Properties();
+        PersistentAuthLockout.getRemainingLockoutMillis(settings);
+        PersistentAuthLockout.registerFailure(settings);
+
+        Path statePath = tempHome.resolve(".loghog").resolve("auth-lockout.properties");
+        Properties state = new Properties();
+        try (var in = Files.newInputStream(statePath)) {
+            state.load(in);
+        }
+        state.setProperty("authLockoutMac", "%%%");
+        try (OutputStream out = Files.newOutputStream(statePath)) {
+            state.store(out, "corrupt for test");
+        }
+
+        long remaining = PersistentAuthLockout.getRemainingLockoutMillis(settings);
+        assertTrue(remaining >= MAX_LOCKOUT_MS - 1000L,
+            "Expected fail-closed maximum lockout when state is corrupt and failures are recorded");
+    }
+
+    @Test
+    void corruptStateMacWithCleanHistoryRecoversWithoutLockout() throws Exception {
         Properties settings = new Properties();
         PersistentAuthLockout.getRemainingLockoutMillis(settings);
 
@@ -82,7 +103,8 @@ class PersistentAuthLockoutTest {
         }
 
         long remaining = PersistentAuthLockout.getRemainingLockoutMillis(settings);
-        assertTrue(remaining >= MAX_LOCKOUT_MS - 1000L, "Expected fail-closed maximum lockout on read error");
+        assertEquals(0L, remaining,
+            "Expected recovery without lockout when state MAC is corrupt but there are no recorded failures");
     }
 
     @Test
