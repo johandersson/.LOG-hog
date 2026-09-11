@@ -455,8 +455,13 @@ public final class LogTextEditor extends JFrame {
     }
 
     private static void installGlobalExceptionLogging() {
-        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) ->
-            logFatal("Uncaught exception on thread " + thread.getName(), throwable));
+        Thread.UncaughtExceptionHandler previousHandler = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            logFatal("Uncaught exception on thread " + thread.getName(), throwable);
+            if (previousHandler != null) {
+                previousHandler.uncaughtException(thread, throwable);
+            }
+        });
     }
 
     private static void logFatalAndExit(String message, Throwable throwable) {
