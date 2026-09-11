@@ -632,14 +632,9 @@ public final class LogTextEditor extends JFrame {
             try {
                 logFileHandler.compactEncryptedJournal();
             } catch (Exception ignored) {}
-            logFileHandler.clearSensitiveData();
-            backupManager.clearInMemoryHmacKey();
-            fullLogPanel.clearRuntimeCaches();
-            // Clear secure clipboard state when locking to minimize exposure
-            try {
-                clipboard.SecureClipboardManager.onLock();
-            } catch (Exception ignored) {}
+            clearSensitiveRuntimeState();
             // Clear UI
+            currentEditedDisplayTimestamp = null;
             listModel.clear();
             fullLogPanel.loadFullLog(); // This will show empty since locked
             isLocked = true;
@@ -862,26 +857,54 @@ public final class LogTextEditor extends JFrame {
             periodicBackupTimer = null;
         }
 
-        // Shutdown clipboard manager
-        clipboard.SecureClipboardManager.shutdown();
-
-        // Remove system tray icon
-        if (SystemTray.isSupported() && gui.SystemTrayMenu.trayIcon != null) {
-            SystemTray.getSystemTray().remove(gui.SystemTrayMenu.trayIcon);
+        // Clear sensitive data through the same path as lock
+        currentEditedDisplayTimestamp = null;
+        clearSensitiveRuntimeState();
+        if (listModel != null) {
+            listModel.clear();
         }
-
-        // Release single instance lock (file-based)
-        SingleInstanceManager.releaseLock();
+        if (entryPanel != null) {
+            entryPanel.setLocked(true);
+        }
+        if (logListPanel != null) {
+            logListPanel.setLocked(true);
+        }
 
         // Dispose UI components
         if (fullLogPanel != null) {
             fullLogPanel.dispose();
         }
 
-        // Clear sensitive data
+        // Remove system tray icon
+        if (SystemTray.isSupported() && gui.SystemTrayMenu.trayIcon != null) {
+            SystemTray.getSystemTray().remove(gui.SystemTrayMenu.trayIcon);
+        }
+
+        try {
+            // Shutdown clipboard manager after explicit clear attempts
+            clipboard.SecureClipboardManager.shutdown();
+        } catch (Exception ignored) {
+            // Best-effort cleanup; always continue to release instance lock.
+        } finally {
+            // Release single instance lock (file-based) after shutdown cleanup fully completes
+            SingleInstanceManager.releaseLock();
+        }
+    }
+
+    private void clearSensitiveRuntimeState() {
         if (logFileHandler != null) {
             logFileHandler.clearSensitiveData();
         }
+        if (backupManager != null) {
+            backupManager.clearInMemoryHmacKey();
+        }
+        if (fullLogPanel != null) {
+            fullLogPanel.clearRuntimeCaches();
+            fullLogPanel.clearSensitiveDisplayData();
+        }
+        try {
+            clipboard.SecureClipboardManager.onLock();
+        } catch (Exception ignored) {}
     }
 
 }

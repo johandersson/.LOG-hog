@@ -312,6 +312,17 @@ public final class FullLogPanel extends LogPanel {
     }
 
     /**
+     * Clears rendered/log text from UI components to minimize in-memory exposure.
+     */
+    public void clearSensitiveDisplayData() {
+        fullLogPane.setText("");
+        fullLogPane.clearHighlights();
+        fullLogPane.setContentType("text/plain");
+        fullLogPathLabel.setText("Log file: (locked)");
+        resetLogStatistics();
+    }
+
+    /**
      * Loads the full log and invokes a callback after triggering the load.
      */
     public void loadFullLog(Runnable onStarted) {

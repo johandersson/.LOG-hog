@@ -77,9 +77,6 @@ public class UIInitializer {
                     editor.shutdown();
                     // Dispose the window
                     editor.dispose();
-                    // Clear sensitive data before exit
-                    clipboard.SecureClipboardManager.clearSecureClipboard();
-                    editor.getLogFileHandler().clearSensitiveData();
                 } finally {
                     // Always exit, even if cleanup throws
                     System.exit(0);
