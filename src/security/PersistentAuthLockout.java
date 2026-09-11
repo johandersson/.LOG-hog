@@ -138,7 +138,18 @@ public final class PersistentAuthLockout {
                 String mac = props.getProperty(KEY_MAC, "");
                 props.remove(KEY_MAC);
                 byte[] expectedMac = HmacUtils.computeHmacSha256(key, serializeState(props));
-                byte[] actualMac = Base64.getDecoder().decode(mac);
+                byte[] actualMac = null;
+                try {
+                    if (mac.isEmpty()) {
+                        // State file is missing MAC - treat as migration failure
+                        throw new IllegalArgumentException("MAC property is missing from legacy state file");
+                    }
+                    actualMac = Base64.getDecoder().decode(mac);
+                } catch (Exception macDecodeEx) {
+                    // If MAC is invalid or can't be decoded, fail closed for security
+                    audit("LOCKOUT_LEGACY_STATE_MAC_DECODE_FAILED", macDecodeEx.getClass().getSimpleName());
+                    throw macDecodeEx;
+                }
                 try {
                     if (!java.security.MessageDigest.isEqual(expectedMac, actualMac)) {
                         LockoutState failClosed = failClosedState();
@@ -283,7 +294,20 @@ public final class PersistentAuthLockout {
             String mac = props.getProperty(KEY_MAC, "");
             props.remove(KEY_MAC);
             byte[] expectedMac = HmacUtils.computeHmacSha256(key, serializeState(props));
-            byte[] actualMac = Base64.getDecoder().decode(mac);
+            byte[] actualMac = null;
+            try {
+                if (mac.isEmpty()) {
+                    // State file is missing MAC - likely corrupted or from old version
+                    throw new IllegalArgumentException("MAC property is missing from state file");
+                }
+                actualMac = Base64.getDecoder().decode(mac);
+            } catch (Exception macDecodeEx) {
+                // If MAC is invalid or can't be decoded, fail closed for security
+                audit("LOCKOUT_STATE_MAC_DECODE_FAILED", macDecodeEx.getClass().getSimpleName());
+                LockoutState failClosed = failClosedState();
+                writeState(failClosed, key);
+                return failClosed;
+            }
             try {
                 if (!java.security.MessageDigest.isEqual(expectedMac, actualMac)) {
                     LockoutState failClosed = failClosedState();
