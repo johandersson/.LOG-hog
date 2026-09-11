@@ -544,10 +544,10 @@ public final class LogTextEditor extends JFrame {
                 }
                 try {
                     fullLogPanel.loadFullLog();
+                    showStartupWindow();
                 } catch (Exception e) {
                     logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load full log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
                 }
-                showStartupWindow();
             } catch (Exception e) {
                 // Security: Don't expose exception details (Guideline 2-1)
                 logFileHandler.showErrorDialog("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
