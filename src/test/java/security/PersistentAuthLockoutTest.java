@@ -57,12 +57,13 @@ class PersistentAuthLockoutTest {
     void missingKeyArtifactFailsClosed() throws Exception {
         Properties settings = new Properties();
         PersistentAuthLockout.getRemainingLockoutMillis(settings);
+        PersistentAuthLockout.registerFailure(settings);
         Path lockoutDir = tempHome.resolve(".loghog");
         Path keyPath = lockoutDir.resolve("auth-lockout.key");
 
         Files.deleteIfExists(keyPath);
         long remaining = PersistentAuthLockout.getRemainingLockoutMillis(settings);
-        assertTrue(remaining > 0L, "Expected lockout when key artifact is missing");
+        assertTrue(remaining >= MAX_LOCKOUT_MS - 1000L, "Expected fail-closed maximum lockout when key artifact is missing");
     }
 
     @Test
