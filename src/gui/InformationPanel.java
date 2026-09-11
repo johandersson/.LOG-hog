@@ -131,12 +131,14 @@ public final class InformationPanel extends JPanel {
     private String loadPanelText(String fileName) {
         // 1) Try file in several likely locations in the development/work directory
         Path p1 = Path.of(fileName);
-        Path p2 = Path.of("src", fileName);
-        Path p3 = Path.of("resources", fileName);
+        Path p2 = Path.of("..", fileName);
+        Path p3 = Path.of("src", fileName);
+        Path p4 = Path.of("resources", fileName);
         try {
             if (Files.exists(p1)) return Files.readString(p1, StandardCharsets.UTF_8);
             if (Files.exists(p2)) return Files.readString(p2, StandardCharsets.UTF_8);
             if (Files.exists(p3)) return Files.readString(p3, StandardCharsets.UTF_8);
+            if (Files.exists(p4)) return Files.readString(p4, StandardCharsets.UTF_8);
         } catch (IOException couldNotReadFile) {
             return "Could not read " + fileName + " from file system. Code: LHG-INF-1001";
         }

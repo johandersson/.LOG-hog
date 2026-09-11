@@ -45,6 +45,7 @@ jar cvfm "$SCRIPT_DIR/../build/$JAR_NAME" "$SCRIPT_DIR/manifest.txt" \
     security/*.class \
     services/*.class \
     utils/*.class \
+    -C "$SCRIPT_DIR/.." LICENSE.md \
     -C "$SCRIPT_DIR" resources/
 
 INVENTORY_FILE="$SCRIPT_DIR/../build/component-inventory-$BUILD_TS.txt"
