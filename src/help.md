@@ -2,15 +2,17 @@
 
 ## Purpose
 
-.LOG-hog is designed for **fast, focused note-taking with strong encryption**. Your notes are stored safely in one file.
+.LOG-hog is designed for **fast, focused note-taking with strong encryption**. Your notes are stored in encrypted log files.
 
 When the application starts, the editor is immediately focused so you can begin writing without interruption. Press **Ctrl+S** (or **Cmd+S** on macOS) or click **Save** to store your entry as a timestamped log entry and automatically clear the editor for the next note.
+
+After a successful unlock, focus returns to the editor automatically when the first (entry) tab is active.
 
 This workflow allows rapid, continuous note-taking with minimal friction.
 
 ## ⚡ Lightweight & Cross-Platform
 
-* **Small footprint (\~230 KB)** with no external runtime dependencies
+* No external runtime dependencies beyond Java
 * Built in **pure Java**, ensuring consistent behavior across platforms
 * Runs on **Windows, macOS, and Linux**
 
@@ -18,11 +20,11 @@ The application starts quickly and is designed to be efficient for everyday use.
 
 ## 🗂️ .LOG Format Compatibility
 
-.LOG-hog is fully compatible with standard `.LOG` files.
+.LOG-hog uses a familiar `.LOG`-style entry format, but encrypted-only mode does not open plaintext `.LOG` files.
 
-* Open your existing encrypted log file and continue working immediately
+* Open an existing encrypted .LOG-hog file or restore an encrypted backup
 * New files are created **encrypted**
-* Advanced features (encryption, search, formatting) are layered on top
+* Search, filtering, and formatting are built into the app
 
 ### About the Format
 
@@ -44,7 +46,7 @@ It extends this concept with:
 * **AES-256-GCM authenticated encryption**
 * **PBKDF2 (600,000 iterations)** for key derivation
 * Progressive delay on failed password attempts
-* Sensitive data stored in memory as mutable arrays and cleared after use
+* App-managed sensitive data is cleared on lock; Java cannot guarantee erasure of every plaintext copy from process memory
 * Clipboard auto-clearing for sensitive content
 * Encrypted backups
 * Secure file handling and path validation
@@ -85,7 +87,7 @@ For best protection:
 
 Sensitive data copied from .LOG-hog is protected with:
 
-* **Automatic clearing** after a configurable timeout (default: 15 seconds, always enabled)
+* **Automatic clearing** after a configurable timeout (5–30 seconds, always enabled)
 * Manual "Clear Clipboard" option
 * User warnings when copying sensitive content
 
@@ -120,7 +122,8 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 # 🔎 Filtering Entries
 
 * **Search bar** for keyword filtering
-* **Date range filtering** for time-based queries
+* **Year and month filters** for time-based queries
+* Optional whole-word and case-sensitive text search
 
 # 🧩 System Tray Features
 
@@ -146,7 +149,7 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 
 ### Restore
 
-Replace your log file manually with a backup file if needed.
+When prompted, choose **Restore from Backup** and select an encrypted backup file. .LOG-hog validates the backup before restoring it to the active log file.
 
 # 🔐 Encryption
 
@@ -214,9 +217,10 @@ The only unrecoverable scenario is losing your password.
 
 ### Lock / Unlock
 
-* Lock clears decrypted data from memory and disables all editing operations
+* Lock clears app-managed sensitive data and disables editing. Java cannot guarantee that every plaintext copy is erased from process memory.
 * Unlock requires password re-entry
 * Unlock from any view: click the **Unlock** link in the locked entry or log list area, or use the **Unlock File** button in the Full Log tab
+* After a successful unlock, focus returns to the editor when the first (entry) tab is active
 
 ### Performance Note
 
@@ -282,5 +286,3 @@ See the top-level repository `LICENSE.md` for details.
 
 GitHub:  
 <http://github.com/johandersson/.LOG-hog>
-
-Production builds now use timestamped artifact names, e.g. `loghog-2026-07-06-18_15.jar`.
