@@ -23,7 +23,6 @@ import java.awt.Cursor;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Frame;
-import java.awt.Toolkit;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -58,7 +57,6 @@ public final class FullLogPanel extends LogPanel {
     private final LogFileHandler logFileHandler;
     private final LogTextEditor editor;
     private final JButton lockFileButton;
-    private final JButton copyFullLogButton;
     private final JButton searchButton;
     private final LogInfoPanel infoPanel;
     private final JProgressBar fullLoadProgress;
@@ -96,7 +94,6 @@ public final class FullLogPanel extends LogPanel {
         this.logFileHandler.addCacheInvalidationListener(this.cacheInvalidationListener);
         this.fullLogPathLabel = new JLabel("Log file: (not loaded)");
         this.lockFileButton = new AccentButton(editor.isLocked() ? "Unlock File" : "Lock File");
-        this.copyFullLogButton = new AccentButton("Copy Full Log to Clipboard");
         this.searchButton = new AccentButton("Search");
 
         // Initialize info panel component
@@ -166,8 +163,6 @@ public final class FullLogPanel extends LogPanel {
         // Right side: buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         buttonPanel.setOpaque(false);
-        copyFullLogButton.addActionListener(e -> copyFullLogToClipboard());
-        buttonPanel.add(copyFullLogButton);
         lockFileButton.addActionListener(e -> {
             if (editor.isLocked()) {
                 editor.manualUnlock();
@@ -217,33 +212,9 @@ public final class FullLogPanel extends LogPanel {
         }
     }
 
-    private void updateButtonStates(boolean locked) {
-        copyFullLogButton.setEnabled(!locked);
-        updateLockButton();
-    }
-
     public void performSearchInFullLog(String query) {
         // Search interaction is handled by SearchDialog.
         openSearchDialog();
-    }
-
-
-    private void copyFullLogToClipboard() {
-        String text = fullLogPane.getText();
-        if (text == null || text.isEmpty()) {
-            Toolkit.getDefaultToolkit().beep();
-            DialogHelper.showWarning(this, "Copy Failed", "Log is empty or not loaded.");
-            return;
-        }
-
-        // Show enhanced security warning
-        if (!clipboard.ClipboardSecurityWarner.showFullLogWarning(this)) {
-            return; // User chose not to copy
-        }
-
-        // Use secure clipboard with automatic clearing
-        clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(text, this,
-            "Full log copied to clipboard securely.");
     }
 
     public void loadFullLog() {
@@ -252,7 +223,7 @@ public final class FullLogPanel extends LogPanel {
                 handleLockedState();
                 return;
             }
-            updateButtonStates(false);
+            updateLockButton();
             Path logPath = logFileHandler.getFilePath();
             if (!Files.exists(logPath)) {
                 showLogNotFound();
@@ -346,7 +317,7 @@ public final class FullLogPanel extends LogPanel {
                 }
                 return;
             }
-            updateButtonStates(false);
+            updateLockButton();
             Path logPath = logFileHandler.getFilePath();
             if (!Files.exists(logPath)) {
                 showLogNotFound();
@@ -412,7 +383,7 @@ public final class FullLogPanel extends LogPanel {
         fullLogPane.setText("File locked. Use the Unlock File button to unlock.");
         fullLogPane.setForeground(Color.GRAY);
         fullLogPathLabel.setText("Log file: (locked)");
-        updateButtonStates(true);
+        updateLockButton();
         resetLogStatistics();
     }
 
@@ -458,11 +429,6 @@ public final class FullLogPanel extends LogPanel {
         // This method can be used for manual reload if needed
     }
 
-    @Override
-    public void copyToClipboard() {
-        copyFullLogToClipboard();
-    }
-    
     public HighlightableTextPane getFullLogPane() {
         return fullLogPane;
     }

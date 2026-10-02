@@ -52,14 +52,6 @@ public class ClipboardSecurityWarner {
         getClipboardRisksEducation().replace("<h3", "<h4").replace("</h3>", "</h4>") +
         "</body></html>";
 
-    private static final String FULL_LOG_WARNING =
-        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 9px;'>" +
-        "<h3 style='color: #d32f2f; margin-top: 0;'>🚨 Full Log Export Warning</h3>" +
-        "<p>You are about to copy your <b>entire log file</b> to the clipboard.</p>" +
-        "<p><b>This may contain sensitive information across all your entries!</b></p>" +
-        getClipboardRisksEducation().replace("<h3", "<h4").replace("</h3>", "</h4>") +
-        "</body></html>";
-
     /**
      * Show enhanced warning for copying from encrypted files.
      * @return true if user confirms, false if cancelled
@@ -68,16 +60,6 @@ public class ClipboardSecurityWarner {
         return showSecurityWarning(parent, ENCRYPTED_FILE_WARNING,
             "Copy to Clipboard - Encrypted File Security Warning",
             "Copy anyway", "Don't copy");
-    }
-
-    /**
-     * Show enhanced warning for copying full log to clipboard.
-     * @return true if user confirms, false if cancelled
-     */
-    public static boolean showFullLogWarning(Component parent) {
-        return showSecurityWarning(parent, FULL_LOG_WARNING,
-            "Copy Full Log to Clipboard - Security Warning",
-            "Copy full log", "Don't copy");
     }
 
     /**
