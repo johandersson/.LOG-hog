@@ -315,9 +315,8 @@ public final class FullLogPanel extends LogPanel {
      * Clears rendered/log text from UI components to minimize in-memory exposure.
      */
     public void clearSensitiveDisplayData() {
-        fullLogPane.setText("");
+        resetDocument(fullLogPane);
         fullLogPane.clearHighlights();
-        fullLogPane.setContentType("text/plain");
         fullLogPathLabel.setText("Log file: (locked)");
         resetLogStatistics();
     }
@@ -396,10 +395,20 @@ public final class FullLogPanel extends LogPanel {
         });
     }
 
+    /**
+     * Replaces the pane's document with a fresh one so no content, link or other
+     * character attributes from the previous document can leak into new text.
+     */
+    static void resetDocument(javax.swing.JTextPane pane) {
+        pane.setDocument(new javax.swing.text.DefaultStyledDocument());
+        pane.setCharacterAttributes(javax.swing.text.SimpleAttributeSet.EMPTY, true);
+        javax.swing.text.MutableAttributeSet input = pane.getInputAttributes();
+        input.removeAttributes(input);
+    }
+
     private void handleLockedState() {
-        fullLogPane.setText("");
+        resetDocument(fullLogPane);
         fullLogPane.clearHighlights();
-        fullLogPane.setContentType("text/plain");
         fullLogPane.setText("File locked. Use the Unlock File button to unlock.");
         fullLogPane.setForeground(Color.GRAY);
         fullLogPathLabel.setText("Log file: (locked)");
