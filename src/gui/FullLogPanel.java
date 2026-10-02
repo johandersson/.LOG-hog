@@ -109,6 +109,7 @@ public final class FullLogPanel extends LogPanel {
         setBackground(Color.WHITE);
 
         fullLogPane.setEditable(false);
+        markdown.LinkHandler.addLinkListeners(fullLogPane, editor::openLogLink);
         fullLogPane.setBackground(Color.WHITE);
         // Enable tooltips for the text pane
         ToolTipManager.sharedInstance().registerComponent(fullLogPane);

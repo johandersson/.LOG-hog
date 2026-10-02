@@ -278,6 +278,47 @@ public final class LogTextEditor extends JFrame {
         actionHandler.createNewQuickEntryAction().actionPerformed(null);
     }
 
+    public boolean hasLogEntry(String timestamp) {
+        if (isLocked()) return false;
+        try {
+            return utils.LogEntryLink.findTimestamp(timestamp, logFileHandler.getParsedEntries()) != null;
+        } catch (Exception ex) {
+            throw new IllegalStateException("Unable to check log entries", ex);
+        }
+    }
+
+    public void openLogLink(String timestamp) {
+        if (isLocked()) return;
+        new javax.swing.SwingWorker<String, Void>() {
+            @Override
+            protected String doInBackground() throws Exception {
+                return utils.LogEntryLink.findTimestamp(timestamp, logFileHandler.getParsedEntries());
+            }
+
+            @Override
+            protected void done() {
+                if (isLocked()) return;
+                try {
+                    String rawTimestamp = get();
+                    if (rawTimestamp == null) {
+                        gui.DialogHelper.showError(LogTextEditor.this, "Log Link", "No log entry exists at that date and time.");
+                        return;
+                    }
+                    var date = utils.DateHandler.parseTimestamp(rawTimestamp);
+                    tabPane.setSelectedIndex(1);
+                    logListPanel.setFilterAndApply(date.getYear(), date.getMonthValue(), () -> {
+                        if (isLocked()) return;
+                        if (!logListPanel.selectEntryByTimestampAndContent(rawTimestamp, null)) {
+                            gui.DialogHelper.showEntryNotFound(logListPanel);
+                        }
+                    });
+                } catch (Exception ex) {
+                    gui.DialogHelper.showError(LogTextEditor.this, "Log Link", "Unable to open the linked log entry.");
+                }
+            }
+        }.execute();
+    }
+
     public AbstractAction createNewQuickEntry() {
         return (AbstractAction) actionHandler.createNewQuickEntryAction();
     }

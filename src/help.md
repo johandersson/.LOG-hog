@@ -233,6 +233,16 @@ You can include:
 
 * URLs
 * Local file links (opening executable/script-like files requires explicit confirmation)
+* Other log entries: `[13:23 2022-12-12]` (LogHog format) or `[2022-12-12 13:23]`
+
+Use **Log link** next to the formatting buttons in either entry editor. Enter a date
+and time; the dialog checks the format, calendar date, and whether an entry exists.
+Errors leave the dialog open so you can correct the input, or choose **Cancel**.
+Click a log link in Preview or Full Log to open the entry in Log Entries, adjusting
+the date filter and clearing search if needed. If several entries share the same
+timestamp, the last matching entry in the list is selected. Links refer to timestamps
+in the current log file; changing or deleting the target timestamp breaks the link.
+Log links inside code are displayed as plain text.
 
 Example:
 

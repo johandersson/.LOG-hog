@@ -24,9 +24,15 @@ import javax.swing.text.JTextComponent;
 public final class FormattingPanel extends JPanel {
     private static final long serialVersionUID = 1L;
     private final JTextComponent targetComponent;
+    private final java.util.function.Predicate<String> entryExists;
 
     public FormattingPanel(JTextComponent targetComponent) {
+        this(targetComponent, timestamp -> false);
+    }
+
+    public FormattingPanel(JTextComponent targetComponent, java.util.function.Predicate<String> entryExists) {
         this.targetComponent = targetComponent;
+        this.entryExists = entryExists;
         initPanel();
         setupKeyboardShortcuts();
     }
@@ -77,6 +83,12 @@ public final class FormattingPanel extends JPanel {
         linkBtn.setToolTipText("Insert Link");
         linkBtn.addActionListener(e -> LinkDialog.showInsertLinkDialog(targetComponent));
         add(linkBtn);
+
+        var logLinkBtn = new StandardButton("Log link", new Color(0xE0E0E0), new Color(0xB0B0B0));
+        logLinkBtn.setPreferredSize(new Dimension(85, 28));
+        logLinkBtn.setToolTipText("Insert a link to an existing log entry");
+        logLinkBtn.addActionListener(e -> LogLinkDialog.showInsertLogLinkDialog(targetComponent, entryExists));
+        add(logLinkBtn);
     }
 
     private void setupKeyboardShortcuts() {

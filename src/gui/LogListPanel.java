@@ -689,7 +689,7 @@ public final class LogListPanel extends JPanel {
         previewScrollPane.setBorder(BorderFactory.createEmptyBorder());
 
         // Add formatting buttons panel
-        var formattingPanel = new FormattingPanel(entryArea);
+        var formattingPanel = new FormattingPanel(entryArea, editor::hasLogEntry);
         entryContainer.add(formattingPanel, BorderLayout.NORTH);
 
         lockPanel.setOpaque(false);
@@ -1195,7 +1195,7 @@ public final class LogListPanel extends JPanel {
 
         // Render using MarkdownRenderer
         MarkdownRenderer.renderMarkdownFromEntries(previewPane, entries, false);
-        LinkHandler.addLinkListeners(previewPane);
+        LinkHandler.addLinkListeners(previewPane, editor::openLogLink);
     }
 
     public void setLocked(boolean locked) {

@@ -10,6 +10,86 @@ import org.junit.jupiter.api.Test;
 
 class LogLinkDialogTest {
     @Test
+    void lookupFailureCanBeRetriedWithoutClosing() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            var target = new JTextArea("text");
+            target.setCaretPosition(4);
+            var checks = new AtomicInteger();
+            var closes = new AtomicInteger();
+            var panel = new LogLinkDialog(target, timestamp -> {
+                if (checks.getAndIncrement() == 0) throw new IllegalStateException("Unavailable");
+                return true;
+            }, closes::incrementAndGet);
+            panel.timestampField.setText("13:23 2022-12-12");
+            panel.insertButton.doClick();
+            assertEquals(0, closes.get());
+            assertEquals("text", target.getText());
+            assertTrue(panel.errorLabel.getText().contains("Unable to check"));
+            panel.insertButton.doClick();
+            assertEquals("text[13:23 2022-12-12]", target.getText());
+            assertEquals(1, closes.get());
+        });
+    }
+
+    @Test
+    void cannotInsertAfterEditorBecomesReadOnly() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            var target = new JTextArea("text");
+            var panel = new LogLinkDialog(target, timestamp -> true, () -> fail("Must not succeed"));
+            panel.timestampField.setText("13:23 2022-12-12");
+            target.setEditable(false);
+            panel.insertButton.doClick();
+            assertEquals("text", target.getText());
+        });
+    }
+
+    @Test
+    void modalDialogRemainsVisibleOnErrorsAndClosesOnSuccess() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeFalse(java.awt.GraphicsEnvironment.isHeadless());
+        var failure = new java.util.concurrent.atomic.AtomicReference<Throwable>();
+        SwingUtilities.invokeAndWait(() -> {
+            var parent = new javax.swing.JFrame();
+            var target = new JTextArea("text");
+            parent.add(target);
+            parent.pack();
+            SwingUtilities.invokeLater(() -> {
+                javax.swing.JDialog dialog = null;
+                try {
+                    for (var window : java.awt.Window.getWindows()) {
+                        if (window instanceof javax.swing.JDialog candidate
+                                && candidate.getTitle().equals("Insert Log Link") && candidate.isVisible()) {
+                            dialog = candidate;
+                            break;
+                        }
+                    }
+                    assertNotNull(dialog);
+                    var panel = (LogLinkDialog) dialog.getContentPane();
+                    panel.timestampField.setText("not a timestamp");
+                    panel.insertButton.doClick();
+                    assertTrue(dialog.isVisible());
+                    panel.timestampField.setText("13:24 2022-12-12");
+                    panel.insertButton.doClick();
+                    assertTrue(dialog.isVisible());
+                    panel.timestampField.setText("13:23 2022-12-12");
+                    panel.insertButton.doClick();
+                    assertFalse(dialog.isVisible());
+                    assertTrue(target.getText().contains("[13:23 2022-12-12]"));
+                } catch (Throwable ex) {
+                    failure.set(ex);
+                } finally {
+                    if (dialog != null) dialog.dispose();
+                }
+            });
+            try {
+                LogLinkDialog.showInsertLogLinkDialog(target, timestamp -> timestamp.equals("13:23 2022-12-12"));
+            } finally {
+                parent.dispose();
+            }
+        });
+        if (failure.get() != null) throw new AssertionError(failure.get());
+    }
+
+    @Test
     void invalidAndMissingTargetsKeepInputOpenUntilSuccess() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             var target = new JTextArea("before after");
