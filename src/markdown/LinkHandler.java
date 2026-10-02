@@ -29,6 +29,7 @@ import javax.swing.JTextPane;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.StyledDocument;
 import security.LinkOpenPolicy;
+import utils.PlatformSupport;
 
 public class LinkHandler {
     private static final String LINK_LISTENERS_INSTALLED_KEY = "loghog.link.listeners.installed";
@@ -92,7 +93,8 @@ public class LinkHandler {
     }
 
     private static void handleFileLink(JTextPane pane, String href) {
-        if (!Desktop.isDesktopSupported()) {
+        Desktop desktop = PlatformSupport.getDesktopForAction(Desktop.Action.OPEN);
+        if (desktop == null) {
             showLinkError(pane, "Desktop is not supported on this system.");
             return;
         }
@@ -147,7 +149,7 @@ public class LinkHandler {
 
         // Try to open the file
         try {
-            Desktop.getDesktop().open(target.toFile());
+            desktop.open(target.toFile());
         } catch (java.io.IOException ioEx) {
             // Security: Don't expose internal error details
             showLinkError(pane, "Unable to open file. Check if you have the appropriate application installed.");
@@ -157,7 +159,8 @@ public class LinkHandler {
     }
 
     private static void handleWebLink(JTextPane pane, String href) {
-        if (!Desktop.isDesktopSupported()) {
+        Desktop desktop = PlatformSupport.getDesktopForAction(Desktop.Action.BROWSE);
+        if (desktop == null) {
             showLinkError(pane, "Desktop is not supported on this system.");
             return;
         }
@@ -172,7 +175,7 @@ public class LinkHandler {
             return;
         }
         try {
-            Desktop.getDesktop().browse(java.net.URI.create(finalHref));
+            desktop.browse(java.net.URI.create(finalHref));
         } catch (java.io.IOException ioEx) {
             showLinkError(pane, "Unable to open URL. Check your internet connection and browser settings.");
         } catch (Exception ex) {

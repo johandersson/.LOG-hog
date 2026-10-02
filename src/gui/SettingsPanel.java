@@ -784,6 +784,13 @@ public final class SettingsPanel extends JPanel {
         try (var fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
             security.SecurityFilePolicy.ensureOwnerOnlyPermissions(settingsPath);
+            if (security.SecurityFilePolicy.persistPermissionWarningFlagIfNeeded(settings, settingsPath)) {
+                gui.DialogHelper.showWarning(editor,
+                    "Security Notice",
+                    "Platform Permission Limits",
+                    "Strict owner-only permission verification is unavailable on this platform.<br><br>" +
+                    "For best protection, use a dedicated user account and full-disk encryption.");
+            }
         } catch (java.io.IOException e) {
             gui.DialogHelper.showError(editor, "Error", "Error saving settings. Please check file permissions and try again.");
         }

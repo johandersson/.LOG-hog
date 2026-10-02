@@ -21,7 +21,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.List;
 
@@ -40,6 +39,7 @@ import javax.swing.SwingConstants;
 import main.LogTextEditor;
 import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
+import utils.PlatformSupport;
 import utils.UndoRedoTextArea;
 
 public final class EntryPanel extends JPanel {
@@ -97,7 +97,7 @@ public final class EntryPanel extends JPanel {
 
         // Key binding for Ctrl+S
         textArea.getInputMap(JComponent.WHEN_FOCUSED).put(
-                KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), "save");
+                KeyStroke.getKeyStroke(KeyEvent.VK_S, PlatformSupport.menuShortcutMask()), "save");
         textArea.getActionMap().put("save", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {

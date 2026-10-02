@@ -64,6 +64,7 @@ import filehandling.DialogHandler;
 import main.LogTextEditor;
 import markdown.LinkHandler;
 import markdown.MarkdownRenderer;
+import utils.PlatformSupport;
 import utils.UndoRedoTextArea;
 
 public final class LogListPanel extends JPanel {
@@ -78,6 +79,7 @@ public final class LogListPanel extends JPanel {
     private final JPanel entryContainer;
     private final HighlightableTextPane previewPane;
     private final JScrollPane previewScrollPane;
+    private final int shortcutMask = PlatformSupport.menuShortcutMask();
     private boolean isPreviewMode = false;
     // Raw display-timestamp of the entry currently shown in entryArea/preview, or null
     // when nothing is displayed. Used to (a) avoid redundant reloads and (b) prevent
@@ -192,7 +194,7 @@ public final class LogListPanel extends JPanel {
         searchPanel.add(searchLabel);
         
         searchField = new JTextField(15);
-        searchField.setToolTipText("Search in entry timestamps and content (Ctrl+F)");
+        searchField.setToolTipText("Search in entry timestamps and content (" + PlatformSupport.primaryShortcutLabel() + "+F)");
         // Limit search query length for safety
         try {
             if (searchField.getDocument() instanceof AbstractDocument) {
@@ -235,9 +237,9 @@ public final class LogListPanel extends JPanel {
             applyFilterAndSearch();
         });
         
-        // Ctrl+F focuses search field
+        // Shortcut+F focuses search field
         getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
-            KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F, java.awt.event.InputEvent.CTRL_DOWN_MASK), "focusSearch");
+            KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F, shortcutMask), "focusSearch");
         getActionMap().put("focusSearch", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
@@ -700,7 +702,7 @@ public final class LogListPanel extends JPanel {
 
         // Key bindings
         entryArea.getInputMap(JComponent.WHEN_FOCUSED).put(
-                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.CTRL_DOWN_MASK), "saveEntry");
+                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, shortcutMask), "saveEntry");
         entryArea.getActionMap().put("saveEntry", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
@@ -710,7 +712,7 @@ public final class LogListPanel extends JPanel {
 
         // Override ctrl+c to use secure clipboard
         entryArea.getInputMap(JComponent.WHEN_FOCUSED).put(
-                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, java.awt.event.InputEvent.CTRL_DOWN_MASK), "copySecure");
+                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, shortcutMask), "copySecure");
         entryArea.getActionMap().put("copySecure", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
@@ -725,7 +727,7 @@ public final class LogListPanel extends JPanel {
         });
 
         editor.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
-                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, java.awt.event.InputEvent.CTRL_DOWN_MASK), "newEntryGlobal");
+                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, shortcutMask), "newEntryGlobal");
         editor.getRootPane().getActionMap().put("newEntryGlobal", editor.createNewQuickEntry());
 
         // Save button
