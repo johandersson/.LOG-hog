@@ -32,6 +32,13 @@ public class AsyncSaver {
         saveTextAsync(text, listModel, null, onComplete);
     }
 
+    private void completeIfCurrent(long session, Runnable callback) {
+        if (callback == null) return;
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            if (cache.isSecurityCurrent(session)) callback.run();
+        });
+    }
+
     /**
      * Saves an entry on a background thread while a progress dialog is shown.
      * <p>
@@ -47,21 +54,24 @@ public class AsyncSaver {
     public void saveTextAsync(String text, javax.swing.DefaultListModel<String> listModel,
                               Runnable postSaveWork, Runnable onComplete) {
         if (text == null || text.isBlank()) return;
+        final long session = cache.securityGeneration();
+        final boolean encrypted = encryptionManager.isEncrypted();
         Thread t = new Thread(() -> {
+            if (!cache.isSecurityCurrent(session)) return;
             gui.BackgroundProgress progress = gui.BackgroundProgress.show("Saving", "Saving entry...");
 
             try {
                 try {
                     entryEditor.setBackupManager(backupManager);
-                    entryEditor.createAndSaveEntry(text);
-                    cache.invalidateEntryCache();
+                    entryEditor.createAndSaveEntry(text, encrypted, session);
+                    if (cache.isSecurityCurrent(session)) cache.invalidateEntryCache();
                 } catch (Exception e) {
-                    javax.swing.SwingUtilities.invokeLater(() -> {
+                    completeIfCurrent(session, () -> {
                         filehandling.DialogHandler.showErrorDialog("<html><b>💾 Save Failed</b><br><br>Unable to save your log entry.</html>");
                     });
                 }
 
-                if (postSaveWork != null) {
+                if (postSaveWork != null && cache.isSecurityCurrent(session)) {
                     progress.setStatus("Updating entry list...");
                     postSaveWork.run();
                 }
@@ -70,9 +80,7 @@ public class AsyncSaver {
             }
 
             // Signal completion - caller handles list refresh for proper occurrence counting
-            javax.swing.SwingUtilities.invokeLater(() -> {
-                if (onComplete != null) onComplete.run();
-            });
+            completeIfCurrent(session, onComplete);
         }, "loghog-save-thread");
         t.setDaemon(false);
         t.start();
@@ -89,35 +97,41 @@ public class AsyncSaver {
      * @param onComplete optional callback run on the EDT afterwards, may be null
      */
     public void runWithProgressAsync(String title, String status, Runnable backgroundWork, Runnable onComplete) {
+        final long session = cache.securityGeneration();
         if (backgroundWork == null) {
-            if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
+            completeIfCurrent(session, onComplete);
             return;
         }
         Thread t = new Thread(() -> {
+            if (!cache.isSecurityCurrent(session)) return;
             gui.BackgroundProgress progress = gui.BackgroundProgress.show(title, status);
             try {
                 backgroundWork.run();
             } finally {
                 progress.close();
             }
-            if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
+            completeIfCurrent(session, onComplete);
         }, "loghog-progress-task");
         t.setDaemon(false);
         t.start();
     }
 
     public void flushPendingWritesAsync(Runnable onComplete) {
+        final long session = cache.securityGeneration();
+        final long generation = cache.generation();
+        final boolean encrypted = encryptionManager.isEncrypted();
         if (!cache.hasPendingWrites()) {
-            if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
+            completeIfCurrent(session, onComplete);
             return;
         }
 
         Thread t2 = new Thread(() -> {
+            if (!cache.isSecurityCurrent(session)) return;
             gui.BackgroundProgress progress = gui.BackgroundProgress.show("Saving", "Saving file...");
 
             try {
                 List<String> pendingLines = cache.getPendingLines();
-                    if (encryptionManager.isEncrypted()) {
+                    if (encrypted) {
                         if (backupManager != null) backupManager.createNumberedBackup();
                         if (encryptionManager != null) {
                             encryptionManager.encryptFileFromLines(pendingLines);
@@ -125,20 +139,20 @@ public class AsyncSaver {
                         // Keep the in-memory hydration cache and incremental journal in sync
                         // with the authoritative content we just wrote, otherwise the next
                         // read could fall back to stale pre-write content.
-                        entryEditor.syncAfterFullEncryptedWrite(pendingLines);
+                        entryEditor.syncAfterFullEncryptedWrite(pendingLines, generation);
                 } else {
                     if (backupManager != null) backupManager.createNumberedBackup();
                     Files.write(filePath, pendingLines);
                     try { encryption.CryptoUtils.setOwnerOnlyPermissions(filePath); } catch (Exception ignored) {}
                 }
-                cache.clearPendingWrites();
+                if (cache.isSecurityCurrent(session)) cache.clearPendingWrites();
                 } catch (Exception e) {
-                javax.swing.SwingUtilities.invokeLater(() -> filehandling.DialogHandler.showErrorDialog("<html><b>💾 Write Failed</b><br><br>Unable to save changes to disk.</html>"));
+                completeIfCurrent(session, () -> filehandling.DialogHandler.showErrorDialog("<html><b>💾 Write Failed</b><br><br>Unable to save changes to disk.</html>"));
             } finally {
                 progress.close();
             }
 
-            if (onComplete != null) javax.swing.SwingUtilities.invokeLater(onComplete);
+            completeIfCurrent(session, onComplete);
         }, "loghog-flush-thread");
         t2.setDaemon(false);
         t2.start();

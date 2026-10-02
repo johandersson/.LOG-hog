@@ -47,10 +47,17 @@ public final class PasswordGeneratorDialog extends JDialog {
     private JButton generateButton;
     private JButton copyButton;
     private PasswordStrengthIndicator strengthIndicator;
+    private boolean disposed;
+    private final main.LogTextEditor sessionOwner;
+    private final long session;
+    private AutoCloseable registration;
 
     public PasswordGeneratorDialog(Frame parent) {
         super(parent, "Password Generator", true);
+        sessionOwner = parent instanceof main.LogTextEditor editor ? editor : null;
+        session = sessionOwner == null ? 0L : sessionOwner.getSessionGeneration();
         initComponents();
+        if (sessionOwner != null) registration = sessionOwner.registerSensitiveWindow(this::dispose);
         pack();
         setLocationRelativeTo(parent);
     }
@@ -150,6 +157,7 @@ public final class PasswordGeneratorDialog extends JDialog {
 
         copyButton = new StandardButton("Copy to Clipboard", new Color(0xE0E0E0), new Color(0xB0B0B0));
         copyButton.addActionListener(e -> {
+            if (!canContinue()) return;
             if (!resultField.getText().isEmpty()) {
                 SecureClipboardManager.getInstance().copySecureTextToClipboard(
                     resultField.getText(), 
@@ -170,6 +178,7 @@ public final class PasswordGeneratorDialog extends JDialog {
     }
 
     private void generate() {
+        if (!canContinue()) return;
         int length = (Integer) lengthSpinner.getValue();
         String result;
         if (passwordRadio.isSelected()) {
@@ -183,5 +192,22 @@ public final class PasswordGeneratorDialog extends JDialog {
 
     public static void showDialog(Frame parent) {
         new PasswordGeneratorDialog(parent).setVisible(true);
+    }
+
+    private boolean canContinue() {
+        return !disposed && (sessionOwner == null || sessionOwner.isSessionCurrent(session));
+    }
+
+    @Override public void dispose() {
+        disposed = true;
+        if (resultField != null) resultField.setText("");
+        if (strengthIndicator != null) strengthIndicator.updateStrength(new char[0]);
+        if (copyButton != null) copyButton.setEnabled(false);
+        if (generateButton != null) generateButton.setEnabled(false);
+        if (registration != null) {
+            try { registration.close(); } catch (Exception ignored) { }
+            registration = null;
+        }
+        super.dispose();
     }
 }

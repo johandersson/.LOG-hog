@@ -181,10 +181,18 @@ public class TimestampClickHandler {
         if (overlayWindow != null) {
             overlayWindow.setVisible(false);
         }
+
         buttonVisible = false;
         if (hideTimer != null) {
             hideTimer.stop();
         }
+    }
+
+    public void clearSensitiveState() {
+        hideOverlayButton();
+        currentTimestamp = null;
+        isHoveringTimestamp = false;
+        if (overlayButton != null) overlayButton.setText("");
     }
     
     /**
@@ -363,6 +371,7 @@ public class TimestampClickHandler {
      * Disposes the overlay window if it exists.
      */
     public void dispose() {
+        clearSensitiveState();
         if (overlayWindow != null) {
             overlayWindow.dispose();
             overlayWindow = null;

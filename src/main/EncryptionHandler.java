@@ -80,6 +80,7 @@ public class EncryptionHandler {
      * and retry logic with progressive delays.
      */
     public boolean handleEncryptionSetup() {
+        beginAuthentication();
         String saltStr = settings.getProperty("salt");
         if (saltStr != null) {
             // If the log file does not exist, offer create/browse/restore first
@@ -181,6 +182,7 @@ public class EncryptionHandler {
      * @return true if unlock was successful, false if cancelled or failed
      */
     public boolean reloadEncryptedLog() {
+        beginAuthentication();
         byte[] salt;
         try {
             salt = Base64.getDecoder().decode(settings.getProperty("salt"));
@@ -210,6 +212,8 @@ public class EncryptionHandler {
      * @return true if authentication was successful, false if cancelled or failed
      */
     private boolean performPasswordAuthentication(byte[] salt, String dialogTitle, boolean exitOnCancel) {
+        clearFailedAuthentication();
+        final long session = parentFrame instanceof LogTextEditor editor ? editor.getSessionGeneration() : 0L;
         boolean success = false;
         int attempts = 0;
         final int maxSessionAttempts = PersistentAuthLockout.getMaxSessionAttempts();
@@ -240,7 +244,13 @@ public class EncryptionHandler {
                 result = holder[0];
             }
             char[] pwd = result.password;
+            if (parentFrame instanceof LogTextEditor editor && editor.getSessionGeneration() != session) {
+                result.close();
+                clearFailedAuthentication();
+                return false;
+            }
             if (pwd == null) {
+                clearFailedAuthentication();
                 // Startup/recovery flow should terminate when auth is cancelled.
                 if (exitOnCancel) {
                     System.exit(0);
@@ -250,18 +260,15 @@ public class EncryptionHandler {
             }
             try {
                 logFileHandler.setEncryption(pwd, salt);
-            } catch (Exception e) {
-                // If setEncryption fails, continue with authentication flow
-                // The method will try to load entries which may trigger proper encryption setup
-            }
-            try {
                 // Show progress dialog for large file decryption
                 LoadingProgressDialog progressDialog = new LoadingProgressDialog(parentFrame, "Loading");
                 progressDialog.show();
                 
                 try {
                     loadLogEntriesCallback.run();
-                    success = true;
+                    if (parentFrame instanceof LogTextEditor editor && editor.getSessionGeneration() != session) {
+                        throw new java.util.concurrent.CancellationException();
+                    }
 
                     PersistentAuthLockout.clear(settings);
                     try {
@@ -272,12 +279,15 @@ public class EncryptionHandler {
                     // Derive the backup HMAC key from credentials so it is never stored in settings.
                     // The key is only computable with the correct password.
                     backupManager.deriveAndSetHmacKey(pwd, salt);
-
+                    if (parentFrame instanceof LogTextEditor editor && editor.getSessionGeneration() != session) {
+                        throw new java.util.concurrent.CancellationException();
+                    }
                     if (!exitOnCancel) {
                         // For reload, update UI state
                         updateUILockStateCallback.run();
                         loadFullLogCallback.run();
                     }
+                    success = true;
                 } finally {
                     progressDialog.close();
                 }
@@ -285,8 +295,11 @@ public class EncryptionHandler {
                 // Only zero out password after successful use
                 java.util.Arrays.fill(pwd, '\0');
             } catch (Exception e) {
+                success = false;
+                clearFailedAuthentication();
                 // Zero out the failed password attempt before showing error
                 java.util.Arrays.fill(pwd, '\0');
+                if (e instanceof java.util.concurrent.CancellationException) return false;
                 
                 attempts++;
                 if (attempts >= maxSessionAttempts) {
@@ -347,8 +360,25 @@ public class EncryptionHandler {
                     logFileHandler.showErrorDialog("<html><b>📁 Load Failed</b><br><br>Unable to load log entries due to a file error.<br><br><i>Technical details: " + e.getClass().getSimpleName() + "</i><br><br><i>Tip: The file may be corrupted. Try restoring from a backup.</i></html>");
                     return false; // Don't retry on non-authentication errors
                 }
+            } finally {
+                java.util.Arrays.fill(pwd, '\0');
+                result.close();
+                if (!success) clearFailedAuthentication();
             }
         }
         return true; // Success
+    }
+
+    private void clearFailedAuthentication() {
+        try {
+            logFileHandler.clearSensitiveData();
+        } finally {
+            if (backupManager != null) backupManager.clearInMemoryHmacKey();
+        }
+    }
+
+    private void beginAuthentication() {
+        if (parentFrame instanceof LogTextEditor editor && !editor.isLocked()) editor.setLocked(true);
+        clearFailedAuthentication();
     }
 }

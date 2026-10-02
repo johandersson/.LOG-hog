@@ -62,11 +62,14 @@ import utils.Toast;
  */
 public class SecureClipboardManager implements ClipboardHandler, java.awt.datatransfer.ClipboardOwner {
     // marker removed (unused) - kept behavior via digest comparison
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, r -> {
+    private static ScheduledExecutorService scheduler = createScheduler();
+    private static ScheduledExecutorService createScheduler() {
+        return Executors.newScheduledThreadPool(1, r -> {
         Thread t = new Thread(r);
         t.setDaemon(true);
         return t;
-    });
+        });
+    }
 
     // Thread-safe mutable static fields with synchronization
     private static final Object LOCK = new Object();
@@ -76,9 +79,15 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
     private static byte[] lastCopiedDigest; // Track hash of content we last copied
     // Track ownership: true when we set clipboard contents and still own it
     private static volatile boolean weOwnClipboard = false;
+    private static java.lang.ref.WeakReference<Transferable> ownedContents = new java.lang.ref.WeakReference<>(null);
+    private static boolean shutdownRequested;
+    private static boolean clearRequested;
+    private static long clipboardGeneration;
     private static final Path CLIPBOARD_MARKER = AppPathPolicy.appDataDirectory().resolve("clipboard.pending");
 
     private static final SecureClipboardManager INSTANCE = new SecureClipboardManager();
+    private static java.util.function.Supplier<Clipboard> clipboardProvider =
+        () -> Toolkit.getDefaultToolkit().getSystemClipboard();
 
     // NOTE: Shutdown hook for clipboard clearing was REMOVED because it causes deadlock.
     // The AWT clipboard operations require the AWT event thread, but when System.exit()
@@ -90,7 +99,7 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
     // Defensive getter for system clipboard; returns null if unavailable
     private static Clipboard getSystemClipboardSafe() {
         try {
-            return Toolkit.getDefaultToolkit().getSystemClipboard();
+            return clipboardProvider.get();
         } catch (Exception e) {
             return null;
         }
@@ -124,7 +133,7 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
     public static void setAutoClearEnabled(boolean enabled) {
         synchronized (LOCK) {
             autoClearEnabled = enabled;
-            if (!enabled && clearTask != null) {
+            if (!enabled && !clearRequested && clearTask != null) {
                 clearTask.cancel(false);
                 clearTask = null;
             }
@@ -176,8 +185,12 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
         try {
             if (clipboard == null) throw new IllegalStateException("Clipboard not available");
             // Use ClipboardOwner to track ownership instead of relying solely on digest
-            clipboard.setContents(selection, INSTANCE);
             synchronized (LOCK) {
+                clipboard.setContents(selection, INSTANCE);
+                clipboardGeneration++;
+                ownedContents = new java.lang.ref.WeakReference<>(selection);
+                shutdownRequested = false;
+                clearRequested = false;
                 try {
                     java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
                     lastCopiedDigest = md.digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -222,63 +235,54 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
      * Manually clear the clipboard if it contains .LOG-hog secure content.
      */
     public static void clearSecureClipboard() {
-        try {
-            Clipboard clipboard = getSystemClipboardSafe();
-            if (clipboard == null) return;
-            
-                synchronized (LOCK) {
-                    // Clear if we have tracked content (compare hashes instead of storing full text)
-                    if (lastCopiedDigest != null && weOwnClipboard) {
-                        Transferable contents = clipboard.getContents(null);
-                        if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
-                            String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
-                            if (data != null) {
-                                try {
-                                    java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-                                    byte[] now = md.digest(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                                    if (java.util.Arrays.equals(now, lastCopiedDigest)) {
-                                        // Clear clipboard by setting empty content and claim no ownership
-                                        StringSelection emptySelection = new StringSelection("");
-                                        clipboard.setContents(emptySelection, INSTANCE);
-                                        lastCopiedDigest = null;
-                                        weOwnClipboard = false;
-                                        clearClipboardMarker();
-
-                                        // Cancel any pending clear task
-                                        if (clearTask != null) {
-                                            clearTask.cancel(false);
-                                            clearTask = null;
-                                        }
-                                    } else {
-                                        // Clipboard was changed by user - don't clear
-                                        lastCopiedDigest = null;
-                                        weOwnClipboard = false;
-                                        clearClipboardMarker();
-                                    }
-                                } catch (Exception e) {
-                                    // On digest errors, clear tracked value to avoid repeated failures
-                                    lastCopiedDigest = null;
-                                    weOwnClipboard = false;
-                                    clearClipboardMarker();
-                                }
-                            } else {
-                                lastCopiedDigest = null;
-                                weOwnClipboard = false;
-                                clearClipboardMarker();
-                            }
-                        }
-                    }
+        synchronized (LOCK) {
+            if (lastCopiedDigest == null) return;
+            clearRequested = true;
+            try {
+                Clipboard clipboard = getSystemClipboardSafe();
+                if (clipboard == null) throw new IllegalStateException("Clipboard unavailable");
+                if (matchesTrackedContent(clipboard)) {
+                    clipboard.setContents(new StringSelection(""), INSTANCE);
+                    if (matchesTrackedContent(clipboard)) throw new IllegalStateException("Clipboard unchanged");
                 }
-        } catch (IllegalStateException ise) {
-            // Clipboard not available - silently ignore
-        } catch (UnsupportedFlavorException ufe) {
-            // Data flavor not supported - silently ignore
-        } catch (IOException ioe) {
-            // I/O error accessing clipboard - silently ignore
-        } catch (Exception e) {
-            // Security: Don't log exception details to console
-            // Any other unexpected error - silently ignore
+                forgetTracking();
+            } catch (Exception ignored) {
+                writeClipboardMarker();
+                scheduleRetry();
+            }
         }
+    }
+
+    private static boolean matchesTrackedContent(Clipboard clipboard) throws Exception {
+        Transferable contents = clipboard.getContents(null);
+        if (contents == null || !contents.isDataFlavorSupported(DataFlavor.stringFlavor)) return false;
+        String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
+        if (data == null) return false;
+        return java.util.Arrays.equals(lastCopiedDigest, java.security.MessageDigest.getInstance("SHA-256")
+            .digest(data.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    private static void forgetTracking() {
+        clipboardGeneration++;
+        if (lastCopiedDigest != null) java.util.Arrays.fill(lastCopiedDigest, (byte) 0);
+        lastCopiedDigest = null;
+        weOwnClipboard = false;
+        ownedContents.clear();
+        clearRequested = false;
+        clearClipboardMarker();
+        if (clearTask != null) { clearTask.cancel(false); clearTask = null; }
+        if (shutdownRequested) scheduler.shutdown();
+    }
+
+    private static void scheduleRetry() {
+        if (clearTask != null) clearTask.cancel(false);
+        if (scheduler.isShutdown()) scheduler = createScheduler();
+        final long generation = clipboardGeneration;
+        clearTask = scheduler.schedule(() -> {
+            synchronized (LOCK) {
+                if (generation == clipboardGeneration) clearSecureClipboard();
+            }
+        }, 1, TimeUnit.SECONDS);
     }
 
     /**
@@ -286,44 +290,7 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
      * Cancels any pending clear tasks and clears the recorded digest to minimize exposure.
      */
     public static void onLock() {
-        synchronized (LOCK) {
-            try {
-                if (clearTask != null) {
-                    clearTask.cancel(false);
-                    clearTask = null;
-                }
-                byte[] oldDigest = lastCopiedDigest;
-                boolean hadOwnership = weOwnClipboard;
-                lastCopiedDigest = null;
-                weOwnClipboard = false;
-                clearClipboardMarker();
-
-                // Also attempt to clear clipboard contents if they match the previously tracked digest
-                if (oldDigest != null) {
-                    try {
-                        Clipboard clipboard = getSystemClipboardSafe();
-                        if (clipboard != null) {
-                            Transferable contents = clipboard.getContents(null);
-                            if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
-                                String data = (String) contents.getTransferData(DataFlavor.stringFlavor);
-                                if (data != null) {
-                                    java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-                                    byte[] now = md.digest(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                                    if (java.util.Arrays.equals(now, oldDigest)) {
-                                        // Only clear if we still own the clipboard
-                                        if (hadOwnership) {
-                                            clipboard.setContents(new StringSelection(""), INSTANCE);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } catch (Exception ignored) {}
-                }
-            } catch (Exception ignored) {
-                // best-effort
-            }
-        }
+        clearSecureClipboard();
     }
 
     /**
@@ -376,19 +343,19 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
      */
     private static void scheduleClipboardClearing() {
         synchronized (LOCK) {
+            final long generation = clipboardGeneration;
             // Cancel any existing task
             if (clearTask != null) {
                 clearTask.cancel(false);
             }
 
             try {
+                if (scheduler.isShutdown()) scheduler = createScheduler();
                 // Schedule new clearing task
                 clearTask = scheduler.schedule(() -> {
                     SwingUtilities.invokeLater(() -> {
-                        if (hasSecureContent()) {
-                                    clearSecureClipboard();
-                            // Show notification that clipboard was cleared
-                            Toast.showToast(null, "Clipboard automatically cleared for security.");
+                        synchronized (LOCK) {
+                            if (generation == clipboardGeneration) clearSecureClipboard();
                         }
                     });
                 }, timeoutSeconds, TimeUnit.SECONDS);
@@ -414,34 +381,38 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
      */
     @Override
     public void lostOwnership(Clipboard clipboard, Transferable contents) {
-        // Clipboard ownership lost: clear internal tracking to avoid clearing other's data
         synchronized (LOCK) {
-            weOwnClipboard = false;
-            lastCopiedDigest = null;
-            clearClipboardMarker();
+            try {
+                // Delayed ownership notifications must not forget a newer copy.
+                if (lastCopiedDigest != null &&
+                        (contents == ownedContents.get() || !matchesTrackedContent(clipboard))) forgetTracking();
+            } catch (Exception ignored) { scheduleRetry(); }
         }
     }
 
     public static void recoverClipboardAfterCrash() {
+        synchronized (LOCK) {
         try {
             if (!Files.exists(CLIPBOARD_MARKER)) {
                 return;
             }
-            Clipboard clipboard = getSystemClipboardSafe();
-            if (clipboard != null) {
-                clipboard.setContents(new StringSelection(""), INSTANCE);
-            }
+            String marker = Files.readString(CLIPBOARD_MARKER, StandardCharsets.UTF_8).trim();
+            if (marker.length() != 64) return; // Legacy markers cannot identify clipboard ownership.
+            lastCopiedDigest = java.util.HexFormat.of().parseHex(marker);
+            clipboardGeneration++;
+            weOwnClipboard = true;
+            clearSecureClipboard();
         } catch (Exception ignored) {
             // best-effort recovery
-        } finally {
-            clearClipboardMarker();
+        }
         }
     }
 
     private static void writeClipboardMarker() {
         try {
             Files.createDirectories(CLIPBOARD_MARKER.getParent());
-            Files.writeString(CLIPBOARD_MARKER, Long.toString(System.currentTimeMillis()), StandardCharsets.UTF_8);
+            if (lastCopiedDigest == null) return;
+            Files.writeString(CLIPBOARD_MARKER, java.util.HexFormat.of().formatHex(lastCopiedDigest), StandardCharsets.UTF_8);
             SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(CLIPBOARD_MARKER);
         } catch (Exception ignored) {
             // best-effort marker, clipboard clear remains timeout-based
@@ -457,8 +428,14 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
     }
 
     public static void shutdown() {
-        // Cancel pending tasks immediately — clipboard has already been explicitly cleared
-        // by UIInitializer.windowClosing() before this is called, so we don't need to wait.
-        scheduler.shutdownNow();
+        synchronized (LOCK) {
+            shutdownRequested = true;
+            clearSecureClipboard();
+            if (lastCopiedDigest == null) {
+                if (clearTask != null) { clearTask.cancel(false); clearTask = null; }
+                scheduler.shutdown();
+            }
+            // Pending clears retain their daemon retry and crash-recovery marker.
+        }
     }
 }

@@ -18,8 +18,6 @@
 package utils;
 
 import javax.swing.*;
-import javax.swing.event.UndoableEditEvent;
-import javax.swing.event.UndoableEditListener;
 import javax.swing.text.AbstractDocument;
 import javax.swing.undo.CannotRedoException;
 import javax.swing.undo.CannotUndoException;
@@ -33,26 +31,14 @@ public final class UndoRedoTextArea extends JTextArea {
 
     public UndoRedoTextArea() {
         super();
-
-        // Add undoable edit listener
-        getDocument().addUndoableEditListener(new UndoableEditListener() {
-            @Override
-            public void undoableEditHappened(UndoableEditEvent e) {
-                undoManager.addEdit(e.getEdit());
-            }
-        });
-
-        // Apply compound edit filter
-        if (getDocument() instanceof AbstractDocument) {
-            ((AbstractDocument) getDocument()).setDocumentFilter(new CompoundUndoDocumentFilter(undoManager));
-        }
+        installUndoSupport();
 
         // Undo action
         getActionMap().put("Undo", new AbstractAction("Undo") {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    if (undoManager.canUndo()) {
+                    if (isEditable() && isEnabled() && undoManager.canUndo()) {
                         undoManager.undo();
                     }
                 } catch (CannotUndoException ex) {
@@ -66,12 +52,13 @@ public final class UndoRedoTextArea extends JTextArea {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    if (undoManager.canRedo()) {
+                    if (isEditable() && isEnabled() && undoManager.canRedo()) {
                         undoManager.redo();
                     }
                 } catch (CannotRedoException ex) {
                     // Silently ignore redo errors to prevent information leakage
                 }
+
             }
         });
 
@@ -79,5 +66,20 @@ public final class UndoRedoTextArea extends JTextArea {
         int shortcutMask = PlatformSupport.menuShortcutMask();
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, shortcutMask), "Undo");
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_Y, shortcutMask), "Redo");
+    }
+
+    private void installUndoSupport() {
+        getDocument().addUndoableEditListener(e -> undoManager.addEdit(e.getEdit()));
+        ((AbstractDocument) getDocument()).setDocumentFilter(new CompoundUndoDocumentFilter(undoManager));
+    }
+
+    public void clearSensitiveData() {
+        AbstractDocument document = (AbstractDocument) getDocument();
+        setText("");
+        if (document.getDocumentFilter() instanceof CompoundUndoDocumentFilter filter) {
+            filter.cleanup();
+            document.setDocumentFilter(new CompoundUndoDocumentFilter(undoManager));
+        }
+        undoManager.discardAllEdits();
     }
 }

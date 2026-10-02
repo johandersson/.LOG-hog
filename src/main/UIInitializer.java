@@ -307,18 +307,23 @@ public class UIInitializer {
     }
 
     private void handleLogEntriesTabSelection() {
-        if (editor.isLocked()) return;
+        final long session = editor.getSessionGeneration();
+        if (!editor.isSessionCurrent(session)) return;
         // Log Entries tab - do not override user's active filter or selection
         // when switching tabs. Only perform an initial filtered load if the
         // model is empty (first time view) to avoid resetting filters.
         DefaultListModel<String> model = editor.getLogListPanel().getListModel();
         if (model.getSize() > 0) {
-            SwingUtilities.invokeLater(() -> editor.updateLogListView());
+            SwingUtilities.invokeLater(() -> {
+                if (editor.isSessionCurrent(session)) editor.updateLogListView();
+            });
             return;
         }
 
         LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
-        final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+        final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> {
+            if (editor.isSessionCurrent(session)) progress.show();
+        });
         showTimer.setRepeats(false);
         showTimer.start();
 
@@ -331,10 +336,12 @@ public class UIInitializer {
 
     private void startFilteredEntriesLoader(DefaultListModel<String> model, int currentYear, int currentMonth,
                                            LoadingProgressDialog progress, javax.swing.Timer showTimer) {
+        final long session = editor.getSessionGeneration();
         Thread loaderThread = new Thread(() -> {
             int filterYear = currentYear;
             int filterMonth = currentMonth;
             try {
+                if (!editor.isSessionCurrent(session)) return;
                 // If the file has an encrypted header but the app isn't set up for encryption,
                 // abort immediately so we don't surface confusing binary-parse errors.
                 java.nio.file.Path logPath = editor.getLogFileHandler().getFilePath();
@@ -344,16 +351,20 @@ public class UIInitializer {
                     return;
                 }
 
-                editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
+                java.util.List<String> filtered = editor.getLogFileHandler().getEntryLoader()
+                    .computeTimestampsByYearMonth(filterYear, filterMonth);
+                if (!editor.isSessionCurrent(session)) return;
 
-                if (model.getSize() == 0) {
+                if (filtered.isEmpty()) {
                     java.util.List<String> recent = editor.getLogFileHandler().getRecentLogEntries(1);
                     if (!recent.isEmpty()) {
                         try {
                             java.time.LocalDateTime dt = utils.DateHandler.parseTimestamp(recent.get(0));
                             filterYear = dt.getYear();
                             filterMonth = dt.getMonthValue();
-                            editor.getLogFileHandler().loadFilteredEntries(model, filterYear, filterMonth);
+                            if (!editor.isSessionCurrent(session)) return;
+                            filtered = editor.getLogFileHandler().getEntryLoader()
+                                .computeTimestampsByYearMonth(filterYear, filterMonth);
                         } catch (Exception ignore) {
                             // keep original filter if parse fails
                         }
@@ -362,8 +373,11 @@ public class UIInitializer {
 
                 int fYear = filterYear;
                 int fMonth = filterMonth;
+                final java.util.List<String> entries = java.util.List.copyOf(filtered);
                 SwingUtilities.invokeLater(() -> {
-                    if (editor.isLocked()) return;
+                    if (!editor.isSessionCurrent(session)) return;
+                    model.removeAllElements();
+                    for (String timestamp : entries) model.addElement(timestamp);
                     editor.updateLogListView();
                     editor.getLogListPanel().setFilterSelection(fYear, fMonth);
                     // Ensure the year combo is populated now that entries are parsed
@@ -371,7 +385,7 @@ public class UIInitializer {
                 });
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() -> {
-                    if (!editor.isLocked()) {
+                    if (editor.isSessionCurrent(session)) {
                         editor.getLogFileHandler().showErrorDialog("<html><b>\uD83D\uDD04 Load Failed</b><br><br>Unable to load log entries.</html>");
                     }
                 });
@@ -387,7 +401,9 @@ public class UIInitializer {
     }
 
     private void handleEntryTabSelection() {
+        final long session = editor.getSessionGeneration();
         SwingUtilities.invokeLater(() -> {
+            if (!editor.isSessionCurrent(session)) return;
             var textArea = editor.getEntryPanel().getTextArea();
             textArea.requestFocusInWindow();
             textArea.setCaretPosition(textArea.getDocument().getLength());
@@ -395,12 +411,13 @@ public class UIInitializer {
     }
 
     private void requestInitialEntryFocus() {
+        final long session = editor.getSessionGeneration();
         if (initialEntryFocusApplied || editor.isLocked() || tabPane.getSelectedIndex() != 0) {
             return;
         }
 
         SwingUtilities.invokeLater(() -> {
-            if (initialEntryFocusApplied || editor.isLocked() || tabPane.getSelectedIndex() != 0) {
+            if (initialEntryFocusApplied || !editor.isSessionCurrent(session) || tabPane.getSelectedIndex() != 0) {
                 return;
             }
 

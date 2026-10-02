@@ -35,7 +35,6 @@ import markdown.MarkdownRenderer;
  * Manages decryption, parsing, and rendering of log entries.
  */
 public class FullLogFileLoader {
-    private static final int MAX_EAGER_ENTRY_DOC_CACHE = 1_000;
     
     // Use centralized UI render cap
     
@@ -45,6 +44,7 @@ public class FullLogFileLoader {
     private ParsedLogData cachedParsedData;
     private long cachedLastModified;
     private final Object cacheLock = new Object();
+    private long cacheGeneration;
     
     public FullLogFileLoader(LogFileHandler logFileHandler, HighlightableTextPane textPane) {
         this.logFileHandler = logFileHandler;
@@ -99,13 +99,15 @@ public class FullLogFileLoader {
     /** Compatibility: invalidate internal caches used by this loader. */
     public void invalidateCache() {
         synchronized (cacheLock) {
+            cacheGeneration++;
             this.cachedParsedData = null;
             this.cachedLastModified = 0L;
         }
     }
 
-    private void cacheParsedData(ParsedLogData parsedData, long lastModified) {
+    private void cacheParsedData(ParsedLogData parsedData, long lastModified, long generation) {
         synchronized (cacheLock) {
+            if (generation != cacheGeneration) throw new java.util.concurrent.CancellationException();
             this.cachedParsedData = parsedData;
             this.cachedLastModified = lastModified;
         }
@@ -166,8 +168,7 @@ public class FullLogFileLoader {
      */
     public void loadAndProcessLogFile(Path logPath, boolean scrollToBottom) throws Exception {
         ParsedLogData data = loadAndProcessLogFileInternal(logPath, scrollToBottom);
-        MarkdownRenderer.renderMarkdownFromEntries(textPane, data.entriesToRender, scrollToBottom);
-        LinkHandler.addLinkListeners(textPane);
+        renderParsedData(data, scrollToBottom);
     }
 
     /**
@@ -188,6 +189,13 @@ public class FullLogFileLoader {
      * @param scrollToBottom whether to scroll to bottom after rendering
      */
     public void renderParsedData(ParsedLogData data, boolean scrollToBottom) {
+        synchronized (cacheLock) {
+            if (data != cachedParsedData) return;
+            renderCurrentParsedData(data, scrollToBottom);
+        }
+    }
+
+    private void renderCurrentParsedData(ParsedLogData data, boolean scrollToBottom) {
         // Respect a practical UI render cap to avoid blocking the EDT when many entries
         List<List<String>> toRender = data.entriesToRender;
         if (toRender != null && toRender.size() > ResourceLimits.MAX_ENTRIES_TO_RENDER_UI) {
@@ -273,6 +281,8 @@ public class FullLogFileLoader {
      * Internal method that handles the parsing logic without rendering.
      */
     private ParsedLogData loadAndProcessLogFileInternal(Path logPath, boolean scrollToBottom) throws Exception {
+        final long generation;
+        synchronized (cacheLock) { generation = cacheGeneration; }
         // Reference parameters for diagnostics and to avoid unused-parameter warnings
         utils.Log.debug(() -> "loadAndProcessLogFileInternal: " + (logPath != null ? logPath.toString() : "(null)") + " scroll=" + scrollToBottom);
         // Fast path: if we have cached parsed data and the file hasn't changed
@@ -323,24 +333,7 @@ public class FullLogFileLoader {
                 if (p != null && Files.exists(p)) lm = Files.getLastModifiedTime(p).toMillis();
             } catch (Exception ignored) {}
             ParsedLogData pd = new ParsedLogData(allEntries, entriesToRender);
-            try {
-                if (entriesToRender != null && entriesToRender.size() <= MAX_EAGER_ENTRY_DOC_CACHE) {
-                    synchronized (pd.perEntryDocCache) {
-                        for (List<String> entry : entriesToRender) {
-                            if (entry == null || entry.isEmpty()) continue;
-                            String key = entry.get(0).trim();
-                            if (pd.perEntryDocCache.containsKey(key)) continue;
-                            try {
-                                javax.swing.text.StyledDocument doc = MarkdownRenderer.buildDocumentFromEntries(java.util.List.of(entry), null);
-                                pd.perEntryDocCache.put(key, new java.lang.ref.SoftReference<>(doc));
-                            } catch (Exception ignored) {
-                                // If building an entry doc fails, skip caching it
-                            }
-                        }
-                    }
-                }
-            } catch (Exception ignored) {}
-            cacheParsedData(pd, lm);
+            cacheParsedData(pd, lm, generation);
             return pd;
         } else {
             try (var stream = logFileHandler.getLinesStreamed()) {
@@ -378,22 +371,7 @@ public class FullLogFileLoader {
                     if (p != null && Files.exists(p)) lm = Files.getLastModifiedTime(p).toMillis();
                 } catch (Exception ignored) {}
                 ParsedLogData pd = new ParsedLogData((int)Math.min(total, Integer.MAX_VALUE), entriesToRender);
-                try {
-                    if (entriesToRender != null && entriesToRender.size() <= MAX_EAGER_ENTRY_DOC_CACHE) {
-                        synchronized (pd.perEntryDocCache) {
-                            for (List<String> entry : entriesToRender) {
-                                if (entry == null || entry.isEmpty()) continue;
-                                String key = entry.get(0).trim();
-                                if (pd.perEntryDocCache.containsKey(key)) continue;
-                                try {
-                                    javax.swing.text.StyledDocument doc = MarkdownRenderer.buildDocumentFromEntries(java.util.List.of(entry), null);
-                                    pd.perEntryDocCache.put(key, new java.lang.ref.SoftReference<>(doc));
-                                } catch (Exception ignored) {}
-                            }
-                        }
-                    }
-                } catch (Exception ignored) {}
-                cacheParsedData(pd, lm);
+                cacheParsedData(pd, lm, generation);
                 return pd;
             }
         }
@@ -598,5 +576,3 @@ public class FullLogFileLoader {
         }
     }
 }
-
-

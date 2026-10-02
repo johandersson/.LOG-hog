@@ -108,18 +108,24 @@ public class FileEncryptionManager {
     }
 
     public void setEncryption(char[] pwd, byte[] slt) throws EncryptionException {
-        clearSessionKey();
-        clearBackupHmacKey();
-        SecretKey derivedKey = encryptor.deriveKey(pwd, slt);
-        byte[] encoded = derivedKey.getEncoded();
-        if (encoded == null || encoded.length == 0) {
-            throw new EncryptionException("Unable to derive a usable session key.");
+        boolean installed = false;
+        try {
+            clearSessionKey();
+            clearBackupHmacKey();
+            SecretKey derivedKey = encryptor.deriveKey(pwd, slt);
+            byte[] encoded = derivedKey.getEncoded();
+            if (encoded == null || encoded.length == 0) {
+                throw new EncryptionException("Unable to derive a usable session key.");
+            }
+            this.sessionKeyBytes = encoded.clone();
+            CryptoUtils.zeroize(encoded);
+            this.backupHmacKeyBytes = BackupKeyDerivation.deriveV2(pwd, slt);
+            this.salt = slt.clone();
+            this.encrypted = true;
+            installed = true;
+        } finally {
+            if (!installed) clearSensitiveData();
         }
-        this.sessionKeyBytes = encoded.clone();
-        CryptoUtils.zeroize(encoded);
-        this.backupHmacKeyBytes = BackupKeyDerivation.deriveV2(pwd, slt);
-        this.salt = slt.clone();
-        this.encrypted = true;
     }
 
     public void disableEncryption() {
