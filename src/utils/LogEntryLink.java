@@ -20,9 +20,9 @@ public final class LogEntryLink {
         String normalized = normalize(timestamp);
         for (List<String> entry : entries) {
             if (entry.isEmpty()) continue;
-            String header = entry.get(0);
+            String header = entry.get(0).trim().replaceAll(" \\(\\d+\\)$", "");
             try {
-                if (normalize(header.trim()).equals(normalized)) return header.trim();
+                if (normalize(header).equals(normalized)) return header;
             } catch (IllegalArgumentException ignored) {
                 // Ignore headers that cannot be addressed by a log link.
             }

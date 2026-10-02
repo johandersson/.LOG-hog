@@ -55,6 +55,12 @@ class LogEntryLinkTest {
     }
 
     @Test
+    void matchesSuffixedHeadersUsingTheirRawTimestampForNavigation() {
+        assertEquals("19/12/2022 13:23", LogEntryLink.findTimestamp("13:23 2022-12-19",
+                List.of(List.of("19/12/2022 13:23 (1)", "Body"))));
+    }
+
+    @Test
     void matchesOnlyEntryHeadersIncludingEmptyEntriesAndInternationalHeaders() {
         var entries = List.of(List.of("12:00 2022-12-12", "13:23 2022-12-12"),
                 List.of("2024-02-29 00:00"));

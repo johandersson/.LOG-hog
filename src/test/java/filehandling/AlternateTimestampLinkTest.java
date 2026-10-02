@@ -72,6 +72,21 @@ class AlternateTimestampLinkTest {
     }
 
     @Test
+    void deletingPrecedingEntriesPreservesSuffixedAlternateEntries() {
+        var editor = new EntryEditor(tempDir.resolve("deletion.log"), null, null);
+        for (String header : HEADERS) {
+            var lines = List.of(".LOG", "", "00:00 2020-01-01", "Delete me", "",
+                    header + " (1)", "Keep me");
+            var remaining = editor.deleteEntries(List.of("00:00 2020-01-01"), lines);
+            assertTrue(remaining.contains(header + " (1)"), header);
+            assertTrue(remaining.contains("Keep me"), header);
+            var legacyRemaining = EntrySorter.removeEntry("00:00 2020-01-01", lines);
+            assertTrue(legacyRemaining.contains(header + " (1)"), header);
+            assertTrue(legacyRemaining.contains("Keep me"), header);
+        }
+    }
+
+    @Test
     void fullLogAndStorageSortAlternateHeaderFormatsChronologically() {
         var lines = List.of(".LOG", "", "2023-01-01 00:00", "Newest", "",
                 "19/12/2022 13:23", "Middle", "", "00:00 2020-01-01", "Oldest");

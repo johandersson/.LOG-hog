@@ -150,7 +150,7 @@ public class EntrySorter {
         boolean hasSeenEntryTimestamp = false;
 
         for (String line : lines) {
-            boolean timestampBoundary = utils.DateHandler.isTimestamp(line) && (!hasSeenEntryTimestamp || previousLineBlank);
+            boolean timestampBoundary = LogParser.isTimestampLine(line) && (!hasSeenEntryTimestamp || previousLineBlank);
             // timestamp lines are exact matches (whitespace trimmed)
             if (!skipping && timestampBoundary && line.trim().equals(timeStamp.trim())) {
                 hasSeenEntryTimestamp = true;

@@ -265,7 +265,7 @@ public class EntryEditor {
             String trimmed = line.trim();
             
             // Check if this is a timestamp line
-            if (utils.DateHandler.isTimestamp(trimmed) && (!hasSeenEntryTimestamp || previousLineBlank)) {
+            if (LogParser.isTimestampLine(trimmed) && (!hasSeenEntryTimestamp || previousLineBlank)) {
                 hasSeenEntryTimestamp = true;
                 // Get raw timestamp (without any old suffix that might exist in file)
                 String rawTs = trimmed.replaceAll(" \\(\\d+\\)$", "");
