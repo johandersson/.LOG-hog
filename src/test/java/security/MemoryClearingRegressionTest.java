@@ -31,8 +31,10 @@ class MemoryClearingRegressionTest {
     @TempDir Path directory;
 
     @Test void lockedEntryCannotRecoverSecretAfterUnlockByUndo() throws Exception {
+        var handler = new LogFileHandler(directory.resolve("entry.txt"), new encryption.TestableEncryptionManager());
+        var editor = editorWithoutStartup(handler);
         SwingUtilities.invokeAndWait(() -> {
-            EntryPanel panel = new EntryPanel(null);
+            EntryPanel panel = new EntryPanel(editor);
             panel.getTextArea().setText("private entry");
             panel.setLocked(true);
             panel.setLocked(false);
