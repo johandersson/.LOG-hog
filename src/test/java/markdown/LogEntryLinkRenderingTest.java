@@ -12,6 +12,37 @@ import org.junit.jupiter.api.Test;
 
 class LogEntryLinkRenderingTest {
     @Test
+    void alternateEntryHeadersKeepTimestampStyleAndBodyLinksRemainClickable() throws Exception {
+        for (String header : List.of("2022-12-19 13:23", "19/12/2022 13:23",
+                "12/19/2022 13:23", "19.12.2022 13:23", "19-12-2022 13:23")) {
+            var pane = new JTextPane();
+            MarkdownRenderer.renderMarkdown(pane,
+                    List.of(".LOG", "", header, "See [2020-01-01 00:00]."), false);
+            var doc = pane.getStyledDocument();
+            var text = pane.getText();
+            assertEquals("timestamp", doc.getCharacterElement(0).getAttributes()
+                    .getAttribute(javax.swing.text.StyleConstants.NameAttribute), header);
+            assertEquals("loghog:00:00 2020-01-01",
+                    doc.getCharacterElement(text.indexOf("[2020")).getAttributes().getAttribute("href"));
+        }
+    }
+
+    @Test
+    void invalidAlternateDatesCodeAndOrdinaryBracketsRemainPlainText() throws Exception {
+        for (String label : List.of("[29/02/2023 13:23]", "[02/29/2023 13:23]",
+                "[31.04.2022 13:23]", "[31-04-2022 13:23]", "[ordinary text]")) {
+            var doc = render("See " + label);
+            var text = doc.getText(0, doc.getLength());
+            assertNull(doc.getCharacterElement(text.indexOf(label)).getAttributes().getAttribute("href"));
+        }
+        var doc = render("`[19/12/2022 13:23]` [19/12/2022 13:23](https://example.com)");
+        var text = doc.getText(0, doc.getLength());
+        assertNull(doc.getCharacterElement(text.indexOf("[19/12")).getAttributes().getAttribute("href"));
+        assertEquals("https://example.com", doc.getCharacterElement(text.lastIndexOf("19/12"))
+                .getAttributes().getAttribute("href"));
+    }
+
+    @Test
     void rendersEverySupportedDateFormatAndRoutesClicksCanonically() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             try {

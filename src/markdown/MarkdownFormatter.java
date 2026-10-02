@@ -38,7 +38,7 @@ public class MarkdownFormatter {
     
     private static final Pattern LINK_PATTERN = Pattern.compile("\\[([^\\]]+)\\]\\(([^\\)]+)\\)");
     private static final Pattern LOG_LINK_PATTERN = Pattern.compile(
-            "\\[([0-9]{2}:[0-9]{2} [0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2})\\]");
+            "\\[([^\\]\\r\\n]+)\\]");
     private static final Pattern AUTOLINK_PATTERN = Pattern.compile("<((?:https?|file)://[^>\\s]+)>");
     private static final Pattern PLAIN_URL_PATTERN = Pattern.compile("(?<![\\]\\)\\w])(https?://[^\\s<]+|file:///[^\\s<]+)");
     private static final Pattern BOLD_PATTERN = Pattern.compile("\\*\\*(.*?)\\*\\*");

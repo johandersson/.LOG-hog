@@ -21,7 +21,9 @@ public final class LogLinkDialog extends JPanel {
         var input = new JPanel(new BorderLayout(8, 8));
         input.add(new JLabel("Log date and time (HH:mm yyyy-MM-dd):"), BorderLayout.NORTH);
         input.add(timestampField, BorderLayout.CENTER);
-        input.add(new JLabel("Also accepts yyyy-MM-dd HH:mm"), BorderLayout.SOUTH);
+        input.add(new JLabel("<html>Also accepts yyyy-MM-dd HH:mm, dd/MM/yyyy HH:mm,<br>"
+                + "MM/dd/yyyy HH:mm, dd.MM.yyyy HH:mm, dd-MM-yyyy HH:mm.<br>"
+                + "Ambiguous slash dates use day/month/year.</html>"), BorderLayout.SOUTH);
         add(input, BorderLayout.NORTH);
         errorLabel.setForeground(java.awt.Color.RED);
         add(errorLabel, BorderLayout.CENTER);

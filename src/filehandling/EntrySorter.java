@@ -18,19 +18,14 @@
 package filehandling;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.regex.Pattern;
 
 /**
  * Handles sorting and organizing log entries by timestamp.
  * Extracted from LogFileHandler to separate sorting logic from file operations.
  */
 public class EntrySorter {
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
-    private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( \\([0-9]+\\))?$", Pattern.MULTILINE);
     
     /**
      * Sorts log entries by timestamp in ascending order (oldest first).
@@ -50,7 +45,7 @@ public class EntrySorter {
         for (String line : lines) {
             String trimmed = line.trim();
             if (".LOG".equalsIgnoreCase(trimmed)) continue; // Skip .LOG during processing
-            if (LogParser.isPrimaryTimestampLine(trimmed) && (currentEntry.isEmpty() || previousLineBlank)) {
+            if (LogParser.isTimestampLine(trimmed) && (currentEntry.isEmpty() || previousLineBlank)) {
                 if (!currentEntry.isEmpty()) {
                     if (!currentEntry.isEmpty() && currentEntry.get(currentEntry.size() - 1).isBlank()) {
                         currentEntry.remove(currentEntry.size() - 1);
@@ -77,7 +72,7 @@ public class EntrySorter {
         List<List<String>> timestampEntries = new ArrayList<>();
         List<List<String>> nonTimestampEntries = new ArrayList<>();
         for (List<String> entry : entries) {
-            if (!entry.isEmpty() && TIMESTAMP_PATTERN.matcher(entry.get(0).trim()).matches()) {
+            if (!entry.isEmpty() && LogParser.isTimestampLine(entry.get(0))) {
                 timestampEntries.add(entry);
             } else {
                 nonTimestampEntries.add(entry);
@@ -138,7 +133,7 @@ public class EntrySorter {
      */
     public static LocalDateTime parseDateForSorting(String timestampLine) {
         String dateStr = timestampLine.trim().replaceAll(" \\(\\d+\\)", "");
-        return LocalDateTime.parse(dateStr, FORMATTER);
+        return utils.DateHandler.parseTimestamp(dateStr);
     }
     
     /**
