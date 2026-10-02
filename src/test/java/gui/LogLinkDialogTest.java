@@ -1,0 +1,69 @@
+package gui;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.swing.JButton;
+import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
+import org.junit.jupiter.api.Test;
+
+class LogLinkDialogTest {
+    @Test
+    void invalidAndMissingTargetsKeepInputOpenUntilSuccess() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            var target = new JTextArea("before after");
+            target.select(7, 12);
+            var checks = new AtomicInteger();
+            var closes = new AtomicInteger();
+            var panel = new LogLinkDialog(target, timestamp -> {
+                checks.incrementAndGet();
+                return timestamp.equals("13:23 2022-12-12");
+            }, closes::incrementAndGet);
+
+            panel.timestampField.setText("13:23 2022-02-30");
+            panel.insertButton.doClick();
+            assertEquals(0, checks.get(), "Format must be checked before existence");
+            assertEquals(0, closes.get());
+            assertTrue(panel.errorLabel.getText().contains("HH:mm yyyy-MM-dd"));
+            assertEquals("before after", target.getText());
+            assertEquals("13:23 2022-02-30", panel.timestampField.getText());
+
+            panel.timestampField.setText("13:24 2022-12-12");
+            panel.insertButton.doClick();
+            assertEquals(1, checks.get());
+            assertEquals(0, closes.get());
+            assertTrue(panel.errorLabel.getText().contains("No log entry"));
+
+            panel.timestampField.setText("2022-12-12 13:23");
+            panel.insertButton.doClick();
+            assertEquals("before [13:23 2022-12-12]", target.getText());
+            assertEquals(1, closes.get());
+        });
+    }
+
+    @Test
+    void cancelLeavesTextAndSelectionUntouched() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            var target = new JTextArea("unchanged");
+            target.selectAll();
+            var closes = new AtomicInteger();
+            var panel = new LogLinkDialog(target, timestamp -> true, closes::incrementAndGet);
+            panel.cancelButton.doClick();
+            assertEquals("unchanged", target.getText());
+            assertEquals("unchanged", target.getSelectedText());
+            assertEquals(1, closes.get());
+        });
+    }
+
+    @Test
+    void toolbarOffersLogLinkAlongsideExternalLink() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            var panel = new FormattingPanel(new JTextArea(), timestamp -> true);
+            assertTrue(java.util.Arrays.stream(panel.getComponents())
+                    .anyMatch(c -> c instanceof JButton b && b.getText().equals("Log link")));
+            assertTrue(java.util.Arrays.stream(panel.getComponents())
+                    .anyMatch(c -> c instanceof JButton b && b.getText().equals("Link")));
+        });
+    }
+}
