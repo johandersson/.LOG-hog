@@ -1,4 +1,4 @@
-# 📦 .LOG-hog - for fast, secure, encrypted notes and diaries.
+# 📦 .LOG-hog - for fast, secure, encrypted notes
 
 **A lightweight, cross-platform Java application for fast note-taking with built-in protection (strong encryption) for sensitive local notes. Perfect for keeping a work log, diary, or just any kind of sensitive notes.**
 
