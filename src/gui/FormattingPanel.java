@@ -20,11 +20,13 @@ package gui;
 import java.awt.*;
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
+import utils.PlatformSupport;
 
 public final class FormattingPanel extends JPanel {
     private static final long serialVersionUID = 1L;
     private final JTextComponent targetComponent;
     private final java.util.function.Predicate<String> entryExists;
+    private final String shortcutLabel = PlatformSupport.primaryShortcutLabel();
 
     public FormattingPanel(JTextComponent targetComponent) {
         this(targetComponent, timestamp -> false);
@@ -46,7 +48,7 @@ public final class FormattingPanel extends JPanel {
         var boldBtn = new StandardButton("B", new Color(0xE0E0E0), new Color(0xB0B0B0));
         boldBtn.setPreferredSize(new Dimension(35, 28));
         boldBtn.setFont(boldBtn.getFont().deriveFont(Font.BOLD));
-        boldBtn.setToolTipText("Bold (Ctrl+B)");
+        boldBtn.setToolTipText("Bold (" + shortcutLabel + "+B)");
         boldBtn.addActionListener(e -> applyFormatting("**", "**"));
         add(boldBtn);
 
@@ -54,7 +56,7 @@ public final class FormattingPanel extends JPanel {
         var italicBtn = new StandardButton("I", new Color(0xE0E0E0), new Color(0xB0B0B0));
         italicBtn.setPreferredSize(new Dimension(35, 28));
         italicBtn.setFont(italicBtn.getFont().deriveFont(Font.ITALIC));
-        italicBtn.setToolTipText("Italic (Ctrl+I)");
+        italicBtn.setToolTipText("Italic (" + shortcutLabel + "+I)");
         italicBtn.addActionListener(e -> applyFormatting("*", "*"));
         add(italicBtn);
 
@@ -95,7 +97,7 @@ public final class FormattingPanel extends JPanel {
         if (targetComponent != null) {
             // Formatting shortcuts
             targetComponent.getInputMap(JComponent.WHEN_FOCUSED).put(
-                    KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_B, java.awt.event.InputEvent.CTRL_DOWN_MASK), "formatBold");
+                    KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_B, PlatformSupport.menuShortcutMask()), "formatBold");
             targetComponent.getActionMap().put("formatBold", new AbstractAction() {
                 @Override
                 public void actionPerformed(java.awt.event.ActionEvent e) {
@@ -104,7 +106,7 @@ public final class FormattingPanel extends JPanel {
             });
 
             targetComponent.getInputMap(JComponent.WHEN_FOCUSED).put(
-                    KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_I, java.awt.event.InputEvent.CTRL_DOWN_MASK), "formatItalic");
+                    KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_I, PlatformSupport.menuShortcutMask()), "formatItalic");
             targetComponent.getActionMap().put("formatItalic", new AbstractAction() {
                 @Override
                 public void actionPerformed(java.awt.event.ActionEvent e) {
