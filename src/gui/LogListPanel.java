@@ -77,6 +77,7 @@ public final class LogListPanel extends JPanel {
     private final JPanel lockPanel;
     private final JPanel entryContainer;
     private final HighlightableTextPane previewPane;
+    private JButton previewToggleBtn;
     private final JScrollPane previewScrollPane;
     private boolean isPreviewMode = false;
     // Raw display-timestamp of the entry currently shown in entryArea/preview, or null
@@ -275,6 +276,8 @@ public final class LogListPanel extends JPanel {
      * @param onComplete callback run on the EDT after the combo has been refreshed (may be null)
      */
     public void refreshAvailableYearsAsync(Runnable onComplete) {
+        final long session = editor.getSessionGeneration();
+        if (!editor.isSessionCurrent(session)) return;
         new SwingWorker<java.util.List<Integer>, Void>() {
             @Override
             protected java.util.List<Integer> doInBackground() throws Exception {
@@ -305,6 +308,7 @@ public final class LogListPanel extends JPanel {
 
             @Override
             protected void done() {
+                if (!editor.isSessionCurrent(session)) return;
                 try {
                     java.util.List<Integer> yearsList = get();
                     // Always keep the current year and the active selection selectable so the
@@ -333,7 +337,7 @@ public final class LogListPanel extends JPanel {
                 } catch (Exception ignored) {
                     // keep current year fallback
                 } finally {
-                    if (onComplete != null) {
+                    if (onComplete != null && editor.isSessionCurrent(session)) {
                         onComplete.run();
                     }
                 }
@@ -417,6 +421,8 @@ public final class LogListPanel extends JPanel {
      * recent entry so the list is not confusingly empty on startup.
      */
     private void fallbackToMostRecentIfEmpty() {
+        final long session = editor.getSessionGeneration();
+        if (!editor.isSessionCurrent(session)) return;
         if (listModel.getSize() > 0) return;
         if (searchField != null && !searchField.getText().trim().isEmpty()) return;
 
@@ -434,6 +440,7 @@ public final class LogListPanel extends JPanel {
 
             @Override
             protected void done() {
+                if (!editor.isSessionCurrent(session)) return;
                 try {
                     java.time.LocalDateTime dt = get();
                     if (dt != null) {
@@ -498,19 +505,21 @@ public final class LogListPanel extends JPanel {
      * Apply filter and run callback when complete.
      */
     private void applyFilterWithCallback(Runnable onComplete) {
+        final long session = editor.getSessionGeneration();
+        if (!editor.isSessionCurrent(session)) return;
         if (suppressFilterEvents) {
-            if (onComplete != null) SwingUtilities.invokeLater(onComplete);
-            return;
-        }
-        if (editor.isLocked()) {
-            if (onComplete != null) SwingUtilities.invokeLater(onComplete);
+            if (onComplete != null) SwingUtilities.invokeLater(() -> {
+                if (editor.isSessionCurrent(session)) onComplete.run();
+            });
             return;
         }
         
         var year = (Integer) yearCombo.getSelectedItem();
         var monthIndex = monthCombo.getSelectedIndex();
         if (year == null) {
-            if (onComplete != null) SwingUtilities.invokeLater(onComplete);
+            if (onComplete != null) SwingUtilities.invokeLater(() -> {
+                if (editor.isSessionCurrent(session)) onComplete.run();
+            });
             return;
         }
         
@@ -533,6 +542,7 @@ public final class LogListPanel extends JPanel {
 
         // Provide quick feedback
         SwingUtilities.invokeLater(() -> {
+            if (!editor.isSessionCurrent(session)) return;
             listModel.removeAllElements();
             filterProgressBar.setVisible(true);
             if (searchResultLabel != null) {
@@ -553,6 +563,7 @@ public final class LogListPanel extends JPanel {
 
             @Override
             protected void done() {
+                if (!editor.isSessionCurrent(session)) return;
                 try {
                     List<String> filtered = get();
                     listModel.removeAllElements();
@@ -584,7 +595,9 @@ public final class LogListPanel extends JPanel {
                     
                     // Run callback after all entries are loaded
                     if (onComplete != null) {
-                        SwingUtilities.invokeLater(onComplete);
+                        SwingUtilities.invokeLater(() -> {
+                            if (editor.isSessionCurrent(session)) onComplete.run();
+                        });
                     }
                 } catch (java.util.concurrent.ExecutionException ee) {
                     filterProgressBar.setVisible(false);
@@ -594,10 +607,14 @@ public final class LogListPanel extends JPanel {
                     } else {
                         logFileHandler.showErrorDialog("<html><b>🔍 Search Failed</b><br><br>Unable to search entries.<br><br><i>Tip: Check search query and try again.</i></html>");
                     }
-                    if (onComplete != null) SwingUtilities.invokeLater(onComplete);
+                    if (onComplete != null) SwingUtilities.invokeLater(() -> {
+                        if (editor.isSessionCurrent(session)) onComplete.run();
+                    });
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    if (onComplete != null) SwingUtilities.invokeLater(onComplete);
+                    if (onComplete != null) SwingUtilities.invokeLater(() -> {
+                        if (editor.isSessionCurrent(session)) onComplete.run();
+                    });
                 }
             }
         }.execute();
@@ -714,11 +731,15 @@ public final class LogListPanel extends JPanel {
         entryArea.getActionMap().put("copySecure", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                String selectedText = entryArea.getSelectedText();
-                if (selectedText != null && !selectedText.isEmpty()) {
+                long session = editor.getSessionGeneration();
+                if (!editor.isSessionCurrent(session)) return;
+                if (entryArea.getSelectionStart() != entryArea.getSelectionEnd()) {
                     if (!clipboard.ClipboardSecurityWarner.showEncryptedFileWarning(entryArea)) {
                         return;
                     }
+                    if (!editor.isSessionCurrent(session)) return;
+                    String selectedText = entryArea.getSelectedText();
+                    if (selectedText == null || selectedText.isEmpty()) return;
                     clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(selectedText, entryArea);
                 }
             }
@@ -744,7 +765,7 @@ public final class LogListPanel extends JPanel {
         entryProgressBar.setPreferredSize(new Dimension(140, 16));
         entryBottom.add(entryProgressBar);
 
-        var previewToggleBtn = new AccentButton("Preview");
+        previewToggleBtn = new AccentButton("Preview");
         previewToggleBtn.addActionListener(e -> togglePreview(previewToggleBtn));
         entryBottom.add(previewToggleBtn);
         var saveEntryBtn = new AccentButton("Save Entry");
@@ -777,11 +798,19 @@ public final class LogListPanel extends JPanel {
     }
 
     private void insertLink() {
+        final long session = editor.getSessionGeneration();
+        if (!editor.isSessionCurrent(session)) return;
         var selectedText = entryArea.getSelectedText();
         String displayText = selectedText != null && !selectedText.isEmpty() ? selectedText : "";
 
         // Create link input dialog
         var dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Insert Link", true);
+        AutoCloseable registration = editor.registerSensitiveWindow(() -> {
+            for (java.awt.Component component : dialog.getContentPane().getComponents()) {
+                clearSensitiveFields(component);
+            }
+            dialog.dispose();
+        });
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.setSize(400, 180);
         dialog.setLocationRelativeTo(this);
@@ -837,6 +866,7 @@ public final class LogListPanel extends JPanel {
         var cancelBtn = new StandardButton("Cancel", new Color(0xE0E0E0), new Color(0xB0B0B0));
 
         okBtn.addActionListener(e -> {
+            if (!editor.isSessionCurrent(session)) { dialog.dispose(); return; }
             var text = displayField.getText().trim();
             var url = urlField.getText().trim();
 
@@ -877,10 +907,25 @@ public final class LogListPanel extends JPanel {
         // Handle Enter key
         dialog.getRootPane().setDefaultButton(okBtn);
 
-        dialog.setVisible(true);
+        try {
+            dialog.setVisible(true);
+        } finally {
+            clearSensitiveFields(dialog.getContentPane());
+            try { registration.close(); } catch (Exception ignored) { }
+            dialog.dispose();
+        }
+    }
+
+    private static void clearSensitiveFields(java.awt.Component component) {
+        if (component instanceof javax.swing.text.JTextComponent text) text.setText("");
+        if (component instanceof java.awt.Container container) {
+            for (java.awt.Component child : container.getComponents()) clearSensitiveFields(child);
+        }
     }
 
     private void loadAndDisplayEntry(String timestamp) {
+        final long session = editor.getSessionGeneration();
+        if (!editor.isSessionCurrent(session)) return;
         if (timestamp == null || timestamp.trim().isEmpty()) {
             displayedEntryTimestamp = null;
             entryArea.setText("");
@@ -902,6 +947,7 @@ public final class LogListPanel extends JPanel {
 
             @Override
             protected void done() {
+                if (!editor.isSessionCurrent(session)) return;
                 try {
                     String content = get();
                     entryArea.setText(content != null ? content : "");
@@ -1165,6 +1211,7 @@ public final class LogListPanel extends JPanel {
     }
 
     private void togglePreview(javax.swing.JButton toggleBtn) {
+        if (editor.isLocked() || !entryArea.isEditable()) return;
         if (isPreviewMode) {
             // Switch to edit mode
             entryContainer.remove(previewScrollPane);
@@ -1184,6 +1231,7 @@ public final class LogListPanel extends JPanel {
     }
 
     private void renderPreview() {
+        if (editor.isLocked()) return;
         String content = entryArea.getText();
         if (content == null || content.isBlank()) {
             previewPane.setText("No content to preview");
@@ -1200,6 +1248,7 @@ public final class LogListPanel extends JPanel {
 
     public void setLocked(boolean locked) {
         entryArea.setEditable(!locked);
+        if (previewToggleBtn != null) previewToggleBtn.setEnabled(!locked);
         
         // Disable filter controls when locked
         if (yearCombo != null) {
@@ -1224,9 +1273,12 @@ public final class LogListPanel extends JPanel {
         }
         
         if (locked) {
+            if (previewToggleBtn != null) previewToggleBtn.setText("Preview");
             displayedEntryTimestamp = null;
-            entryArea.setText("");
-            previewPane.setText("");
+            ((UndoRedoTextArea) entryArea).clearSensitiveData();
+            FullLogPanel.resetDocument(previewPane);
+            entryProgressBar.setVisible(false);
+            filterProgressBar.setVisible(false);
             // Switch back to edit mode if in preview mode
             if (isPreviewMode) {
                 entryContainer.remove(previewScrollPane);

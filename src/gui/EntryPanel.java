@@ -120,6 +120,7 @@ public final class EntryPanel extends JPanel {
     }
 
     private void togglePreview() {
+        if (isLockedState) return;
         if (isPreviewMode) {
             // Switch to edit mode
             textContainer.remove(previewScrollPane);
@@ -202,11 +203,15 @@ public final class EntryPanel extends JPanel {
         saveBtn.setEnabled(!locked);
         previewBtn.setEnabled(!locked);
         if (locked) {
-            textArea.setText("");
-            previewPane.setText("");
+            saveProgressBar.setVisible(false);
+            ((UndoRedoTextArea) textArea).clearSensitiveData();
+            FullLogPanel.resetDocument(previewPane);
             // Switch back to edit mode if in preview mode
             if (isPreviewMode) {
-                togglePreview();
+                textContainer.remove(previewScrollPane);
+                textContainer.add(scrollPane, BorderLayout.CENTER);
+                previewBtn.setText("Preview");
+                isPreviewMode = false;
             }
             remove(textContainer);
             add(lockPanel, BorderLayout.CENTER);

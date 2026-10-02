@@ -63,6 +63,8 @@ public class ActionHandler {
 
     public ActionListener createCopyLogEntryAction() {
         return e -> {
+            final long session = editor.getSessionGeneration();
+            if (!editor.isSessionCurrent(session)) return;
             String selectedItem = logList.getSelectedValue();
             if (selectedItem != null) {
                 // Check if file is encrypted and show enhanced warning
@@ -73,8 +75,11 @@ public class ActionHandler {
                 }
 
                 try {
+                    if (!editor.isSessionCurrent(session)) return;
+                    String text = buildSelectedEntryClipboardText(selectedItem);
+                    if (!editor.isSessionCurrent(session)) return;
                     clipboard.SecureClipboardManager.getInstance().copySecureTextToClipboard(
-                        buildSelectedEntryClipboardText(selectedItem), editor,
+                        text, editor,
                         "Log entry copied to clipboard securely.");
                 } catch (Exception ex) {
                     // If anything goes wrong, show a user-friendly message
@@ -117,6 +122,7 @@ public class ActionHandler {
     }
 
     public void saveEditedLogEntry() {
+        final long session = editor.getSessionGeneration();
         if (editor.isLocked()) {
             DialogHelper.showFileLocked(editor);
             return;
@@ -164,6 +170,7 @@ public class ActionHandler {
         // updateEntry handles parsing to find correct occurrence in file.
         // Runs off the EDT with a progress dialog so large files do not freeze the UI.
         logFileHandler.updateEntryAsync(selectedCopy, logListPanel.getEntryArea().getText(), () -> {
+            if (!editor.isSessionCurrent(session)) return;
             // If no pending write was produced, the update did not apply.
             if (!logFileHandler.hasPendingWrites()) {
                 DialogHelper.showEntryNotFound(editor);
@@ -177,8 +184,10 @@ public class ActionHandler {
      * Writes the pending edit to disk and refreshes the views once it completed.
      */
     private void flushEditedLogEntry(final String selectedCopy) {
+        final long session = editor.getSessionGeneration();
         // Flush writes asynchronously to avoid blocking UI on large files
         logFileHandler.flushPendingWritesAsync(() -> {
+            if (!editor.isSessionCurrent(session)) return;
             if (logFileHandler.hasPendingWrites()) {
                 logFileHandler.showErrorDialog("<html><b>💾 Save Failed</b><br><br>Changes are still pending and were not written to disk.<br>Please check file access/permissions and try again.</html>");
                 return;
@@ -191,6 +200,7 @@ public class ActionHandler {
                     if (selectedCopy.equals(listModel.getElementAt(i))) {
                         final int selIndex = i;
                         SwingUtilities.invokeLater(() -> {
+                            if (!editor.isSessionCurrent(session)) return;
                             logList.setSelectedIndex(selIndex);
                             logList.ensureIndexIsVisible(selIndex);
                         });
@@ -215,6 +225,7 @@ public class ActionHandler {
     }
 
     public void saveLogEntry() {
+        final long session = editor.getSessionGeneration();
         if (editor.isLocked()) {
             DialogHelper.showFileLocked(editor);
             return;
@@ -226,6 +237,7 @@ public class ActionHandler {
         editor.getEntryPanel().setSaveInProgress(true);
         logFileHandler.saveTextAsync(textToSave, listModel, () -> {
             javax.swing.SwingUtilities.invokeLater(() -> {
+                if (!editor.isSessionCurrent(session)) return;
                 editor.getEntryPanel().setSaveInProgress(false);
                 editor.getEntryPanel().getTextArea().setText("");
                 editor.updateLogListView();
@@ -251,6 +263,8 @@ public class ActionHandler {
             "Are you sure you want to delete this entry?" :
             "Are you sure you want to delete these " + numEntries + " entries?";
 
+        final long session = editor.getSessionGeneration();
+        if (!editor.isSessionCurrent(session)) return;
         // Build preview entries: each is a List<String> with timestamp and trimmed text
         java.util.List<java.util.List<String>> previewEntries = new java.util.ArrayList<>();
         for (String selectedItem : selectedItems) {
@@ -286,8 +300,22 @@ public class ActionHandler {
         panel.add(question, java.awt.BorderLayout.NORTH);
         panel.add(scrollPane, java.awt.BorderLayout.CENTER);
 
-        int result = javax.swing.JOptionPane.showConfirmDialog(editor, panel, title,
-                javax.swing.JOptionPane.YES_NO_OPTION, javax.swing.JOptionPane.WARNING_MESSAGE);
+        AutoCloseable registration = editor.registerSensitiveWindow(() -> {
+            gui.FullLogPanel.resetDocument(previewPane);
+            previewEntries.clear();
+            java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(panel);
+            if (window != null) window.dispose();
+        });
+        int result;
+        try {
+            result = javax.swing.JOptionPane.showConfirmDialog(editor, panel, title,
+                    javax.swing.JOptionPane.YES_NO_OPTION, javax.swing.JOptionPane.WARNING_MESSAGE);
+        } finally {
+            gui.FullLogPanel.resetDocument(previewPane);
+            previewEntries.clear();
+            try { registration.close(); } catch (Exception ignored) { }
+        }
+        if (!editor.isSessionCurrent(session)) return;
 
         if (result == javax.swing.JOptionPane.YES_OPTION) {
             // Use batch delete for efficiency (single file I/O instead of N operations)

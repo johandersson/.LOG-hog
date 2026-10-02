@@ -243,6 +243,7 @@ public class LogFileHandler implements LogFileOperations {
      * @param newText the new content
      */
     public void updateEntry(String displayTimestamp, String newText) {
+        final long session = cache.securityGeneration();
         if (newText.isBlank() || !Files.exists(filePath)) return;
 
         try {
@@ -261,9 +262,11 @@ public class LogFileHandler implements LogFileOperations {
             List<String> updatedLines = entryEditor.updateEntry(rawTs, occurrence, newText, lines);
 
             // Use write-back cache for performance
-            cache.invalidateEntryCache();
-            // Also set pending lines so write-back will flush to disk
-            cache.setPendingLines(updatedLines);
+            synchronized (cache) {
+                if (!cache.isSecurityCurrent(session)) return;
+                cache.invalidateEntryCache();
+                cache.setPendingLines(updatedLines);
+            }
 
             // Notify UI that parsed/full-log caches should be invalidated or refreshed
             notifyCacheInvalidationListeners();
@@ -948,13 +951,13 @@ public class LogFileHandler implements LogFileOperations {
             salt = null;
         }
         encryptionManager.clearSensitiveData();
-        cache.secureClear();
-        // Clear all EntryLoader caches (timestamps, parsed entries, content cache)
-        if (entryLoader != null) {
-            entryLoader.invalidateCaches();
+        try {
+            cache.secureClear();
+        } finally {
+            // Invalidate even when another cleanup operation fails.
+            if (entryLoader != null) entryLoader.invalidateCaches();
+            notifyCacheInvalidationListeners();
         }
-        // Notify listeners that sensitive data cleared and caches should be invalidated
-        notifyCacheInvalidationListeners();
     }
 
     public void showErrorDialog(String message) {

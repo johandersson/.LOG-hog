@@ -28,12 +28,16 @@ import java.util.Objects;
 import encryption.Encryptor;
 
 public class EntryLoader {
+    private final Object cacheLock = new Object();
+    private long generation;
+    private long generation() { synchronized (cacheLock) { return generation; } }
+    private boolean current(long token) { synchronized (cacheLock) { return generation == token; } }
     private final LogFileHandler logFileHandler;
     private final Encryptor encryptor;
     private static final long ENTRY_CONTENT_CACHE_TTL_MS = 15_000L;
     
     // Performance caches - invalidated when file changes
-    private final Map<String, String> entryContentCache = new HashMap<>();
+    private final Map<String, String> entryContentCache = new java.util.concurrent.ConcurrentHashMap<>();
     private long entryContentCacheExpiresAt;
     private List<String> timestampListCache;
     private final Map<String, Integer> duplicateCountCache = new HashMap<>();
@@ -107,7 +111,10 @@ public class EntryLoader {
      * Public method for LogFileHandler to call.
      */
     public void invalidateCaches() {
-        secureClearCaches();
+        synchronized (cacheLock) {
+            generation++;
+            secureClearCaches();
+        }
     }
     
     /**
@@ -124,26 +131,12 @@ public class EntryLoader {
         entryContentCache.clear();
         entryContentCacheExpiresAt = 0L;
         
-        // Overwrite timestamp list cache
-        if (timestampListCache != null) {
-            for (int i = 0; i < timestampListCache.size(); i++) {
-                timestampListCache.set(i, null);
-            }
-            timestampListCache.clear();
-            timestampListCache = null;
-        }
+        timestampListCache = null;
         
         // Clear duplicate count cache
         duplicateCountCache.clear();
         
-        // Overwrite parsed entries cache
-        if (parsedEntriesCache != null) {
-            for (int i = 0; i < parsedEntriesCache.size(); i++) {
-                parsedEntriesCache.set(i, null);
-            }
-            parsedEntriesCache.clear();
-            parsedEntriesCache = null;
-        }
+        parsedEntriesCache = null;
         
         cacheLastModified = 0;
     }
@@ -184,7 +177,8 @@ public class EntryLoader {
     }
 
     public void loadLogEntries(DefaultListModel<String> listModel) throws Exception {
-        javax.swing.SwingUtilities.invokeLater(() -> listModel.clear());
+        final long token = generation();
+        javax.swing.SwingUtilities.invokeLater(() -> { if (current(token)) listModel.clear(); });
         
         // Check if file exists and handle missing file
         if (!Files.exists(logFileHandler.getFilePath())) {
@@ -210,6 +204,7 @@ public class EntryLoader {
             // Batch update the model on EDT - DefaultListModel is NOT thread-safe
             final List<String> elementsFinal = elementsToAdd;
             javax.swing.SwingUtilities.invokeLater(() -> {
+                if (!current(token)) return;
                 listModel.removeAllElements();
                 for (String element : elementsFinal) {
                     listModel.addElement(element);
@@ -217,7 +212,10 @@ public class EntryLoader {
             });
 
             // Keep timestamp cache for other callers
-            timestampListCache = timestamps;
+            synchronized (cacheLock) {
+                if (!current(token)) return;
+                timestampListCache = timestamps;
+            }
             // We've populated the view from cache - done
             return;
         }
@@ -308,6 +306,7 @@ public class EntryLoader {
             // Batch update on EDT - DefaultListModel is NOT thread-safe
             final List<String> elementsFinal = elementsToAdd;
             javax.swing.SwingUtilities.invokeLater(() -> {
+                if (!current(token)) return;
                 listModel.removeAllElements();
                 for (String element : elementsFinal) {
                     listModel.addElement(element);
@@ -315,7 +314,6 @@ public class EntryLoader {
             });
             
             // Cache timestamp list for getRecentLogEntries
-            timestampListCache = timestamps;
 
             // Also populate parsedEntriesCache so future tab switches can use the cache
             List<ParsedEntry> parsed = new ArrayList<>(timestamps.size());
@@ -327,9 +325,12 @@ public class EntryLoader {
                 }
                 parsed.add(new ParsedEntry(ts, dt));
             }
-            parsedEntriesCache = parsed;
-
-            updateCacheTimestamp();
+            synchronized (cacheLock) {
+                if (!current(token)) return;
+                timestampListCache = timestamps;
+                parsedEntriesCache = parsed;
+                updateCacheTimestamp();
+            }
         } catch (Exception e) {
             // Security: Don't check/expose exception messages - use generic errors
             String errorMsg;
@@ -348,6 +349,7 @@ public class EntryLoader {
     }
 
     public void loadFilteredEntriesByYear(DefaultListModel<String> listModel, int year) {
+        final long token = generation();
         if (!Files.exists(logFileHandler.getFilePath())) {
             javax.swing.SwingUtilities.invokeLater(() -> listModel.removeAllElements());
             return;
@@ -370,6 +372,7 @@ public class EntryLoader {
             // Update Swing model on EDT - DefaultListModel is NOT thread-safe
             final List<String> filteredFinal = filtered;
             javax.swing.SwingUtilities.invokeLater(() -> {
+                if (!current(token)) return;
                 listModel.removeAllElements();
                 for (String timestamp : filteredFinal) {
                     listModel.addElement(timestamp);
@@ -426,6 +429,7 @@ public class EntryLoader {
     }
 
     public void loadFilteredEntries(DefaultListModel<String> listModel, int year, int month) {
+        final long token = generation();
         if (!Files.exists(logFileHandler.getFilePath())) {
             javax.swing.SwingUtilities.invokeLater(() -> listModel.removeAllElements());
             return;
@@ -450,6 +454,7 @@ public class EntryLoader {
             // Update Swing model on EDT - DefaultListModel is NOT thread-safe
             final List<String> filteredFinal = filtered;
             javax.swing.SwingUtilities.invokeLater(() -> {
+                if (!current(token)) return;
                 listModel.removeAllElements();
                 for (String timestamp : filteredFinal) {
                     listModel.addElement(timestamp);
@@ -466,6 +471,7 @@ public class EntryLoader {
      * This enables O(M) filtering instead of O(N) file parsing on every filter change.
      */
     private void parseParsedEntriesCache() throws Exception {
+        final long token = generation();
         List<String> lines = logFileHandler.getLines();
         
         // Clean malformed timestamps
@@ -516,8 +522,11 @@ public class EntryLoader {
             }
         }
 
-        parsedEntriesCache = normalized;
-        updateCacheTimestamp();
+        synchronized (cacheLock) {
+            if (!current(token)) throw new java.util.concurrent.CancellationException();
+            parsedEntriesCache = normalized;
+            updateCacheTimestamp();
+        }
     }
 
     public DefaultListModel<String> filterModelByYearMonth(DefaultListModel<String> sourceModel, int year, int month) {
@@ -537,6 +546,7 @@ public class EntryLoader {
     }
 
     public String loadEntry(String timeStamp) {
+        final long token = generation();
         if (!Files.exists(logFileHandler.getFilePath())) return "";
 
         try {
@@ -579,7 +589,7 @@ public class EntryLoader {
             // Rebuild cache with occurrence-indexed display keys so that duplicate
             // timestamps (e.g. "14:30 2025-01-15", "14:30 2025-01-15 (1)", …) each
             // map to their own content, matching exactly what the list model shows.
-            entryContentCache.clear();
+            Map<String, String> loadedContents = new HashMap<>();
             Map<String, Integer> occCount = new HashMap<>();
             for (List<String> entry : allEntries) {
                 if (entry.isEmpty()) continue;
@@ -596,11 +606,15 @@ public class EntryLoader {
                 for (int i = 1; i < entry.size(); i++) {
                     content.append(entry.get(i)).append('\n');
                 }
-                entryContentCache.put(displayTs, content.toString().trim());
+                loadedContents.put(displayTs, content.toString().trim());
             }
-            entryContentCacheExpiresAt = System.currentTimeMillis() + ENTRY_CONTENT_CACHE_TTL_MS;
-            
-            updateCacheTimestamp();
+            synchronized (cacheLock) {
+                if (!current(token)) return "";
+                entryContentCache.clear();
+                entryContentCache.putAll(loadedContents);
+                entryContentCacheExpiresAt = System.currentTimeMillis() + ENTRY_CONTENT_CACHE_TTL_MS;
+                updateCacheTimestamp();
+            }
             
             // Now try cache again
             String result = entryContentCache.get(timeStamp.trim());
@@ -624,6 +638,7 @@ public class EntryLoader {
 
             return "";
         } catch (Exception e) {
+            if (!current(token)) return "";
             // Security: Don't expose internal error details
             logFileHandler.showErrorDialog("<html><b>👁️ Display Failed</b><br><br>Unable to display the log entry.<br><br><i>Tip: The entry may be corrupted or the file may be locked.</i></html>");
         }
@@ -693,6 +708,7 @@ public class EntryLoader {
     }
 
     public List<String> getRecentLogEntries(int i) {
+        final long token = generation();
         List<String> recentEntries = new ArrayList<>();
         if (!Files.exists(logFileHandler.getFilePath())) return recentEntries;
 
@@ -723,8 +739,11 @@ public class EntryLoader {
             });
             
             // Update cache
-            timestampListCache = timestamps;
-            updateCacheTimestamp();
+            synchronized (cacheLock) {
+                if (!current(token)) return recentEntries;
+                timestampListCache = timestamps;
+                updateCacheTimestamp();
+            }
             
             for (int j = 0; j < Math.min(i, timestamps.size()); j++) {
                 recentEntries.add(timestamps.get(j));

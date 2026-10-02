@@ -25,6 +25,16 @@ import java.util.List;
  * Handles both line-level cache (for encrypted files) and parsed entry cache.
  */
 public class FileCache {
+    private long generation;
+    private long securityGeneration;
+    public synchronized long securityGeneration() { return securityGeneration; }
+    public synchronized boolean isSecurityCurrent(long token) { return token == securityGeneration; }
+    public synchronized long generation() { return generation; }
+    public synchronized boolean updateCachedLinesIfCurrent(List<String> lines, long token) {
+        if (generation != token) return false;
+        updateCachedLines(lines);
+        return true;
+    }
     // Cache management for encrypted files
     private List<String> cachedLines = new ArrayList<>();
     private List<List<String>> cachedEntries;
@@ -39,35 +49,36 @@ public class FileCache {
     /**
      * Gets cached lines (for encrypted files).
      */
-    public List<String> getCachedLines() {
+    public synchronized List<String> getCachedLines() {
         return new ArrayList<>(cachedLines);
     }
     
     /**
      * Updates the cached lines.
      */
-    public void updateCachedLines(List<String> lines) {
+    public synchronized void updateCachedLines(List<String> lines) {
         this.cachedLines = new ArrayList<>(lines);
     }
     
     /**
      * Clears the cached lines.
      */
-    public void clearCachedLines() {
+    public synchronized void clearCachedLines() {
+        generation++;
         this.cachedLines.clear();
     }
     
     /**
      * Gets cached parsed entries.
      */
-    public List<List<String>> getCachedEntries() {
+    public synchronized List<List<String>> getCachedEntries() {
         return cachedEntries;
     }
     
     /**
      * Sets cached parsed entries with timestamp.
      */
-    public void setCachedEntries(List<List<String>> entries, long lastModified) {
+    public synchronized void setCachedEntries(List<List<String>> entries, long lastModified) {
         this.cachedEntries = entries;
         this.cachedEntriesLastModified = lastModified;
     }
@@ -75,14 +86,14 @@ public class FileCache {
     /**
      * Gets the last modified timestamp of cached entries.
      */
-    public long getCachedEntriesLastModified() {
+    public synchronized long getCachedEntriesLastModified() {
         return cachedEntriesLastModified;
     }
     
     /**
      * Invalidates the entry cache.
      */
-    public void invalidateEntryCache() {
+    public synchronized void invalidateEntryCache() {
         this.cachedEntries = null;
         this.cachedEntriesLastModified = 0;
     }
@@ -90,52 +101,30 @@ public class FileCache {
     /**
      * Invalidates all caches.
      */
-    public void invalidateCaches() {
+    public synchronized void invalidateCaches() {
         invalidateEntryCache();
         clearCachedLines();
     }
 
     /**
-     * Securely clears all cached data by overwriting content before clearing.
-     * Should be called when locking the file to prevent memory forensics.
+     * Drops cached references and invalidates in-flight publications on lock.
+     * This does not guarantee physical erasure of immutable strings in the JVM.
      */
-    public void secureClear() {
-        // Overwrite cached lines content before clearing
-        for (int i = 0; i < cachedLines.size(); i++) {
-            cachedLines.set(i, null);
-        }
-        cachedLines.clear();
-        
-        // Overwrite cached entries content before clearing
-        if (cachedEntries != null) {
-            for (List<String> entry : cachedEntries) {
-                if (entry != null) {
-                    for (int i = 0; i < entry.size(); i++) {
-                        entry.set(i, null);
-                    }
-                    entry.clear();
-                }
-            }
-            cachedEntries.clear();
-            cachedEntries = null;
-        }
+    public synchronized void secureClear() {
+        generation++;
+        securityGeneration++;
+        cachedLines = new ArrayList<>();
+        cachedEntries = null;
         cachedEntriesLastModified = 0;
         
-        // Clear pending lines
-        if (pendingLines != null) {
-            for (int i = 0; i < pendingLines.size(); i++) {
-                pendingLines.set(i, null);
-            }
-            pendingLines.clear();
-            pendingLines = null;
-        }
+        pendingLines = null;
         isDirty = false;
     }
 
     /**
      * Sets pending lines for write-back cache.
      */
-    public void setPendingLines(List<String> lines) {
+    public synchronized void setPendingLines(List<String> lines) {
         this.pendingLines = lines;
         this.isDirty = true;
         this.lastWriteTime = System.currentTimeMillis();
@@ -144,14 +133,14 @@ public class FileCache {
     /**
      * Gets pending lines.
      */
-    public List<String> getPendingLines() {
-        return pendingLines;
+    public synchronized List<String> getPendingLines() {
+        return pendingLines == null ? null : new ArrayList<>(pendingLines);
     }
     
     /**
      * Clears pending writes.
      */
-    public void clearPendingWrites() {
+    public synchronized void clearPendingWrites() {
         this.pendingLines = null;
         this.isDirty = false;
         this.lastWriteTime = 0;
@@ -160,14 +149,14 @@ public class FileCache {
     /**
      * Checks if there are pending writes.
      */
-    public boolean hasPendingWrites() {
+    public synchronized boolean hasPendingWrites() {
         return isDirty && pendingLines != null;
     }
     
     /**
      * Checks if write delay has elapsed.
      */
-    public boolean isWriteDelayElapsed() {
+    public synchronized boolean isWriteDelayElapsed() {
         return isDirty && (System.currentTimeMillis() - lastWriteTime) >= WRITE_DELAY_MS;
     }
 }
