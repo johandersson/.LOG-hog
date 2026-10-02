@@ -102,6 +102,8 @@ public final class LogListPanel extends JPanel {
     private final Highlighter.HighlightPainter searchHighlightPainter = 
         new DefaultHighlighter.DefaultHighlightPainter(java.awt.Color.YELLOW);
     private final JProgressBar entryProgressBar;
+    private final utils.AsyncRequestGate filterRequests = new utils.AsyncRequestGate();
+    private final utils.AsyncRequestGate entryLoadRequests = new utils.AsyncRequestGate();
 
     public LogListPanel(LogTextEditor editor, LogFileHandler logFileHandler, DefaultListModel<String> listModel, JList<String> logList) {
         this.editor = editor;
@@ -513,6 +515,7 @@ public final class LogListPanel extends JPanel {
             if (onComplete != null) SwingUtilities.invokeLater(onComplete);
             return;
         }
+        final long request = filterRequests.start();
         
         // Get search parameters
         String searchQuery = searchField != null ? searchField.getText().trim() : "";
@@ -533,6 +536,7 @@ public final class LogListPanel extends JPanel {
 
         // Provide quick feedback
         SwingUtilities.invokeLater(() -> {
+            if (editor.isLocked() || !filterRequests.isCurrent(request)) return;
             listModel.removeAllElements();
             filterProgressBar.setVisible(true);
             if (searchResultLabel != null) {
@@ -553,6 +557,7 @@ public final class LogListPanel extends JPanel {
 
             @Override
             protected void done() {
+                if (editor.isLocked() || !filterRequests.isCurrent(request)) return;
                 try {
                     List<String> filtered = get();
                     listModel.removeAllElements();
@@ -584,7 +589,9 @@ public final class LogListPanel extends JPanel {
                     
                     // Run callback after all entries are loaded
                     if (onComplete != null) {
-                        SwingUtilities.invokeLater(onComplete);
+                        SwingUtilities.invokeLater(() -> {
+                            if (!editor.isLocked() && filterRequests.isCurrent(request)) onComplete.run();
+                        });
                     }
                 } catch (java.util.concurrent.ExecutionException ee) {
                     filterProgressBar.setVisible(false);
@@ -881,6 +888,7 @@ public final class LogListPanel extends JPanel {
     }
 
     private void loadAndDisplayEntry(String timestamp) {
+        final long request = entryLoadRequests.start();
         if (timestamp == null || timestamp.trim().isEmpty()) {
             displayedEntryTimestamp = null;
             entryArea.setText("");
@@ -902,6 +910,7 @@ public final class LogListPanel extends JPanel {
 
             @Override
             protected void done() {
+                if (editor.isLocked() || !entryLoadRequests.isCurrent(request)) return;
                 try {
                     String content = get();
                     entryArea.setText(content != null ? content : "");
@@ -1199,6 +1208,12 @@ public final class LogListPanel extends JPanel {
     }
 
     public void setLocked(boolean locked) {
+        if (locked) {
+            filterRequests.invalidate();
+            entryLoadRequests.invalidate();
+            filterProgressBar.setVisible(false);
+            entryProgressBar.setVisible(false);
+        }
         entryArea.setEditable(!locked);
         
         // Disable filter controls when locked
