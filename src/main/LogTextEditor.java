@@ -770,6 +770,13 @@ public final class LogTextEditor extends JFrame {
                     startAutoLockTimer();
                 }
             }
+            SwingUtilities.invokeLater(() -> {
+                if (!isLocked() && tabPane.getSelectedIndex() == 0) {
+                    var textArea = entryPanel.getTextArea();
+                    textArea.requestFocusInWindow();
+                    textArea.setCaretPosition(textArea.getDocument().getLength());
+                }
+            });
         }
     }    
 
