@@ -40,6 +40,7 @@ if [ -n "$PIDS" ]; then
 fi
 
 # Compile Java files (excluding test files)
+JAVA_RELEASE=17
 echo "Compiling Java files..."
 (
     cd "$SCRIPT_DIR" || exit 1
@@ -52,7 +53,7 @@ fi
 
 (
     cd "$SCRIPT_DIR" || exit 1
-    javac -encoding UTF-8 -d . @"$SOURCES_FILE"
+    javac --release "$JAVA_RELEASE" -encoding UTF-8 -d . @"$SOURCES_FILE"
 )
 if [ $? -ne 0 ]; then
     echo "Compilation failed!"
@@ -91,6 +92,7 @@ INVENTORY_FILE="$BUILD_DIR/component-inventory-$BUILD_TS.txt"
   echo "Build Timestamp: $BUILD_TS"
   echo "Artifact: $JAR_NAME"
   echo "Runtime: Pure JDK (no external runtime dependencies)"
+  echo "Requires Java: ${JAVA_RELEASE}+"
   echo
   echo "Java Version:"
   java -version 2>&1
@@ -117,6 +119,7 @@ if [ $? -eq 0 ]; then
     } > "$RUN_BAT"
 
     echo "Production build completed: $BUILD_DIR/$JAR_NAME"
+    echo "Requires Java ${JAVA_RELEASE}+"
     echo "Run with: java -jar \"$BUILD_DIR/$JAR_NAME\""
     echo "Or use: $RUN_SH (Linux/macOS) or $RUN_BAT (Windows)"
 else

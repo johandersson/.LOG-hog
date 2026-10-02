@@ -392,7 +392,8 @@ public final class LogTextEditor extends JFrame {
         fullLogPanel.openSearchDialog();
     }
     public static void main(String[] args) {
-        
+        installGlobalExceptionLogging();
+
         // Check if running in headless environment
         if (java.awt.GraphicsEnvironment.isHeadless()) {
             // Log and exit when running in an unsupported headless environment
@@ -425,9 +426,10 @@ public final class LogTextEditor extends JFrame {
                     }
                 }
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
             // Some JDK/OS combinations throw ExceptionInInitializerError (an Error, not
             // an Exception) here when a native L&F fails to load its resources.
+            utils.Log.error("Failed to initialize native look and feel; continuing with defaults", t);
         }
 
         // Let the OS draw the title bar and buttons (native chrome)
@@ -443,16 +445,44 @@ public final class LogTextEditor extends JFrame {
         // will show splash and the loading progress at the appropriate times.
         SwingUtilities.invokeLater(() -> {
             try {
-                LogTextEditor editor = new LogTextEditor();
+                new LogTextEditor();
                 // don't call setVisible here: loadSettings will make the
                 // window visible after any loading/decryption completes.
                 // Note: Single-instance enforcement now uses file locking (see SingleInstanceManager)
-            } catch (Exception e) {
-                // Security: Log error and exit
-                utils.Log.error("Fatal error starting UI", e);
-                System.exit(1);
+            } catch (Throwable t) {
+                // Catch Throwable so startup Errors are captured when no console is attached.
+                logFatalAndExit("Fatal error starting UI", t);
             }
         });
+    }
+
+    private static void installGlobalExceptionLogging() {
+        if (Thread.getDefaultUncaughtExceptionHandler() != null) {
+            return;
+        }
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) ->
+            logFatalAndExit("Uncaught exception on thread " + thread.getName(), throwable));
+    }
+
+    private static void logFatalAndExit(String message, Throwable throwable) {
+        logFatal(message, throwable);
+        System.exit(1);
+    }
+
+    private static void logFatal(String message, Throwable throwable) {
+        try {
+            utils.Log.error(message, throwable);
+        } catch (Throwable ignored) {
+            // Fall back below.
+        }
+        try {
+            System.err.println(message);
+            if (throwable != null) {
+                throwable.printStackTrace(System.err);
+            }
+        } catch (Throwable ignored) {
+            // Last-resort logging must never throw.
+        }
     }
 
     public void updateRecentLogsMenu(Menu recentLogsMenu) {
@@ -483,6 +513,19 @@ public final class LogTextEditor extends JFrame {
         }
     }
 
+    private void showStartupWindow() {
+        if (SwingUtilities.isEventDispatchThread()) {
+            checkIfWindowIsVisible();
+            return;
+        }
+        SwingUtilities.invokeLater(this::checkIfWindowIsVisible);
+    }
+
+    private void showStartupWindowWithError(String message) {
+        showStartupWindow();
+        logFileHandler.showErrorDialog(message);
+    }
+
     private void loadSettings() {
         if (java.nio.file.Files.exists(settingsPath)) {
             try (java.io.InputStream fis = java.nio.file.Files.newInputStream(settingsPath)) {
@@ -504,37 +547,20 @@ public final class LogTextEditor extends JFrame {
                 dataLoaded = encryptionHandler.handleEncryptionSetup();
                 if (!dataLoaded) {
                     setLocked(true);
+                    showStartupWindow();
                     return;
                 }
-                if (!dataLoaded) {
-                    LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
-                    // Only show the loading spinner when the file already exists.
-                    // If it's missing, loadLogEntries() will surface the friendly missing-file
-                    // dialog instead — no need to show a spinner at the same time.
-                    if (java.nio.file.Files.exists(logFileHandler.getFilePath())) {
-                        progressDialog.setStatus("Loading log entries...");
-                        progressDialog.setIndeterminate(true);
-                        progressDialog.show();
-                    }
-
-                    // Run load in background so dialog can display and UI remains responsive
-                    Runnable startupLoad = () -> {
-                        try {
-                            loadLogEntries();
-                            fullLogPanel.loadFullLog();
-                        } catch (Exception e) {
-                            javax.swing.SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
-                        } finally {
-                            try { progressDialog.close(); } catch (Exception ignore) {}
-                        }
-                    };
-                    Thread startupThread = new Thread(startupLoad, "loghog-startup-load");
-                    startupThread.setDaemon(true);
-                    startupThread.start();
+                try {
+                    fullLogPanel.loadFullLog();
+                    showStartupWindow();
+                } catch (Exception e) {
+                    utils.Log.error("Startup failed while loading full log data (existing settings path)", e);
+                    showStartupWindowWithError("<html><b>📂 Load Failed</b><br><br>Unable to load full log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
                 }
             } catch (Exception e) {
                 // Security: Don't expose exception details (Guideline 2-1)
-                logFileHandler.showErrorDialog("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
+                utils.Log.error("Startup failed while loading settings", e);
+                showStartupWindowWithError("<html><b>⚙️ Settings Load Failed</b><br><br>Unable to load application settings.<br><br><i>Tip: Settings will use defaults.</i></html>");
             }
         } else {
             settings.setProperty("encrypted", "true");
@@ -553,8 +579,10 @@ public final class LogTextEditor extends JFrame {
                 try {
                     loadLogEntries();
                     fullLogPanel.loadFullLog();
+                    showStartupWindow();
                 } catch (Exception e) {
-                    javax.swing.SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>"));
+                    utils.Log.error("Startup failed while loading log data (no settings path)", e);
+                    showStartupWindowWithError("<html><b>📂 Load Failed</b><br><br>Unable to load log data.<br><br><i>Tip: The file may be missing or corrupted.</i></html>");
                 } finally {
                     try { progressDialog.close(); } catch (Exception ignore) {}
                 }

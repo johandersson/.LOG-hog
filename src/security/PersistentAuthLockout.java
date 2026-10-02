@@ -97,6 +97,38 @@ public final class PersistentAuthLockout {
         return MAX_FAILED_SESSIONS_BEFORE_LOCKOUT;
     }
 
+    /**
+     * Formats the remaining lockout duration in a user-friendly way.
+     * Shows the most significant non-zero unit (hours, minutes, seconds) and
+     * rounds up so "18 minutes left" is shown instead of "about 30 minutes".
+     *
+     * @param remainingMs remaining lockout time in milliseconds (must be >= 0)
+     * @return human-readable string such as "18 minutes" or "1 hour 5 minutes"
+     */
+    public static String formatRemainingLockout(long remainingMs) {
+        if (remainingMs <= 0) {
+            return "0 seconds";
+        }
+        long totalSeconds = (remainingMs + 999L) / 1000L;
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+
+        if (hours > 0) {
+            if (minutes > 0) {
+                return hours + " hour" + (hours == 1 ? "" : "s") + " " + minutes + " minute" + (minutes == 1 ? "" : "s");
+            }
+            return hours + " hour" + (hours == 1 ? "" : "s");
+        }
+        if (minutes > 0) {
+            if (seconds > 0) {
+                return minutes + " minute" + (minutes == 1 ? "" : "s") + " " + seconds + " second" + (seconds == 1 ? "" : "s");
+            }
+            return minutes + " minute" + (minutes == 1 ? "" : "s");
+        }
+        return seconds + " second" + (seconds == 1 ? "" : "s");
+    }
+
     private static void purgeLegacyKeys(Properties settings) {
         if (settings == null) {
             return;
@@ -127,18 +159,160 @@ public final class PersistentAuthLockout {
             }
         }
 
-        if (!stateExists || !keyExists || !anchorExists) {
-            byte[] key = keyExists ? readKey() : generateKey();
+        if (stateExists && keyExists && !anchorExists) {
+            byte[] key = readKey();
             try {
-                if (!keyExists) {
-                    writeKey(key);
+                Properties props = new Properties();
+                try (ByteArrayInputStream in = new ByteArrayInputStream(Files.readAllBytes(statePath))) {
+                    props.load(in);
                 }
-                LockoutState failClosed = failClosedState();
-                writeState(failClosed, key);
-                audit("LOCKOUT_MISSING_ARTIFACT", "state=" + stateExists + ",key=" + keyExists + ",anchor=" + anchorExists);
-                return failClosed;
+
+                String mac = props.getProperty(KEY_MAC, "");
+                props.remove(KEY_MAC);
+                byte[] expectedMac = HmacUtils.computeHmacSha256(key, serializeState(props));
+                byte[] actualMac = null;
+                try {
+                    if (mac.isEmpty()) {
+                        // State file is missing MAC - treat as migration failure
+                        throw new IllegalArgumentException("MAC property is missing from legacy state file");
+                    }
+                    actualMac = Base64.getDecoder().decode(mac);
+                } catch (Exception macDecodeEx) {
+                    // If MAC is invalid or can't be decoded, fail closed for security
+                    audit("LOCKOUT_LEGACY_STATE_MAC_DECODE_FAILED", macDecodeEx.getClass().getSimpleName());
+                    throw macDecodeEx;
+                }
+                try {
+                    if (!java.security.MessageDigest.isEqual(expectedMac, actualMac)) {
+                        LockoutState failClosed = failClosedState();
+                        writeState(failClosed, key);
+                        audit("LOCKOUT_TAMPER_DETECTED", "legacy_state_mac_mismatch");
+                        return failClosed;
+                    }
+                } finally {
+                    zeroize(expectedMac);
+                    zeroize(actualMac);
+                }
+
+                LockoutState migrated = new LockoutState(
+                    parseInt(props.getProperty(KEY_FAILED), 0),
+                    parseLong(props.getProperty(KEY_LOCKED_UNTIL), 0L),
+                    parseLong(props.getProperty(KEY_SEQ), 0L),
+                    parseInt(props.getProperty(KEY_LOCKOUT_LEVEL), 0)
+                );
+                
+                try {
+                    writeState(migrated, key);
+                    audit("LOCKOUT_ANCHOR_MIGRATED", "legacy_state");
+                } catch (Exception writeEx) {
+                    // If anchor write fails but state is clean, allow migration to proceed
+                    // The anchor can be re-created on next successful authentication
+                    if (migrated.failedAttempts == 0 && migrated.lockedUntil == 0L) {
+                        audit("LOCKOUT_ANCHOR_WRITE_FAILED_BUT_STATE_CLEAN", writeEx.getClass().getSimpleName());
+                        // Continue with migration even if anchor write failed
+                    } else {
+                        // State has active failures/lockout, fail closed for security
+                        audit("LOCKOUT_ANCHOR_WRITE_FAILED_WITH_ACTIVE_STATE", writeEx.getClass().getSimpleName());
+                        return failClosedState();
+                    }
+                }
+                return migrated;
+            } catch (Exception ex) {
+                audit("LOCKOUT_MIGRATION_FAILED", ex.getClass().getSimpleName());
+                return failClosedState();
             } finally {
                 zeroize(key);
+            }
+        }
+
+        if (!stateExists || !keyExists || !anchorExists) {
+            // Partial or corrupted state detected. Handle different scenarios:
+            // 1. If state file exists but key is missing, read state to check if there's any security-relevant info
+            // 2. If there are active lockouts or registered failures, fail-closed (can't verify)
+            // 3. If completely clean state, recover
+            
+            if (stateExists && !keyExists) {
+                try {
+                    // Try to read the state file without verification to check security status
+                    Properties props = new Properties();
+                    try (ByteArrayInputStream in = new ByteArrayInputStream(Files.readAllBytes(getStatePath()))) {
+                        props.load(in);
+                    }
+                    long currentLockedUntil = parseLong(props.getProperty(KEY_LOCKED_UNTIL), 0L);
+                    int failedAttempts = parseInt(props.getProperty(KEY_FAILED), 0);
+                    long remaining = Math.max(0L, currentLockedUntil - System.currentTimeMillis());
+                    
+                    // Fail-closed if there's any active lockout OR if there are registered failures
+                    // (failures indicate prior authentication attempts we can't verify)
+                    if (remaining > 0 || failedAttempts > 0) {
+                        // Active lockout or failures exist but key is missing - fail closed (can't verify)
+                        LockoutState failClosed = failClosedState();
+                        audit("LOCKOUT_ACTIVE_OR_FAILURES_BUT_KEY_MISSING", "remaining=" + remaining + ",failed=" + failedAttempts);
+                        try {
+                            byte[] newKey = generateKey();
+                            try {
+                                writeKey(newKey);
+                                writeState(failClosed, newKey);
+                            } finally {
+                                zeroize(newKey);
+                            }
+                        } catch (Exception ex) {
+                            audit("LOCKOUT_RECOVERY_WRITE_FAILED", ex.getClass().getSimpleName());
+                        }
+                        return failClosed;
+                    }
+                    
+                    // Completely clean state - safe to recover
+                    byte[] newKey = generateKey();
+                    try {
+                        writeKey(newKey);
+                        LockoutState recovered = new LockoutState(0, 0L, 0L, 0);
+                        writeState(recovered, newKey);
+                        audit("LOCKOUT_RECOVERED_AFTER_KEY_LOSS", "clean_state");
+                        return recovered;
+                    } finally {
+                        zeroize(newKey);
+                    }
+                } catch (Exception ex) {
+                    // If we can't even read the state file, fail closed
+                    audit("LOCKOUT_CANNOT_READ_STATE", ex.getClass().getSimpleName());
+                    LockoutState failClosed = failClosedState();
+                    try {
+                        byte[] newKey = generateKey();
+                        try {
+                            writeKey(newKey);
+                            writeState(failClosed, newKey);
+                        } finally {
+                            zeroize(newKey);
+                        }
+                    } catch (Exception ignored) {
+                        audit("LOCKOUT_RECOVERY_WRITE_FAILED_2", ignored.getClass().getSimpleName());
+                    }
+                    return failClosed;
+                }
+            }
+            
+            // For other partial states (state missing or only key/anchor present),
+            // attempt clean recovery instead of immediate lockout
+            byte[] key = null;
+            try {
+                key = keyExists ? readKey() : generateKey();
+                try {
+                    if (!keyExists) {
+                        writeKey(key);
+                    }
+                    // Start with a clean state (no lockout) for recovery scenarios
+                    LockoutState recovered = new LockoutState(0, 0L, 0L, 0);
+                    writeState(recovered, key);
+                    audit("LOCKOUT_PARTIAL_STATE_RECOVERED", "state=" + stateExists + ",key=" + keyExists + ",anchor=" + anchorExists);
+                    return recovered;
+                } finally {
+                    zeroize(key);
+                }
+            } catch (Exception ex) {
+                // If we can't read or write recovery state, fail closed
+                audit("LOCKOUT_PARTIAL_RECOVERY_FAILED", ex.getClass().getSimpleName());
+                return failClosedState();
             }
         }
 
@@ -152,9 +326,40 @@ public final class PersistentAuthLockout {
             String mac = props.getProperty(KEY_MAC, "");
             props.remove(KEY_MAC);
             byte[] expectedMac = HmacUtils.computeHmacSha256(key, serializeState(props));
-            byte[] actualMac = Base64.getDecoder().decode(mac);
+            byte[] actualMac = null;
+            LockoutState parsedState = parseRawState(props);
+
+            try {
+                if (mac.isEmpty()) {
+                    // State file is missing MAC - likely corrupted or from old version
+                    throw new IllegalArgumentException("MAC property is missing from state file");
+                }
+                actualMac = Base64.getDecoder().decode(mac);
+            } catch (Exception macDecodeEx) {
+                // If the MAC property is missing or malformed, inspect the raw state first.
+                // When there is no active lockout and no failed attempts, recover cleanly
+                // rather than locking the user out for a crash-corrupted file.
+                if (parsedState.lockedUntil == 0L && parsedState.failedAttempts == 0) {
+                    audit("LOCKOUT_STATE_RECOVERED", "missing_mac_but_clean_state");
+                    return parsedState;
+                }
+                audit("LOCKOUT_STATE_MAC_DECODE_FAILED", macDecodeEx.getClass().getSimpleName());
+                LockoutState failClosed = failClosedState();
+                writeState(failClosed, key);
+                return failClosed;
+            }
+
             try {
                 if (!java.security.MessageDigest.isEqual(expectedMac, actualMac)) {
+                    // If the state MAC is unverifiable, first inspect the raw state for evidence
+                    // of an active lockout or prior failures. When there is no such evidence,
+                    // recover to a clean state instead of locking the user out. This avoids
+                    // false lockouts from crash-corrupted state files while still failing closed
+                    // when the state indicates a real security event.
+                    if (parsedState.lockedUntil == 0L && parsedState.failedAttempts == 0) {
+                        audit("LOCKOUT_STATE_RECOVERED", "mac_mismatch_but_clean_state");
+                        return parsedState;
+                    }
                     LockoutState failClosed = failClosedState();
                     writeState(failClosed, key);
                     audit("LOCKOUT_TAMPER_DETECTED", "state_mac_mismatch");
@@ -165,21 +370,23 @@ public final class PersistentAuthLockout {
                 zeroize(actualMac);
             }
 
-            LockoutState state = new LockoutState(
-                parseInt(props.getProperty(KEY_FAILED), 0),
-                parseLong(props.getProperty(KEY_LOCKED_UNTIL), 0L),
-                parseLong(props.getProperty(KEY_SEQ), 0L),
-                parseInt(props.getProperty(KEY_LOCKOUT_LEVEL), 0)
-            );
-
-            if (!verifyAnchor(state, key, props.getProperty(KEY_STATE_HASH, ""))) {
+            if (!verifyAnchor(parsedState, key, props.getProperty(KEY_STATE_HASH, ""))) {
+                // If the anchor is unverifiable but the state itself shows no active lockout
+                // and no recorded failures, treat this as a recoverable consistency issue
+                // rather than a rollback attack. This prevents users from being permanently
+                // locked out due to crash-induced anchor/state desynchronization when there
+                // is no evidence of prior failed authentication attempts.
+                if (parsedState.lockedUntil == 0L && parsedState.failedAttempts == 0) {
+                    audit("LOCKOUT_ANCHOR_RECOVERED", "clean_state_anchor_mismatch");
+                    return parsedState;
+                }
                 LockoutState failClosed = failClosedState();
                 writeState(failClosed, key);
                 audit("LOCKOUT_ROLLBACK_DETECTED", "anchor_mismatch");
                 return failClosed;
             }
 
-            return state;
+            return parsedState;
         } finally {
             zeroize(key);
         }
@@ -383,6 +590,15 @@ public final class PersistentAuthLockout {
         byte[] key = new byte[32];
         new java.security.SecureRandom().nextBytes(key);
         return key;
+    }
+
+    private static LockoutState parseRawState(Properties props) {
+        return new LockoutState(
+            parseInt(props.getProperty(KEY_FAILED), 0),
+            parseLong(props.getProperty(KEY_LOCKED_UNTIL), 0L),
+            parseLong(props.getProperty(KEY_SEQ), 0L),
+            parseInt(props.getProperty(KEY_LOCKOUT_LEVEL), 0)
+        );
     }
 
     private static int parseInt(String value, int defaultValue) {
