@@ -109,7 +109,7 @@ class LockShortcutDispatcherTest {
     }
 
     @Test
-    void shortcutDismissesDialogsEvenWhenAlreadyLocked() {
+    void shortcutLeavesAuthenticationDialogsAloneWhenAlreadyLocked() {
         locked.set(true);
         JDialog dialog = new JDialog(frame, true);
         try {
@@ -118,7 +118,7 @@ class LockShortcutDispatcherTest {
             dialog.pack();
             assertTrue(dispatcher.dispatchKeyEvent(
                     key(input, KeyEvent.KEY_PRESSED, InputEvent.CTRL_DOWN_MASK, KeyEvent.VK_L)));
-            assertFalse(dialog.isDisplayable());
+            assertTrue(dialog.isDisplayable());
             assertEquals(0, lockCalls.get());
             assertTrue(locked.get());
         } finally {
