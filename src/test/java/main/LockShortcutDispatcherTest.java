@@ -109,6 +109,24 @@ class LockShortcutDispatcherTest {
     }
 
     @Test
+    void shortcutDismissesDialogsEvenWhenAlreadyLocked() {
+        locked.set(true);
+        JDialog dialog = new JDialog(frame, true);
+        try {
+            JTextArea input = new JTextArea();
+            dialog.add(input);
+            dialog.pack();
+            assertTrue(dispatcher.dispatchKeyEvent(
+                    key(input, KeyEvent.KEY_PRESSED, InputEvent.CTRL_DOWN_MASK, KeyEvent.VK_L)));
+            assertFalse(dialog.isDisplayable());
+            assertEquals(0, lockCalls.get());
+            assertTrue(locked.get());
+        } finally {
+            dialog.dispose();
+        }
+    }
+
+    @Test
     void ignoresOtherKeysModifiersAndReleasedEvents() {
         assertFalse(dispatcher.dispatchKeyEvent(key(text, KeyEvent.KEY_PRESSED, 0, KeyEvent.VK_L)));
         assertFalse(dispatcher.dispatchKeyEvent(

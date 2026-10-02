@@ -57,8 +57,8 @@ final class LockShortcutDispatcher implements KeyEventDispatcher {
         event.consume();
         if (!isLocked.getAsBoolean()) {
             lock.run();
-            dismissOwnedWindows(owner);
         }
+        dismissOwnedWindows(owner);
         return true;
     }
 
