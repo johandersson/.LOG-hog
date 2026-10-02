@@ -14,11 +14,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 class LockShortcutDispatcherTest {
     private JFrame frame;
@@ -63,12 +67,35 @@ class LockShortcutDispatcherTest {
         try {
             JTextArea input = new JTextArea();
             dialog.add(input);
+            dialog.pack();
             assertTrue(dispatcher.dispatchKeyEvent(
                     key(input, KeyEvent.KEY_PRESSED, InputEvent.CTRL_DOWN_MASK, KeyEvent.VK_L)));
             assertEquals(1, lockCalls.get());
+            assertFalse(dialog.isDisplayable());
         } finally {
             dialog.dispose();
         }
+    }
+
+    @Test
+    @Timeout(5)
+    void closesSensitiveConfirmationWithoutConfirmingItsAction() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            JTextArea preview = new JTextArea("Sensitive entry preview");
+            Timer shortcut = new Timer(50, e -> dispatcher.dispatchKeyEvent(
+                    key(preview, KeyEvent.KEY_PRESSED, InputEvent.CTRL_DOWN_MASK, KeyEvent.VK_L)));
+            shortcut.setRepeats(false);
+            shortcut.start();
+            try {
+                int result = JOptionPane.showConfirmDialog(frame, preview, "Delete Entry",
+                        JOptionPane.YES_NO_OPTION);
+                assertEquals(JOptionPane.CLOSED_OPTION, result);
+                assertTrue(locked.get());
+                assertEquals(1, lockCalls.get());
+            } finally {
+                shortcut.stop();
+            }
+        });
     }
 
     @Test
