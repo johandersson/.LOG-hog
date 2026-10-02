@@ -157,6 +157,7 @@ public final class LogTextEditor extends JFrame {
     private ActionHandler actionHandler;
     private SystemInitializer systemInitializer;
     private EncryptionHandler encryptionHandler;
+    private LockShortcutDispatcher lockShortcutDispatcher;
 
     public LogTextEditor() {
         // Initialize application with services
@@ -396,6 +397,10 @@ public final class LogTextEditor extends JFrame {
 
     // updated setupKeyBindings method
     private void setupKeyBindings() {
+        lockShortcutDispatcher = new LockShortcutDispatcher(this, this::isLocked, this::manualLock);
+        java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                .addKeyEventDispatcher(lockShortcutDispatcher);
+
         JRootPane rootPane = getRootPane();
         InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = rootPane.getActionMap();
@@ -912,6 +917,12 @@ public final class LogTextEditor extends JFrame {
      * Call this before System.exit() to ensure clean shutdown.
      */
     public void shutdown() {
+        if (lockShortcutDispatcher != null) {
+            java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                    .removeKeyEventDispatcher(lockShortcutDispatcher);
+            lockShortcutDispatcher = null;
+        }
+
         // Stop auto-lock timer
         if (autoLockTimer != null) {
             autoLockTimer.stop();

@@ -116,6 +116,7 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 * **Ctrl/Cmd+N** – New quick entry
 * **Ctrl/Cmd+R** – Refresh log
 * **Ctrl/Cmd+F** – Search
+* **Ctrl+L** – Lock file from any view or app dialog (same as **Lock File** or auto-lock; does not unlock)
 
 # 🔎 Filtering Entries
 

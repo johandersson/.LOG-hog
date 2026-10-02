@@ -116,6 +116,7 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 * **Ctrl/Cmd+N** – New quick entry
 * **Ctrl/Cmd+R** – Refresh log
 * **Ctrl/Cmd+F** – Search
+* **Ctrl+L** – Lock file from any view or app dialog (same as **Lock File** or auto-lock; does not unlock)
 
 # 🔎 Filtering Entries
 
@@ -236,6 +237,13 @@ You can include:
 * URLs
 * Local file links (opening executable/script-like files requires explicit confirmation)
 * Other log entries: `[13:23 2022-12-12]` (LogHog format) or `[2022-12-12 13:23]`
+
+Log links also accept every supported international timestamp format:
+`[19/12/2022 13:23]`, `[12/19/2022 13:23]`, `[19.12.2022 13:23]`,
+and `[19-12-2022 13:23]`. Ambiguous slash dates are interpreted as
+day/month/year first, just like the app's timestamp parser. The insertion dialog
+stores links in LogHog's `HH:mm yyyy-MM-dd` format, and finds matching entries
+even when their timestamp headers use another supported format.
 
 Use **Log link** next to the formatting buttons in either entry editor. Enter a date
 and time; the dialog checks the format, calendar date, and whether an entry exists.
