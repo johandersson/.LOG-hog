@@ -766,6 +766,11 @@ public class LogFileHandler implements LogFileOperations {
         entryLoader.loadLogEntries(listModel);
     }
 
+    public void loadLogEntries(DefaultListModel<String> listModel,
+            java.util.function.BooleanSupplier publicationAllowed) throws Exception {
+        entryLoader.loadLogEntries(listModel, publicationAllowed);
+    }
+
     // load only entries matching year and month (1..12)
     public void loadFilteredEntries(DefaultListModel<String> listModel, int year, int month) {
         entryLoader.loadFilteredEntries(listModel, year, month);

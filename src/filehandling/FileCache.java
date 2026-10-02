@@ -72,15 +72,22 @@ public class FileCache {
      * Gets cached parsed entries.
      */
     public synchronized List<List<String>> getCachedEntries() {
-        return cachedEntries;
+        return copyEntries(cachedEntries);
     }
     
     /**
      * Sets cached parsed entries with timestamp.
      */
     public synchronized void setCachedEntries(List<List<String>> entries, long lastModified) {
-        this.cachedEntries = entries;
+        this.cachedEntries = copyEntries(entries);
         this.cachedEntriesLastModified = lastModified;
+    }
+
+    private static List<List<String>> copyEntries(List<List<String>> entries) {
+        if (entries == null) return null;
+        List<List<String>> copy = new ArrayList<>(entries.size());
+        for (List<String> entry : entries) copy.add(entry == null ? null : new ArrayList<>(entry));
+        return copy;
     }
     
     /**
@@ -119,13 +126,14 @@ public class FileCache {
         
         pendingLines = null;
         isDirty = false;
+        lastWriteTime = 0L;
     }
 
     /**
      * Sets pending lines for write-back cache.
      */
     public synchronized void setPendingLines(List<String> lines) {
-        this.pendingLines = lines;
+        this.pendingLines = lines == null ? null : new ArrayList<>(lines);
         this.isDirty = true;
         this.lastWriteTime = System.currentTimeMillis();
     }

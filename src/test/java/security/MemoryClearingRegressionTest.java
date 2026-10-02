@@ -171,6 +171,38 @@ class MemoryClearingRegressionTest {
         } finally { release.countDown(); timer.stop(); progress.close(); }
     }
 
+    @Test void fallbackFullReloadRejectsOriginalSessionAfterLockThenUnlock() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeFalse(java.awt.GraphicsEnvironment.isHeadless());
+        var loads = new java.util.concurrent.atomic.AtomicInteger();
+        var handler = new LogFileHandler(directory.resolve("fallback.txt"), EncryptionManager.getInstance()) {
+            @Override public void loadLogEntries(javax.swing.DefaultListModel<String> model,
+                    java.util.function.BooleanSupplier allowed) {
+                loads.incrementAndGet();
+            }
+        };
+        var editor = editorWithoutStartup(handler);
+        var panel = new gui.FullLogPanel(editor, handler);
+        long originalSession = editor.getSessionGeneration();
+        try {
+            editor.setLocked(true);
+            editor.setLocked(false);
+            var model = new javax.swing.DefaultListModel<String>();
+            model.addElement("fresh session");
+            var fallback = gui.FullLogPanel.class.getDeclaredMethod("fallbackFullReload",
+                String.class, String.class, gui.LogListPanel.class, javax.swing.DefaultListModel.class,
+                javax.swing.JList.class, long.class);
+            fallback.setAccessible(true);
+            SwingUtilities.invokeAndWait(() -> {
+                try { fallback.invoke(panel, "old timestamp", "old private content", null, model,
+                    new javax.swing.JList<>(model), originalSession); }
+                catch (Exception e) { throw new AssertionError(e); }
+            });
+            awaitEdt(200);
+            assertEquals(0, loads.get());
+            assertEquals(List.of("fresh session"), java.util.Collections.list(model.elements()));
+        } finally { panel.dispose(); handler.clearSensitiveData(); }
+    }
+
     @Test void invalidatedEntryHydrationCannotRepublishCache() throws Exception {
         Path file = directory.resolve("hydration.txt");
         Files.writeString(file, "placeholder");

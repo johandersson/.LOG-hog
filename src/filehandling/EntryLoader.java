@@ -34,8 +34,9 @@ public class EntryLoader {
     private boolean current(long token) { synchronized (cacheLock) { return generation == token; } }
     private void publishModel(long token, java.util.function.BooleanSupplier allowed, Runnable update) {
         javax.swing.SwingUtilities.invokeLater(() -> {
+            if (!allowed.getAsBoolean()) return;
             synchronized (cacheLock) {
-                if (generation == token && allowed.getAsBoolean()) update.run();
+                if (generation == token) update.run();
             }
         });
     }
@@ -223,8 +224,9 @@ public class EntryLoader {
             });
 
             // Keep timestamp cache for other callers
+            if (!allowed.getAsBoolean()) return;
             synchronized (cacheLock) {
-                if (!current(token) || !allowed.getAsBoolean()) return;
+                if (!current(token)) return;
                 timestampListCache = timestamps;
             }
             // We've populated the view from cache - done
@@ -335,8 +337,9 @@ public class EntryLoader {
                 }
                 parsed.add(new ParsedEntry(ts, dt));
             }
+            if (!allowed.getAsBoolean()) return;
             synchronized (cacheLock) {
-                if (!current(token) || !allowed.getAsBoolean()) return;
+                if (!current(token)) return;
                 timestampListCache = timestamps;
                 parsedEntriesCache = parsed;
                 updateCacheTimestamp();
