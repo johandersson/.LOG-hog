@@ -37,6 +37,8 @@ import javax.swing.text.StyledDocument;
 public class MarkdownFormatter {
     
     private static final Pattern LINK_PATTERN = Pattern.compile("\\[([^\\]]+)\\]\\(([^\\)]+)\\)");
+    private static final Pattern LOG_LINK_PATTERN = Pattern.compile(
+            "\\[([^\\]\\r\\n]+)\\]");
     private static final Pattern AUTOLINK_PATTERN = Pattern.compile("<((?:https?|file)://[^>\\s]+)>");
     private static final Pattern PLAIN_URL_PATTERN = Pattern.compile("(?<![\\]\\)\\w])(https?://[^\\s<]+|file:///[^\\s<]+)");
     private static final Pattern BOLD_PATTERN = Pattern.compile("\\*\\*(.*?)\\*\\*");
@@ -119,6 +121,21 @@ public class MarkdownFormatter {
             String target = linkMatcher.group(2);
             elements.add(new FormattedElement(start, end, "link", display, target));
             reserveRange(reservedRanges, start, end);
+        }
+
+        Matcher logLinkMatcher = LOG_LINK_PATTERN.matcher(line);
+        while (logLinkMatcher.find()) {
+            int start = logLinkMatcher.start();
+            int end = logLinkMatcher.end();
+            if (overlapsReserved(reservedRanges, start, end)) continue;
+            try {
+                String timestamp = utils.LogEntryLink.normalize(logLinkMatcher.group(1));
+                elements.add(new FormattedElement(start, end, "link", logLinkMatcher.group(),
+                        utils.LogEntryLink.PREFIX + timestamp));
+                reserveRange(reservedRanges, start, end);
+            } catch (IllegalArgumentException ignored) {
+                // Invalid dates remain plain text.
+            }
         }
 
         // Find angle-bracket autolinks, e.g. <http://example.com>

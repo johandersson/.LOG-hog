@@ -33,6 +33,12 @@ import utils.PlatformSupport;
 
 public class LinkHandler {
     private static final String LINK_LISTENERS_INSTALLED_KEY = "loghog.link.listeners.installed";
+    private static final String LOG_LINK_OPENER_KEY = "loghog.link.opener";
+
+    public static void addLinkListeners(JTextPane pane, java.util.function.Consumer<String> logLinkOpener) {
+        pane.putClientProperty(LOG_LINK_OPENER_KEY, logLinkOpener);
+        addLinkListeners(pane);
+    }
 
     public static void addLinkListeners(JTextPane pane) {
         if (Boolean.TRUE.equals(pane.getClientProperty(LINK_LISTENERS_INSTALLED_KEY))) {
@@ -81,7 +87,17 @@ public class LinkHandler {
             AttributeSet attrs = doc.getCharacterElement(pos).getAttributes();
             Object hrefObj = attrs.getAttribute("href");
             if (hrefObj instanceof String href) {
-                if (href.startsWith("file:")) {
+                if (href.startsWith(utils.LogEntryLink.PREFIX)) {
+                    String timestamp = utils.LogEntryLink.normalize(href.substring(utils.LogEntryLink.PREFIX.length()));
+                    Object opener = pane.getClientProperty(LOG_LINK_OPENER_KEY);
+                    if (opener instanceof java.util.function.Consumer<?> consumer) {
+                        @SuppressWarnings("unchecked")
+                        var logLinkOpener = (java.util.function.Consumer<String>) consumer;
+                        logLinkOpener.accept(timestamp);
+                    } else {
+                        showLinkError(pane, "Log links are not available in this view.");
+                    }
+                } else if (href.startsWith("file:")) {
                     handleFileLink(pane, href);
                 } else {
                     handleWebLink(pane, href);

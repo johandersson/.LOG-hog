@@ -115,6 +115,7 @@ public final class LogTextEditor extends JFrame {
     private final java.nio.file.Path settingsPath = AppPathPolicy.settingsFilePath();
 
     private boolean isLocked;
+    private final utils.AsyncRequestGate logLinkRequests = new utils.AsyncRequestGate();
     private final Object lockObject = new Object();
     private BackupManager backupManager;
     private javax.swing.Timer periodicBackupTimer;
@@ -143,6 +144,7 @@ public final class LogTextEditor extends JFrame {
     public void setLocked(boolean locked) {
         synchronized (lockObject) {
             this.isLocked = locked;
+            if (locked) logLinkRequests.invalidate();
             // Securely clear cached data when locking to prevent memory forensics
             if (locked && logFileHandler != null) {
                 logFileHandler.secureClearCache();
@@ -276,6 +278,48 @@ public final class LogTextEditor extends JFrame {
 
     public void quickEntry() {
         actionHandler.createNewQuickEntryAction().actionPerformed(null);
+    }
+
+    public boolean hasLogEntry(String timestamp) {
+        if (isLocked()) return false;
+        try {
+            return utils.LogEntryLink.findTimestamp(timestamp, logFileHandler.getParsedEntries()) != null;
+        } catch (Exception ex) {
+            throw new IllegalStateException("Unable to check log entries", ex);
+        }
+    }
+
+    public void openLogLink(String timestamp) {
+        if (isLocked()) return;
+        final long request = logLinkRequests.start();
+        new javax.swing.SwingWorker<String, Void>() {
+            @Override
+            protected String doInBackground() throws Exception {
+                return utils.LogEntryLink.findTimestamp(timestamp, logFileHandler.getParsedEntries());
+            }
+
+            @Override
+            protected void done() {
+                if (isLocked() || !logLinkRequests.isCurrent(request)) return;
+                try {
+                    String rawTimestamp = get();
+                    if (rawTimestamp == null) {
+                        gui.DialogHelper.showError(LogTextEditor.this, "Log Link", "No log entry exists at that date and time.");
+                        return;
+                    }
+                    var date = utils.DateHandler.parseTimestamp(rawTimestamp);
+                    tabPane.setSelectedIndex(1);
+                    logListPanel.setFilterAndApply(date.getYear(), date.getMonthValue(), () -> {
+                        if (isLocked() || !logLinkRequests.isCurrent(request)) return;
+                        if (!logListPanel.selectEntryByTimestampAndContent(rawTimestamp, null)) {
+                            gui.DialogHelper.showEntryNotFound(logListPanel);
+                        }
+                    });
+                } catch (Exception ex) {
+                    gui.DialogHelper.showError(LogTextEditor.this, "Log Link", "Unable to open the linked log entry.");
+                }
+            }
+        }.execute();
     }
 
     public AbstractAction createNewQuickEntry() {
@@ -915,6 +959,7 @@ public final class LogTextEditor extends JFrame {
     }
 
     private void clearSensitiveRuntimeState() {
+        logLinkRequests.invalidate();
         if (logFileHandler != null) {
             logFileHandler.clearSensitiveData();
         }

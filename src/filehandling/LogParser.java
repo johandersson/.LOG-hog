@@ -1,7 +1,6 @@
 package filehandling;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -17,8 +16,12 @@ public class LogParser {
         return line != null && TS_PATTERN.matcher(line.trim()).matches();
     }
 
+    public static boolean isTimestampLine(String line) {
+        return line != null && utils.DateHandler.isTimestamp(line.trim().replaceAll(" \\(\\d+\\)$", ""));
+    }
+
     private static boolean isTimestampEntryBoundary(String trimmed, List<String> currentEntry) {
-        if (!TS_PATTERN.matcher(trimmed).matches()) {
+        if (!isTimestampLine(trimmed)) {
             return false;
         }
         return currentEntry.isEmpty() || currentEntry.get(currentEntry.size() - 1).isBlank();
@@ -139,13 +142,12 @@ public class LogParser {
         var entries = parseAllEntries(lines);
 
         // Sort oldest first
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm yyyy-MM-dd", Locale.ROOT);
         entries.sort((a, b) -> {
             try {
                 String dateStrA = a.get(0).trim().replaceAll(" \\(\\d+\\)", "");
                 String dateStrB = b.get(0).trim().replaceAll(" \\(\\d+\\)", "");
-                LocalDateTime dateA = LocalDateTime.parse(dateStrA, formatter);
-                LocalDateTime dateB = LocalDateTime.parse(dateStrB, formatter);
+                LocalDateTime dateA = utils.DateHandler.parseTimestamp(dateStrA);
+                LocalDateTime dateB = utils.DateHandler.parseTimestamp(dateStrB);
                 return dateA.compareTo(dateB);
             } catch (Exception e) {
                 return 0;

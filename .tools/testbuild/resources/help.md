@@ -4,7 +4,7 @@
 
 .LOG-hog is designed for **fast, focused note-taking with strong encryption**. Your notes are stored safely in one file.
 
-When the application starts, the editor is immediately focused so you can begin writing without interruption. Press **Ctrl+S** or click **Save** to store your entry as a timestamped log entry and automatically clear the editor for the next note.
+When the application starts, the editor is immediately focused so you can begin writing without interruption. Press **Ctrl+S** (or **Cmd+S** on macOS) or click **Save** to store your entry as a timestamped log entry and automatically clear the editor for the next note.
 
 This workflow allows rapid, continuous note-taking with minimal friction.
 
@@ -112,10 +112,10 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 
 # ⌨️ Keyboard Shortcuts
 
-* **Ctrl+S** – Save entry
-* **Ctrl+N** – New quick entry
-* **Ctrl+R** – Refresh log
-* **Ctrl+F** – Search
+* **Ctrl/Cmd+S** – Save entry
+* **Ctrl/Cmd+N** – New quick entry
+* **Ctrl/Cmd+R** – Refresh log
+* **Ctrl/Cmd+F** – Search
 
 # 🔎 Filtering Entries
 
@@ -128,6 +128,8 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 * Add new entries directly
 * Clipboard control (clear sensitive data)
 * Access clipboard security settings
+
+> Note: system tray integration depends on desktop environment support. Some Linux sessions may not expose a tray icon.
 
 # 💾 Backup and Restore
 
@@ -233,6 +235,16 @@ You can include:
 
 * URLs
 * Local file links (opening executable/script-like files requires explicit confirmation)
+* Other log entries: `[13:23 2022-12-12]` (LogHog format) or `[2022-12-12 13:23]`
+
+Use **Log link** next to the formatting buttons in either entry editor. Enter a date
+and time; the dialog checks the format, calendar date, and whether an entry exists.
+Errors leave the dialog open so you can correct the input, or choose **Cancel**.
+Click a log link in Preview or Full Log to open the entry in Log Entries, adjusting
+the date filter and clearing search if needed. If several entries share the same
+timestamp, the last matching entry in the list is selected. Links refer to timestamps
+in the current log file; changing or deleting the target timestamp breaks the link.
+Log links inside code are displayed as plain text.
 
 Example:
 

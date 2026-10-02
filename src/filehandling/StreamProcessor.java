@@ -11,8 +11,6 @@ import java.util.List;
 public final class StreamProcessor {
     private StreamProcessor() {}
 
-    private static final java.util.regex.Pattern TS_PATTERN = java.util.regex.Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( .*|)$");
-
     public static final class ParseResult {
         public final long totalEntries;
         public final List<List<String>> entriesNewestFirst;
@@ -42,7 +40,7 @@ public final class StreamProcessor {
             String line = it.next();
             String trimmed = line.trim();
             if (".LOG".equalsIgnoreCase(trimmed)) continue;
-            boolean isHeader = TS_PATTERN.matcher(trimmed).matches()
+            boolean isHeader = LogParser.isTimestampLine(trimmed)
                 && (currentEntry.isEmpty() || currentEntry.get(currentEntry.size() - 1).isBlank());
             if (isHeader) {
                 if (!currentEntry.isEmpty()) {
