@@ -217,17 +217,20 @@ public class LogFileHandler implements LogFileOperations {
      * Asynchronous save helper: runs save on a background thread and updates the model on EDT.
      */
     public void saveTextAsync(String text, DefaultListModel<String> listModel, Runnable onComplete) {
+        final long session = cache.securityGeneration();
         asyncSaver.saveTextAsync(text, listModel, () -> {
             // Reload list to properly count occurrences for display suffixes.
             // Runs on the save thread (not the EDT) so large files do not freeze the UI.
             try {
+                if (!cache.isSecurityCurrent(session)) return;
                 invalidateEntryCache();
-                entryLoader.loadLogEntries(listModel);
+                entryLoader.loadLogEntries(listModel, () -> cache.isSecurityCurrent(session));
             } catch (Exception e) {
                 // Fall back to just invalidation on error
                 writeDebug("saveTextAsync: reload failed - " + e.getMessage());
             }
         }, () -> {
+            if (!cache.isSecurityCurrent(session)) return;
             // Keep Full Log and other cache-aware views in sync after async saves.
             notifyCacheInvalidationListeners();
             if (onComplete != null) onComplete.run();

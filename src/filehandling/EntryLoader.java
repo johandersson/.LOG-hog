@@ -32,6 +32,13 @@ public class EntryLoader {
     private long generation;
     private long generation() { synchronized (cacheLock) { return generation; } }
     private boolean current(long token) { synchronized (cacheLock) { return generation == token; } }
+    private void publishModel(long token, java.util.function.BooleanSupplier allowed, Runnable update) {
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            synchronized (cacheLock) {
+                if (generation == token && allowed.getAsBoolean()) update.run();
+            }
+        });
+    }
     private final LogFileHandler logFileHandler;
     private final Encryptor encryptor;
     private static final long ENTRY_CONTENT_CACHE_TTL_MS = 15_000L;
@@ -177,8 +184,13 @@ public class EntryLoader {
     }
 
     public void loadLogEntries(DefaultListModel<String> listModel) throws Exception {
+        loadLogEntries(listModel, () -> true);
+    }
+
+    void loadLogEntries(DefaultListModel<String> listModel, java.util.function.BooleanSupplier allowed) throws Exception {
         final long token = generation();
-        javax.swing.SwingUtilities.invokeLater(() -> { if (current(token)) listModel.clear(); });
+        if (!allowed.getAsBoolean()) return;
+        publishModel(token, allowed, listModel::clear);
         
         // Check if file exists and handle missing file
         if (!Files.exists(logFileHandler.getFilePath())) {
@@ -203,8 +215,7 @@ public class EntryLoader {
 
             // Batch update the model on EDT - DefaultListModel is NOT thread-safe
             final List<String> elementsFinal = elementsToAdd;
-            javax.swing.SwingUtilities.invokeLater(() -> {
-                if (!current(token)) return;
+            publishModel(token, allowed, () -> {
                 listModel.removeAllElements();
                 for (String element : elementsFinal) {
                     listModel.addElement(element);
@@ -213,7 +224,7 @@ public class EntryLoader {
 
             // Keep timestamp cache for other callers
             synchronized (cacheLock) {
-                if (!current(token)) return;
+                if (!current(token) || !allowed.getAsBoolean()) return;
                 timestampListCache = timestamps;
             }
             // We've populated the view from cache - done
@@ -305,8 +316,7 @@ public class EntryLoader {
             
             // Batch update on EDT - DefaultListModel is NOT thread-safe
             final List<String> elementsFinal = elementsToAdd;
-            javax.swing.SwingUtilities.invokeLater(() -> {
-                if (!current(token)) return;
+            publishModel(token, allowed, () -> {
                 listModel.removeAllElements();
                 for (String element : elementsFinal) {
                     listModel.addElement(element);
@@ -326,7 +336,7 @@ public class EntryLoader {
                 parsed.add(new ParsedEntry(ts, dt));
             }
             synchronized (cacheLock) {
-                if (!current(token)) return;
+                if (!current(token) || !allowed.getAsBoolean()) return;
                 timestampListCache = timestamps;
                 parsedEntriesCache = parsed;
                 updateCacheTimestamp();
@@ -351,7 +361,7 @@ public class EntryLoader {
     public void loadFilteredEntriesByYear(DefaultListModel<String> listModel, int year) {
         final long token = generation();
         if (!Files.exists(logFileHandler.getFilePath())) {
-            javax.swing.SwingUtilities.invokeLater(() -> listModel.removeAllElements());
+            publishModel(token, () -> true, listModel::removeAllElements);
             return;
         }
 
@@ -371,8 +381,7 @@ public class EntryLoader {
             
             // Update Swing model on EDT - DefaultListModel is NOT thread-safe
             final List<String> filteredFinal = filtered;
-            javax.swing.SwingUtilities.invokeLater(() -> {
-                if (!current(token)) return;
+            publishModel(token, () -> true, () -> {
                 listModel.removeAllElements();
                 for (String timestamp : filteredFinal) {
                     listModel.addElement(timestamp);
@@ -431,7 +440,7 @@ public class EntryLoader {
     public void loadFilteredEntries(DefaultListModel<String> listModel, int year, int month) {
         final long token = generation();
         if (!Files.exists(logFileHandler.getFilePath())) {
-            javax.swing.SwingUtilities.invokeLater(() -> listModel.removeAllElements());
+            publishModel(token, () -> true, listModel::removeAllElements);
             return;
         }
 
@@ -453,8 +462,7 @@ public class EntryLoader {
             
             // Update Swing model on EDT - DefaultListModel is NOT thread-safe
             final List<String> filteredFinal = filtered;
-            javax.swing.SwingUtilities.invokeLater(() -> {
-                if (!current(token)) return;
+            publishModel(token, () -> true, () -> {
                 listModel.removeAllElements();
                 for (String timestamp : filteredFinal) {
                     listModel.addElement(timestamp);

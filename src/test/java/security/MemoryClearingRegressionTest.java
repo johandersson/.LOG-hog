@@ -118,6 +118,59 @@ class MemoryClearingRegressionTest {
         } finally { release.countDown(); panel.dispose(); handler.clearSensitiveData(); }
     }
 
+    @Test void startupFilteredLoaderCannotContinueAfterLockThenUnlock() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeFalse(java.awt.GraphicsEnvironment.isHeadless());
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        var worker = new java.util.concurrent.atomic.AtomicReference<Thread>();
+        var fallbacks = new java.util.concurrent.atomic.AtomicInteger();
+        Runnable block = () -> {
+            worker.set(Thread.currentThread());
+            entered.countDown();
+            try { assertTrue(release.await(5, TimeUnit.SECONDS)); }
+            catch (InterruptedException e) { throw new AssertionError(e); }
+        };
+        var handler = new LogFileHandler(directory.resolve("startup.txt"), EncryptionManager.getInstance()) {
+            @Override public void loadFilteredEntries(javax.swing.DefaultListModel<String> model, int year, int month) {
+                block.run();
+            }
+            @Override public filehandling.EntryLoader getEntryLoader() {
+                return new filehandling.EntryLoader(this) {
+                    @Override public List<String> computeTimestampsByYearMonth(int year, int month) {
+                        block.run();
+                        return List.of();
+                    }
+                };
+            }
+            @Override public List<String> getRecentLogEntries(int count) {
+                fallbacks.incrementAndGet();
+                return List.of();
+            }
+        };
+        var editor = editorWithoutStartup(handler);
+        var initializer = new main.UIInitializer(editor, new javax.swing.JTabbedPane(), List.of(),
+            new java.util.Properties());
+        var progress = new gui.LoadingProgressDialog(null, "Loading");
+        var timer = new javax.swing.Timer(100, event -> {});
+        try {
+            var start = main.UIInitializer.class.getDeclaredMethod("startFilteredEntriesLoader",
+                javax.swing.DefaultListModel.class, int.class, int.class, gui.LoadingProgressDialog.class,
+                javax.swing.Timer.class);
+            start.setAccessible(true);
+            SwingUtilities.invokeAndWait(() -> {
+                try { start.invoke(initializer, new javax.swing.DefaultListModel<String>(), 2026, 10, progress, timer); }
+                catch (Exception e) { throw new AssertionError(e); }
+            });
+            assertTrue(entered.await(5, TimeUnit.SECONDS));
+            editor.setLocked(true);
+            editor.setLocked(false);
+            release.countDown();
+            worker.get().join(5000);
+            assertFalse(worker.get().isAlive());
+            assertEquals(0, fallbacks.get(), "old loader must not begin fallback work in the new session");
+        } finally { release.countDown(); timer.stop(); progress.close(); }
+    }
+
     @Test void invalidatedEntryHydrationCannotRepublishCache() throws Exception {
         Path file = directory.resolve("hydration.txt");
         Files.writeString(file, "placeholder");
