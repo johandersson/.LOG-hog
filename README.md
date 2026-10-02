@@ -1,6 +1,6 @@
-# 📦 .LOG-hog
+# 📦 .LOG-hog - for fast, secure, encrypted notes and diaries.
 
-**A lightweight, cross-platform Java application for fast note-taking with built-in protection (strong encryption) for sensitive local notes.**
+**A lightweight, cross-platform Java application for fast note-taking with built-in protection (strong encryption) for sensitive local notes. Perfect for keeping a work log, diary, or just any kind of sensitive notes.**
 
 .LOG-hog runs on **Windows, macOS, and Linux** and provides a simple, efficient workflow for creating timestamped log entries with encryption-first storage and practical local hardening.
 
@@ -10,7 +10,7 @@
 
 .LOG-hog is designed for **fast, uninterrupted note-taking**.
 
-On startup, the editor is immediately focused so you can begin writing right away. Press **Ctrl+S** or click **Save** to store the entry with a timestamp. The input field is then cleared automatically, allowing you to continue writing without interruption.
+On startup, the editor is immediately focused so you can begin writing right away. Press **Ctrl+S** (or **Cmd+S** on macOS) or click **Save** to store the entry with a timestamp. The input field is then cleared automatically, allowing you to continue writing without interruption.
 
 This workflow is optimized for rapid, continuous logging/writing a diary or just quick notes. Notes are saved with strong encryption.
 
@@ -109,6 +109,8 @@ Note: local lockout/audit metadata keys are protected with a host-profile-bound 
 * System tray integration
 * GPLv3 licensed
 
+> Note: system tray integration depends on desktop environment support. Some Linux sessions (especially minimal/Wayland setups) may not show a tray icon.
+
 ***
 
 ## ⚙️ System Requirements
@@ -190,9 +192,10 @@ cd src
 javac -encoding UTF-8 -d . $(find . -name "*.java" ! -path "*/test/*")
 jar cvfm ../build/loghog.jar manifest.txt \
 LogHog.class main/*.class gui/*.class filehandling/*.class \
-clipboard/*.class notepad/*.class browser/*.class \
+clipboard/*.class browser/*.class \
 encryption/*.class markdown/*.class services/*.class \
-utils/*.class resources/
+main/*.class security/*.class utils/*.class \
+-C .. LICENSE.md -C . resources/
 ```
 
 ***
@@ -202,6 +205,14 @@ utils/*.class resources/
 ```bash
 java -jar build/loghog.jar
 ```
+
+If you built with `build.sh` / `build.bat`, use the timestamped artifact:
+
+```bash
+java -jar build/loghog-<timestamp>.jar
+```
+
+or use `build/run-latest.sh` (Linux/macOS) / `build/run-latest.bat` (Windows).
 
 ***
 

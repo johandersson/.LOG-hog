@@ -48,6 +48,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import filehandling.LogFileHandler;
 import main.BackupManager;
@@ -90,6 +92,8 @@ public final class SettingsPanel extends JPanel {
     private JCheckBox autoBackupCheckBox;
     private JCheckBox autoLockCheckBox;
     private JSpinner autoLockTimeoutSpinner;
+    private List<String> loadedSettings;
+    private boolean loadingSettings;
 
     public SettingsPanel(LogTextEditor editor, Properties settings, Path settingsPath, LogFileHandler logFileHandler) {
         this.editor = editor;
@@ -150,6 +154,56 @@ public final class SettingsPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
 
         loadCurrentSettings();
+        trackSettingsChanges();
+    }
+
+    private List<String> editableSettings() {
+        return List.of(
+            backupDirField.getText(),
+            Boolean.toString(autoBackupCheckBox.isSelected()),
+            Boolean.toString(splashOnStartupCheckBox.isSelected()),
+            clipboardTimeoutField.getText(),
+            ((JSpinner.DefaultEditor) autoLockTimeoutSpinner.getEditor()).getTextField().getText()
+        );
+    }
+
+    private boolean hasSettingsChanges() {
+        return loadedSettings != null && !loadedSettings.equals(editableSettings());
+    }
+
+    private void updateApplyButton() {
+        if (loadingSettings) {
+            return;
+        }
+        applyButton.setEnabled(hasSettingsChanges());
+        applyButton.setToolTipText(null);
+        statusLabel.setText("");
+    }
+
+    private void trackSettingsChanges() {
+        DocumentListener listener = new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent event) {
+                updateApplyButton();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent event) {
+                updateApplyButton();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent event) {
+                updateApplyButton();
+            }
+        };
+        backupDirField.getDocument().addDocumentListener(listener);
+        clipboardTimeoutField.getDocument().addDocumentListener(listener);
+        ((JSpinner.DefaultEditor) autoLockTimeoutSpinner.getEditor()).getTextField()
+            .getDocument().addDocumentListener(listener);
+        autoBackupCheckBox.addItemListener(event -> updateApplyButton());
+        splashOnStartupCheckBox.addItemListener(event -> updateApplyButton());
+        autoLockTimeoutSpinner.addChangeListener(event -> updateApplyButton());
     }
 
     private JPanel createEncryptionPanel() {
@@ -309,6 +363,7 @@ public final class SettingsPanel extends JPanel {
     }
 
     public void loadCurrentSettings() {
+        loadingSettings = true;
         backupDirField.setText(settings.getProperty(KEY_BACKUP_DIRECTORY, ""));
         autoBackupCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_AUTO_BACKUP_ENABLED, VALUE_FALSE)));
         splashOnStartupCheckBox.setSelected(VALUE_TRUE.equals(settings.getProperty(KEY_SHOW_SPLASH, VALUE_TRUE)));
@@ -333,9 +388,23 @@ public final class SettingsPanel extends JPanel {
         
         encryptionCheckBox.setSelected(true);
         encryptionCheckBox.setEnabled(false);
+        loadedSettings = editableSettings();
+        loadingSettings = false;
+        updateApplyButton();
     }
 
     private void applySettings() {
+        try {
+            autoLockTimeoutSpinner.commitEdit();
+        } catch (java.text.ParseException e) {
+            gui.DialogHelper.showError(editor, "Invalid Input", "Auto-lock timeout must be a number between 15 and 1440 minutes.");
+            loadCurrentSettings();
+            return;
+        }
+        if (!hasSettingsChanges()) {
+            updateApplyButton();
+            return;
+        }
         var currentEnc = settings.getProperty(KEY_ENCRYPTED);
 
         // Encrypted-only policy: always require encryption and bootstrap if not enabled yet.
@@ -344,13 +413,6 @@ public final class SettingsPanel extends JPanel {
             return;
         }
 
-        // Check if any settings actually changed
-        var currentBackupDir = settings.getProperty(KEY_BACKUP_DIRECTORY, "");
-        var currentSplashOnStartup = VALUE_TRUE.equals(settings.getProperty(KEY_SHOW_SPLASH, VALUE_TRUE));
-        var currentClipboardAutoClear = VALUE_TRUE.equals(settings.getProperty(KEY_CLIPBOARD_AUTO_CLEAR, VALUE_TRUE));
-        var currentClipboardTimeout = settings.getProperty(KEY_CLIPBOARD_TIMEOUT, "30");
-        var currentAutoLockEnabled = VALUE_TRUE.equals(settings.getProperty(KEY_AUTO_LOCK_ENABLED, VALUE_FALSE));
-        int currentAutoLockTimeoutSeconds = Integer.parseInt(settings.getProperty(KEY_AUTO_LOCK_TIMEOUT, "900"));
         var newBackupDir = backupDirField.getText();
         var newAutoBackupEnabled = autoBackupCheckBox.isSelected();
         var newSplashOnStartup = splashOnStartupCheckBox.isSelected();
@@ -381,20 +443,6 @@ public final class SettingsPanel extends JPanel {
         }
 
         var currentAutoBackupEnabled = VALUE_TRUE.equals(settings.getProperty(KEY_AUTO_BACKUP_ENABLED, VALUE_FALSE));
-
-        var settingsChanged = !currentBackupDir.equals(newBackupDir) ||
-                            currentAutoBackupEnabled != newAutoBackupEnabled ||
-                            currentSplashOnStartup != newSplashOnStartup ||
-                            currentClipboardAutoClear != newClipboardAutoClear ||
-                            !currentClipboardTimeout.equals(newClipboardTimeout) ||
-                            currentAutoLockEnabled != newAutoLockEnabled ||
-                            currentAutoLockTimeoutSeconds != newAutoLockTimeoutSeconds;
-
-        if (!settingsChanged) {
-            statusLabel.setText("No changes to apply.");
-            statusLabel.setForeground(Color.BLUE);
-            return;
-        }
 
         // Save settings
         settings.setProperty(KEY_BACKUP_DIRECTORY, newBackupDir);
@@ -736,6 +784,13 @@ public final class SettingsPanel extends JPanel {
         try (var fos = java.nio.file.Files.newOutputStream(settingsPath)) {
             settings.store(fos, "LogHog settings");
             security.SecurityFilePolicy.ensureOwnerOnlyPermissions(settingsPath);
+            if (security.SecurityFilePolicy.persistPermissionWarningFlagIfNeeded(settings, settingsPath)) {
+                gui.DialogHelper.showWarning(editor,
+                    "Security Notice",
+                    "Platform Permission Limits",
+                    "Strict owner-only permission verification is unavailable on this platform.<br><br>" +
+                    "For best protection, use a dedicated user account and full-disk encryption.");
+            }
         } catch (java.io.IOException e) {
             gui.DialogHelper.showError(editor, "Error", "Error saving settings. Please check file permissions and try again.");
         }

@@ -29,6 +29,7 @@ import java.awt.image.BufferedImage;
 import javax.swing.JFrame;
 
 import main.LogTextEditor;
+import utils.Log;
 
 public class SystemTrayMenu {
     private static SystemTrayMenu instance;
@@ -42,6 +43,7 @@ public class SystemTrayMenu {
     public static void initSystemTray(){
         try {
             if (!SystemTray.isSupported()) {
+                Log.info("System tray is not supported on this platform/session; tray integration disabled.");
                 return;
             }
 
@@ -125,6 +127,7 @@ public class SystemTrayMenu {
             tray.add(SystemTrayMenu.trayIcon);
 
         } catch (AWTException e) {
+            Log.warn("Failed to initialize system tray integration.");
         }
     }
     public static synchronized SystemTrayMenu getInstance() {

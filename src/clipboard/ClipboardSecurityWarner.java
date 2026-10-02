@@ -19,6 +19,7 @@ package clipboard;
 
 import javax.swing.*;
 import javax.swing.SwingUtilities;
+import java.awt.Desktop;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -52,14 +53,6 @@ public class ClipboardSecurityWarner {
         getClipboardRisksEducation().replace("<h3", "<h4").replace("</h3>", "</h4>") +
         "</body></html>";
 
-    private static final String FULL_LOG_WARNING =
-        "<html><body style='width: 400px; font-family: Segoe UI, sans-serif; font-size: 9px;'>" +
-        "<h3 style='color: #d32f2f; margin-top: 0;'>🚨 Full Log Export Warning</h3>" +
-        "<p>You are about to copy your <b>entire log file</b> to the clipboard.</p>" +
-        "<p><b>This may contain sensitive information across all your entries!</b></p>" +
-        getClipboardRisksEducation().replace("<h3", "<h4").replace("</h3>", "</h4>") +
-        "</body></html>";
-
     /**
      * Show enhanced warning for copying from encrypted files.
      * @return true if user confirms, false if cancelled
@@ -68,16 +61,6 @@ public class ClipboardSecurityWarner {
         return showSecurityWarning(parent, ENCRYPTED_FILE_WARNING,
             "Copy to Clipboard - Encrypted File Security Warning",
             "Copy anyway", "Don't copy");
-    }
-
-    /**
-     * Show enhanced warning for copying full log to clipboard.
-     * @return true if user confirms, false if cancelled
-     */
-    public static boolean showFullLogWarning(Component parent) {
-        return showSecurityWarning(parent, FULL_LOG_WARNING,
-            "Copy Full Log to Clipboard - Security Warning",
-            "Copy full log", "Don't copy");
     }
 
     /**
@@ -194,7 +177,13 @@ public class ClipboardSecurityWarner {
                     String url = e.getURL().toString();
                     // Only allow http/https links from clickable HTML panels
                     if (security.PathValidator.isSafeHttpUrl(url)) {
-                        java.awt.Desktop.getDesktop().browse(e.getURL().toURI());
+                        Desktop desktop = utils.PlatformSupport.getDesktopForAction(Desktop.Action.BROWSE);
+                        if (desktop != null) {
+                            desktop.browse(e.getURL().toURI());
+                        } else {
+                            gui.DialogHelper.showWarning(null, "Unsupported System", "Cannot Open Browser",
+                                "This system does not support opening URLs via the Java Desktop API.");
+                        }
                     } else {
                         gui.DialogHelper.showWarning(null, "Blocked Link", "Blocked Link",
                             "This link uses an unsupported scheme and was blocked for your safety.");

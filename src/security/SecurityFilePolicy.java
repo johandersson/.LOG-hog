@@ -1,10 +1,12 @@
 package security;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -63,6 +65,39 @@ public final class SecurityFilePolicy {
             return noNewlines;
         }
         return noNewlines.substring(0, 1000) + "...";
+    }
+
+    /**
+     * Persists the one-time permissions warning flag if strict owner-only verification
+     * is unavailable on this platform.
+     *
+     * @return true when the flag was newly persisted and the caller should display the warning.
+     */
+    public static boolean persistPermissionWarningFlagIfNeeded(Properties settings, Path settingsPath) {
+        if (settings == null || settingsPath == null) {
+            return false;
+        }
+        if (isOwnerOnlyAccessEnforced(settingsPath)) {
+            return false;
+        }
+        if ("true".equals(settings.getProperty("permissionsWarningShown", "false"))) {
+            return false;
+        }
+
+        String previous = settings.getProperty("permissionsWarningShown");
+        settings.setProperty("permissionsWarningShown", "true");
+        try (var out = Files.newOutputStream(settingsPath)) {
+            settings.store(out, "LogHog settings");
+            ensureOwnerOnlyPermissions(settingsPath);
+            return true;
+        } catch (IOException ex) {
+            if (previous == null) {
+                settings.remove("permissionsWarningShown");
+            } else {
+                settings.setProperty("permissionsWarningShown", previous);
+            }
+            return false;
+        }
     }
 
     private static boolean tryApplyOwnerOnlyPermissions(Path path) {

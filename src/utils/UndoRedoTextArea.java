@@ -23,7 +23,6 @@ import javax.swing.undo.CannotRedoException;
 import javax.swing.undo.CannotUndoException;
 import javax.swing.undo.UndoManager;
 import java.awt.event.ActionEvent;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 
 public final class UndoRedoTextArea extends JTextArea {
@@ -64,8 +63,9 @@ public final class UndoRedoTextArea extends JTextArea {
         });
 
         // Keyboard shortcuts
-        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK), "Undo");
-        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_Y, InputEvent.CTRL_DOWN_MASK), "Redo");
+        int shortcutMask = PlatformSupport.menuShortcutMask();
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, shortcutMask), "Undo");
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_Y, shortcutMask), "Redo");
     }
 
     private void installUndoSupport() {

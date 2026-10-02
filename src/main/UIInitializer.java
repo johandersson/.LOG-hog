@@ -43,11 +43,13 @@ import gui.NavItem;
 import gui.SplashScreen;
 import gui.StatusBar;
 import gui.LoadingProgressDialog;
+import utils.PlatformSupport;
 
 public class UIInitializer {
     private final LogTextEditor editor;
     private final JTabbedPane tabPane;
     private final List<NavItem> navItems;
+    private final String shortcutLabel = PlatformSupport.primaryShortcutLabel();
     private boolean initialEntryFocusApplied;
 
     public UIInitializer(LogTextEditor editor, JTabbedPane tabPane, List<NavItem> navItems, java.util.Properties settings) {
@@ -138,7 +140,7 @@ public class UIInitializer {
             int selectedIndex = tabPane.getSelectedIndex();
             // Show "Write something" message only on editing tabs (index 0 and 1)
             if (selectedIndex == 0 || selectedIndex == 1) {
-                statusBar.setMessage("Write something and hit CTRL+S");
+                statusBar.setMessage("Write something and hit " + shortcutLabel + "+S");
             } else {
                 statusBar.setMessage("");
             }
