@@ -11,6 +11,34 @@ import javax.swing.text.StyledDocument;
 import org.junit.jupiter.api.Test;
 
 class LogEntryLinkRenderingTest {
+    @Test
+    void rendersEverySupportedDateFormatAndRoutesClicksCanonically() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            try {
+                for (String timestamp : List.of("19/12/2022 13:23", "12/19/2022 13:23",
+                        "19.12.2022 13:23", "19-12-2022 13:23")) {
+                    var pane = new JTextPane();
+                    pane.setDocument(render("See [" + timestamp + "]."));
+                    pane.setSize(600, 150);
+                    var text = pane.getText();
+                    int offset = text.indexOf(timestamp);
+                    assertEquals("loghog:13:23 2022-12-19",
+                            pane.getStyledDocument().getCharacterElement(offset)
+                                    .getAttributes().getAttribute("href"), timestamp);
+                    var selected = new AtomicReference<String>();
+                    LinkHandler.addLinkListeners(pane, selected::set);
+                    var bounds = pane.modelToView2D(offset);
+                    var event = new MouseEvent(pane, MouseEvent.MOUSE_CLICKED, 0, 0,
+                            (int) bounds.getX(), (int) bounds.getY() + 2, 1, false, MouseEvent.BUTTON1);
+                    for (var listener : pane.getMouseListeners()) listener.mouseClicked(event);
+                    assertEquals("13:23 2022-12-19", selected.get(), timestamp);
+                }
+            } catch (Exception ex) {
+                throw new AssertionError(ex);
+            }
+        });
+    }
+
     private StyledDocument render(String body) throws Exception {
         return MarkdownRenderer.buildDocumentFromEntries(
                 List.of(List.of("12:00 2026-07-15", body)), null);

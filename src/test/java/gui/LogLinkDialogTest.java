@@ -10,6 +10,23 @@ import org.junit.jupiter.api.Test;
 
 class LogLinkDialogTest {
     @Test
+    void insertsCanonicalLinksFromAllSupportedDateFormats() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            for (String input : java.util.List.of("2022-12-19 13:23", "19/12/2022 13:23",
+                    "12/19/2022 13:23", "19.12.2022 13:23", "19-12-2022 13:23")) {
+                var target = new JTextArea();
+                var closes = new AtomicInteger();
+                var panel = new LogLinkDialog(target,
+                        timestamp -> timestamp.equals("13:23 2022-12-19"), closes::incrementAndGet);
+                panel.timestampField.setText(input);
+                panel.insertButton.doClick();
+                assertEquals("[13:23 2022-12-19]", target.getText(), input);
+                assertEquals(1, closes.get(), input);
+            }
+        });
+    }
+
+    @Test
     void lookupFailureCanBeRetriedWithoutClosing() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             var target = new JTextArea("text");
