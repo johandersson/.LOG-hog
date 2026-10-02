@@ -58,8 +58,6 @@ public class MarkdownRenderer {
     private static final long DOC_CACHE_TTL_MS = 60_000L;
     private static final int MAX_CACHEABLE_ENTRY_CHARS = 16_384;
 
-    // Pre-compiled pattern for timestamp validation - much faster than String.matches()
-    private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d{2}:\\d{2} \\d{4}-\\d{2}-\\d{2}( *\\(\\d+\\))?$");
     private static final Pattern ASCII_CONTROL_PATTERN = Pattern.compile("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]");
     private static final Pattern DEL_PATTERN = Pattern.compile("[\\x7F]");
     private static final Pattern SCRIPT_OPEN_PATTERN = Pattern.compile("(?i)<script");
@@ -898,7 +896,7 @@ public class MarkdownRenderer {
     }
 
     private static boolean isTimestampLine(String line) {
-        return TIMESTAMP_PATTERN.matcher(line.trim()).matches();
+        return filehandling.LogParser.isTimestampLine(line);
     }
 
     private static boolean isCacheableEntry(List<String> entry) {

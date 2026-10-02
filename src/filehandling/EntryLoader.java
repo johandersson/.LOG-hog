@@ -250,7 +250,7 @@ public class EntryLoader {
             var timestampEntriesWithDates = new ArrayList<TimestampEntry>();
             var nonTimestampEntries = new ArrayList<List<String>>();
             for (List<String> entry : allEntries) {
-                if (!entry.isEmpty() && LogParser.isPrimaryTimestampLine(entry.get(0))) {
+                if (!entry.isEmpty() && LogParser.isTimestampLine(entry.get(0))) {
                     // Pre-parse timestamp once
                     LocalDateTime dateTime = null;
                     try {
@@ -301,7 +301,7 @@ public class EntryLoader {
                     // Strip any existing suffix from file (for backwards compatibility)
                     String cleanTs = rawTs.replaceAll(" \\(\\d+\\)$", "");
                     
-                    if (LogParser.isPrimaryTimestampLine(cleanTs)) {
+                    if (LogParser.isTimestampLine(cleanTs)) {
                         // Track occurrence for display suffix
                         int occurrence = occurrenceCount.getOrDefault(cleanTs, 0);
                         occurrenceCount.put(cleanTs, occurrence + 1);
@@ -495,7 +495,7 @@ public class EntryLoader {
         // Parse timestamps and create cached entries
         List<ParsedEntry> parsed = new ArrayList<>(entries.size());
         for (List<String> entry : entries) {
-            if (!entry.isEmpty() && LogParser.isPrimaryTimestampLine(entry.get(0))) {
+            if (!entry.isEmpty() && LogParser.isTimestampLine(entry.get(0))) {
                 String timestamp = entry.get(0).trim();
                 LocalDateTime dateTime = null;
                 try {
@@ -523,7 +523,7 @@ public class EntryLoader {
         for (ParsedEntry pe : parsed) {
             String rawTs = pe.timestamp == null ? "" : pe.timestamp.trim();
             String cleanTs = rawTs.replaceAll(" \\(\\d+\\)$", "");
-            if (LogParser.isPrimaryTimestampLine(cleanTs)) {
+            if (LogParser.isTimestampLine(cleanTs)) {
                 int occurrence = occurrenceCount.getOrDefault(cleanTs, 0);
                 occurrenceCount.put(cleanTs, occurrence + 1);
                 String displayTs = occurrence > 0 ? cleanTs + " (" + occurrence + ")" : cleanTs;
@@ -606,7 +606,7 @@ public class EntryLoader {
                 if (entry.isEmpty()) continue;
                 // Strip any existing suffix to get the canonical raw timestamp
                 String rawTs = entry.get(0).trim().replaceAll(" \\(\\d+\\)$", "");
-                if (!LogParser.isPrimaryTimestampLine(rawTs)) continue;
+                if (!LogParser.isTimestampLine(rawTs)) continue;
                 // Assign display key: first occurrence has no suffix, subsequent ones get (1), (2), …
                 int occ = occCount.getOrDefault(rawTs, 0);
                 occCount.put(rawTs, occ + 1);

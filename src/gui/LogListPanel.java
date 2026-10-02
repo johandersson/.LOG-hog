@@ -105,6 +105,8 @@ public final class LogListPanel extends JPanel {
     private final Highlighter.HighlightPainter searchHighlightPainter = 
         new DefaultHighlighter.DefaultHighlightPainter(java.awt.Color.YELLOW);
     private final JProgressBar entryProgressBar;
+    private final utils.AsyncRequestGate filterRequests = new utils.AsyncRequestGate();
+    private final utils.AsyncRequestGate entryLoadRequests = new utils.AsyncRequestGate();
 
     public LogListPanel(LogTextEditor editor, LogFileHandler logFileHandler, DefaultListModel<String> listModel, JList<String> logList) {
         this.editor = editor;
@@ -524,6 +526,7 @@ public final class LogListPanel extends JPanel {
             });
             return;
         }
+        final long request = filterRequests.start();
         
         // Get search parameters
         String searchQuery = searchField != null ? searchField.getText().trim() : "";
@@ -544,7 +547,7 @@ public final class LogListPanel extends JPanel {
 
         // Provide quick feedback
         SwingUtilities.invokeLater(() -> {
-            if (!editor.isSessionCurrent(session)) return;
+            if (!editor.isSessionCurrent(session) || !filterRequests.isCurrent(request)) return;
             listModel.removeAllElements();
             filterProgressBar.setVisible(true);
             if (searchResultLabel != null) {
@@ -565,7 +568,7 @@ public final class LogListPanel extends JPanel {
 
             @Override
             protected void done() {
-                if (!editor.isSessionCurrent(session)) return;
+                if (!editor.isSessionCurrent(session) || !filterRequests.isCurrent(request)) return;
                 try {
                     List<String> filtered = get();
                     listModel.removeAllElements();
@@ -598,7 +601,7 @@ public final class LogListPanel extends JPanel {
                     // Run callback after all entries are loaded
                     if (onComplete != null) {
                         SwingUtilities.invokeLater(() -> {
-                            if (editor.isSessionCurrent(session)) onComplete.run();
+                            if (editor.isSessionCurrent(session) && filterRequests.isCurrent(request)) onComplete.run();
                         });
                     }
                 } catch (java.util.concurrent.ExecutionException ee) {
@@ -610,12 +613,12 @@ public final class LogListPanel extends JPanel {
                         logFileHandler.showErrorDialog("<html><b>🔍 Search Failed</b><br><br>Unable to search entries.<br><br><i>Tip: Check search query and try again.</i></html>");
                     }
                     if (onComplete != null) SwingUtilities.invokeLater(() -> {
-                        if (editor.isSessionCurrent(session)) onComplete.run();
+                        if (editor.isSessionCurrent(session) && filterRequests.isCurrent(request)) onComplete.run();
                     });
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     if (onComplete != null) SwingUtilities.invokeLater(() -> {
-                        if (editor.isSessionCurrent(session)) onComplete.run();
+                        if (editor.isSessionCurrent(session) && filterRequests.isCurrent(request)) onComplete.run();
                     });
                 }
             }
@@ -708,7 +711,7 @@ public final class LogListPanel extends JPanel {
         previewScrollPane.setBorder(BorderFactory.createEmptyBorder());
 
         // Add formatting buttons panel
-        var formattingPanel = new FormattingPanel(entryArea);
+        var formattingPanel = new FormattingPanel(entryArea, editor::hasLogEntry);
         entryContainer.add(formattingPanel, BorderLayout.NORTH);
 
         lockPanel.setOpaque(false);
@@ -928,6 +931,7 @@ public final class LogListPanel extends JPanel {
     private void loadAndDisplayEntry(String timestamp) {
         final long session = editor.getSessionGeneration();
         if (!editor.isSessionCurrent(session)) return;
+        final long request = entryLoadRequests.start();
         if (timestamp == null || timestamp.trim().isEmpty()) {
             displayedEntryTimestamp = null;
             entryArea.setText("");
@@ -949,7 +953,7 @@ public final class LogListPanel extends JPanel {
 
             @Override
             protected void done() {
-                if (!editor.isSessionCurrent(session)) return;
+                if (!editor.isSessionCurrent(session) || !entryLoadRequests.isCurrent(request)) return;
                 try {
                     String content = get();
                     entryArea.setText(content != null ? content : "");
@@ -1245,10 +1249,16 @@ public final class LogListPanel extends JPanel {
 
         // Render using MarkdownRenderer
         MarkdownRenderer.renderMarkdownFromEntries(previewPane, entries, false);
-        LinkHandler.addLinkListeners(previewPane);
+        LinkHandler.addLinkListeners(previewPane, editor::openLogLink);
     }
 
     public void setLocked(boolean locked) {
+        if (locked) {
+            filterRequests.invalidate();
+            entryLoadRequests.invalidate();
+            filterProgressBar.setVisible(false);
+            entryProgressBar.setVisible(false);
+        }
         entryArea.setEditable(!locked);
         if (previewToggleBtn != null) previewToggleBtn.setEnabled(!locked);
         

@@ -300,6 +300,7 @@ class MemoryClearingRegressionTest {
         sun.misc.Unsafe unsafe = (sun.misc.Unsafe) unsafeField.get(null);
         var editor = (main.LogTextEditor) unsafe.allocateInstance(main.LogTextEditor.class);
         for (var setting : java.util.Map.of("lockObject", new Object(),
+                "logLinkRequests", new utils.AsyncRequestGate(),
                 "logFileHandler", handler, "listModel", new javax.swing.DefaultListModel<>()).entrySet()) {
             Field f = main.LogTextEditor.class.getDeclaredField(setting.getKey());
             f.setAccessible(true);

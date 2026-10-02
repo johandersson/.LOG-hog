@@ -75,6 +75,7 @@ coverage/
 lib/*.jar
 
 ### Testing ###
+/.tools/
 # JUnit and coverage JARs
 lib/*.jar
 # Coverage reports and data
@@ -107,4 +108,3 @@ jacoco.exec
 /spotbugs/
 /spotbugs/**
 /build/tools/spotbugs*
-

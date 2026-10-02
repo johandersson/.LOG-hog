@@ -89,7 +89,7 @@ public final class EntryPanel extends JPanel {
         textContainer.setOpaque(false);
 
         // Add formatting panel above text area
-        var formattingPanel = new FormattingPanel(textArea);
+        var formattingPanel = new FormattingPanel(textArea, editor::hasLogEntry);
         textContainer.add(formattingPanel, BorderLayout.NORTH);
         textContainer.add(scrollPane, BorderLayout.CENTER);
 
@@ -151,7 +151,7 @@ public final class EntryPanel extends JPanel {
 
         // Render using MarkdownRenderer
         MarkdownRenderer.renderMarkdownFromEntries(previewPane, entries, false);
-        LinkHandler.addLinkListeners(previewPane);
+        LinkHandler.addLinkListeners(previewPane, editor::openLogLink);
     }
 
     private static JPanel buildLockPanel(LogTextEditor ed) {

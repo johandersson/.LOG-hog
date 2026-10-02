@@ -19,6 +19,7 @@ package utils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -36,13 +37,20 @@ public class DateHandler {
 
     // International timestamp patterns (for log files written on different locales).
     // Checked by both isTimestamp() and parseTimestamp() as fallbacks after the primary format.
-    private static final List<DateTimeFormatter> INTERNATIONAL_FORMATTERS = List.of(
-        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT),  // ISO reversed
-        DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.ROOT),  // European slash
-        DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm", Locale.ROOT),  // US slash
-        DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", Locale.ROOT),  // German / Central-European dot
-        DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm", Locale.ROOT)   // European dash
+    private static final List<String> INTERNATIONAL_FORMATS = List.of(
+        "yyyy-MM-dd HH:mm",  // ISO reversed
+        "dd/MM/yyyy HH:mm",  // European slash
+        "MM/dd/yyyy HH:mm",  // US slash
+        "dd.MM.yyyy HH:mm",  // German / Central-European dot
+        "dd-MM-yyyy HH:mm"   // European dash
     );
+    private static final List<DateTimeFormatter> INTERNATIONAL_FORMATTERS = INTERNATIONAL_FORMATS.stream()
+        .map(pattern -> DateTimeFormatter.ofPattern(pattern, Locale.ROOT)).toList();
+    private static final List<DateTimeFormatter> STRICT_INTERNATIONAL_FORMATTERS = INTERNATIONAL_FORMATS.stream()
+        .map(pattern -> DateTimeFormatter.ofPattern(pattern.replace("yyyy", "uuuu"), Locale.ROOT)
+            .withResolverStyle(ResolverStyle.STRICT)).toList();
+    private static final DateTimeFormatter STRICT_NATIVE_FORMATTER = DateTimeFormatter
+        .ofPattern("HH:mm uuuu-MM-dd", Locale.ROOT).withResolverStyle(ResolverStyle.STRICT);
 
     // Patterns that match each international format (used in isTimestamp).
     private static final List<Pattern> INTERNATIONAL_PATTERNS = List.of(
@@ -91,6 +99,38 @@ public class DateHandler {
             }
         }
         throw new IllegalArgumentException("Unsupported timestamp format: '" + trimmed + "'.");
+    }
+
+    /**
+     * Validates an exact, unsuffixed timestamp using the supported formats and real
+     * calendar dates. Ambiguous slash dates use European-first precedence.
+     */
+    public static LocalDateTime parseTimestampStrict(String timestamp) {
+        if (timestamp == null || !timestamp.equals(timestamp.trim())
+                || timestamp.endsWith(")") || !isTimestamp(timestamp)) {
+            throw new IllegalArgumentException("Invalid timestamp format");
+        }
+        if (TIMESTAMP_PATTERN.matcher(timestamp).matches()) {
+            return parseStrict(timestamp, STRICT_NATIVE_FORMATTER);
+        }
+        for (DateTimeFormatter formatter : STRICT_INTERNATIONAL_FORMATTERS) {
+            try {
+                return parseStrict(timestamp, formatter);
+            } catch (IllegalArgumentException ignored) {
+                // Try the next supported format.
+            }
+        }
+        throw new IllegalArgumentException("Invalid date or time");
+    }
+
+    private static LocalDateTime parseStrict(String timestamp, DateTimeFormatter formatter) {
+        try {
+            LocalDateTime date = LocalDateTime.parse(timestamp, formatter);
+            if (date.getYear() < 1) throw new IllegalArgumentException("Invalid year");
+            return date;
+        } catch (java.time.DateTimeException ex) {
+            throw new IllegalArgumentException("Invalid date or time", ex);
+        }
     }
 
     /**
