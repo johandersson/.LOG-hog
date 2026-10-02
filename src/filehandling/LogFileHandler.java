@@ -217,17 +217,20 @@ public class LogFileHandler implements LogFileOperations {
      * Asynchronous save helper: runs save on a background thread and updates the model on EDT.
      */
     public void saveTextAsync(String text, DefaultListModel<String> listModel, Runnable onComplete) {
+        final long session = cache.securityGeneration();
         asyncSaver.saveTextAsync(text, listModel, () -> {
             // Reload list to properly count occurrences for display suffixes.
             // Runs on the save thread (not the EDT) so large files do not freeze the UI.
             try {
+                if (!cache.isSecurityCurrent(session)) return;
                 invalidateEntryCache();
-                entryLoader.loadLogEntries(listModel);
+                entryLoader.loadLogEntries(listModel, () -> cache.isSecurityCurrent(session));
             } catch (Exception e) {
                 // Fall back to just invalidation on error
                 writeDebug("saveTextAsync: reload failed - " + e.getMessage());
             }
         }, () -> {
+            if (!cache.isSecurityCurrent(session)) return;
             // Keep Full Log and other cache-aware views in sync after async saves.
             notifyCacheInvalidationListeners();
             if (onComplete != null) onComplete.run();
@@ -243,6 +246,7 @@ public class LogFileHandler implements LogFileOperations {
      * @param newText the new content
      */
     public void updateEntry(String displayTimestamp, String newText) {
+        final long session = cache.securityGeneration();
         if (newText.isBlank() || !Files.exists(filePath)) return;
 
         try {
@@ -261,9 +265,11 @@ public class LogFileHandler implements LogFileOperations {
             List<String> updatedLines = entryEditor.updateEntry(rawTs, occurrence, newText, lines);
 
             // Use write-back cache for performance
-            cache.invalidateEntryCache();
-            // Also set pending lines so write-back will flush to disk
-            cache.setPendingLines(updatedLines);
+            synchronized (cache) {
+                if (!cache.isSecurityCurrent(session)) return;
+                cache.invalidateEntryCache();
+                cache.setPendingLines(updatedLines);
+            }
 
             // Notify UI that parsed/full-log caches should be invalidated or refreshed
             notifyCacheInvalidationListeners();
@@ -760,6 +766,11 @@ public class LogFileHandler implements LogFileOperations {
         entryLoader.loadLogEntries(listModel);
     }
 
+    public void loadLogEntries(DefaultListModel<String> listModel,
+            java.util.function.BooleanSupplier publicationAllowed) throws Exception {
+        entryLoader.loadLogEntries(listModel, publicationAllowed);
+    }
+
     // load only entries matching year and month (1..12)
     public void loadFilteredEntries(DefaultListModel<String> listModel, int year, int month) {
         entryLoader.loadFilteredEntries(listModel, year, month);
@@ -948,13 +959,13 @@ public class LogFileHandler implements LogFileOperations {
             salt = null;
         }
         encryptionManager.clearSensitiveData();
-        cache.secureClear();
-        // Clear all EntryLoader caches (timestamps, parsed entries, content cache)
-        if (entryLoader != null) {
-            entryLoader.invalidateCaches();
+        try {
+            cache.secureClear();
+        } finally {
+            // Invalidate even when another cleanup operation fails.
+            if (entryLoader != null) entryLoader.invalidateCaches();
+            notifyCacheInvalidationListeners();
         }
-        // Notify listeners that sensitive data cleared and caches should be invalidated
-        notifyCacheInvalidationListeners();
     }
 
     public void showErrorDialog(String message) {

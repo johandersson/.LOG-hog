@@ -55,7 +55,7 @@ public class CompoundUndoDocumentFilter extends DocumentFilter {
         }, 1000); // End compound edit after 1 second of inactivity
     }
 
-    private void endCompoundEdit() {
+    private synchronized void endCompoundEdit() {
         if (compoundEdit != null && compoundEdit.isInProgress()) {
             compoundEdit.end();
             compoundEdit = null;
@@ -84,7 +84,7 @@ public class CompoundUndoDocumentFilter extends DocumentFilter {
      * Cleanup method to cancel timer and end any pending compound edits.
      * Should be called before application shutdown.
      */
-    public void cleanup() {
+    public synchronized void cleanup() {
         if (timer != null) {
             timer.cancel();
             timer = null;

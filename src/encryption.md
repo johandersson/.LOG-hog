@@ -159,6 +159,13 @@ sequenceDiagram
 
 ## Operational Limits
 
+Locking invalidates outstanding loads, clears editor undo histories and rendered documents,
+closes registered sensitive dialogs, and releases session/backup keys and caches. Failed or
+cancelled authentication also releases installed keys. Clipboard clearing retains a digest-only
+recovery marker and retries transient native failures; replacement clipboard content is preserved.
+These measures remove application references and zero owned key arrays, not all physical copies
+of plaintext in the Java heap.
+
 - Host compromise can defeat local-at-rest controls.
 - Memory dumps from an unlocked session can expose plaintext UI buffers and live session keys.
 - Clipboard security cannot guarantee clearing after forced process termination.
@@ -174,5 +181,4 @@ sequenceDiagram
 ## Summary
 
 .LOG-hog currently combines modern authenticated encryption, hardened lockout persistence, tamper-evident event logging, and stronger at-rest handling for local security key artifacts. The design provides strong local protection for personal sensitive data when used on a trusted and hardened host.
-
 

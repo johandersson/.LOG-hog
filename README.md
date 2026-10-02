@@ -1,4 +1,4 @@
-# 📦 .LOG-hog - for fast, secure, encrypted notes and diaries.
+# 📦 .LOG-hog - for fast, secure, encrypted notes
 
 **A lightweight, cross-platform Java application for fast note-taking with built-in protection (strong encryption) for sensitive local notes. Perfect for keeping a work log, diary, or just any kind of sensitive notes.**
 
@@ -10,7 +10,7 @@
 
 .LOG-hog is designed for **fast, uninterrupted note-taking**.
 
-On startup, the editor is immediately focused so you can begin writing right away. Press **Ctrl+S** (or **Cmd+S** on macOS) or click **Save** to store the entry with a timestamp. The input field is then cleared automatically, allowing you to continue writing without interruption.
+On startup, the editor is immediately focused so you can begin writing right away. After a successful unlock, focus returns to the editor when the first (entry) tab is active. Press **Ctrl+S** (or **Cmd+S** on macOS) or click **Save** to store the entry with a timestamp. The input field is then cleared automatically, allowing you to continue writing without interruption.
 
 This workflow is optimized for rapid, continuous logging/writing a diary or just quick notes. Notes are saved with strong encryption.
 
@@ -18,7 +18,7 @@ This workflow is optimized for rapid, continuous logging/writing a diary or just
 
 ## 🗂️ Format & Compatibility
 
-.LOG-hog keeps the familiar `.LOG`-style workflow but now uses **encrypted storage by policy**.
+.LOG-hog keeps the familiar `.LOG`-style workflow but uses **encrypted storage by policy**. Plaintext `.LOG` files cannot be opened directly; use a .LOG-hog encrypted file or restore an encrypted backup.
 
 * Primary storage is encrypted (AES-GCM) when initialized
 * Entry workflow, timestamps, search, and markdown rendering stay integrated in the app
@@ -29,7 +29,7 @@ Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.co
 * structured entries
 * advanced search and filtering
 * encryption-first storage
-* automatic backups
+* optional automatic backups
 * markdown rendering
 
 ***
@@ -49,7 +49,7 @@ Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.co
 * Tamper-evident security event log with sequence and hash-chain anchoring
 * Progressive delay on failed password attempts
 * No hardcoded keys or credentials
-* Sensitive data cleared from memory after use
+* App-managed sensitive runtime state is cleared on lock; complete erasure of every plaintext copy from JVM memory cannot be guaranteed
 * Encrypted backups and journal sidecar handling
 * Strict owner-only permission enforcement for security-critical artifacts
 * Clipboard auto-clear to reduce accidental exposure
@@ -102,7 +102,7 @@ Note: local lockout/audit metadata keys are protected with a host-profile-bound 
 * Advanced search (case sensitivity, navigation, filtering)
 * Markdown rendering in full log view
 * Info panel (entries, days logged, file size)
-* Automatic and manual backups
+* Manual and optional automatic backups
 * Single-instance enforcement
 * Right-click editing (delete, timestamp modification)
 * Support for multiple timestamp formats (ISO, US, EU, etc.)
@@ -124,9 +124,8 @@ Note: local lockout/audit metadata keys are protected with a host-profile-bound 
 
 ## 📦 Footprint
 
-* Application JAR: \~230 KB
-* No external dependencies
-* Single-file distribution
+* No external application dependencies beyond Java
+* Encrypted journal sidecars may accompany the main log while entries are being added
 
 This results in:
 
@@ -141,7 +140,7 @@ This results in:
 * Uses **AES-GCM** for authenticated encryption
 * Keys derived from your password using PBKDF2
 * Password is never written to disk
-* Sensitive memory is cleared after use
+* Locking clears app-managed sensitive state, but cannot guarantee erasure of every plaintext copy from JVM memory
 * Lockout state is persisted with tamper-evident integrity checks
 * Security events are persisted in a tamper-evident anchored chain
 * Backup copies can be integrity-verified
@@ -237,9 +236,9 @@ The script caches `junit-platform-console-standalone-1.10.2.jar` in `.tools/`, c
 
 ## 📚 Documentation
 
-* ARCHITECTURE.md
-* ../javadocs/index.html
-* See help file and CHANGELOG for details
+* [Architecture](ARCHITECTURE.md)
+* [Help](src/help.md)
+* [Changelog](CHANGELOG.md)
 
 ***
 

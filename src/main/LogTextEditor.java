@@ -117,6 +117,7 @@ public final class LogTextEditor extends JFrame {
     private boolean isLocked;
     private final utils.AsyncRequestGate logLinkRequests = new utils.AsyncRequestGate();
     private final Object lockObject = new Object();
+    private security.SensitiveWindowRegistry sensitiveWindows = new security.SensitiveWindowRegistry();
     private BackupManager backupManager;
     private javax.swing.Timer periodicBackupTimer;
     private javax.swing.Timer autoLockTimer;
@@ -142,15 +143,49 @@ public final class LogTextEditor extends JFrame {
     }
 
     public void setLocked(boolean locked) {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            try {
+                SwingUtilities.invokeAndWait(() -> setLocked(locked));
+            } catch (Exception e) {
+                throw new IllegalStateException("Unable to update lock state", e);
+            }
+            return;
+        }
         synchronized (lockObject) {
             this.isLocked = locked;
-            if (locked) logLinkRequests.invalidate();
-            // Securely clear cached data when locking to prevent memory forensics
-            if (locked && logFileHandler != null) {
-                logFileHandler.secureClearCache();
+            if (locked) {
+                logLinkRequests.invalidate();
+                sensitiveWindows().invalidate();
+                currentEditedDisplayTimestamp = null;
+                try {
+                    clearSensitiveRuntimeState();
+                } finally {
+                    listModel.clear();
+                    updateUILockState();
+                }
+                return;
             }
             updateUILockState();
         }
+    }
+
+    private security.SensitiveWindowRegistry sensitiveWindows() {
+        synchronized (lockObject) {
+            if (sensitiveWindows == null) sensitiveWindows = new security.SensitiveWindowRegistry();
+            return sensitiveWindows;
+        }
+    }
+
+    public long getSessionGeneration() { return sensitiveWindows().generation(); }
+
+    public boolean isSessionCurrent(long generation) {
+        synchronized (lockObject) {
+            return !isLocked && sensitiveWindows().isCurrent(generation);
+        }
+    }
+
+    public AutoCloseable registerSensitiveWindow(Runnable cleanup) {
+        return sensitiveWindows().register(cleanup);
     }
 
     private UIInitializer uiInitializer;
@@ -705,17 +740,18 @@ public final class LogTextEditor extends JFrame {
     }
 
     public void manualLock() {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(this::manualLock);
+            return;
+        }
         synchronized (lockObject) {
+            isLocked = true;
+            sensitiveWindows().invalidate();
             try {
                 logFileHandler.compactEncryptedJournal();
             } catch (Exception ignored) {}
-            clearSensitiveRuntimeState();
-            // Clear UI
-            currentEditedDisplayTimestamp = null;
-            listModel.clear();
+            setLocked(true);
             fullLogPanel.loadFullLog(); // This will show empty since locked
-            isLocked = true;
-            updateUILockState();
             
             // Stop auto-lock timer since file is now locked
             if (autoLockTimer != null) {
@@ -725,17 +761,27 @@ public final class LogTextEditor extends JFrame {
     }
 
     public void manualUnlock() {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(this::manualUnlock);
+            return;
+        }
         boolean success = encryptionHandler.reloadEncryptedLog();
         if (success) {
             synchronized (lockObject) {
-                isLocked = false;
-                updateUILockState();
+                setLocked(false);
                 
                 // Restart auto-lock timer if enabled
                 if (autoLockEnabled) {
                     startAutoLockTimer();
                 }
             }
+            SwingUtilities.invokeLater(() -> {
+                if (!isLocked() && tabPane.getSelectedIndex() == 0) {
+                    var textArea = entryPanel.getTextArea();
+                    textArea.requestFocusInWindow();
+                    textArea.setCaretPosition(textArea.getDocument().getLength());
+                }
+            });
         }
     }    
 
@@ -850,12 +896,12 @@ public final class LogTextEditor extends JFrame {
     }
     private void updateUILockState() {
         if (isLocked) {
-            logListPanel.clearSearch();
-            fullLogPanel.clearSearch();
+            if (logListPanel != null) logListPanel.clearSearch();
+            if (fullLogPanel != null) fullLogPanel.clearSearch();
         }
-        entryPanel.setLocked(isLocked);
-        logListPanel.setLocked(isLocked);
-        fullLogPanel.updateLockButton();
+        if (entryPanel != null) entryPanel.setLocked(isLocked);
+        if (logListPanel != null) logListPanel.setLocked(isLocked);
+        if (fullLogPanel != null) fullLogPanel.updateLockButton();
         // Also disable logListPanel if needed, but since listModel is cleared, maybe not necessary
     }
 
@@ -917,73 +963,54 @@ public final class LogTextEditor extends JFrame {
      * Call this before System.exit() to ensure clean shutdown.
      */
     public void shutdown() {
-        if (lockShortcutDispatcher != null) {
-            java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
-                    .removeKeyEventDispatcher(lockShortcutDispatcher);
-            lockShortcutDispatcher = null;
-        }
-
-        // Stop auto-lock timer
-        if (autoLockTimer != null) {
-            autoLockTimer.stop();
-            autoLockTimer = null;
-        }
-
-        // Stop periodic backup timer
-        if (periodicBackupTimer != null) {
-            periodicBackupTimer.stop();
-            periodicBackupTimer = null;
-        }
-
-        // Clear sensitive data through the same path as lock
-        currentEditedDisplayTimestamp = null;
-        clearSensitiveRuntimeState();
-        if (listModel != null) {
-            listModel.clear();
-        }
-        if (entryPanel != null) {
-            entryPanel.setLocked(true);
-        }
-        if (logListPanel != null) {
-            logListPanel.setLocked(true);
-        }
-
-        // Dispose UI components
-        if (fullLogPanel != null) {
-            fullLogPanel.dispose();
-        }
-
-        // Remove system tray icon
-        if (SystemTray.isSupported() && gui.SystemTrayMenu.trayIcon != null) {
-            SystemTray.getSystemTray().remove(gui.SystemTrayMenu.trayIcon);
-        }
-
         try {
-            // Shutdown clipboard manager after explicit clear attempts
-            clipboard.SecureClipboardManager.shutdown();
+            if (lockShortcutDispatcher != null) {
+                java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                        .removeKeyEventDispatcher(lockShortcutDispatcher);
+                lockShortcutDispatcher = null;
+            }
+            setLocked(true);
+            if (autoLockTimer != null) {
+                autoLockTimer.stop();
+                autoLockTimer = null;
+            }
+            if (periodicBackupTimer != null) {
+                periodicBackupTimer.stop();
+                periodicBackupTimer = null;
+            }
+            if (fullLogPanel != null) fullLogPanel.dispose();
+            if (SystemTray.isSupported() && gui.SystemTrayMenu.trayIcon != null) {
+                SystemTray.getSystemTray().remove(gui.SystemTrayMenu.trayIcon);
+            }
         } catch (Exception ignored) {
             // Best-effort cleanup; always continue to release instance lock.
         } finally {
-            // Release single instance lock (file-based) after shutdown cleanup fully completes
-            SingleInstanceManager.releaseLock();
+            try {
+                clipboard.SecureClipboardManager.shutdown();
+            } finally {
+                SingleInstanceManager.releaseLock();
+            }
         }
     }
 
     private void clearSensitiveRuntimeState() {
         logLinkRequests.invalidate();
-        if (logFileHandler != null) {
-            logFileHandler.clearSensitiveData();
-        }
-        if (backupManager != null) {
-            backupManager.clearInMemoryHmacKey();
-        }
-        if (fullLogPanel != null) {
-            fullLogPanel.clearRuntimeCaches();
-            fullLogPanel.clearSensitiveDisplayData();
-        }
         try {
-            clipboard.SecureClipboardManager.onLock();
-        } catch (Exception ignored) {}
+            if (logFileHandler != null) logFileHandler.clearSensitiveData();
+        } finally {
+            try {
+                if (backupManager != null) backupManager.clearInMemoryHmacKey();
+            } finally {
+                try {
+                    if (fullLogPanel != null) {
+                        fullLogPanel.clearRuntimeCaches();
+                        fullLogPanel.clearSensitiveDisplayData();
+                    }
+                } finally {
+                    clipboard.SecureClipboardManager.onLock();
+                }
+            }
+        }
     }
 
 }

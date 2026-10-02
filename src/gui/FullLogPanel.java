@@ -220,8 +220,9 @@ public final class FullLogPanel extends LogPanel {
     }
 
     public void loadFullLog() {
+        final long session = editor.getSessionGeneration();
         SwingUtilities.invokeLater(() -> {
-            if (editor.isLocked()) {
+            if (!editor.isSessionCurrent(session)) {
                 handleLockedState();
                 return;
             }
@@ -247,6 +248,7 @@ public final class FullLogPanel extends LogPanel {
 
                 @Override
                 protected void done() {
+                    if (!editor.isSessionCurrent(session)) return;
                     setCursor(Cursor.getDefaultCursor());
                     try {
                         ParsedLogData parsedData = get();
@@ -288,6 +290,13 @@ public final class FullLogPanel extends LogPanel {
      * Clears rendered/log text from UI components to minimize in-memory exposure.
      */
     public void clearSensitiveDisplayData() {
+        if (timestampClickHandler != null) timestampClickHandler.clearSensitiveState();
+        if (searchDialog != null) {
+            searchDialog.clearSearchState();
+            searchDialog.dispose();
+        }
+        fullLoadProgress.setVisible(false);
+        setCursor(Cursor.getDefaultCursor());
         resetDocument(fullLogPane);
         fullLogPane.clearHighlights();
         fullLogPathLabel.setText("Log file: (locked)");
@@ -309,14 +318,12 @@ public final class FullLogPanel extends LogPanel {
     }
 
     public void loadFullLogNoScroll(Runnable callback) {
+        final long session = editor.getSessionGeneration();
         suppressAutoLoad = true;
         SwingUtilities.invokeLater(() -> {
-            if (editor.isLocked()) {
+            if (!editor.isSessionCurrent(session)) {
                 handleLockedState();
                 suppressAutoLoad = false;
-                if (callback != null) {
-                    callback.run();
-                }
                 return;
             }
             updateLockButton();
@@ -346,6 +353,10 @@ public final class FullLogPanel extends LogPanel {
 
                 @Override
                 protected void done() {
+                    if (!editor.isSessionCurrent(session)) {
+                        suppressAutoLoad = false;
+                        return;
+                    }
                     setCursor(Cursor.getDefaultCursor());
                     fullLoadProgress.setVisible(false);
                     try {
@@ -372,7 +383,7 @@ public final class FullLogPanel extends LogPanel {
      * Replaces the pane's document with a fresh one so no content, link or other
      * character attributes from the previous document can leak into new text.
      */
-    static void resetDocument(javax.swing.JTextPane pane) {
+    public static void resetDocument(javax.swing.JTextPane pane) {
         pane.setDocument(new javax.swing.text.DefaultStyledDocument());
         pane.setCharacterAttributes(javax.swing.text.SimpleAttributeSet.EMPTY, true);
         javax.swing.text.MutableAttributeSet input = pane.getInputAttributes();
@@ -441,6 +452,8 @@ public final class FullLogPanel extends LogPanel {
      * @param timestamp The timestamp of the entry to edit (may include display suffix)
      */
     private void openEntryForEditing(String timestamp) {
+        final long session = editor.getSessionGeneration();
+        if (!editor.isSessionCurrent(session)) return;
         // Switch to Log List tab (index 1)
         editor.getTabPane().setSelectedIndex(1);
         
@@ -453,6 +466,7 @@ public final class FullLogPanel extends LogPanel {
         
         // Get the entry content from Full Log for content-based fallback matching
         String fullLogContent = fileLoader.getEntryContent(timestamp);
+        if (!editor.isSessionCurrent(session)) return;
 
         // Parse the timestamp to get year and month for filter adjustment
         int targetYear = 0;
@@ -467,13 +481,18 @@ public final class FullLogPanel extends LogPanel {
 
         // Pass full display timestamp (including suffix) so occurrence index is used directly
         int matchIndex = findMatchingEntry(listModel, timestamp, fullLogContent);
+        if (!editor.isSessionCurrent(session)) return;
         if (matchIndex >= 0) {
             logList.setSelectedIndex(matchIndex);
             logList.ensureIndexIsVisible(matchIndex);
-            SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+            SwingUtilities.invokeLater(() -> {
+                if (editor.isSessionCurrent(session)) logListPanel.getEntryArea().requestFocusInWindow();
+            });
             // Verify selection shortly after to guard against other async model updates
             javax.swing.Timer verifyTimer1 = new javax.swing.Timer(80, ev -> {
+                if (!editor.isSessionCurrent(session)) return;
                 SwingUtilities.invokeLater(() -> {
+                    if (!editor.isSessionCurrent(session)) return;
                     try {
                         if (logList.getSelectedIndex() != matchIndex && matchIndex >= 0 && matchIndex < listModel.getSize()) {
                             logList.clearSelection();
@@ -495,7 +514,13 @@ public final class FullLogPanel extends LogPanel {
             final String finalContent = fullLogContent;
             
             LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
-            final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+            final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> {
+                if (editor.isSessionCurrent(session)) progress.show();
+            });
+            AutoCloseable progressRegistration = editor.registerSensitiveWindow(() -> {
+                showTimer.stop();
+                progress.close();
+            });
             showTimer.setRepeats(false);
             showTimer.start();
 
@@ -503,13 +528,17 @@ public final class FullLogPanel extends LogPanel {
             logListPanel.setFilterAndApply(finalYear, finalMonth, () -> {
                 if (showTimer.isRunning()) showTimer.stop();
                 progress.close();
+                try { progressRegistration.close(); } catch (Exception ignored) { }
+                if (!editor.isSessionCurrent(session)) return;
                 
                 // Now search for and select the entry with content matching
                     int idx = findMatchingEntry(listModel, timestamp, finalContent);
+                    if (!editor.isSessionCurrent(session)) return;
                     if (idx >= 0) {
                         final int sel = idx;
                         // Ensure selection happens on EDT after model update
                         SwingUtilities.invokeLater(() -> {
+                            if (!editor.isSessionCurrent(session)) return;
                             try {
                                 logList.clearSelection();
                                 logList.setSelectedIndex(sel);
@@ -518,10 +547,12 @@ public final class FullLogPanel extends LogPanel {
                                 try {
                                     String displayTs = listModel.getElementAt(sel);
                                     String content = fileLoader.getEntryContent(displayTs);
+                                    if (!editor.isSessionCurrent(session)) return;
                                     if (content == null || content.isBlank()) content = finalContent;
                                     logListPanel.getEntryArea().setText(content == null ? "" : content);
                                     editor.setCurrentEditedDisplayTimestamp(displayTs);
                                 } catch (Exception ignored) {
+                                    if (!editor.isSessionCurrent(session)) return;
                                     logListPanel.getEntryArea().setText(finalContent == null ? "" : finalContent);
                                 }
                                 logListPanel.getEntryArea().requestFocusInWindow();
@@ -532,7 +563,9 @@ public final class FullLogPanel extends LogPanel {
                         });
                         // Re-assert selection after a short delay in case model is modified
                         javax.swing.Timer verifyTimer2 = new javax.swing.Timer(100, ev -> {
+                            if (!editor.isSessionCurrent(session)) return;
                             SwingUtilities.invokeLater(() -> {
+                                if (!editor.isSessionCurrent(session)) return;
                                 try {
                                     if (logList.getSelectedIndex() != sel && sel >= 0 && sel < listModel.getSize()) {
                                         logList.clearSelection();
@@ -568,6 +601,7 @@ public final class FullLogPanel extends LogPanel {
                                 String el = listModel.getElementAt(i);
                                 try {
                                     String entryContent = logFileHandler.loadEntry(logFileHandler.getRawTimestamp(el));
+                                    if (!editor.isSessionCurrent(session)) return;
                                     if (entryContent != null) {
                                         String norm = entryContent.trim().replaceAll("\\s+", " ");
                                         if (norm.equals(normTarget)) { fallbackIdx = i; break; }
@@ -579,11 +613,13 @@ public final class FullLogPanel extends LogPanel {
                         if (fallbackIdx >= 0) {
                             final int sel = fallbackIdx;
                             SwingUtilities.invokeLater(() -> {
+                                if (!editor.isSessionCurrent(session)) return;
                                 logList.clearSelection();
                                 logList.setSelectedIndex(sel);
                                 logList.ensureIndexIsVisible(sel);
                                 String displayTs = listModel.getElementAt(sel);
                                 String content = fileLoader.getEntryContent(displayTs);
+                                if (!editor.isSessionCurrent(session)) return;
                                 if (content == null || content.isBlank()) content = finalContent;
                                 logListPanel.getEntryArea().setText(content == null ? "" : content);
                                 editor.setCurrentEditedDisplayTimestamp(displayTs);
@@ -591,7 +627,9 @@ public final class FullLogPanel extends LogPanel {
                             });
                             // Re-assert selection after a short delay in case model is modified
                             javax.swing.Timer verifyTimer3 = new javax.swing.Timer(100, ev -> {
+                                if (!editor.isSessionCurrent(session)) return;
                                 SwingUtilities.invokeLater(() -> {
+                                    if (!editor.isSessionCurrent(session)) return;
                                     try {
                                         if (logList.getSelectedIndex() != sel && sel >= 0 && sel < listModel.getSize()) {
                                             logList.clearSelection();
@@ -610,7 +648,7 @@ public final class FullLogPanel extends LogPanel {
             });
         } else {
             // Fallback: couldn't parse timestamp, try a full reload
-            fallbackFullReload(timestamp, fullLogContent, logListPanel, listModel, logList);
+            fallbackFullReload(timestamp, fullLogContent, logListPanel, listModel, logList, session);
         }
     }
     
@@ -678,33 +716,51 @@ public final class FullLogPanel extends LogPanel {
      * Fallback method when timestamp parsing fails - loads all entries and tries to find the entry.
      */
     private void fallbackFullReload(String timestamp, String targetContent, LogListPanel logListPanel, 
-                                    DefaultListModel<String> listModel, JList<String> logList) {
+                                    DefaultListModel<String> listModel, JList<String> logList, long session) {
+        if (!editor.isSessionCurrent(session)) return;
         LoadingProgressDialog progress = new LoadingProgressDialog(editor, "Loading");
-        final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> progress.show());
+        final javax.swing.Timer showTimer = new javax.swing.Timer(150, ev -> {
+            if (editor.isSessionCurrent(session)) progress.show();
+        });
+        AutoCloseable progressRegistration = editor.registerSensitiveWindow(() -> {
+            showTimer.stop();
+            progress.close();
+        });
         showTimer.setRepeats(false);
         showTimer.start();
 
         Thread loader = new Thread(() -> {
             try {
+                if (!editor.isSessionCurrent(session)) return;
                 // Load without the date filter: this fallback runs when the timestamp
                 // could not be parsed, so the entry may be outside the active filter.
-                editor.loadAllLogEntries();
+                logFileHandler.loadLogEntries(listModel, () -> editor.isSessionCurrent(session));
                 SwingUtilities.invokeLater(() -> {
+                    if (!editor.isSessionCurrent(session)) return;
+                    editor.updateLogListView();
                     int idx = findMatchingEntry(listModel, timestamp, targetContent);
+                    if (!editor.isSessionCurrent(session)) return;
                     if (idx >= 0) {
                         logList.setSelectedIndex(idx);
                         logList.ensureIndexIsVisible(idx);
-                        SwingUtilities.invokeLater(() -> logListPanel.getEntryArea().requestFocusInWindow());
+                        SwingUtilities.invokeLater(() -> {
+                            if (editor.isSessionCurrent(session)) logListPanel.getEntryArea().requestFocusInWindow();
+                        });
                     } else {
                         DialogHelper.showEntryNotFound(this);
                     }
                 });
             } catch (Exception ex) {
-                SwingUtilities.invokeLater(() -> logFileHandler.showErrorDialog(
-                    "<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>"));
+                SwingUtilities.invokeLater(() -> {
+                    if (editor.isSessionCurrent(session)) logFileHandler.showErrorDialog(
+                        "<html><b>🔄 Load Failed</b><br><br>Unable to load log entries.</html>");
+                });
             } finally {
-                if (showTimer.isRunning()) showTimer.stop();
-                SwingUtilities.invokeLater(() -> progress.close());
+                SwingUtilities.invokeLater(() -> {
+                    if (showTimer.isRunning()) showTimer.stop();
+                    progress.close();
+                    try { progressRegistration.close(); } catch (Exception ignored) { }
+                });
             }
         }, "FallbackEntryLoader");
         loader.setDaemon(true);

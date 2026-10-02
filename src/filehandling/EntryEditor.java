@@ -69,6 +69,7 @@ public class EntryEditor {
         String entry = LogFileFormat.createEntry(uniqueTimeStamp, text);
 
         if (encrypted) {
+            long generation = cache.generation();
             List<String> cachedLines = getEncryptedWorkingLines();
             List<String> entryLines = Arrays.asList(entry.split("\r?\n", -1));
             // Keep a blank line before the new timestamp so it is parsed as its own entry
@@ -76,7 +77,7 @@ public class EntryEditor {
             cachedLines.addAll(entryLines);
             List<String> normalized = LogFileFormat.normalizeSpacing(cachedLines);
             incrementalJournal.appendEntryLines(entryLines);
-            cache.updateCachedLines(normalized);
+            cache.updateCachedLinesIfCurrent(normalized, generation);
         } else {
             // Normalize content lines: remove trailing blank lines from user-supplied text
             List<String> contentLines = Arrays.asList(text.split("\r?\n", -1));
@@ -336,6 +337,15 @@ public class EntryEditor {
      * Returns the generated unique timestamp or null on failure.
      */
     public String createAndSaveEntry(String text) throws Exception {
+        return createAndSaveEntry(text, encryptionManager.isEncrypted());
+    }
+
+    String createAndSaveEntry(String text, boolean encrypted) throws Exception {
+        return createAndSaveEntry(text, encrypted, cache.securityGeneration());
+    }
+
+    String createAndSaveEntry(String text, boolean encrypted, long session) throws Exception {
+        if (!cache.isSecurityCurrent(session)) throw new java.util.concurrent.CancellationException();
         if (text == null || text.isBlank()) return null;
 
         // Enforce maximum entry length to avoid extremely large entries (avoid reassigning parameter)
@@ -355,15 +365,16 @@ public class EntryEditor {
 
         // Determine duplicate count using cache or file read
         if (Files.exists(filePath)) {
-            List<String> existingLines = encryptionManager.isEncrypted() ? getEncryptedWorkingLines() : Files.readAllLines(filePath);
+            List<String> existingLines = encrypted ? getEncryptedWorkingLines() : Files.readAllLines(filePath);
             if (existingLines != null) {
                 count = (int) existingLines.stream().filter(line -> line.trim().startsWith(timeStamp)).count();
             }
         }
 
         String unique = createUniqueTimestamp(count);
+        if (!cache.isSecurityCurrent(session)) throw new java.util.concurrent.CancellationException();
         // Use StringBuilder for string appends if needed in future logic
-        saveEntry(inputText, unique, encryptionManager.isEncrypted());
+        saveEntry(inputText, unique, encrypted);
         return unique;
     }
 
@@ -372,6 +383,7 @@ public class EntryEditor {
      * If the cache is empty, it is hydrated from the encrypted file to avoid accidental overwrite.
      */
     private List<String> getEncryptedWorkingLines() throws Exception {
+        long generation = cache.generation();
         List<String> cachedLines = cache.getCachedLines();
         if (!cachedLines.isEmpty()) {
             return cachedLines;
@@ -385,7 +397,9 @@ public class EntryEditor {
             return new ArrayList<>();
         }
 
-        cache.updateCachedLines(decryptedLines);
+        if (!cache.updateCachedLinesIfCurrent(decryptedLines, generation)) {
+            throw new java.util.concurrent.CancellationException("Working lines invalidated");
+        }
         return new ArrayList<>(decryptedLines);
     }
 
@@ -409,8 +423,12 @@ public class EntryEditor {
      * tab switch or subsequent save.
      */
     public void syncAfterFullEncryptedWrite(List<String> lines) {
+        syncAfterFullEncryptedWrite(lines, cache.generation());
+    }
+
+    void syncAfterFullEncryptedWrite(List<String> lines, long generation) {
         incrementalJournal.clear();
-        cache.updateCachedLines(lines);
+        cache.updateCachedLinesIfCurrent(lines, generation);
     }
     
     /**
