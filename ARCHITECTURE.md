@@ -32,7 +32,7 @@ flowchart LR
 * Tamper-evident security event log (sequence + hash-chain + anchored metadata)
 * Link/file open checks and centralized security path policy gates
 * Strict owner-only permission enforcement for security-critical artifacts
-* Local metadata-key envelope is host-profile-bound (hardening), not hardware-backed
+* Local metadata-key protection is platform-specific: Windows uses current-user DPAPI when available; macOS/Linux use an AES-GCM-wrapped key whose random master secret is protected by file permissions. The latter is exposed if the app-data directory is copied; neither is hardware-backed.
 
 ## Security Persistence Flow
 

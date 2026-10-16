@@ -46,7 +46,7 @@ Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.co
 * Incremental encrypted journal writes with compaction on lock/threshold
 * Tamper-evident backup integrity (HMAC for numbered backups)
 * Tamper-evident security event log with sequence and hash-chain anchoring
-* Progressive delay on failed password attempts
+* Short delays between retries and a three-attempt limit per unlock flow; there is no persistent lockout
 * No hardcoded keys or credentials
 * App-managed sensitive runtime state is cleared on lock; complete erasure of every plaintext copy from JVM memory cannot be guaranteed
 * Encrypted backups and journal sidecar handling
@@ -79,7 +79,7 @@ It does **not protect against**:
 * Memory access during an active session
 * Attackers with full access to your user profile and host metadata
 
-Note: local audit metadata keys are protected with a host-profile-bound envelope for practical hardening. This improves resistance to casual tampering but is not equivalent to a hardware-backed secret store.
+Note: Windows uses current-user DPAPI for local audit metadata keys when available, with an AES-GCM-wrapped fallback. macOS and Linux use an AES-GCM-wrapped key and a random master secret protected by local file permissions. Copying that app-data directory can expose the fallback master secret; neither approach is hardware-backed.
 
 👉 Security depends on:
 
@@ -140,7 +140,7 @@ This results in:
 * Keys derived from your password using PBKDF2
 * Password is never written to disk
 * Locking clears app-managed sensitive state, but cannot guarantee erasure of every plaintext copy from JVM memory
-* Lockout state is persisted with tamper-evident integrity checks
+* Failed-attempt counts apply only to the current unlock flow and are not persisted; this UI limit does not slow offline password guessing
 * Security events are persisted in a tamper-evident anchored chain
 * Backup copies can be integrity-verified
 
@@ -151,7 +151,7 @@ If you forget your password, encrypted data cannot be recovered.
 
 ### Password Recommendations
 
-* Use **20+ characters**
+* New encryption passwords must be **20+ characters**. This creation requirement does not prevent unlocking existing files with older passwords.
 * Prefer random or passphrase-based passwords
 * Avoid reuse and predictable patterns
 * Use a password manager where possible

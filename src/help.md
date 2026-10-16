@@ -95,9 +95,9 @@ Sensitive data copied from .LOG-hog is protected with:
 
 If the app is terminated unexpectedly (e.g., crash, forced quit):
 
-* Clipboard contents are **not cleared automatically**
+* Clipboard contents remain available while the app is stopped. On its next launch, .LOG-hog attempts to clear content that still matches its recovery marker, but this is best-effort and not immediate or guaranteed.
 
-👉 Always manually clear the clipboard after unexpected termination.
+👉 Manually clear the clipboard after unexpected termination; do not rely on recovery.
 
 # ✨ Key Features
 
@@ -168,7 +168,8 @@ When prompted, choose **Restore from Backup** and select an encrypted backup fil
 
 ### Password Attempts
 
-* You can enter a password up to **3 times per unlock session**
+* New encryption passwords must be at least **20 characters**.
+* You can enter a password up to **3 times per unlock session**; this limit is not persisted and does not restrict offline password guessing.
 * After 3 failed attempts, the unlock flow ends; during startup, the application exits
 
 ⚠️ **Important:**  
@@ -188,7 +189,7 @@ The only unrecoverable scenario is losing your password.
 
 ### Password Recommendations
 
-* Use **20+ characters**
+* Use a strong, unique password (20+ characters are required for new encryption).
 * Prefer random or passphrase-based passwords
 * Avoid reuse across services
 * Use a password manager
@@ -210,7 +211,7 @@ The only unrecoverable scenario is losing your password.
 ### Usage
 
 * Password is required on application startup
-* Failed attempts trigger increasing delays and keep the file locked after repeated failures
+* Short increasing delays are applied between retries. The three-attempt limit applies only to the current unlock flow; it is not a persistent lockout.
 
 ### Lock / Unlock
 
