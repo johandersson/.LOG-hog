@@ -10,7 +10,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
 
-import javax.crypto.AEADBadTagException;
 import javax.swing.DefaultListModel;
 import javax.swing.SwingUtilities;
 
@@ -90,7 +89,7 @@ class BackupRestoreWorkflowTest {
 
     @ParameterizedTest
     @EnumSource(BackupType.class)
-    void correctPasswordIsRejectedWhenSettingsSaltDiffersFromBackupHeader(BackupType type) throws Exception {
+    void correctPasswordOpensBackupEvenWhenSettingsSaltDiffersFromHeader(BackupType type) throws Exception {
         Path restoredPath = restoreAsHomeLog(createBackup(type));
         byte[] differentSalt = salt.clone();
         differentSalt[0] ^= 1;
@@ -99,22 +98,28 @@ class BackupRestoreWorkflowTest {
 
         LogFileHandler restored = new LogFileHandler(restoredPath, EncryptionManager.getInstance());
         try {
-            // Startup uses a valid settings salt without checking it against the restored header.
             restored.setEncryption(password, Base64.getDecoder().decode(currentSettings.getProperty("salt")));
-            DefaultListModel<String> model = new DefaultListModel<>();
-            EncryptionException failure = assertThrows(EncryptionException.class,
-                () -> restored.loadLogEntries(model));
-            assertInstanceOf(AEADBadTagException.class, failure.getCause());
-            SwingUtilities.invokeAndWait(() -> {});
-            assertEquals(0, model.size());
-
-            // Control: the same password and unchanged backup work with the header's salt.
-            restored.clearSensitiveData();
-            restored.setEncryption(password, EncryptionDetector.extractSaltFromHeader(restoredPath));
             assertRecoveredEntry(restored);
+            assertArrayEquals(salt, restored.getSalt());
         } finally {
             restored.clearSensitiveData();
             Arrays.fill(differentSalt, (byte) 0);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(BackupType.class)
+    void backupCanRecoverSaltWithoutSettings(BackupType type) throws Exception {
+        Path restoredPath = restoreAsHomeLog(createBackup(type));
+        byte[] beforeUnlock = Files.readAllBytes(restoredPath);
+        LogFileHandler restored = new LogFileHandler(restoredPath, EncryptionManager.getInstance());
+        try {
+            restored.setEncryption(password, null);
+            assertRecoveredEntry(restored);
+            assertArrayEquals(salt, restored.getSalt());
+            assertArrayEquals(beforeUnlock, Files.readAllBytes(restoredPath));
+        } finally {
+            restored.clearSensitiveData();
         }
     }
 
