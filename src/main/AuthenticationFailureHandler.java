@@ -7,12 +7,11 @@ import filehandling.LogFileHandler;
 import gui.DialogHelper;
 import gui.LockOverlay;
 import gui.SecurityDelayDialog;
-import security.PersistentAuthLockout;
 
 /**
  * Handles authentication and file-loading failures for password attempts.
  * Shows appropriate dialogs (hiding the lock overlay while visible) and
- * enforces progressive delays and locking behavior.
+ * enforces progressive delays and the per-session attempt limit.
  */
 public final class AuthenticationFailureHandler {
     private AuthenticationFailureHandler() {}
@@ -28,16 +27,13 @@ public final class AuthenticationFailureHandler {
      * @return true if caller should continue prompting (retry), false to stop
      */
     public static boolean handleFailure(Exception e, int attempts, JFrame parentFrame, LockOverlay lo, LogFileHandler logFileHandler, boolean exitOnCancel) {
-        int maxAttemptsBeforeLockout = PersistentAuthLockout.getMaxSessionAttempts();
-        if (attempts >= maxAttemptsBeforeLockout) {
-            String remaining = PersistentAuthLockout.formatRemainingLockout(
-                PersistentAuthLockout.getRemainingLockoutMillis(null));
-            String message = "Too many failed password attempts were detected.<br><br>Please wait about " + remaining + " and try again.";
+        if (attempts >= AuthenticationAttemptPolicy.MAX_ATTEMPTS) {
+            String message = "You have used all 3 tries for this session.";
             try {
                 if (lo != null) {
-                    lo.withOverlayHidden(() -> { DialogHelper.showError(parentFrame, "Security Lock", "Account Temporarily Locked", message); return null; });
+                    lo.withOverlayHidden(() -> { DialogHelper.showError(parentFrame, "Authentication Failed", "Session Attempts Exhausted", message); return null; });
                 } else {
-                    DialogHelper.showError(parentFrame, "Security Lock", "Account Temporarily Locked", message);
+                    DialogHelper.showError(parentFrame, "Authentication Failed", "Session Attempts Exhausted", message);
                 }
             } catch (Exception ignore) {}
             return false;
@@ -65,16 +61,16 @@ public final class AuthenticationFailureHandler {
                 errorMsg.contains("split");
 
         if (isAuthError) {
-            int remaining = maxAttemptsBeforeLockout - attempts;
+            int remaining = AuthenticationAttemptPolicy.MAX_ATTEMPTS - attempts;
             try {
                 if (lo != null) {
                     lo.withOverlayHidden(() -> { DialogHelper.showError(parentFrame, "Authentication Failed", "🔒 Authentication Failed",
                         "The password you entered appears to be incorrect, or the encrypted file has an unexpected format.<br><br>" +
-                        "You have <b>" + remaining + "</b> attempt" + (remaining == 1 ? "" : "s") + " remaining before temporary lockout.<br><br>Tip: Double-check your password or password manager."); return null; });
+                        "You have <b>" + remaining + "</b> attempt" + (remaining == 1 ? "" : "s") + " remaining in this session.<br><br>Tip: Double-check your password or password manager."); return null; });
                 } else {
                     DialogHelper.showError(parentFrame, "Authentication Failed", "🔒 Authentication Failed",
                         "The password you entered appears to be incorrect, or the encrypted file has an unexpected format.<br><br>" +
-                        "You have <b>" + remaining + "</b> attempt" + (remaining == 1 ? "" : "s") + " remaining before temporary lockout.<br><br>Tip: Double-check your password or password manager.");
+                        "You have <b>" + remaining + "</b> attempt" + (remaining == 1 ? "" : "s") + " remaining in this session.<br><br>Tip: Double-check your password or password manager.");
                 }
             } catch (Exception ignore) {}
 

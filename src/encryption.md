@@ -12,7 +12,7 @@ This document restores the full encryption documentation and aligns it with the 
 
 ## Overview
 
-.LOG-hog protects local logs and notes with authenticated encryption, integrity-checked backups, tamper-evident lockout state, and security event anchoring.
+.LOG-hog protects local logs and notes with authenticated encryption, integrity-checked backups, and security event anchoring.
 
 It is designed for local data-at-rest protection on a trusted machine. It is not designed to defend against active malware, keyloggers, or a fully compromised OS account.
 
@@ -22,7 +22,6 @@ Designed to protect against:
 
 - offline theft/copying of log and backup files,
 - accidental exposure through weak filesystem defaults,
-- tampering/rollback of authentication lockout state,
 - silent corruption of backups.
 
 Not designed to protect against:
@@ -70,7 +69,7 @@ Legacy loghog_settings.properties is treated as migration input when present.
 
 ### Sensitive key material at rest
 
-Security key files (for lockout HMAC and security-event signing/HMAC) are protected with AES-GCM wrapping instead of raw plaintext/base64 storage.
+Security key files for event signing/HMAC are protected with AES-GCM wrapping instead of raw plaintext/base64 storage.
 
 Red-team caveat: this is stronger than plaintext/base64 key storage but is still not a hardware-backed secret store.
 
@@ -81,17 +80,10 @@ Protection flow:
 3. encrypt key blob with AES-GCM + purpose-bound AAD,
 4. enforce owner-only permissions on wrapped key artifacts.
 
-## Authentication Lockout Model
+## Authentication Attempts
 
-Current behavior:
-
-- 3 attempts per session,
-- each exhausted session increments failed-session count,
-- lockout triggers after 10 failed sessions,
-- lockout duration: 30 minutes,
-- tamper/missing lockout artifacts are auto-healed to a reset state to avoid sticky lockout loops.
-
-Lockout state includes sequence/hash anchor checks to detect rollback attempts.
+- up to 3 password attempts per unlock session,
+- startup exits after three failed attempts; manual unlock ends the current flow and leaves the file locked.
 
 ## Backup and Integrity Model
 
@@ -125,11 +117,6 @@ flowchart LR
     JOUR --> BKP
     BKP --> HMAC[HMAC append and verify]
     HMAC --> BFILE[(Encrypted backup artifact)]
-
-    AUTH[Auth attempts] --> LOCK[PersistentAuthLockout]
-    LOCK --> LSTATE[(auth-lockout.properties)]
-    LOCK --> LKEY[(auth-lockout.key wrapped)]
-    LOCK --> LANCH[(auth-lockout.anchor)]
 
     SEVT[Security events] --> SELOG[SecurityEventLog]
     SELOG --> ELOG[(security-events.log)]
@@ -180,5 +167,4 @@ of plaintext in the Java heap.
 
 ## Summary
 
-.LOG-hog currently combines modern authenticated encryption, hardened lockout persistence, tamper-evident event logging, and stronger at-rest handling for local security key artifacts. The design provides strong local protection for personal sensitive data when used on a trusted and hardened host.
-
+.LOG-hog currently combines modern authenticated encryption, tamper-evident event logging, and stronger at-rest handling for local security key artifacts. The design provides strong local protection for personal sensitive data when used on a trusted and hardened host.

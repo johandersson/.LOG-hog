@@ -29,7 +29,6 @@ flowchart LR
 * AES-GCM + PBKDF2 derived keys
 * Incremental encrypted journal writes, compacted on lock/threshold
 * Numbered backup integrity via HMAC
-* Persistent lockout with fail-closed tamper/rollback handling
 * Tamper-evident security event log (sequence + hash-chain + anchored metadata)
 * Link/file open checks and centralized security path policy gates
 * Strict owner-only permission enforcement for security-critical artifacts
@@ -39,10 +38,7 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    AUTH[Auth failure / lockout state change] --> LOCK[PersistentAuthLockout]
-    LOCK --> STATE[(auth-lockout.properties)]
-    LOCK --> ANCHOR[(auth-lockout.anchor)]
-    LOCK --> EVT[SecurityEventLog]
+    AUTH[Authentication attempts] --> EVT[SecurityEventLog]
     EVT --> ELOG[(security-events.log)]
     EVT --> EANCH[(security-events.anchor)]
     POLICY[SecurityFilePolicy strict mode] --> STATE
@@ -64,4 +60,3 @@ flowchart TD
 
 * Protects local data at rest and against offline tampering/access
 * Does not protect against malware, keyloggers, or a fully compromised host
-
