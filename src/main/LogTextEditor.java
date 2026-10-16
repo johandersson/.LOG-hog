@@ -634,6 +634,7 @@ public final class LogTextEditor extends JFrame {
                     showStartupWindow();
                     return;
                 }
+                setLocked(false);
                 try {
                     fullLogPanel.loadFullLog();
                     showStartupWindow();
@@ -657,6 +658,7 @@ public final class LogTextEditor extends JFrame {
                 showStartupWindow();
                 return;
             }
+            if (logFileHandler.isEncrypted()) setLocked(false);
 
             LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
             if (java.nio.file.Files.exists(logFileHandler.getFilePath())) {
