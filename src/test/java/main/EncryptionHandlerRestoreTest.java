@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.JDialog;
 import javax.swing.JPasswordField;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import encryption.EncryptionManager;
 import encryption.FileEncryptionManager;
@@ -112,6 +114,42 @@ class EncryptionHandlerRestoreTest {
         } finally {
             log.clearSensitiveData();
             backups.clearInMemoryHmacKey();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void successfulEditorStartupActuallyUnlocksRestoredLog(boolean settingsExist) throws Exception {
+        Path home = Files.createDirectory(directory.resolve("home"));
+        Path file = home.resolve("log.txt");
+        char[] password = "editor-startup-restore-test".toCharArray();
+        FileEncryptionManager writer = new FileEncryptionManager(file, EncryptionManager.getInstance());
+        try {
+            writer.setEncryption(password, EncryptionManager.getInstance().generateSalt());
+            writer.encryptFileFromLines(List.of(".LOG", "", "12:34 2026-09-11", "Recovered"));
+        } finally {
+            writer.clearSensitiveData();
+            java.util.Arrays.fill(password, '\0');
+        }
+        if (settingsExist) {
+            Path configuration = Files.createDirectory(home.resolve(".loghog"));
+            Files.writeString(configuration.resolve("settings.properties"), "showSplashOnStartup=false\n");
+        }
+        String originalHome = System.getProperty("user.home");
+        AtomicReference<LogTextEditor> editor = new AtomicReference<>();
+        try {
+            System.setProperty("user.home", home.toString());
+            driveDialogs(() -> editor.set(new LogTextEditor()), "editor-startup-restore-test");
+            assertFalse(editor.get().isLocked(), "Successful startup authentication must unlock the editor");
+            assertEquals(List.of("12:34 2026-09-11", "Recovered"), editor.get().getLogFileHandler().getLines());
+        } finally {
+            if (editor.get() != null) {
+                SwingUtilities.invokeAndWait(() -> {
+                    editor.get().shutdown();
+                    editor.get().dispose();
+                });
+            }
+            System.setProperty("user.home", originalHome);
         }
     }
 
