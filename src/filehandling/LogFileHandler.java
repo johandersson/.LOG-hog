@@ -792,8 +792,9 @@ public class LogFileHandler implements LogFileOperations {
 
     public void setEncryption(char[] pwd, byte[] slt) throws Exception {
         // Just set credentials - don't re-encrypt if already encrypted
-        // Defensive copy: clone the provided salt to avoid retaining caller-owned array
-        byte[] saltClone = slt != null ? slt.clone() : null;
+        // A restored file's salt can differ from the current settings.
+        byte[] headerSalt = encryption.EncryptionDetector.extractSaltFromHeader(filePath);
+        byte[] saltClone = headerSalt.length > 0 ? headerSalt : (slt != null ? slt.clone() : null);
         encryptionManager.setEncryption(pwd, saltClone);
         this.salt = saltClone;
         this.encrypted = true;
