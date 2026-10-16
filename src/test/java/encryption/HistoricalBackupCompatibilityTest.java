@@ -97,7 +97,29 @@ class HistoricalBackupCompatibilityTest {
         }
     }
 
+    @ParameterizedTest
+    @EnumSource(value = Format.class, names = {"V1_SHA256_BACKUP", "V2_120K_BACKUP", "V2_600K_BACKUP"})
+    void validBackupSignatureCannotBypassGcmAuthentication(Format format) throws Exception {
+        char[] password = "historical-password-åäö".toCharArray();
+        byte[] artifact = historicalArtifact(format, password, true);
+        Path file = directory.resolve("log.txt");
+        Files.write(file, artifact);
+        FileEncryptionManager reader = new FileEncryptionManager(file, EncryptionManager.getInstance());
+        try {
+            reader.setEncryption(password, SALT);
+            assertThrows(EncryptionException.class, reader::decryptFileToLines);
+            assertThrows(EncryptionException.class, () -> EncryptionManager.getInstance().decrypt(artifact, password));
+        } finally {
+            reader.clearSensitiveData();
+            Arrays.fill(password, '\0');
+        }
+    }
+
     private byte[] historicalArtifact(Format format, char[] password) throws Exception {
+        return historicalArtifact(format, password, false);
+    }
+
+    private byte[] historicalArtifact(Format format, char[] password, boolean corruptCiphertext) throws Exception {
         byte[] aesKey = derive(password, SALT, 600000);
         byte[] iv = "fixture-iv12".getBytes(StandardCharsets.UTF_8);
         byte[] backupKey = null;
@@ -111,6 +133,11 @@ class HistoricalBackupCompatibilityTest {
             out.write(iv);
             out.write(cipher.doFinal(TEXT.getBytes(StandardCharsets.UTF_8)));
             byte[] snapshot = out.toByteArray();
+            if (corruptCiphertext) {
+                snapshot[35] ^= 1;
+                out.reset();
+                out.write(snapshot);
+            }
             if (format == Format.SNAPSHOT) return snapshot;
 
             if (format == Format.V1_SHA256_BACKUP) {
