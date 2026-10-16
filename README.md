@@ -24,7 +24,7 @@ This workflow is optimized for rapid, continuous logging/writing a diary or just
 * Entry workflow, timestamps, search, and markdown rendering stay integrated in the app
 * Backups preserve encrypted data format
 
-To restore, choose **Restore from Backup** when prompted for a missing or corrupt log, then select your encrypted `.enc` or `.bak.enc` file. It replaces the active log.
+To restore, choose **Restore from Backup** in Settings and select your encrypted `.enc` or `.bak.enc` file. Confirm twice to replace the active log; the dialog compares file sizes.
 
 Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.com/258545/how-to-use-notepad-to-create-a-dated-log-or-journal-file/), .LOG-hog extends the workflow with:
 

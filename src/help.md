@@ -150,7 +150,7 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 
 ### Restore
 
-If the log is missing or corrupt, choose **Restore from Backup** and select your encrypted `.enc` or `.bak.enc` file. It replaces the active log.
+In **Settings**, choose **Restore from Backup** and select your encrypted `.enc` or `.bak.enc` file. Confirm twice to replace the active log; the dialog compares file sizes.
 
 # 🔐 Encryption
 

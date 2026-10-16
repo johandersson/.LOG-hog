@@ -227,8 +227,11 @@ public final class SettingsPanel extends JPanel {
 
         var backupButton = new StandardButton("Backup Log File", new Color(0xE0E0E0), new Color(0xB0B0B0));
         backupButton.addActionListener(e -> backupLogFile());
+        var restoreButton = new StandardButton("Restore from Backup", new Color(0xE0E0E0), new Color(0xB0B0B0));
+        restoreButton.addActionListener(e -> restoreLogFile());
 
         panel.add(backupButton);
+        panel.add(restoreButton);
         return panel;
     }
 
@@ -777,6 +780,46 @@ public final class SettingsPanel extends JPanel {
                     javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(editor, "Backup failed. Please check file permissions and try again."));
                 }
             });
+        }
+    }
+
+    private void restoreLogFile() {
+        var chooser = new JFileChooser();
+        chooser.setDialogTitle("Select Backup File to Restore");
+        chooser.setCurrentDirectory(new java.io.File(System.getProperty("user.home")));
+        chooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
+            @Override
+            public boolean accept(java.io.File file) {
+                return file.isDirectory() || file.getName().endsWith(".enc") || file.getName().endsWith(".bak.enc");
+            }
+
+            @Override
+            public String getDescription() {
+                return "Encrypted Backup Files (*.enc, *.bak.enc)";
+            }
+        });
+
+        if (chooser.showOpenDialog(editor) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        Path backupPath = chooser.getSelectedFile().toPath();
+        boolean restored = BackupRestoreWorkflow.restore(
+            logFileHandler.getFilePath(),
+            backupPath,
+            (title, message) -> DialogHelper.confirm(editor, title, message),
+            (title, message) -> DialogHelper.showError(editor, title, message),
+            () -> DialogHelper.showSuccess(editor, "Restore Complete", "Backup Restored",
+                "The backup has replaced the active log file."),
+            logFileHandler::restoreBackup
+        );
+        if (restored && editor != null) {
+            try {
+                editor.loadLogEntries();
+                editor.getFullLogPanel().loadFullLog();
+            } catch (Exception ex) {
+                DialogHelper.showError(editor, "Restore Warning", "Backup restored, but the views could not be refreshed.");
+            }
         }
     }
 

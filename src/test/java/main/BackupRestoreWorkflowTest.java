@@ -123,6 +123,31 @@ class BackupRestoreWorkflowTest {
         }
     }
 
+    @org.junit.jupiter.api.Test
+    void settingsRestoreReplacesActiveSnapshotAndDiscardsItsJournal() throws Exception {
+        Path backup = backupDir.resolve("restore-source.enc");
+        FileEncryptionManager backupWriter = new FileEncryptionManager(backup, EncryptionManager.getInstance());
+        try {
+            backupWriter.setEncryption(password, salt);
+            backupWriter.encryptFileFromLines(List.of(".LOG", "", "09:10 2026-09-12", "Restored entry"));
+        } finally {
+            backupWriter.clearSensitiveData();
+        }
+
+        Path journal = logPath.resolveSibling(logPath.getFileName().toString() + ".journal.enc");
+        Files.writeString(journal, "stale journal");
+        LogFileHandler handler = new LogFileHandler(logPath, EncryptionManager.getInstance());
+        handler.restoreBackup(backup);
+        assertFalse(Files.exists(journal));
+
+        try {
+            handler.setEncryption(password, salt);
+            assertEquals(List.of(".LOG", "", "09:10 2026-09-12", "Restored entry"), handler.getLines());
+        } finally {
+            handler.clearSensitiveData();
+        }
+    }
+
     @ParameterizedTest
     @EnumSource(BackupType.class)
     void renamedBackupStillRejectsWrongPassword(BackupType type) throws Exception {

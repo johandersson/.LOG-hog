@@ -953,6 +953,50 @@ public class LogFileHandler implements LogFileOperations {
         notifyCacheInvalidationListeners();
     }
 
+    public void restoreBackup(Path backupPath) throws java.io.IOException {
+        Path target = filePath.toAbsolutePath().normalize();
+        Path backup = backupPath.toAbsolutePath().normalize();
+        security.AppPathPolicy.assertSafeRegularFile(target);
+        security.AppPathPolicy.assertSafeRegularFile(backup);
+        if (target.equals(backup) || !security.BackupRestoreVerifier.isValidEncryptedBackup(backup)) {
+            throw new java.io.IOException("Invalid encrypted backup");
+        }
+
+        byte[] currentSalt = getSalt();
+        byte[] backupSalt = encryption.EncryptionDetector.extractSaltFromHeader(backup);
+        try {
+            if (currentSalt != null && backupSalt.length > 0
+                    && !java.security.MessageDigest.isEqual(currentSalt, backupSalt)) {
+                throw new java.io.IOException("Backup encryption salt does not match the active log");
+            }
+        } finally {
+            if (currentSalt != null) java.util.Arrays.fill(currentSalt, (byte) 0);
+            java.util.Arrays.fill(backupSalt, (byte) 0);
+        }
+
+        Path parent = target.getParent();
+        Path staged = Files.createTempFile(parent, ".loghog-restore-", ".tmp");
+        try {
+            Files.copy(backup, staged, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            security.SecurityFilePolicy.ensureOwnerOnlyPermissions(staged);
+            try {
+                Files.move(staged, target, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                Files.move(staged, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+            security.SecurityFilePolicy.ensureOwnerOnlyPermissions(target);
+            entryEditor.discardIncrementalJournal();
+            Path journal = target.resolveSibling(target.getFileName().toString() + ".journal.enc");
+            Files.deleteIfExists(journal);
+            cache.clearCachedLines();
+            invalidateEntryCache();
+            notifyCacheInvalidationListeners();
+        } finally {
+            Files.deleteIfExists(staged);
+        }
+    }
+
     public void clearSensitiveData() {
         encrypted = false;
         if (salt != null) {
