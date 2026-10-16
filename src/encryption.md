@@ -6,7 +6,7 @@ This document restores the full encryption documentation and aligns it with the 
 
 - Critical cryptography regressions: not identified in current implementation.
 - Primary hardening updates reflected in this revision:
-  - sensitive local key files are now protected at rest with AES-GCM wrapping derived from a protected per-user random master secret,
+  - sensitive local key files use platform-specific protection: current-user DPAPI on Windows when available, otherwise AES-GCM wrapping with a random master secret protected by file permissions,
   - settings persistence is unified to a single canonical path,
   - user-facing error messages are sanitized in key UI paths.
 
@@ -70,13 +70,13 @@ Legacy loghog_settings.properties is treated as migration input when present.
 
 ### Sensitive key material at rest
 
-Security key files for event signing/HMAC are protected with AES-GCM wrapping instead of raw plaintext/base64 storage.
+Security key files for event signing/HMAC are protected instead of stored as raw plaintext/base64. Windows uses current-user DPAPI when available; other platforms, and Windows when DPAPI is unavailable, use AES-GCM wrapping with a random master secret stored in the app-data directory and protected by file permissions.
 
-Red-team caveat: this is stronger than plaintext/base64 key storage but is still not a hardware-backed secret store.
+Copying the complete app-data directory exposes the master secret and wrapped keys on the file-permission-based path. DPAPI is tied to the current Windows user profile, not hardware-backed. Neither path is a hardware-backed secret store.
 
 Protection flow:
 
-1. load or create a protected per-user random master secret,
+1. use current-user DPAPI on Windows when available; otherwise load or create a random master secret protected by app-data file permissions,
 2. derive a purpose/context-bound wrapping key using HMAC-SHA256,
 3. encrypt key blob with AES-GCM + purpose-bound AAD,
 4. enforce owner-only permissions on wrapped key artifacts.
@@ -84,7 +84,8 @@ Protection flow:
 ## Authentication Attempts
 
 - up to 3 password attempts per unlock session,
-- startup exits after three failed attempts; manual unlock ends the current flow and leaves the file locked.
+- startup exits after three failed attempts; manual unlock ends the current flow and leaves the file locked,
+- the attempt count is not persisted and does not limit offline password guessing.
 
 ## Backup and Integrity Model
 
@@ -98,7 +99,7 @@ Protection flow:
 
 ## Security Event Logging
 
-- Security events are chain-anchored with sequence/hash metadata.
+- Selected backup-integrity events are chain-anchored with sequence/hash metadata.
 - Anchor integrity is checked with HMAC and Ed25519 signature verification.
 - Signing private key and HMAC key are stored as protected key blobs.
 
@@ -164,7 +165,7 @@ of plaintext in the Java heap.
 
 ## User Guidance
 
-- Use a strong password (20+ chars recommended).
+- New encryption passwords must be at least 20 characters; choose a strong, unique password.
 - Keep full-disk encryption enabled at OS level.
 - Lock the app when unattended.
 - Keep secure backups and test restore procedures.
