@@ -651,6 +651,12 @@ public final class LogTextEditor extends JFrame {
             if (!java.nio.file.Files.exists(logFileHandler.getFilePath())) {
                 bootstrapEncryptedLogIfNeeded();
             }
+            if (java.nio.file.Files.exists(logFileHandler.getFilePath()) && !logFileHandler.isEncrypted()
+                    && !encryptionHandler.handleEncryptionSetup()) {
+                setLocked(true);
+                showStartupWindow();
+                return;
+            }
 
             LoadingProgressDialog progressDialog = new LoadingProgressDialog(this, "Loading");
             if (java.nio.file.Files.exists(logFileHandler.getFilePath())) {

@@ -14,7 +14,6 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JPasswordField;
 import javax.swing.SwingUtilities;
