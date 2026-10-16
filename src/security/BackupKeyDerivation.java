@@ -65,7 +65,8 @@ public final class BackupKeyDerivation {
                 digest.update(salt);
                 keys[2] = digest.digest("loghog-backup-hmac-v1".getBytes(StandardCharsets.UTF_8));
             } finally {
-                if (encoded.hasArray()) java.util.Arrays.fill(encoded.array(), (byte) 0);
+                encoded.clear();
+                while (encoded.hasRemaining()) encoded.put((byte) 0);
             }
             completed = true;
             return keys;

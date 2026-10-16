@@ -144,7 +144,7 @@ public class EncryptionHandler {
         try {
             salt = resolveAuthenticationSalt();
         } catch (IllegalArgumentException e) {
-            DialogHelper.showError(null, "Corrupt Encryption Metadata", "Invalid Settings",
+            DialogHelper.showError(parentFrame, "Corrupt Encryption Metadata", "Invalid Settings",
                 "The stored encryption salt is missing or corrupt and could not be recovered from the file.\n"
                 + "Please restore from a backup.");
             return false;
@@ -235,7 +235,9 @@ public class EncryptionHandler {
                         settings.setProperty("encrypted", "true");
                         try {
                             if (saveSettingsCallback != null) saveSettingsCallback.run();
-                        } catch (Exception ignored) {}
+                        } catch (Exception e) {
+                            logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Recovered encryption metadata could not be saved.<br><br>Your log is unlocked, but please check settings file permissions.</html>");
+                        }
                     }
                     success = true;
                 } finally {
