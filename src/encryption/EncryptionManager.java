@@ -756,16 +756,14 @@ public class EncryptionManager implements SessionKeyEncryptor {
             return null;
         }
 
-        byte[][] keys = null;
+        byte[] key = null;
         try {
-            keys = BackupKeyDerivation.deriveRestoreKeys(password, salt);
-            return BackupRestoreVerifier.stripVerifiedHmac(artifact, keys);
+            key = BackupKeyDerivation.deriveV2(password, salt);
+            return BackupRestoreVerifier.stripVerifiedHmac(artifact, key);
         } catch (RuntimeException e) {
             return null;
         } finally {
-            if (keys != null) {
-                for (byte[] key : keys) CryptoUtils.zeroize(key);
-            }
+            CryptoUtils.zeroize(key);
         }
     }
 

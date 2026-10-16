@@ -91,7 +91,7 @@ Protection flow:
 - Backups preserve encrypted bytes.
 - Backup integrity uses HMAC-SHA256 append/verify.
 - HMAC verification covers the complete encrypted file, including its LOGH header, before the trailing 32-byte signature.
-- New signed backups use the v2 PBKDF2/600,000-iteration signing key. Restore also verifies historical v2/120,000-iteration and v1 SHA-256-derived signatures; these older schemes are read-only compatibility paths.
+- Signed backups are created and verified only with the v2 PBKDF2/600,000-iteration signing key. Legacy v1 SHA-256-derived and v2/120,000-iteration signatures are rejected; there is no weaker-key compatibility fallback.
 - A valid backup signature never replaces AES-GCM authentication. Wrong passwords, altered encrypted contents, and invalid signatures remain rejected.
 - Lock and backup flows compact encrypted journal into snapshot where needed.
 - Secure deletion is best-effort and may not be absolute on SSD wear-leveling devices.

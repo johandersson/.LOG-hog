@@ -24,7 +24,7 @@ public class FileEncryptionManager {
     private final Path filePath;
     private final Encryptor encryptor;
     private byte[] sessionKeyBytes;
-    private byte[][] backupHmacKeyBytes;
+    private byte[] backupHmacKeyBytes;
     private byte[] salt;
     private boolean encrypted;
 
@@ -100,12 +100,7 @@ public class FileEncryptionManager {
         FileEncryptionManager duplicate = new FileEncryptionManager(targetPath, encryptor);
         duplicate.encrypted = this.encrypted;
         duplicate.sessionKeyBytes = this.sessionKeyBytes != null ? this.sessionKeyBytes.clone() : null;
-        if (this.backupHmacKeyBytes != null) {
-            duplicate.backupHmacKeyBytes = new byte[this.backupHmacKeyBytes.length][];
-            for (int i = 0; i < this.backupHmacKeyBytes.length; i++) {
-                duplicate.backupHmacKeyBytes[i] = this.backupHmacKeyBytes[i].clone();
-            }
-        }
+        duplicate.backupHmacKeyBytes = this.backupHmacKeyBytes != null ? this.backupHmacKeyBytes.clone() : null;
         duplicate.salt = this.salt != null ? this.salt.clone() : null;
         return duplicate;
     }
@@ -122,7 +117,7 @@ public class FileEncryptionManager {
             }
             this.sessionKeyBytes = encoded.clone();
             CryptoUtils.zeroize(encoded);
-            this.backupHmacKeyBytes = BackupKeyDerivation.deriveRestoreKeys(pwd, slt);
+            this.backupHmacKeyBytes = BackupKeyDerivation.deriveV2(pwd, slt);
             this.salt = slt.clone();
             this.encrypted = true;
             installed = true;
@@ -256,9 +251,7 @@ public class FileEncryptionManager {
         if (this.backupHmacKeyBytes == null) {
             return;
         }
-        for (byte[] key : this.backupHmacKeyBytes) {
-            CryptoUtils.zeroize(key);
-        }
+        CryptoUtils.zeroize(this.backupHmacKeyBytes);
         this.backupHmacKeyBytes = null;
     }
 
