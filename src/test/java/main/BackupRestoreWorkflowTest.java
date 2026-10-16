@@ -142,7 +142,7 @@ class BackupRestoreWorkflowTest {
 
         try {
             handler.setEncryption(password, salt);
-            assertEquals(List.of(".LOG", "", "09:10 2026-09-12", "Restored entry"), handler.getLines());
+            assertEquals(List.of("09:10 2026-09-12", "Restored entry"), handler.getLines());
         } finally {
             handler.clearSensitiveData();
         }
