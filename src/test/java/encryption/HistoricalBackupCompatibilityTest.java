@@ -34,7 +34,7 @@ class HistoricalBackupCompatibilityTest {
     @TempDir Path directory;
 
     @ParameterizedTest
-    @EnumSource(Format.class)
+    @EnumSource(value = Format.class, names = {"SNAPSHOT", "V2_600K_BACKUP"})
     void historicalLogAndBackupOpenThroughFileLoader(Format format) throws Exception {
         char[] password = "historical-password-åäö".toCharArray();
         byte[] artifact = historicalArtifact(format, password);
@@ -52,12 +52,31 @@ class HistoricalBackupCompatibilityTest {
     }
 
     @ParameterizedTest
-    @EnumSource(Format.class)
+    @EnumSource(value = Format.class, names = {"SNAPSHOT", "V2_600K_BACKUP"})
     void historicalLogAndBackupOpenThroughPasswordByteApi(Format format) throws Exception {
         char[] password = "historical-password-åäö".toCharArray();
         try {
             assertEquals(TEXT, EncryptionManager.getInstance().decrypt(historicalArtifact(format, password), password));
         } finally {
+            Arrays.fill(password, '\0');
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = Format.class, names = {"V1_SHA256_BACKUP", "V2_120K_BACKUP"})
+    void weakerBackupSignaturesAreRejectedEvenWithCorrectPassword(Format format) throws Exception {
+        char[] password = "historical-password-åäö".toCharArray();
+        byte[] artifact = historicalArtifact(format, password);
+        Path file = directory.resolve("log.txt");
+        Files.write(file, artifact);
+        FileEncryptionManager reader = new FileEncryptionManager(file, EncryptionManager.getInstance());
+        try {
+            reader.setEncryption(password, SALT);
+            assertThrows(EncryptionException.class, reader::decryptFileToLines);
+            assertThrows(EncryptionException.class, () -> EncryptionManager.getInstance().decrypt(artifact, password));
+            assertArrayEquals(artifact, Files.readAllBytes(file));
+        } finally {
+            reader.clearSensitiveData();
             Arrays.fill(password, '\0');
         }
     }
