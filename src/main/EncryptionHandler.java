@@ -80,99 +80,57 @@ public class EncryptionHandler {
      */
     public boolean handleEncryptionSetup() {
         beginAuthentication();
-        String saltStr = settings.getProperty("salt");
-        if (saltStr != null) {
-            // If the log file does not exist, offer create/browse/restore first
-            java.nio.file.Path path = logFileHandler.getFilePath();
-            if (!java.nio.file.Files.exists(path)) {
-                boolean handled = DialogHandler.handleMissingLogFile(path, () -> {});
-                if (!handled) {
-                    // User chose to exit or did not provide a file; do not prompt for password
-                    return false;
-                }
-
-                // Inspect what the user did and act accordingly
-                DialogHandler.MissingFileAction action = DialogHandler.getLastMissingFileAction();
-                if (action == DialogHandler.MissingFileAction.CREATED) {
-                    settings.setProperty("encrypted", "true");
-                    try {
-                        if (saveSettingsCallback != null) saveSettingsCallback.run();
-                    } catch (Exception ex) {
-                        logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist secure settings after log file creation.</html>");
-                    }
-                    DialogHelper.showWarning(parentFrame,
-                        "Encrypted-Only Policy",
-                        "Encrypted File Required",
-                        "A plain log file cannot be used in encrypted-only mode.<br><br>" +
-                        "Please initialize or restore an encrypted log file to continue.");
-                    return false;
-                } else if (action == DialogHandler.MissingFileAction.COPIED || action == DialogHandler.MissingFileAction.RESTORED) {
-                    // If user copied/restored a file into place, fall through and let detector decide
-                } else {
-                    return false;
-                }
-            }
-            // Now, if file exists, use detector to decide whether to prompt for password
-            java.nio.file.Path pathNow = logFileHandler.getFilePath();
-            if (!java.nio.file.Files.exists(pathNow)) {
+        // If the log file does not exist, offer create/browse/restore first
+        java.nio.file.Path path = logFileHandler.getFilePath();
+        if (!java.nio.file.Files.exists(path)) {
+            boolean handled = DialogHandler.handleMissingLogFile(path, () -> {});
+            if (!handled) {
+                // User chose to exit or did not provide a file; do not prompt for password
                 return false;
             }
-
-            boolean looksEncrypted = EncryptionDetector.isFileEncrypted(pathNow);
-            if (!looksEncrypted) {
+            DialogHandler.MissingFileAction action = DialogHandler.getLastMissingFileAction();
+            if (action == DialogHandler.MissingFileAction.CREATED) {
                 settings.setProperty("encrypted", "true");
-                // Persist secure state
                 try {
                     if (saveSettingsCallback != null) saveSettingsCallback.run();
                 } catch (Exception ex) {
-                    logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist secure settings after detecting a non-encrypted log file.</html>");
+                    logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist secure settings after log file creation.</html>");
                 }
-                DialogHelper.showError(parentFrame,
-                    "Encrypted File Required",
+                DialogHelper.showWarning(parentFrame,
                     "Encrypted-Only Policy",
-                    "The selected log file is not encrypted.<br><br>" +
-                    "Please restore an encrypted log file backup.");
+                    "Encrypted File Required",
+                    "A plain log file cannot be used in encrypted-only mode.<br><br>" +
+                    "Please initialize or restore an encrypted log file to continue.");
+                return false;
+            } else if (action != DialogHandler.MissingFileAction.COPIED
+                    && action != DialogHandler.MissingFileAction.RESTORED) {
                 return false;
             }
-
-            // File looks encrypted -> decode the stored salt and authenticate
-            saltStr = settings.getProperty("salt");
-            if (saltStr == null) {
-                // Settings file may have been lost. Since the LOGH format embeds the salt
-                // in the file header, we can recover it — no data is permanently lost.
-                byte[] recoveredSalt = EncryptionDetector.extractSaltFromHeader(pathNow);
-                if (recoveredSalt.length > 0) {
-                    DialogHelper.showInfo(parentFrame, "Settings File Lost — Recovering",
-                        "<html><b>Your settings file appears to have been lost or reset.</b><br><br>"
-                        + "Don't worry — your encrypted log is still fully accessible.<br>"
-                        + "The encryption metadata has been recovered from the file itself.<br><br>"
-                        + "Please enter your password to unlock and restore access.</html>");
-                    // Persist the recovered salt so subsequent launches work normally
-                    settings.setProperty("salt", Base64.getEncoder().encodeToString(recoveredSalt));
-                    settings.setProperty("encrypted", "true");
-                    try {
-                        if (saveSettingsCallback != null) saveSettingsCallback.run();
-                    } catch (Exception ex) { /* best effort */ }
-                    return performPasswordAuthentication(recoveredSalt, "\uD83D\uDD11 Recover Access", true);
-                }
-                DialogHelper.showError(parentFrame, "Missing Encryption Metadata", "Encrypted File Found",
-                    "The selected log file is encrypted but the application has no encryption metadata (salt),\n"
-                    + "and the salt could not be read from the file header.\n\n"
-                    + "The file may be corrupt. Please restore from a backup.");
-                return false;
-            }
-
-            byte[] salt;
-            try {
-                salt = Base64.getDecoder().decode(saltStr);
-            } catch (IllegalArgumentException e) {
-                DialogHelper.showError(parentFrame, "Corrupt Encryption Metadata", "Invalid Settings",
-                    "The stored encryption salt is corrupt or invalid. Please restore from a settings backup.");
-                return false;
-            }
-            return performPasswordAuthentication(salt, "\uD83D\uDD12 Enter Password", true);
         }
-        return false;
+        if (!java.nio.file.Files.exists(path)) return false;
+        if (!EncryptionDetector.isFileEncrypted(path)) {
+            settings.setProperty("encrypted", "true");
+            try {
+                if (saveSettingsCallback != null) saveSettingsCallback.run();
+            } catch (Exception ex) {
+                logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Unable to persist secure settings after detecting a non-encrypted log file.</html>");
+            }
+            DialogHelper.showError(parentFrame,
+                "Encrypted File Required",
+                "Encrypted-Only Policy",
+                "The selected log file is not encrypted.<br><br>" +
+                "Please restore an encrypted log file backup.");
+            return false;
+        }
+        byte[] salt;
+        try {
+            salt = resolveAuthenticationSalt();
+        } catch (IllegalArgumentException e) {
+            DialogHelper.showError(parentFrame, "Corrupt Encryption Metadata", "Invalid Settings",
+                "The stored encryption salt is corrupt or invalid. Please restore from a settings backup.");
+            return false;
+        }
+        return performPasswordAuthentication(salt, "\uD83D\uDD12 Enter Password", true);
     }
 
     /**
@@ -184,22 +142,24 @@ public class EncryptionHandler {
         beginAuthentication();
         byte[] salt;
         try {
-            salt = Base64.getDecoder().decode(settings.getProperty("salt"));
-        } catch (IllegalArgumentException | NullPointerException e) {
-            // Salt missing from settings — try to recover from the file header
-            byte[] recovered = EncryptionDetector.extractSaltFromHeader(logFileHandler.getFilePath());
-            if (recovered.length > 0) {
-                settings.setProperty("salt", Base64.getEncoder().encodeToString(recovered));
-                try { if (saveSettingsCallback != null) saveSettingsCallback.run(); } catch (Exception ignored) {}
-                salt = recovered;
-            } else {
-                DialogHelper.showError(null, "Corrupt Encryption Metadata", "Invalid Settings",
-                    "The stored encryption salt is missing or corrupt and could not be recovered from the file.\n"
-                    + "Please restore from a backup.");
-                return false;
-            }
+            salt = resolveAuthenticationSalt();
+        } catch (IllegalArgumentException e) {
+            DialogHelper.showError(parentFrame, "Corrupt Encryption Metadata", "Invalid Settings",
+                "The stored encryption salt is missing or corrupt and could not be recovered from the file.\n"
+                + "Please restore from a backup.");
+            return false;
         }
         return performPasswordAuthentication(salt, "\uD83D\uDD13 Unlock File", false);
+    }
+
+    private byte[] resolveAuthenticationSalt() {
+        byte[] headerSalt = EncryptionDetector.extractSaltFromHeader(logFileHandler.getFilePath());
+        if (headerSalt.length > 0) return headerSalt;
+        String encoded = settings.getProperty("salt");
+        if (encoded == null) throw new IllegalArgumentException("Missing salt");
+        byte[] storedSalt = Base64.getDecoder().decode(encoded);
+        if (storedSalt.length != 16) throw new IllegalArgumentException("Invalid salt length");
+        return storedSalt;
     }
 
     /**
@@ -260,7 +220,7 @@ public class EncryptionHandler {
 
                     // Derive the backup HMAC key from credentials so it is never stored in settings.
                     // The key is only computable with the correct password.
-                    backupManager.deriveAndSetHmacKey(pwd, salt);
+                    backupManager.deriveAndSetHmacKey(pwd, logFileHandler.getSalt());
                     if (parentFrame instanceof LogTextEditor editor && editor.getSessionGeneration() != session) {
                         throw new java.util.concurrent.CancellationException();
                     }
@@ -268,6 +228,16 @@ public class EncryptionHandler {
                         // For reload, update UI state
                         updateUILockStateCallback.run();
                         loadFullLogCallback.run();
+                    }
+                    String authenticatedSalt = Base64.getEncoder().encodeToString(logFileHandler.getSalt());
+                    if (!authenticatedSalt.equals(settings.getProperty("salt"))) {
+                        settings.setProperty("salt", authenticatedSalt);
+                        settings.setProperty("encrypted", "true");
+                        try {
+                            if (saveSettingsCallback != null) saveSettingsCallback.run();
+                        } catch (Exception e) {
+                            logFileHandler.showErrorDialog("<html><b>💾 Settings Save Failed</b><br><br>Recovered encryption metadata could not be saved.<br><br>Your log is unlocked, but please check settings file permissions.</html>");
+                        }
                     }
                     success = true;
                 } finally {

@@ -2,10 +2,8 @@ package encryption;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.security.MessageDigest;
 
 import javax.crypto.Cipher;
-import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
@@ -13,6 +11,7 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import filehandling.ResourceLimits;
 import security.BackupKeyDerivation;
+import security.BackupRestoreVerifier;
 
 /*
  * Copyright (C) 2026 Johan Andersson
@@ -65,7 +64,6 @@ public class EncryptionManager implements SessionKeyEncryptor {
     private static final int SALT_LENGTH = 16;
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
-    private static final int BACKUP_HMAC_SIZE_BYTES = 32;
     private static final int PBKDF2_ITERATIONS = 600000;
     private static final int AES_KEY_LENGTH = 256; // bits
 
@@ -385,13 +383,16 @@ public class EncryptionManager implements SessionKeyEncryptor {
                     return performDecryption(encrypted, key);
                 } catch (java.security.GeneralSecurityException e) {
                     byte[] stripped = null;
+                    byte[] restoredPayload = null;
                     try {
-                        stripped = stripVerifiedBackupHmac(encrypted, password, salt);
+                        stripped = stripVerifiedBackupHmac(data, password, salt);
                         if (stripped != null) {
-                            return performDecryption(stripped, key);
+                            restoredPayload = extractEncryptedPayload(stripped);
+                            return performDecryption(restoredPayload, key);
                         }
                     } finally {
                         CryptoUtils.zeroize(stripped);
+                        CryptoUtils.zeroize(restoredPayload);
                     }
                     throw e;
                 } finally {
@@ -750,52 +751,19 @@ public class EncryptionManager implements SessionKeyEncryptor {
         }
     }
 
-    private byte[] stripVerifiedBackupHmac(byte[] encryptedPayload, char[] password, byte[] salt) {
-        if (encryptedPayload == null || password == null || salt == null) {
-            return null;
-        }
-        if (encryptedPayload.length <= BACKUP_HMAC_SIZE_BYTES) {
+    private byte[] stripVerifiedBackupHmac(byte[] artifact, char[] password, byte[] salt) {
+        if (artifact == null || password == null || salt == null) {
             return null;
         }
 
-        byte[] candidatePayload = null;
-        byte[] candidateHmac = null;
-        byte[] backupKey = null;
-        byte[] expectedHmac = null;
+        byte[] key = null;
         try {
-            int payloadLength = encryptedPayload.length - BACKUP_HMAC_SIZE_BYTES;
-            candidatePayload = Arrays.copyOf(encryptedPayload, payloadLength);
-            candidateHmac = Arrays.copyOfRange(encryptedPayload, payloadLength, encryptedPayload.length);
-            backupKey = BackupKeyDerivation.deriveV2(password, salt);
-            expectedHmac = computeHmacSha256(backupKey, candidatePayload);
-            if (MessageDigest.isEqual(expectedHmac, candidateHmac)) {
-                return candidatePayload;
-            }
-            return null;
+            key = BackupKeyDerivation.deriveV2(password, salt);
+            return BackupRestoreVerifier.stripVerifiedHmac(artifact, key);
         } catch (RuntimeException e) {
             return null;
         } finally {
-            boolean verified = expectedHmac != null && candidateHmac != null && MessageDigest.isEqual(expectedHmac, candidateHmac);
-            if (candidatePayload != null && !verified) {
-                CryptoUtils.zeroize(candidatePayload);
-            }
-            CryptoUtils.zeroize(candidateHmac);
-            CryptoUtils.zeroize(backupKey);
-            CryptoUtils.zeroize(expectedHmac);
-        }
-    }
-
-    private byte[] computeHmacSha256(byte[] key, byte[] data) {
-        if (key == null || data == null) {
-            throw new IllegalArgumentException("HMAC key and data are required");
-        }
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec keySpec = new SecretKeySpec(key, "HmacSHA256");
-            mac.init(keySpec);
-            return mac.doFinal(data);
-        } catch (Exception e) {
-            throw new IllegalStateException("Unable to compute HMAC-SHA256", e);
+            CryptoUtils.zeroize(key);
         }
     }
 

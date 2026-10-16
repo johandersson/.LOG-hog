@@ -2,17 +2,16 @@ package encryption;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import filehandling.LogFileFormat;
 import security.BackupKeyDerivation;
+import security.BackupRestoreVerifier;
 import utils.ProgressCallback;
 
 /**
@@ -21,7 +20,6 @@ import utils.ProgressCallback;
 public class FileEncryptionManager {
 
     private static final char[] EMPTY_PASSWORD = new char[0];
-    private static final int BACKUP_HMAC_SIZE_BYTES = 32;
 
     private final Path filePath;
     private final Encryptor encryptor;
@@ -276,41 +274,16 @@ public class FileEncryptionManager {
         }
 
         byte[] all = null;
-        byte[] payload = null;
-        byte[] hmac = null;
-        byte[] expected = null;
         try {
             all = Files.readAllBytes(filePath);
-            if (all.length <= BACKUP_HMAC_SIZE_BYTES) {
-                return null;
-            }
-            int payloadLen = all.length - BACKUP_HMAC_SIZE_BYTES;
-            payload = Arrays.copyOf(all, payloadLen);
-            hmac = Arrays.copyOfRange(all, payloadLen, all.length);
-            expected = computeHmacSha256(backupHmacKeyBytes, payload);
-            if (!MessageDigest.isEqual(expected, hmac)) {
-                return null;
-            }
-            return payload;
+            return BackupRestoreVerifier.stripVerifiedHmac(all, backupHmacKeyBytes);
         } catch (Exception e) {
             return null;
         } finally {
             if (all != null) {
                 CryptoUtils.zeroize(all);
             }
-            if (payload != null && (expected == null || hmac == null || !MessageDigest.isEqual(expected, hmac))) {
-                CryptoUtils.zeroize(payload);
-            }
-            CryptoUtils.zeroize(hmac);
-            CryptoUtils.zeroize(expected);
         }
-    }
-
-    private byte[] computeHmacSha256(byte[] key, byte[] data) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA256");
-        SecretKeySpec keySpec = new SecretKeySpec(key, "HmacSHA256");
-        mac.init(keySpec);
-        return mac.doFinal(data);
     }
 
     private void finishTempWrite(Path tmp, boolean completed) throws Exception {
