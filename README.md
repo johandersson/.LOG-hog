@@ -79,7 +79,7 @@ It does **not protect against**:
 * Memory access during an active session
 * Attackers with full access to your user profile and host metadata
 
-Note: local lockout/audit metadata keys are protected with a host-profile-bound envelope for practical hardening. This improves resistance to casual tampering but is not equivalent to a hardware-backed secret store.
+Note: local audit metadata keys are protected with a host-profile-bound envelope for practical hardening. This improves resistance to casual tampering but is not equivalent to a hardware-backed secret store.
 
 👉 Security depends on:
 

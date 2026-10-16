@@ -11,7 +11,7 @@ import gui.SecurityDelayDialog;
 /**
  * Handles authentication and file-loading failures for password attempts.
  * Shows appropriate dialogs (hiding the lock overlay while visible) and
- * enforces progressive delays and locking behavior.
+ * enforces progressive delays and the per-session attempt limit.
  */
 public final class AuthenticationFailureHandler {
     private static final int MAX_ATTEMPTS_PER_SESSION = 3;
@@ -33,9 +33,9 @@ public final class AuthenticationFailureHandler {
             String message = "You have used all 3 tries for this session.";
             try {
                 if (lo != null) {
-                    lo.withOverlayHidden(() -> { DialogHelper.showError(parentFrame, "Security Lock", "Account Temporarily Locked", message); return null; });
+                    lo.withOverlayHidden(() -> { DialogHelper.showError(parentFrame, "Authentication Failed", "Session Attempts Exhausted", message); return null; });
                 } else {
-                    DialogHelper.showError(parentFrame, "Security Lock", "Account Temporarily Locked", message);
+                    DialogHelper.showError(parentFrame, "Authentication Failed", "Session Attempts Exhausted", message);
                 }
             } catch (Exception ignore) {}
             return false;
