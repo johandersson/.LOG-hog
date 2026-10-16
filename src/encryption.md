@@ -99,7 +99,7 @@ Protection flow:
 
 ## Security Event Logging
 
-- Security events are chain-anchored with sequence/hash metadata.
+- Selected backup-integrity events are chain-anchored with sequence/hash metadata.
 - Anchor integrity is checked with HMAC and Ed25519 signature verification.
 - Signing private key and HMAC key are stored as protected key blobs.
 

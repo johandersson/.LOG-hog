@@ -38,7 +38,7 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    AUTH[Authentication attempts] --> EVT[SecurityEventLog]
+    BKPEVT[Selected backup-integrity events] --> EVT[SecurityEventLog]
     EVT --> ELOG[(security-events.log)]
     EVT --> EANCH[(security-events.anchor)]
     POLICY[SecurityFilePolicy strict mode] --> STATE
