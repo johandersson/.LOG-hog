@@ -45,7 +45,6 @@ Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.co
 * Encrypted-only save path (plaintext mode removed)
 * Incremental encrypted journal writes with compaction on lock/threshold
 * Tamper-evident backup integrity (HMAC for numbered backups)
-* Persistent lockout state with fail-closed behavior on tamper/missing state
 * Tamper-evident security event log with sequence and hash-chain anchoring
 * Progressive delay on failed password attempts
 * No hardcoded keys or credentials
@@ -61,7 +60,7 @@ Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.co
 
 Many lightweight note tools optimize for convenience first and security second.
 
-.LOG-hog is designed to keep fast logging UX while enforcing encrypted storage and adding practical hardening around backup integrity, lockout persistence, and local file handling.
+.LOG-hog is designed to keep fast logging UX while enforcing encrypted storage and adding practical hardening around backup integrity and local file handling.
 
 ***
 

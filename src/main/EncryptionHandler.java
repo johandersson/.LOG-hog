@@ -32,7 +32,6 @@ import gui.LoadingProgressDialog;
 import gui.PasswordDialog;
 import gui.SecurityDelayDialog;
 import security.AuthenticationFailureClassifier;
-import security.PersistentAuthLockout;
 
 /**
  * Handles encryption setup, password authentication, and related security operations.
@@ -216,17 +215,7 @@ public class EncryptionHandler {
         final long session = parentFrame instanceof LogTextEditor editor ? editor.getSessionGeneration() : 0L;
         boolean success = false;
         int attempts = 0;
-        final int maxSessionAttempts = PersistentAuthLockout.getMaxSessionAttempts();
-
-        long remainingLockoutMs = PersistentAuthLockout.getRemainingLockoutMillis(settings);
-        if (remainingLockoutMs > 0) {
-            String remaining = PersistentAuthLockout.formatRemainingLockout(remainingLockoutMs);
-            DialogHelper.showError(parentFrame,
-                "Security Lock",
-                "Account Temporarily Locked",
-                "Too many failed attempts were detected.<br><br>Please wait about " + remaining + " and try again.");
-            return false;
-        }
+        final int maxSessionAttempts = 3;
 
         while (!success) {
             PasswordDialog.PasswordResult result;
@@ -270,12 +259,6 @@ public class EncryptionHandler {
                         throw new java.util.concurrent.CancellationException();
                     }
 
-                    PersistentAuthLockout.clear(settings);
-                    try {
-                        if (saveSettingsCallback != null) saveSettingsCallback.run();
-                    } catch (Exception ignored) {
-                    }
-
                     // Derive the backup HMAC key from credentials so it is never stored in settings.
                     // The key is only computable with the correct password.
                     backupManager.deriveAndSetHmacKey(pwd, salt);
@@ -303,25 +286,10 @@ public class EncryptionHandler {
                 
                 attempts++;
                 if (attempts >= maxSessionAttempts) {
-                    PersistentAuthLockout.registerFailure(settings);
-                    try {
-                        if (saveSettingsCallback != null) saveSettingsCallback.run();
-                    } catch (Exception ignored) {
-                    }
-
-                    long lockoutNow = PersistentAuthLockout.getRemainingLockoutMillis(settings);
-                    if (lockoutNow > 0) {
-                        String remaining = PersistentAuthLockout.formatRemainingLockout(lockoutNow);
-                        DialogHelper.showError(parentFrame,
-                            "Security Lock",
-                            "Account Temporarily Locked",
-                            "Too many failed sessions were detected.<br><br>Please wait about " + remaining + " before trying again.");
-                    } else {
-                        DialogHelper.showError(parentFrame,
-                            "Authentication Failed",
-                            "Session Attempts Exhausted",
-                            "You have used all 3 tries for this session.<br><br>Please restart the unlock flow and try again.");
-                    }
+                    DialogHelper.showError(parentFrame,
+                        "Authentication Failed",
+                        "Session Attempts Exhausted",
+                        "You have used all 3 tries for this session.<br><br>Please restart the unlock flow and try again.");
                     if (exitOnCancel) {
                         System.exit(1);
                     }
