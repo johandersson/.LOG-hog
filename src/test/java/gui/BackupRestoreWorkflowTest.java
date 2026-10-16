@@ -60,18 +60,19 @@ class BackupRestoreWorkflowTest {
         Path backup = encryptedBackup("backup");
 
         for (int declineAt = 1; declineAt <= 2; declineAt++) {
+            int confirmationToDecline = declineAt;
             int[] confirmations = {0};
             int[] restores = {0};
             boolean restored = BackupRestoreWorkflow.restore(
                 active,
                 backup,
-                (title, message) -> ++confirmations[0] != declineAt,
+                (title, message) -> ++confirmations[0] != confirmationToDecline,
                 (title, message) -> fail(message),
                 () -> fail("Cancellation must not report success"),
                 selected -> restores[0]++
             );
             assertFalse(restored);
-            assertEquals(declineAt, confirmations[0]);
+            assertEquals(confirmationToDecline, confirmations[0]);
             assertEquals(0, restores[0]);
         }
     }
