@@ -168,13 +168,12 @@ When prompted, choose **Restore from Backup** and select an encrypted backup fil
 
 ### Password Attempts
 
-* You get **3 password tries per unlock session**
-* If you use all 3 tries, that session ends and you must start the unlock flow again
+* You can enter a password up to **3 times per unlock session**
+* After 3 failed attempts, the unlock flow ends; during startup, the application exits
 
 ⚠️ **Important:**  
 If you forget your password, your data **cannot** be recovered.  
 Your password is the only thing that cannot be recovered — write it down and store it safely.
-A lost password cannot be recovered.
 
 ### File Self-Containment and Recovery
 

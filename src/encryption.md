@@ -82,8 +82,8 @@ Protection flow:
 
 ## Authentication Attempts
 
-- 3 password attempts per unlock session,
-- the unlock flow exits after all 3 attempts fail.
+- up to 3 password attempts per unlock session,
+- startup exits after three failed attempts; manual unlock ends the current flow and leaves the file locked.
 
 ## Backup and Integrity Model
 

@@ -214,8 +214,7 @@ public class EncryptionHandler {
         clearFailedAuthentication();
         final long session = parentFrame instanceof LogTextEditor editor ? editor.getSessionGeneration() : 0L;
         boolean success = false;
-        int attempts = 0;
-        final int maxSessionAttempts = 3;
+        AuthenticationAttemptPolicy attempts = new AuthenticationAttemptPolicy(System::exit);
 
         while (!success) {
             PasswordDialog.PasswordResult result;
@@ -284,28 +283,23 @@ public class EncryptionHandler {
                 java.util.Arrays.fill(pwd, '\0');
                 if (e instanceof java.util.concurrent.CancellationException) return false;
                 
-                attempts++;
-                if (attempts >= maxSessionAttempts) {
-                    DialogHelper.showError(parentFrame,
+                if (attempts.recordFailure(exitOnCancel, () -> DialogHelper.showError(parentFrame,
                         "Authentication Failed",
                         "Session Attempts Exhausted",
-                        "You have used all 3 tries for this session.<br><br>Please restart the unlock flow and try again.");
-                    if (exitOnCancel) {
-                        System.exit(1);
-                    }
+                        "You have used all 3 tries for this session.<br><br>Please restart the unlock flow and try again."))) {
                     return false;
                 }
                 
                 boolean isAuthError = AuthenticationFailureClassifier.isLikelyAuthenticationFailure(e);
                 
                 if (isAuthError) {
-                    int remaining = maxSessionAttempts - attempts;
+                    int remaining = attempts.getRemainingAttempts();
                     DialogHelper.showError(parentFrame, "Authentication Failed", "🔒 Authentication Failed",
                         "The password you entered appears to be incorrect, or the encrypted file has an unexpected format.<br><br>" +
                         "You have <b>" + remaining + "</b> attempt" + (remaining == 1 ? "" : "s") + " remaining in this session.<br><br>Tip: Double-check your password or password manager.");
                     // WindowShakeAnimation.shake(parentFrame);
                     // Add progressive delay after failed attempts
-                    long delay = switch (attempts) {
+                    long delay = switch (attempts.getAttempts()) {
                         case 1 -> 3000; // 3 seconds
                         case 2 -> 15000; // 15 seconds
                         case 3 -> 30000; // 30 seconds

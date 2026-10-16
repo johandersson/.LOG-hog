@@ -14,8 +14,6 @@ import gui.SecurityDelayDialog;
  * enforces progressive delays and the per-session attempt limit.
  */
 public final class AuthenticationFailureHandler {
-    private static final int MAX_ATTEMPTS_PER_SESSION = 3;
-
     private AuthenticationFailureHandler() {}
 
     /**
@@ -29,7 +27,7 @@ public final class AuthenticationFailureHandler {
      * @return true if caller should continue prompting (retry), false to stop
      */
     public static boolean handleFailure(Exception e, int attempts, JFrame parentFrame, LockOverlay lo, LogFileHandler logFileHandler, boolean exitOnCancel) {
-        if (attempts >= MAX_ATTEMPTS_PER_SESSION) {
+        if (attempts >= AuthenticationAttemptPolicy.MAX_ATTEMPTS) {
             String message = "You have used all 3 tries for this session.";
             try {
                 if (lo != null) {
@@ -63,7 +61,7 @@ public final class AuthenticationFailureHandler {
                 errorMsg.contains("split");
 
         if (isAuthError) {
-            int remaining = MAX_ATTEMPTS_PER_SESSION - attempts;
+            int remaining = AuthenticationAttemptPolicy.MAX_ATTEMPTS - attempts;
             try {
                 if (lo != null) {
                     lo.withOverlayHidden(() -> { DialogHelper.showError(parentFrame, "Authentication Failed", "🔒 Authentication Failed",
