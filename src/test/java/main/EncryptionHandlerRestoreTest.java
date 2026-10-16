@@ -117,6 +117,41 @@ class EncryptionHandlerRestoreTest {
         }
     }
 
+    @Test
+    void settingsSaveFailureIsReportedWithoutRejectingCorrectPassword() throws Exception {
+        Path file = directory.resolve("log.txt");
+        char[] password = "settings-save-failure-test".toCharArray();
+        FileEncryptionManager writer = new FileEncryptionManager(file, EncryptionManager.getInstance());
+        try {
+            writer.setEncryption(password, EncryptionManager.getInstance().generateSalt());
+            writer.encryptFileFromLines(List.of(".LOG", "", "12:34 2026-09-11", "Recovered"));
+        } finally {
+            writer.clearSensitiveData();
+            java.util.Arrays.fill(password, '\0');
+        }
+        AtomicInteger errors = new AtomicInteger();
+        LogFileHandler log = new LogFileHandler(file, EncryptionManager.getInstance()) {
+            @Override public void showErrorDialog(String message) { errors.incrementAndGet(); }
+        };
+        Properties settings = new Properties();
+        BackupManager backups = new BackupManager(settings);
+        EncryptionHandler handler = new EncryptionHandler(null, log, settings, () -> {
+            try {
+                assertEquals(List.of("12:34 2026-09-11", "Recovered"), log.getLines());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }, () -> {}, () -> {}, () -> { throw new IllegalStateException("simulated settings write failure"); }, backups);
+        try {
+            driveDialogs(() -> assertTrue(handler.reloadEncryptedLog()), "settings-save-failure-test");
+            assertEquals(1, errors.get(), "The user must know recovered metadata could not be saved");
+            assertTrue(log.isEncrypted());
+        } finally {
+            log.clearSensitiveData();
+            backups.clearInMemoryHmacKey();
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void successfulEditorStartupActuallyUnlocksRestoredLog(boolean settingsExist) throws Exception {
@@ -149,7 +184,8 @@ class EncryptionHandlerRestoreTest {
                     editor.get().dispose();
                 });
             }
-            System.setProperty("user.home", originalHome);
+            if (originalHome == null) System.clearProperty("user.home");
+            else System.setProperty("user.home", originalHome);
         }
     }
 
