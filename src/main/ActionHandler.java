@@ -317,7 +317,7 @@ public class ActionHandler {
         }
         if (!editor.isSessionCurrent(session)) return;
 
-        if (result == javax.swing.JOptionPane.YES_OPTION) {
+        if (result == javax.swing.JOptionPane.YES_OPTION && !editor.isLocked()) {
             // Use batch delete for efficiency (single file I/O instead of N operations)
             logFileHandler.deleteLogEntries(selectedItems, listModel);
             editor.updateLogListView();
@@ -344,9 +344,10 @@ public class ActionHandler {
         
         // Loop until valid input or cancel
         while (true) {
+            if (editor.isLocked()) return;
             newDateTime = (String) JOptionPane.showInputDialog(editor, 
                 "Enter new date and time (format: HH:mm yyyy-MM-dd):", newDateTime);
-            if (newDateTime == null) return; // User cancelled
+            if (newDateTime == null || editor.isLocked()) return; // User cancelled or file locked
             
             if (newDateTime.isBlank()) {
                 DialogHelper.showError(editor, "Error", "Invalid Input", "Date and time cannot be empty.");
