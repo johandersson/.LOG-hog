@@ -409,6 +409,10 @@ public class EntryEditor {
 
     public void compactEncryptedJournal() throws Exception {
         incrementalJournal.compactNow();
+    }
+
+    public void discardIncrementalJournal() {
+        incrementalJournal.clear();
         cache.clearCachedLines();
     }
 

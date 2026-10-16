@@ -150,7 +150,7 @@ If the app is terminated unexpectedly (e.g., crash, forced quit):
 
 ### Restore
 
-When prompted, choose **Restore from Backup** and select an encrypted backup file. .LOG-hog validates the backup before restoring it to the active log file.
+In **Settings**, choose **Restore from Backup** and select your encrypted `.enc` or `.bak.enc` file. Confirm twice to replace the active log; the dialog compares file sizes.
 
 # 🔐 Encryption
 
