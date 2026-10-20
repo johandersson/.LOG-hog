@@ -122,12 +122,11 @@ public class ActionHandler {
                     
                     if (choice == 0) {
                         // Save & Clear - save first, then clear
-                        saveEditedLogEntry();
-                        // Switch to Entry tab and clear after save completes
+                        saveLogEntry();
+                        // Switch to Entry tab after save completes
                         SwingUtilities.invokeLater(() -> {
                             JTabbedPane tabPane = editor.getTabPane();
                             tabPane.setSelectedIndex(0);
-                            textArea.setText("");
                             textArea.requestFocus();
                         });
                     } else if (choice == 1) {
