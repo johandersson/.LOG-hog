@@ -128,7 +128,7 @@ public class EntryLoader {
     /**
      * Securely clears all cached data by overwriting content before clearing.
      * This prevents memory forensics from recovering sensitive log content.
-     * Aligns with encryption.md security requirements for cache clearing.
+     * Aligns with SECURITY.md security requirements for cache clearing.
      */
     private void secureClearCaches() {
         // Overwrite entry content cache values before clearing

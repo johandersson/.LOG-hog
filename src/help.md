@@ -52,7 +52,7 @@ It extends this concept with:
 * Secure file handling and path validation
 * Static analysis tools used to detect common vulnerability classes
 
-👉 See `encryption.md` for detailed technical information.
+👉 See [SECURITY.md](../../SECURITY.md) for detailed technical information.
 
 ## ⚠️ Security Model (Important)
 

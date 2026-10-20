@@ -91,41 +91,25 @@ graph TB
 
 ### Encryption Flow
 
-```
-User Password (e.g., 20+ chars)
-          ↓
-   ┌──────────────────┐
-   │ Generate Salt    │ ← 128-bit random
-   └─────────┬────────┘
-             ↓
-   ┌─────────────────────────────────────────┐
-   │ PBKDF2 (600K iterations, HMAC-SHA256)   │
-   │ Input:  password + salt                  │
-   │ Output: 256-bit session key              │
-   └─────────┬─────────────────────────────────┘
-             ↓
-   ┌──────────────────┐
-   │ Generate IV      │ ← 96-bit random
-   └─────────┬────────┘
-             ↓
-   ┌────────────────────────────────────────────┐
-   │ AES-256-GCM Encrypt                         │
-   │ Key:       derived from password            │
-   │ IV:        random per operation             │
-   │ AAD:       (optional, not used currently)   │
-   │ Plaintext: log entry content                │
-   │ Output:    ciphertext + 128-bit auth tag    │
-   └─────────┬──────────────────────────────────┘
-             ↓
-   ┌─────────────────────────────────────────────────┐
-   │ File Format:                                    │
-   │   MAGIC(4: "LOGH") + VERSION(1) +              │
-   │   SALT_LEN(1) + SALT(16) +                     │
-   │   IV_LEN(1) + IV(12) +                         │
-   │   CIPHERTEXT + AUTH_TAG(16)                    │
-   └─────────┬──────────────────────────────────────┘
-             ↓
-      Encrypted Log File
+```mermaid
+flowchart TD
+   Start["User Password<br/>(e.g., 20+ chars)"]
+   GenSalt["Generate Salt<br/>(128-bit random)"]
+   PBKDF2["PBKDF2<br/>600K iterations<br/>HMAC-SHA256<br/>Input: password + salt<br/>Output: 256-bit key"]
+   GenIV["Generate IV<br/>(96-bit random)"]
+   Encrypt["AES-256-GCM Encrypt<br/>Key: derived from password<br/>IV: random per operation<br/>Plaintext: log content<br/>Output: ciphertext + 128-bit tag"]
+   FileFormat["File Format<br/>MAGIC(4: LOGH) + VERSION(1)<br/>SALT_LEN(1) + SALT(16)<br/>IV_LEN(1) + IV(12)<br/>CIPHERTEXT + AUTH_TAG(16)"]
+   Result["Encrypted Log File"]
+    
+   Start --> GenSalt
+   GenSalt --> PBKDF2
+   PBKDF2 --> GenIV
+   GenIV --> Encrypt
+   Encrypt --> FileFormat
+   FileFormat --> Result
+    
+   style Start fill:#4A90E2,stroke:#333,color:#fff
+   style Result fill:#50C878,stroke:#333,color:#fff
 ```
 
 ### Key Derivation Details
@@ -145,25 +129,36 @@ User Password (e.g., 20+ chars)
 
 ### Decryption & Verification
 
-```
-Encrypted File
-      ↓
-Parse Header:
-  • Verify MAGIC = "LOGH"
-  • Read VERSION (must be 1)
-  • Extract SALT
-  • Extract IV
-      ↓
-User Password
-      ↓
-PBKDF2 (600K iterations) → Session Key (256-bit)
-      ↓
-AES-256-GCM Decrypt:
-  • Input:  ciphertext, IV, key, auth tag
-  • Output: plaintext (if tag verifies)
-  • On tag mismatch: throw EncryptionException
-      ↓
-Plaintext Log Content
+```mermaid
+flowchart TD
+    Start["Encrypted File"]
+    ParseHeader["Parse Header"]
+    VerifyMagic["Verify MAGIC = 'LOGH'"]
+    ReadVersion["Read VERSION<br/>(must be 1)"]
+    ExtractSalt["Extract SALT"]
+    ExtractIV["Extract IV"]
+    GetPassword["User Password"]
+    PBKDF2["PBKDF2<br/>600K iterations<br/>→ Session Key<br/>256-bit"]
+    Decrypt["AES-256-GCM Decrypt<br/>Input: ciphertext, IV<br/>key, auth tag<br/>Verify authentication tag"]
+    TagCheck{Tag<br/>verifies?}
+    Success["Plaintext Log Content"]
+    Failure["EncryptionException:<br/>Tag mismatch"]
+    
+    Start --> ParseHeader
+    ParseHeader --> VerifyMagic
+    VerifyMagic --> ReadVersion
+    ReadVersion --> ExtractSalt
+    ExtractSalt --> ExtractIV
+    ExtractIV --> GetPassword
+    GetPassword --> PBKDF2
+    PBKDF2 --> Decrypt
+    Decrypt --> TagCheck
+    TagCheck -->|YES| Success
+    TagCheck -->|NO| Failure
+    
+    style Start fill:#4A90E2,stroke:#333,color:#fff
+    style Success fill:#50C878,stroke:#333,color:#fff
+    style Failure fill:#E74C3C,stroke:#333,color:#fff
 ```
 
 ---
@@ -354,15 +349,6 @@ flowchart TD
     style HmacFail fill:#E74C3C,stroke:#333,color:#fff
     style DecryptFail fill:#E74C3C,stroke:#333,color:#fff
 ```
-
-### Legacy Backup Rejection
-
-**Policy**: .LOG-hog **NEVER** supports legacy backup formats:
-- v1 PBKDF2 (120,000 iterations) → **REJECTED**
-- Weaker key derivations → **REJECTED**
-- Fallback cryptography → **NOT PRESENT**
-
-**Rationale**: Accepting legacy formats would create downgrade attacks and maintainability burden. New backups always use v2 (600K).
 
 ---
 

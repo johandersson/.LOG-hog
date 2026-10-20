@@ -55,7 +55,7 @@ Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.co
 * Strict owner-only permission enforcement for security-critical artifacts
 * Clipboard auto-clear to reduce accidental exposure
 
-👉 See `src/encryption.md` for detailed technical information.
+👉 See [SECURITY.md](SECURITY.md) for detailed technical information.
 
 ### Why this matters
 
@@ -238,6 +238,7 @@ The script caches `junit-platform-console-standalone-1.10.2.jar` in `.tools/`, c
 ## 📚 Documentation
 
 * [Architecture](ARCHITECTURE.md)
+* [Security](SECURITY.md)
 * [Help](src/help.md)
 * [Changelog](CHANGELOG.md)
 
