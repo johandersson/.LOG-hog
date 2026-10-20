@@ -32,9 +32,12 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTabbedPane;
 
 import filehandling.LogFileHandler;
 import gui.DialogHelper;
+import gui.EntryPanel;
 import gui.FullLogPanel;
 import gui.LogListPanel;
 import gui.SystemTrayMenu;
@@ -98,25 +101,17 @@ public class ActionHandler {
         return new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Show dialog directly - we're already on the EDT from ActionListener
-                String newEntry = (String) JOptionPane.showInputDialog(
-                        editor,
-                        "Enter new log entry:",
-                        "New Log Entry",
-                        JOptionPane.PLAIN_MESSAGE);
-                if (newEntry != null && !newEntry.isBlank()) {
-                    // Save asynchronously so UI remains responsive for large files
-                    logFileHandler.saveTextAsync(newEntry, listModel, () -> {
-                        try {
-                            editor.loadLogEntries();
-                            fullLogPanel.refreshIfVisible();
-                            SystemTrayMenu.updateRecentLogsMenu();
-                        } catch (Exception ex) {
-                            // Security: Don't expose internal error details
-                            logFileHandler.showErrorDialog("<html><b>🔄 Refresh Failed</b><br><br>Unable to refresh log data after save.<br><br><i>Tip: Try reloading the application.</i></html>");
-                        }
-                    });
-                }
+                // Switch to Entry tab (index 0) - the main editing window
+                JTabbedPane tabPane = editor.getTabPane();
+                tabPane.setSelectedIndex(0);
+                
+                // Get the EntryPanel and its text area
+                EntryPanel entryPanel = editor.getEntryPanel();
+                JTextArea textArea = entryPanel.getTextArea();
+                
+                // Clear the text area and focus it for new entry
+                textArea.setText("");
+                textArea.requestFocus();
             }
         };
     }
