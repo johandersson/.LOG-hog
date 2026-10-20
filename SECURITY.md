@@ -350,15 +350,6 @@ flowchart TD
     style DecryptFail fill:#E74C3C,stroke:#333,color:#fff
 ```
 
-### Legacy Backup Rejection
-
-**Policy**: .LOG-hog **NEVER** supports legacy backup formats:
-- v1 PBKDF2 (120,000 iterations) → **REJECTED**
-- Weaker key derivations → **REJECTED**
-- Fallback cryptography → **NOT PRESENT**
-
-**Rationale**: Accepting legacy formats would create downgrade attacks and maintainability burden. New backups always use v2 (600K).
-
 ---
 
 ## File Permissions & Hardening
