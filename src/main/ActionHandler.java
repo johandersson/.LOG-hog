@@ -298,8 +298,7 @@ public class ActionHandler {
         // Build preview entries: each is a List<String> with timestamp and trimmed text
         java.util.List<java.util.List<String>> previewEntries = new java.util.ArrayList<>();
         for (String selectedItem : selectedItems) {
-            var rawTs = logFileHandler.getRawTimestamp(selectedItem);
-            String entryText = logFileHandler.loadEntry(rawTs);
+            String entryText = logFileHandler.loadEntry(selectedItem);
             String previewBody;
             if (entryText == null || entryText.isBlank()) {
                 previewBody = "(no content)";
