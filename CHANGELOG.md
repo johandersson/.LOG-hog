@@ -99,7 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Password strength indicator** with real-time feedback during password creation
 - **Enforced minimum password strength** (at least 'Good' score) for new encryptions to prevent weak passwords
 - **Built-in password generator** with random password and passphrase generation using EFF Diceware word list, accessible from Settings and password creation dialogs
-- **Comprehensive encryption documentation** (encryption.md) covering AES-256-GCM, PBKDF2, and security measures
+- **Comprehensive encryption documentation** (SECURITY.md) covering AES-256-GCM, PBKDF2, and security measures
 - **Clipboard Security Features**: Automatic clipboard clearing with configurable timeout, secure content marking, educational warnings, system tray access, and secure Ctrl+C functionality in all text areas
 - **DateHandler utility class** for centralized timestamp parsing and formatting
 - **EncryptionHandler class** for managing password authentication and encryption setup
@@ -115,7 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Settings encryption** using deterministic keys for defense in depth
 - Updated README.md with security overview and link to detailed encryption documentation
 - Updated help.md to reference centralized security documentation and remove redundant sections
-- Added non-technical introduction to encryption.md for better user accessibility
+- Added non-technical introduction to SECURITY.md for better user accessibility
 
 ### Changed
 - **Security improvements**: Password visibility toggle now requires holding button (press to show, release to hide); removed "Always show password" setting
