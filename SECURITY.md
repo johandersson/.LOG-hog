@@ -27,58 +27,42 @@ Thanks for helping keep **.LOG-hog** safe.
 
 .LOG-hog uses a **multi-layer security model** combining encryption, authentication, access control, and secure memory management:
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        LogTextEditor (Main)                          │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                       │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │              EncryptionHandler (Session Management)          │  │
-│  ├──────────────────────────────────────────────────────────────┤  │
-│  │  • Authentication & password prompting                       │  │
-│  │  • Attempt limiting (3 failures → exit on startup)         │  │
-│  │  • Session key management (derived from user password)     │  │
-│  │  • Progressive delays for failed authentication            │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-│                                                                       │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │           EncryptionManager (Cryptographic Core)            │  │
-│  ├──────────────────────────────────────────────────────────────┤  │
-│  │  • AES-256-GCM encryption/decryption                        │  │
-│  │  • PBKDF2 key derivation (600K iterations)                 │  │
-│  │  • Secure random IV generation (96-bit)                    │  │
-│  │  • File format: MAGIC(4) + VERSION(1) + SALT(16) + IV(12) │  │
-│  │                + CIPHERTEXT + TAG(16)                      │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-│                                                                       │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │         BackupManager & BackupRestoreVerifier               │  │
-│  ├──────────────────────────────────────────────────────────────┤  │
-│  │  • HMAC-SHA256 backup signing (derived key v2)             │  │
-│  │  • Encrypted backup verification before restore            │  │
-│  │  • Rejection of legacy v1 (120K iterations)                │  │
-│  │  • Format: ENCRYPTED_BACKUP + HMAC(32 bytes)               │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-│                                                                       │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │      SecurityFilePolicy (File System Hardening)             │  │
-│  ├──────────────────────────────────────────────────────────────┤  │
-│  │  • POSIX: owner-only (rw-) for files, (rwx) for dirs      │  │
-│  │  • Windows: ACL-based best-effort enforcement              │  │
-│  │  • Verification: isOwnerOnlyAccessEnforced()               │  │
-│  │  • Fail-secure: ensureOwnerOnlyPermissionsOrThrow()        │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-│                                                                       │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │      CryptoUtils (Secure Cleanup & Validation)              │  │
-│  ├──────────────────────────────────────────────────────────────┤  │
-│  │  • zeroize(byte[]) - overwrite with zeros                 │  │
-│  │  • zeroize(char[]) - password cleanup                      │  │
-│  │  • constantTimeEquals(a, b) - MAC/tag comparison          │  │
-│  │  • validateGcmParams(iv, tag)                              │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-│                                                                       │
-└──────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    A["LogTextEditor<br/>(Main Entry Point)"]
+    
+    B["EncryptionHandler<br/>(Session Management)"]
+    B1["• Authentication & password prompting<br/>• Attempt limiting (3 failures → exit on startup)<br/>• Session key management from password<br/>• Progressive delays for failed auth"]
+    
+    C["EncryptionManager<br/>(Cryptographic Core)"]
+    C1["• AES-256-GCM encryption/decryption<br/>• PBKDF2 key derivation: 600K iterations<br/>• Secure random IV generation: 96-bit<br/>• File format: MAGIC + VERSION + SALT + IV + CIPHERTEXT + TAG"]
+    
+    D["BackupManager & BackupRestoreVerifier"]
+    D1["• HMAC-SHA256 backup signing (v2)<br/>• Encrypted backup verification<br/>• Rejection of legacy v1 (120K iterations)<br/>• Format: ENCRYPTED_BACKUP + HMAC(32B)"]
+    
+    E["SecurityFilePolicy<br/>(File System Hardening)"]
+    E1["• POSIX: owner-only (rw-) files, (rwx) dirs<br/>• Windows: ACL-based enforcement<br/>• Verification: isOwnerOnlyAccessEnforced()<br/>• Fail-secure: ensureOwnerOnlyPermissionsOrThrow()"]
+    
+    F["CryptoUtils<br/>(Secure Cleanup & Validation)"]
+    F1["• zeroize(byte[]) - overwrite with zeros<br/>• zeroize(char[]) - password cleanup<br/>• constantTimeEquals(a, b) - safe comparison<br/>• validateGcmParams(iv, tag)"]
+    
+    A --> B
+    B --> B1
+    A --> C
+    C --> C1
+    A --> D
+    D --> D1
+    A --> E
+    E --> E1
+    A --> F
+    F --> F1
+    
+    style A fill:#4A90E2,stroke:#333,color:#fff,font-weight:bold
+    style B fill:#7B68EE,stroke:#333,color:#fff
+    style C fill:#7B68EE,stroke:#333,color:#fff
+    style D fill:#7B68EE,stroke:#333,color:#fff
+    style E fill:#7B68EE,stroke:#333,color:#fff
+    style F fill:#7B68EE,stroke:#333,color:#fff
 ```
 
 ### Key Principles
@@ -188,83 +172,85 @@ Plaintext Log Content
 
 ### Startup Authentication Flow
 
-```
-Application Launch
-      ↓
-┌──────────────────────────────────────────┐
-│ EncryptionHandler.handleEncryptionSetup()│
-└─────────┬────────────────────────────────┘
-          ↓
-┌──────────────────────────────────────────────┐
-│ Is log file present?                         │
-├──────────────────────────────────────────────┤
-│   NO → Show: Create / Browse / Restore       │
-│        If user creates: set encrypted=true   │
-│        If user browses: proceed below        │
-│                                               │
-│   YES → Continue to password prompt          │
-└─────────┬──────────────────────────────────────┘
-          ↓
-┌─────────────────────────────────────────────────────┐
-│ AuthenticationAttemptPolicy(exitHandler)            │
-│ • MAX_ATTEMPTS = 3                                 │
-│ • Failure tracking per session                     │
-└─────────┬───────────────────────────────────────────┘
-          ↓
-         Loop: (up to 3 attempts)
-          ↓
-   ┌─────────────────────────┐
-   │ PasswordDialog.show()    │ ← User enters password
-   └─────────┬───────────────┘
-             ↓
-   ┌─────────────────────────────────────┐
-   │ Decrypt with user password          │
-   ├─────────────────────────────────────┤
-   │ Decryption succeeds?                │
-   │   YES → Load log entries            │
-   │        Unlock UI                    │
-   │        Return success               │
-   │                                      │
-   │   NO → Increment attempt counter    │
-   │        Remaining = MAX - attempts   │
-   │                                      │
-   │        If Remaining > 0:            │
-   │          Show: "N attempts left"    │
-   │          Apply security delay       │
-   │          Loop back                  │
-   │                                      │
-   │        If Remaining = 0:            │
-   │          Show: "Locked. Exit."      │
-   │          Call exitHandler (exit 1)  │
-   │          System.exit(1)             │
-   └─────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Start["Application Launch"]
+    Setup["EncryptionHandler.handleEncryptionSetup()"]
+    FileCheck{Is log file present?}
+    
+    NoFile["Show: Create / Browse / Restore<br/>If user creates: set encrypted=true<br/>If user browses: continue"]
+    YesFile["Continue to password prompt"]
+    
+    AuthPolicy["AuthenticationAttemptPolicy<br/>MAX_ATTEMPTS = 3"]
+    PasswordDialog["PasswordDialog.show()<br/>User enters password"]
+    
+    DecryptAttempt["Decrypt with user password"]
+    DecryptSuccess{Decryption<br/>succeeds?}
+    
+    LoadSuccess["Load log entries<br/>Unlock UI<br/>Return success"]
+    
+    IncrementAttempt["Increment attempt counter<br/>Remaining = MAX - attempts"]
+    CheckRemaining{Remaining &gt; 0?}
+    
+    ShowAttempts["Show: 'N attempts left'<br/>Apply security delay<br/>Loop back"]
+    Exhausted["Show: 'Locked. Exit.'<br/>Call exitHandler<br/>System.exit(1)"]
+    
+    Start --> Setup
+    Setup --> FileCheck
+    FileCheck -->|NO| NoFile
+    FileCheck -->|YES| YesFile
+    
+    NoFile --> AuthPolicy
+    YesFile --> AuthPolicy
+    AuthPolicy --> PasswordDialog
+    
+    PasswordDialog --> DecryptAttempt
+    DecryptAttempt --> DecryptSuccess
+    
+    DecryptSuccess -->|YES| LoadSuccess
+    DecryptSuccess -->|NO| IncrementAttempt
+    
+    IncrementAttempt --> CheckRemaining
+    CheckRemaining -->|YES| ShowAttempts
+    ShowAttempts --> PasswordDialog
+    CheckRemaining -->|NO| Exhausted
+    
+    style Start fill:#4A90E2,stroke:#333,color:#fff
+    style LoadSuccess fill:#50C878,stroke:#333,color:#fff
+    style Exhausted fill:#E74C3C,stroke:#333,color:#fff
 ```
 
 ### Manual Unlock (Lock/Unlock during session)
 
-```
-User clicks Lock button
-      ↓
-┌───────────────────────────────────────┐
-│ LogTextEditor.performLock()           │
-├───────────────────────────────────────┤
-│ • Save current state                  │
-│ • Show password prompt                │
-│ • Disable UI (entries, editing)       │
-│ • Clear sensitive runtime state       │
-│ • (No exit on password failure)       │
-└────────────────────────────────────────┘
-      ↓
-User clicks Unlock button
-      ↓
-┌───────────────────────────────────────┐
-│ PasswordDialog.show()                 │
-├───────────────────────────────────────┤
-│ • Attempt to decrypt                  │
-│ • On success: re-enable UI            │
-│ • On failure: remain locked           │
-│ • (No exit, user can retry)           │
-└────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    UserLock["User clicks Lock button"]
+    PerformLock["LogTextEditor.performLock()"]
+    LockActions["• Save current state<br/>• Show password prompt<br/>• Disable UI: entries, editing<br/>• Clear sensitive runtime state<br/>• No exit on password failure"]
+    
+    UserUnlock["User clicks Unlock button"]
+    PasswordDialog["PasswordDialog.show()"]
+    DecryptAttempt["Attempt to decrypt"]
+    
+    Success{Decryption<br/>succeeds?}
+    SuccessUI["Re-enable UI"]
+    FailUI["Remain locked<br/>User can retry"]
+    
+    UserLock --> PerformLock
+    PerformLock --> LockActions
+    LockActions --> UserUnlock
+    
+    UserUnlock --> PasswordDialog
+    PasswordDialog --> DecryptAttempt
+    DecryptAttempt --> Success
+    
+    Success -->|YES| SuccessUI
+    Success -->|NO| FailUI
+    FailUI --> UserUnlock
+    
+    style UserLock fill:#FF9500,stroke:#333,color:#fff
+    style SuccessUI fill:#50C878,stroke:#333,color:#fff
+    style FailUI fill:#FFA500,stroke:#333,color:#fff
 ```
 
 ### Attempt Limits & Exit Behavior
@@ -281,75 +267,92 @@ User clicks Unlock button
 
 ### Backup Creation & Signing
 
-```
-User chooses: "Create Backup"
-      ↓
-┌────────────────────────────────────────┐
-│ BackupManager.createBackup()           │
-├────────────────────────────────────────┤
-│ • Read plaintext log entries           │
-│ • Serialize to backup format           │
-│ • Encrypt using AES-256-GCM            │
-│   (new random salt, IV per backup)     │
-└─────────┬──────────────────────────────┘
-          ↓
-Encrypted Backup Blob
-          ↓
-┌─────────────────────────────────────────────────────────┐
-│ Derive Backup Signing Key (HMAC-SHA256)                 │
-│   using BackupKeyDerivation.deriveV2():                │
-│   • Input: user password + salt + "loghog-backup-hmac-v2" │
-│   • Iterations: 600,000 (same as primary encryption)  │
-│   • Output: 256-bit HMAC key                           │
-└─────────┬───────────────────────────────────────────────┘
-          ↓
-┌─────────────────────────────────────┐
-│ HMAC-SHA256(backup_key, ciphertext) │
-└─────────┬───────────────────────────┘
-          ↓
-Backup File Format:
-  [Encrypted Backup Blob] + [HMAC Signature (32 bytes)]
+```mermaid
+flowchart TD
+    Start["User chooses: Create Backup"]
+    CreateBackup["BackupManager.createBackup()"]
+    ReadEntries["Read plaintext log entries"]
+    Serialize["Serialize to backup format"]
+    Encrypt["Encrypt using AES-256-GCM<br/>with new random salt and IV"]
+    
+    EncryptedBlob["Encrypted Backup Blob"]
+    
+    DeriveSigning["Derive Backup Signing Key"]
+    DeriveDetails["BackupKeyDerivation.deriveV2():<br/>• Input: user password + salt + context string<br/>• Context: 'loghog-backup-hmac-v2'<br/>• Iterations: 600,000<br/>• Output: 256-bit HMAC key"]
+    
+    ComputeHmac["HMAC-SHA256(backup_key, ciphertext)"]
+    
+    FileFormat["Backup File Format:<br/>[Encrypted Backup Blob] + [HMAC Signature 32B]"]
+    
+    Start --> CreateBackup
+    CreateBackup --> ReadEntries
+    ReadEntries --> Serialize
+    Serialize --> Encrypt
+    Encrypt --> EncryptedBlob
+    
+    EncryptedBlob --> DeriveSigning
+    DeriveSigning --> DeriveDetails
+    DeriveDetails --> ComputeHmac
+    ComputeHmac --> FileFormat
+    
+    style Start fill:#4A90E2,stroke:#333,color:#fff
+    style FileFormat fill:#50C878,stroke:#333,color:#fff
 ```
 
 ### Backup Restore & Verification
 
-```
-User chooses: "Restore from Backup"
-      ↓
-┌──────────────────────────────────────────────────┐
-│ BackupRestoreWorkflow.restoreBackup()            │
-├──────────────────────────────────────────────────┤
-│ 1. User selects backup file                      │
-│ 2. Check: isValidEncryptedBackup()               │
-│    (Must be encrypted, have valid magic bytes)   │
-│                                                   │
-│ 3. User provides password (for HMAC derivation)  │
-│                                                   │
-│ 4. Derive backup signing key:                    │
-│    BackupKeyDerivation.deriveV2()                │
-│    (Same 600K iterations, same context string)   │
-│                                                   │
-│ 5. Verify HMAC:                                  │
-│    BackupRestoreVerifier.stripVerifiedHmac():   │
-│    • Separate ciphertext from HMAC (last 32B)  │
-│    • Compute HMAC-SHA256(key, ciphertext)       │
-│    • Constant-time compare with stored HMAC    │
-│    • If mismatch → reject backup                │
-│    • If match → return plaintext                │
-│                                                   │
-│ 6. Decrypt ciphertext:                           │
-│    AES-256-GCM with password                    │
-│                                                   │
-│ 7. Verify decryption succeeded                   │
-│    (GCM tag must be valid)                       │
-│                                                   │
-│ 8. Restore entries to current log file          │
-│                                                   │
-│ 9. Zeroize: sensitive arrays cleared            │
-│    (password, HMAC key, decrypted data)         │
-└──────────────────────────────────────────────────┘
-      ↓
-Restore Complete or Error
+```mermaid
+flowchart TD
+    Start["User chooses: Restore from Backup"]
+    SelectFile["1. User selects backup file"]
+    ValidCheck["2. Check: isValidEncryptedBackup()<br/>Must be encrypted with valid magic bytes"]
+    PromptPassword["3. User provides password<br/>for HMAC derivation"]
+    
+    DeriveKey["4. Derive backup signing key:<br/>BackupKeyDerivation.deriveV2()<br/>Same 600K iterations + context string"]
+    
+    VerifyHmac["5. Verify HMAC:<br/>BackupRestoreVerifier.stripVerifiedHmac()"]
+    HmacSteps["• Separate ciphertext from HMAC (last 32B)<br/>• Compute HMAC-SHA256(key, ciphertext)<br/>• Constant-time compare with stored HMAC"]
+    
+    HmacCheck{HMAC<br/>match?}
+    HmacFail["Reject backup<br/>Report error"]
+    
+    Decrypt["6. Decrypt ciphertext:<br/>AES-256-GCM with password"]
+    VerifyGcm["7. Verify decryption succeeded<br/>GCM tag must be valid"]
+    
+    DecryptCheck{GCM<br/>valid?}
+    DecryptFail["Report decryption error"]
+    
+    Restore["8. Restore entries to current log file"]
+    Cleanup["9. Zeroize: sensitive arrays cleared<br/>password, HMAC key, decrypted data"]
+    Success["Restore Complete or Error"]
+    
+    Start --> SelectFile
+    SelectFile --> ValidCheck
+    ValidCheck --> PromptPassword
+    PromptPassword --> DeriveKey
+    DeriveKey --> VerifyHmac
+    VerifyHmac --> HmacSteps
+    HmacSteps --> HmacCheck
+    
+    HmacCheck -->|NO| HmacFail
+    HmacCheck -->|YES| Decrypt
+    
+    Decrypt --> VerifyGcm
+    VerifyGcm --> DecryptCheck
+    
+    DecryptCheck -->|NO| DecryptFail
+    DecryptCheck -->|YES| Restore
+    
+    Restore --> Cleanup
+    Cleanup --> Success
+    
+    HmacFail --> Success
+    DecryptFail --> Success
+    
+    style Start fill:#4A90E2,stroke:#333,color:#fff
+    style Success fill:#50C878,stroke:#333,color:#fff
+    style HmacFail fill:#E74C3C,stroke:#333,color:#fff
+    style DecryptFail fill:#E74C3C,stroke:#333,color:#fff
 ```
 
 ### Legacy Backup Rejection
