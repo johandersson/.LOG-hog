@@ -32,9 +32,12 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTabbedPane;
 
 import filehandling.LogFileHandler;
 import gui.DialogHelper;
+import gui.EntryPanel;
 import gui.FullLogPanel;
 import gui.LogListPanel;
 import gui.SystemTrayMenu;
@@ -98,24 +101,51 @@ public class ActionHandler {
         return new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Show dialog directly - we're already on the EDT from ActionListener
-                String newEntry = (String) JOptionPane.showInputDialog(
+                // Get the EntryPanel and its text area
+                EntryPanel entryPanel = editor.getEntryPanel();
+                JTextArea textArea = entryPanel.getTextArea();
+                
+                // Check if there's text in the editor
+                String currentText = textArea.getText();
+                if (currentText != null && !currentText.isBlank()) {
+                    // Show confirmation dialog with three options
+                    String[] options = {"Save & Clear", "Clear", "Cancel"};
+                    int choice = DialogHelper.showOptions(
                         editor,
-                        "Enter new log entry:",
-                        "New Log Entry",
-                        JOptionPane.PLAIN_MESSAGE);
-                if (newEntry != null && !newEntry.isBlank()) {
-                    // Save asynchronously so UI remains responsive for large files
-                    logFileHandler.saveTextAsync(newEntry, listModel, () -> {
-                        try {
-                            editor.loadLogEntries();
-                            fullLogPanel.refreshIfVisible();
-                            SystemTrayMenu.updateRecentLogsMenu();
-                        } catch (Exception ex) {
-                            // Security: Don't expose internal error details
-                            logFileHandler.showErrorDialog("<html><b>🔄 Refresh Failed</b><br><br>Unable to refresh log data after save.<br><br><i>Tip: Try reloading the application.</i></html>");
-                        }
-                    });
+                        "Confirm New Entry",
+                        "You have unsaved text in the editor.",
+                        "What would you like to do?",
+                        JOptionPane.QUESTION_MESSAGE,
+                        options,
+                        options[0]  // Default to "Save & Clear"
+                    );
+                    
+                    if (choice == 0) {
+                        // Save & Clear - save first, then clear
+                        saveEditedLogEntry();
+                        // Switch to Entry tab and clear after save completes
+                        SwingUtilities.invokeLater(() -> {
+                            JTabbedPane tabPane = editor.getTabPane();
+                            tabPane.setSelectedIndex(0);
+                            textArea.setText("");
+                            textArea.requestFocus();
+                        });
+                    } else if (choice == 1) {
+                        // Clear - just clear without saving
+                        JTabbedPane tabPane = editor.getTabPane();
+                        tabPane.setSelectedIndex(0);
+                        textArea.setText("");
+                        textArea.requestFocus();
+                    } else if (choice == 2 || choice == -1) {
+                        // Cancel or dialog closed - do nothing
+                        return;
+                    }
+                } else {
+                    // No text, just switch to Entry tab and focus
+                    JTabbedPane tabPane = editor.getTabPane();
+                    tabPane.setSelectedIndex(0);
+                    textArea.setText("");
+                    textArea.requestFocus();
                 }
             }
         };
