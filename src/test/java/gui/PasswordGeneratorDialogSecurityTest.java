@@ -101,12 +101,11 @@ public class PasswordGeneratorDialogSecurityTest {
 
     @Test
     void testNoDeprecatedMethodsUsed() {
-        // This test verifies at compile time that no deprecated methods are called
-        // The presence of this test file and successful compilation ensures
-        // PasswordGeneratorDialog doesn't call deprecated generatePassword() or generatePassphrase()
+        // This test verifies the migration to char[] methods is complete.
+        // Deprecated String-based methods have been removed from PasswordGenerator
+        // in this version (next major version as planned).
         
-        // At compile time, using deprecated methods would produce warnings
-        // This test simply verifies the migration target exists
+        // This test verifies the new char[] based API works correctly
         assertDoesNotThrow(() -> {
             char[] pwChars = PasswordGenerator.generatePasswordChars(12);
             assertNotNull(pwChars);

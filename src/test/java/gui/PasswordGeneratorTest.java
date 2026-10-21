@@ -11,98 +11,131 @@ public class PasswordGeneratorTest {
 
     @Test
     void testGeneratePasswordBasic() {
-        String password = PasswordGenerator.generatePassword(12);
+        char[] password = PasswordGenerator.generatePasswordChars(12);
         String validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
-        assertEquals(12, password.length());
-        for (char c : password.toCharArray()) {
+        assertEquals(12, password.length);
+        for (char c : password) {
             assertTrue(validChars.contains(String.valueOf(c)));
         }
+        encryption.CryptoUtils.zeroize(password);
     }
 
     @Test
     void testGeneratePasswordDifferentLengths() {
         int[] lengths = {1, 8, 16, 32, 64, 128};
         for (int length : lengths) {
-            assertEquals(length, PasswordGenerator.generatePassword(length).length());
+            char[] password = PasswordGenerator.generatePasswordChars(length);
+            assertEquals(length, password.length);
+            encryption.CryptoUtils.zeroize(password);
         }
     }
 
     @Test
     void testGeneratePasswordBounds() {
-        assertThrows(IllegalArgumentException.class, () -> PasswordGenerator.generatePassword(0));
-        assertThrows(IllegalArgumentException.class, () -> PasswordGenerator.generatePassword(1001));
+        assertThrows(IllegalArgumentException.class, () -> PasswordGenerator.generatePasswordChars(0));
+        assertThrows(IllegalArgumentException.class, () -> PasswordGenerator.generatePasswordChars(1001));
     }
 
     @Test
     void testGeneratePasswordUniqueness() {
         Set<String> passwords = new HashSet<>();
         for (int i = 0; i < 100; i++) {
-            passwords.add(PasswordGenerator.generatePassword(16));
+            char[] chars = PasswordGenerator.generatePasswordChars(16);
+            passwords.add(new String(chars));
+            encryption.CryptoUtils.zeroize(chars);
         }
         assertTrue(passwords.size() > 90);
     }
 
     @Test
     void testGeneratePassphraseBasic() {
-        String passphrase = PasswordGenerator.generatePassphrase(3);
+        char[] passphraseChars = PasswordGenerator.generatePassphraseChars(3);
+        String passphrase = new String(passphraseChars);
         String[] words = passphrase.split(" ");
         assertEquals(3, words.length);
         for (String word : words) {
             assertFalse(word.isBlank());
         }
+        encryption.CryptoUtils.zeroize(passphraseChars);
     }
 
     @Test
     void testGeneratePassphraseDifferentWordCounts() {
         int[] wordCounts = {1, 2, 4, 6, 8, 12};
         for (int count : wordCounts) {
-            assertEquals(count, PasswordGenerator.generatePassphrase(count).split(" ").length);
+            char[] chars = PasswordGenerator.generatePassphraseChars(count);
+            String passphrase = new String(chars);
+            assertEquals(count, passphrase.split(" ").length);
+            encryption.CryptoUtils.zeroize(chars);
         }
     }
 
     @Test
     void testGeneratePassphraseBounds() {
-        assertThrows(IllegalArgumentException.class, () -> PasswordGenerator.generatePassphrase(0));
-        assertThrows(IllegalArgumentException.class, () -> PasswordGenerator.generatePassphrase(21));
+        assertThrows(IllegalArgumentException.class, () -> PasswordGenerator.generatePassphraseChars(0));
+        assertThrows(IllegalArgumentException.class, () -> PasswordGenerator.generatePassphraseChars(21));
     }
 
     @Test
     void testGeneratePassphraseUniqueness() {
         Set<String> passphrases = new HashSet<>();
         for (int i = 0; i < 50; i++) {
-            passphrases.add(PasswordGenerator.generatePassphrase(4));
+            char[] chars = PasswordGenerator.generatePassphraseChars(4);
+            passphrases.add(new String(chars));
+            encryption.CryptoUtils.zeroize(chars);
         }
         assertTrue(passphrases.size() > 20);
     }
 
     @Test
     void testPasswordVsPassphraseCharacteristics() {
-        String password = PasswordGenerator.generatePassword(16);
-        String passphrase = PasswordGenerator.generatePassphrase(4);
+        char[] passwordChars = PasswordGenerator.generatePasswordChars(16);
+        char[] passphraseChars = PasswordGenerator.generatePassphraseChars(4);
+        
+        String password = new String(passwordChars);
+        String passphrase = new String(passphraseChars);
+        
         assertFalse(password.contains(" "));
         assertTrue(passphrase.contains(" "));
+        
+        encryption.CryptoUtils.zeroize(passwordChars);
+        encryption.CryptoUtils.zeroize(passphraseChars);
     }
 
     @Test
     void testRepeatedGenerationConsistency() {
         for (int i = 0; i < 10; i++) {
-            String password = PasswordGenerator.generatePassword(12);
-            String passphrase = PasswordGenerator.generatePassphrase(3);
+            char[] passwordChars = PasswordGenerator.generatePasswordChars(12);
+            char[] passphraseChars = PasswordGenerator.generatePassphraseChars(3);
+            
+            String password = new String(passwordChars);
+            String passphrase = new String(passphraseChars);
+            
             assertNotNull(password);
             assertNotNull(passphrase);
             assertEquals(12, password.length());
             assertEquals(3, passphrase.split(" ").length);
+            
+            encryption.CryptoUtils.zeroize(passwordChars);
+            encryption.CryptoUtils.zeroize(passphraseChars);
         }
     }
 
     @Test
     void testWordListLoading() {
-        String passphrase = PasswordGenerator.generatePassphrase(2);
-        String passphrase2 = PasswordGenerator.generatePassphrase(2);
+        char[] passphrase1Chars = PasswordGenerator.generatePassphraseChars(2);
+        char[] passphrase2Chars = PasswordGenerator.generatePassphraseChars(2);
+        
+        String passphrase = new String(passphrase1Chars);
+        String passphrase2 = new String(passphrase2Chars);
+        
         assertNotNull(passphrase);
         assertNotNull(passphrase2);
         assertEquals(2, passphrase.split(" ").length);
         assertEquals(2, passphrase2.split(" ").length);
+        
+        encryption.CryptoUtils.zeroize(passphrase1Chars);
+        encryption.CryptoUtils.zeroize(passphrase2Chars);
     }
 
     @Test
