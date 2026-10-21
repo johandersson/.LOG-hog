@@ -180,14 +180,21 @@ public final class PasswordGeneratorDialog extends JDialog {
     private void generate() {
         if (!canContinue()) return;
         int length = (Integer) lengthSpinner.getValue();
-        String result;
-        if (passwordRadio.isSelected()) {
-            result = PasswordGenerator.generatePassword(length);
-        } else {
-            result = PasswordGenerator.generatePassphrase(length);
+        char[] result = null;
+        try {
+            if (passwordRadio.isSelected()) {
+                result = PasswordGenerator.generatePasswordChars(length);
+            } else {
+                result = PasswordGenerator.generatePassphraseChars(length);
+            }
+            resultField.setText(new String(result));
+            strengthIndicator.updateStrength(result);
+        } finally {
+            // Zeroize the char array after displaying
+            if (result != null) {
+                encryption.CryptoUtils.zeroize(result);
+            }
         }
-        resultField.setText(result);
-        strengthIndicator.updateStrength(result.toCharArray());
     }
 
     public static void showDialog(Frame parent) {
