@@ -161,11 +161,14 @@ public final class LogTextEditor extends JFrame {
                     clearSensitiveRuntimeState();
                 } finally {
                     listModel.clear();
+                    clearSystemTrayRecentLogs();
                     updateUILockState();
                 }
                 return;
             }
             updateUILockState();
+            // Refresh system tray recent logs when unlocking
+            SystemTrayMenu.updateRecentLogsMenu();
         }
     }
 
@@ -584,6 +587,16 @@ public final class LogTextEditor extends JFrame {
                 logListPanel.getEntryArea().requestFocusInWindow();
             });
             recentLogsMenu.add(logItem);
+        }
+    }
+
+    /**
+     * Clears sensitive recent log entries from the system tray menu.
+     * Called when the file is locked to prevent sensitive information from being visible.
+     */
+    private void clearSystemTrayRecentLogs() {
+        if (SystemTrayMenu.recentLogsMenu != null) {
+            SystemTrayMenu.recentLogsMenu.removeAll();
         }
     }
 
