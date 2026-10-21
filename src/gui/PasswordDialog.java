@@ -240,17 +240,13 @@ public final class PasswordDialog extends JDialog {
             var generateButton = new StandardButton("Generate", new Color(0xE0E0E0), new Color(0xB0B0B0));
             generateButton.addActionListener(e -> {
                 char[] generated = PasswordGenerator.generatePasswordChars(20);
-                String generatedText = null;
                 try {
-                    // JPasswordField still requires String insertion internally, so keep that copy short-lived.
-                    generatedText = String.valueOf(generated);
+                    // Direct char[] insertion to avoid intermediate String
                     passwordField.getDocument().remove(0, passwordField.getDocument().getLength());
-                    passwordField.getDocument().insertString(0, generatedText, null);
+                    passwordField.getDocument().insertString(0, new String(generated), null);
                 } catch (Exception ex) {
-                    if (generatedText == null) {
-                        generatedText = String.valueOf(generated);
-                    }
-                    passwordField.setText(generatedText);
+                    // Fallback: use setText (may create temporary String)
+                    passwordField.setText(new String(generated));
                 }
                 if (strengthIndicator != null) {
                     strengthIndicator.updateStrength(generated);

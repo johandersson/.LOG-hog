@@ -49,9 +49,11 @@ public final class SensitiveKeyProtector {
                 dpapiWrapped = wrapDpapi(plaintext);
                 Files.write(path, dpapiWrapped);
                 SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(path);
+                utils.Log.info("Protected key written using DPAPI");
                 return;
             } catch (IOException ignored) {
-                // Fall back to cross-platform envelope if DPAPI is unavailable.
+                // DPAPI unavailable or failed - fall back to cross-platform envelope
+                utils.Log.warn("DPAPI protection failed or unavailable, using cross-platform encryption");
             } finally {
                 zeroize(dpapiWrapped);
             }
@@ -63,6 +65,7 @@ public final class SensitiveKeyProtector {
             wrapped = encrypt(plaintext, purpose, wrappingSalt);
             Files.write(path, wrapped);
             SecurityFilePolicy.ensureOwnerOnlyPermissionsOrThrow(path);
+            utils.Log.info("Protected key written using cross-platform encryption");
         } finally {
             zeroize(wrapped);
             zeroize(wrappingSalt);
@@ -76,7 +79,9 @@ public final class SensitiveKeyProtector {
         byte[] raw = Files.readAllBytes(path);
         if (startsWith(raw, DPAPI_MAGIC)) {
             try {
-                return unwrapDpapi(raw);
+                byte[] result = unwrapDpapi(raw);
+                utils.Log.info("Protected key read using DPAPI");
+                return result;
             } finally {
                 zeroize(raw);
             }
@@ -90,6 +95,7 @@ public final class SensitiveKeyProtector {
                 // Opportunistic migration to DPAPI-backed envelope on Windows.
                 writeProtected(path, plaintext, purpose);
             }
+            utils.Log.info("Protected key read using cross-platform encryption");
             return plaintext;
         } finally {
             zeroize(wrapped);
@@ -182,6 +188,8 @@ public final class SensitiveKeyProtector {
             process = new ProcessBuilder(powerShellExe, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script)
                 .start();
         } catch (IOException ex) {
+            // PowerShell not available - log as unavailable, not as failure
+            utils.Log.info("DPAPI unavailable: PowerShell not found, falling back to cross-platform encryption");
             throw new IOException("PowerShell unavailable for DPAPI", ex);
         }
 
@@ -201,19 +209,24 @@ public final class SensitiveKeyProtector {
             boolean finished = process.waitFor(DPAPI_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
+                utils.Log.warn("DPAPI operation timed out after " + DPAPI_TIMEOUT_SECONDS + " seconds");
                 throw new IOException("DPAPI command timed out");
             }
             int code = process.exitValue();
             String output = new String(outputBytes, StandardCharsets.UTF_8).trim();
             if (code != 0 || output.isEmpty()) {
+                utils.Log.warn("DPAPI command failed with exit code " + code + " - falling back to cross-platform encryption");
                 throw new IOException("DPAPI command failed");
             }
             if (output.length() > 32768 || !output.matches("^[A-Za-z0-9+/=]+$")) {
+                utils.Log.warn("DPAPI produced invalid output - falling back to cross-platform encryption");
                 throw new IOException("DPAPI command failed");
             }
+            utils.Log.info("DPAPI operation completed successfully");
             return output;
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
+            utils.Log.warn("DPAPI command interrupted - falling back to cross-platform encryption");
             throw new IOException("DPAPI command interrupted", ex);
         } finally {
             zeroize(outputBytes);
