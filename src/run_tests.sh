@@ -46,3 +46,5 @@ fi
 
 echo "Running JUnit 5 tests..."
 java -jar "$JUNIT_JAR" execute --class-path "$BUILD_DIR" --scan-class-path --disable-banner --details=tree
+EXIT_CODE=$?
+exit $EXIT_CODE
