@@ -51,24 +51,12 @@ public class PasswordGenerator {
     }
 
     /**
-     * Generates a random password with the specified length.
+     * Generates a random password as a mutable char array for secure handling.
+     * This is the preferred method for password generation.
      *
      * @param length the desired password length (must be between 1 and 1000)
-     * @return a randomly generated password
+     * @return a randomly generated password as char[] which can be zeroized
      * @throws IllegalArgumentException if length is outside valid bounds
-     */
-    public static String generatePassword(int length) {
-        char[] generated = generatePasswordChars(length);
-        try {
-            return new String(generated);
-        } finally {
-            encryption.CryptoUtils.zeroize(generated);
-        }
-    }
-
-    /**
-     * Generates a random password as a mutable char array for callers that want
-     * to minimize immutable String exposure.
      */
     public static char[] generatePasswordChars(int length) {
         if (length < 1 || length > 1000) {
@@ -82,12 +70,61 @@ public class PasswordGenerator {
     }
 
     /**
+     * Generates a random password with the specified length.
+     * DEPRECATED: Use generatePasswordChars() instead for secure memory handling.
+     * This method returns a String which cannot be zeroized.
+     *
+     * @param length the desired password length (must be between 1 and 1000)
+     * @return a randomly generated password
+     * @throws IllegalArgumentException if length is outside valid bounds
+     */
+    @Deprecated(since = "2026-10-21", forRemoval = true)
+    public static String generatePassword(int length) {
+        char[] generated = generatePasswordChars(length);
+        try {
+            return new String(generated);
+        } finally {
+            encryption.CryptoUtils.zeroize(generated);
+        }
+    }
+
+    /**
+     * Generates a random passphrase as a mutable char array for secure handling.
+     * This is the preferred method for passphrase generation.
+     *
+     * @param wordCount the number of words in the passphrase (must be between 1 and 20)
+     * @return a randomly generated passphrase as char[] which can be zeroized
+     * @throws IllegalArgumentException if wordCount is outside valid bounds
+     */
+    public static char[] generatePassphraseChars(int wordCount) {
+        if (wordCount < 1 || wordCount > 20) {
+            throw new IllegalArgumentException("Word count must be between 1 and 20");
+        }
+        loadWordList();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < wordCount; i++) {
+            if (i > 0) sb.append(' ');
+            sb.append(wordList.get(random.nextInt(wordList.size())));
+        }
+        char[] result = new char[sb.length()];
+        sb.getChars(0, sb.length(), result, 0);
+        // Clear the StringBuilder (best effort)
+        for (int i = 0; i < sb.length(); i++) {
+            sb.setCharAt(i, '\0');
+        }
+        return result;
+    }
+
+    /**
      * Generates a random passphrase with the specified number of words.
+     * DEPRECATED: Use generatePassphraseChars() instead for secure memory handling.
+     * This method returns a String which cannot be zeroized.
      *
      * @param wordCount the number of words in the passphrase (must be between 1 and 20)
      * @return a randomly generated passphrase
      * @throws IllegalArgumentException if wordCount is outside valid bounds
      */
+    @Deprecated(since = "2026-10-21", forRemoval = true)
     public static String generatePassphrase(int wordCount) {
         if (wordCount < 1 || wordCount > 20) {
             throw new IllegalArgumentException("Word count must be between 1 and 20");

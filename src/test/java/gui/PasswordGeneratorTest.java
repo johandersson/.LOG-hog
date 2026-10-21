@@ -104,4 +104,50 @@ public class PasswordGeneratorTest {
         assertEquals(2, passphrase.split(" ").length);
         assertEquals(2, passphrase2.split(" ").length);
     }
+
+    @Test
+    void testGeneratePasswordCharsReturnsCharArray() {
+        char[] passwordChars = PasswordGenerator.generatePasswordChars(12);
+        assertNotNull(passwordChars);
+        assertEquals(12, passwordChars.length);
+        // Verify we can zeroize it
+        encryption.CryptoUtils.zeroize(passwordChars);
+        for (char c : passwordChars) {
+            assertEquals('\0', c);
+        }
+    }
+
+    @Test
+    void testGeneratePasswordCharsRandomness() {
+        Set<String> passwords = new HashSet<>();
+        for (int i = 0; i < 100; i++) {
+            char[] chars = PasswordGenerator.generatePasswordChars(16);
+            passwords.add(new String(chars));
+            encryption.CryptoUtils.zeroize(chars);
+        }
+        assertTrue(passwords.size() > 90);
+    }
+
+    @Test
+    void testGeneratePassphraseCharsReturnsCharArray() {
+        char[] passphraseChars = PasswordGenerator.generatePassphraseChars(3);
+        assertNotNull(passphraseChars);
+        assertTrue(passphraseChars.length > 0);
+        // Verify we can zeroize it
+        encryption.CryptoUtils.zeroize(passphraseChars);
+        for (char c : passphraseChars) {
+            assertEquals('\0', c);
+        }
+    }
+
+    @Test
+    void testGeneratePassphraseCharsRandomness() {
+        Set<String> passphrases = new HashSet<>();
+        for (int i = 0; i < 50; i++) {
+            char[] chars = PasswordGenerator.generatePassphraseChars(4);
+            passphrases.add(new String(chars));
+            encryption.CryptoUtils.zeroize(chars);
+        }
+        assertTrue(passphrases.size() > 20);
+    }
 }

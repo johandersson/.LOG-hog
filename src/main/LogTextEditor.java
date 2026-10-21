@@ -564,8 +564,13 @@ public final class LogTextEditor extends JFrame {
         }
         try {
             System.err.println(message);
+            // Security: Don't print full stack trace in fallback logging
+            // Stack traces may contain sensitive information
             if (throwable != null) {
-                throwable.printStackTrace(System.err);
+                String exceptionMsg = throwable.getMessage();
+                if (exceptionMsg != null && !exceptionMsg.isBlank()) {
+                    System.err.println("Details: " + exceptionMsg);
+                }
             }
         } catch (Throwable ignored) {
             // Last-resort logging must never throw.
