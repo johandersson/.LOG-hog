@@ -718,11 +718,6 @@ public final class SettingsPanel extends JPanel {
     }
 
     private void backupLogFile() {
-        var confirm = gui.DialogHelper.confirm(editor, "Backup Info",
-            "Backups are copies of your current log file.",
-            "If encrypted, the backup will remain encrypted for security.<br>Do you want to proceed?");
-        if (!confirm) return;
-
         var chooser = new JFileChooser();
         var backupDir = backupDirField.getText();
         if (!backupDir.isEmpty()) {

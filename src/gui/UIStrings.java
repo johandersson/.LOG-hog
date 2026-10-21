@@ -44,7 +44,6 @@ public class UIStrings {
     public static final String TITLE_INFO = "Information";
     public static final String TITLE_CONFIRM = "Confirm";
     public static final String TITLE_SUCCESS = "Success";
-    public static final String TITLE_BACKUP_INFO = "Backup Info";
     public static final String TITLE_NOT_ENCRYPTED = "Not Encrypted";
     public static final String TITLE_INVALID_INPUT = "Invalid Input";
     public static final String TITLE_SETTINGS_ERROR = "Settings Error";
