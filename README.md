@@ -44,7 +44,7 @@ Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.co
 
 * **AES-256-GCM authenticated encryption**
 * **PBKDF2 (600,000 iterations)** for password-based key derivation
-* Encrypted-only save path (plaintext mode removed)
+* Encrypted-only save path
 * Incremental encrypted journal writes with compaction on lock/threshold
 * Tamper-evident backup integrity (HMAC for numbered backups)
 * Tamper-evident event logging for selected backup-integrity events
