@@ -15,7 +15,7 @@ import security.SecurityFilePolicy;
  * Lightweight local alert sink for high-severity security events.
  */
 public final class SecurityAlertDispatcher {
-    private static final Path ALERT_DIR = Path.of(System.getProperty("user.home"), ".loghog");
+    private static final Path ALERT_DIR = Path.of(System.getProperty("user.home"), ".kryptonotes");
     private static final Path ALERT_FILE = ALERT_DIR.resolve("security-alerts.log");
     private static final Set<String> CRITICAL_EVENTS = Set.of(
         "TamperDetected",

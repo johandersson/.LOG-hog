@@ -12,7 +12,7 @@ public final class AppPathPolicy {
     private AppPathPolicy() {}
 
     public static Path appDataDirectory() {
-        return userHomePath().resolve(".loghog");
+        return userHomePath().resolve(".kryptonotes");
     }
 
     public static Path settingsFilePath() {

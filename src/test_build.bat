@@ -6,6 +6,6 @@ set "files="
 for /r %%i in (*.java) do set "files=!files! "%%i""
 javac --release %JAVA_RELEASE% -encoding UTF-8 -cp "src/lib/*" -d . %files%
 if %errorlevel% neq 0 exit /b %errorlevel%
-jar cvfm loghog-test.jar manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class browser/*.class encryption/*.class markdown/*.class main/*.class security/*.class services/*.class utils/*.class -C .. LICENSE.md resources/
-echo Test build completed: loghog-test.jar
+jar cvfm kryptonotes-test.jar manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class browser/*.class encryption/*.class markdown/*.class main/*.class security/*.class services/*.class utils/*.class -C .. LICENSE.md resources/
+echo Test build completed: kryptonotes-test.jar
 if /I "%LOGHOG_PAUSE_ON_ERROR%"=="1" pause

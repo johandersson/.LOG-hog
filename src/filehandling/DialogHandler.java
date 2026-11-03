@@ -219,7 +219,7 @@ public class DialogHandler {
                         } finally {
                             javax.swing.SwingUtilities.invokeLater(() -> progress.close());
                         }
-                    }, "loghog-copy-selected-file");
+                    }, "kryptonotes-copy-selected-file");
                     bg.setDaemon(true);
                     bg.start();
 
@@ -320,7 +320,7 @@ public class DialogHandler {
                     // Close the modal dialog from the EDT
                     javax.swing.SwingUtilities.invokeLater(() -> progress.close());
                 }
-            }, "loghog-restore-backup");
+            }, "kryptonotes-restore-backup");
             bg.setDaemon(true);
             bg.start();
 

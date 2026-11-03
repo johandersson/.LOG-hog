@@ -1,8 +1,8 @@
-# 📘 Welcome to .LOG-hog for encrypted notes
+# 📘 Welcome to KryptoNotes for encrypted notes
 
 ## Purpose
 
-.LOG-hog is designed for **fast, focused note-taking with strong encryption**. Your notes are stored in encrypted log files.
+KryptoNotes is designed for **fast, focused note-taking with strong encryption**. Your notes are stored in encrypted log files.
 
 When the application starts, the editor is immediately focused so you can begin writing without interruption. Press **Ctrl+S** (or **Cmd+S** on macOS) or click **Save** to store your entry as a timestamped log entry and automatically clear the editor for the next note.
 
@@ -20,15 +20,15 @@ The application starts quickly and is designed to be efficient for everyday use.
 
 ## 🗂️ .LOG Format Compatibility
 
-.LOG-hog uses a familiar `.LOG`-style entry format, but encrypted-only mode does not open plaintext `.LOG` files.
+KryptoNotes uses a familiar `.LOG`-style entry format, but encrypted-only mode does not open plaintext `.LOG` files.
 
-* Open an existing encrypted .LOG-hog file or restore an encrypted backup
+* Open an existing encrypted KryptoNotes file or restore an encrypted backup
 * New files are created **encrypted**
 * Search, filtering, and formatting are built into the app
 
 ### About the Format
 
-.LOG-hog is inspired by the classic **Notepad `.LOG` behavior**, where timestamps are appended automatically.  
+KryptoNotes is inspired by the classic **Notepad `.LOG` behavior**, where timestamps are appended automatically.  
 It extends this concept with:
 
 * structured entries
@@ -39,7 +39,7 @@ It extends this concept with:
 
 # 🔐 Security Overview
 
-.LOG-hog uses **modern cryptographic techniques and secure coding practices** to protect data at rest.
+KryptoNotes uses **modern cryptographic techniques and secure coding practices** to protect data at rest.
 
 ### Key Security Features
 
@@ -56,7 +56,7 @@ It extends this concept with:
 
 ## ⚠️ Security Model (Important)
 
-.LOG-hog is designed to protect:
+KryptoNotes is designed to protect:
 
 * Local files and backups against unauthorized access
 * Data at rest from offline attacks
@@ -75,7 +75,7 @@ It does **not protect against**:
 ## 🪟 Platform note (Windows, macOS, Linux)
 
 On some systems, file privacy rules work differently behind the scenes.  
-.LOG-hog still encrypts your notes, but your overall protection also depends on your device setup.
+KryptoNotes still encrypts your notes, but your overall protection also depends on your device setup.
 
 For best protection:
 
@@ -85,7 +85,7 @@ For best protection:
 
 ## 📋 Clipboard Security
 
-Sensitive data copied from .LOG-hog is protected with:
+Sensitive data copied from KryptoNotes is protected with:
 
 * **Automatic clearing** after a configurable timeout (5–30 seconds, always enabled)
 * Manual "Clear Clipboard" option
@@ -95,7 +95,7 @@ Sensitive data copied from .LOG-hog is protected with:
 
 If the app is terminated unexpectedly (e.g., crash, forced quit):
 
-* Clipboard contents remain available while the app is stopped. On its next launch, .LOG-hog attempts to clear content that still matches its recovery marker, but this is best-effort and not immediate or guaranteed.
+* Clipboard contents remain available while the app is stopped. On its next launch, KryptoNotes attempts to clear content that still matches its recovery marker, but this is best-effort and not immediate or guaranteed.
 
 👉 Manually clear the clipboard after unexpected termination; do not rely on recovery.
 
@@ -180,8 +180,8 @@ Your password is the only thing that cannot be recovered — write it down and s
 
 Your encrypted log data keeps its encryption metadata in the file headers, but active storage may now include a small encrypted journal sidecar during editing. This means:
 
-* If you lose your `.loghog/settings.properties` file, your data is **not** permanently lost
-* .LOG-hog will automatically recover the salt from the encrypted file headers when you next open it
+* If you lose your `.kryptonotes/settings.properties` file, your data is **not** permanently lost
+* KryptoNotes will automatically recover the salt from the encrypted file headers when you next open it
 * You need your **password** plus the encrypted snapshot and any journal sidecar still present to regain full access
 * Reinstalling the app or moving the files to a new machine works seamlessly
 
@@ -196,7 +196,7 @@ The only unrecoverable scenario is losing your password.
 
 ### Password Generator
 
-.LOG-hog includes a built-in generator:
+KryptoNotes includes a built-in generator:
 
 * Random passwords
 * Diceware-style passphrases
@@ -277,10 +277,10 @@ Rendering applies in the Full Log view.
 
 # 📄 License
 
-.LOG-hog is licensed under **GPL v3**.  
+KryptoNotes is licensed under **GPL v3**.  
 See the top-level repository `LICENSE.md` for details.
 
 # 📦 Repository
 
 GitHub:  
-<http://github.com/johandersson/.LOG-hog>
+<http://github.com/johandersson/KryptoNotes>

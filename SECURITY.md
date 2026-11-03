@@ -1,8 +1,8 @@
 # Security Architecture & Vulnerability Reporting
 
-Thanks for helping keep **.LOG-hog** safe. 
+Thanks for helping keep **KryptoNotes** safe. 
 
-.LOG-hog is a local-first, encrypted desktop application built with security as a core design principle. This document describes the security architecture, threat model, and reporting procedures.
+KryptoNotes is a local-first, encrypted desktop application built with security as a core design principle. This document describes the security architecture, threat model, and reporting procedures.
 
 ---
 
@@ -25,7 +25,7 @@ Thanks for helping keep **.LOG-hog** safe.
 
 ### Overview
 
-.LOG-hog uses a **multi-layer security model** combining encryption, authentication, access control, and secure memory management:
+KryptoNotes uses a **multi-layer security model** combining encryption, authentication, access control, and secure memory management:
 
 ```mermaid
 graph TB
@@ -122,7 +122,7 @@ flowchart TD
 - Output: 256-bit AES key
 
 **Backup Signing Key Derivation (BackupKeyDerivation.java):**
-- Context string: "loghog-backup-hmac-v2"
+- Context string: "kryptonotes-backup-hmac-v2"
 - Same iteration count (600,000) as primary encryption
 - Used to derive HMAC-SHA256 key for backup integrity
 - **Legacy support removed**: v1 (120,000 iterations) signatures are rejected
@@ -273,7 +273,7 @@ flowchart TD
     EncryptedBlob["Encrypted Backup Blob"]
     
     DeriveSigning["Derive Backup Signing Key"]
-    DeriveDetails["BackupKeyDerivation.deriveV2():<br/>• Input: user password + salt + context string<br/>• Context: 'loghog-backup-hmac-v2'<br/>• Iterations: 600,000<br/>• Output: 256-bit HMAC key"]
+    DeriveDetails["BackupKeyDerivation.deriveV2():<br/>• Input: user password + salt + context string<br/>• Context: 'kryptonotes-backup-hmac-v2'<br/>• Iterations: 600,000<br/>• Output: 256-bit HMAC key"]
     
     ComputeHmac["HMAC-SHA256(backup_key, ciphertext)"]
     
@@ -364,7 +364,7 @@ Target:   -rw------- (0600)
           Others: (none)
 ```
 
-**For Directories (.loghog, backups/):**
+**For Directories (.kryptonotes, backups/):**
 ```
 Target:   drwx------ (0700)
           Owner: read + write + execute (traverse)
@@ -486,7 +486,7 @@ Security vulnerabilities requiring cryptographic or architectural fixes:
 ### ❌ Out of Scope (Do Not Report)
 
 - Issues requiring system compromise (malware, kernel exploit, hardware keylogger)
-- User self-exposure from weak OS-level security (e.g., group-readable .loghog/ folder)
+- User self-exposure from weak OS-level security (e.g., group-readable .kryptonotes/ folder)
 - Denial-of-service without security impact (slow encryption, storage exhaustion)
 - Social engineering attacks (user tricks self into revealing password)
 - Physical attacks (theft of hard drive, cold boot attacks)
@@ -510,7 +510,7 @@ Security vulnerabilities requiring cryptographic or architectural fixes:
 
 **GitHub provides a private channel:**
 
-1. Navigate to: **https://github.com/johandersson/.LOG-hog/security/advisories/new**
+1. Navigate to: **https://github.com/johandersson/KryptoNotes/security/advisories/new**
 2. Submit your report with:
    - Clear description of the issue and its impact
    - Affected version/commit/OS (Windows/macOS/Linux) and Java version
@@ -539,7 +539,7 @@ Security vulnerabilities requiring cryptographic or architectural fixes:
   ```
 - **Expected behavior**: "App should exit after 3 failed attempts"
 - **Actual behavior**: "App allows unlimited attempts"
-- **Logs/Traces**: `~/.loghog/loghog.log` (with sensitive data removed)
+- **Logs/Traces**: `~/.kryptonotes/kryptonotes.log` (with sensitive data removed)
 
 ---
 
@@ -573,4 +573,4 @@ We appreciate good-faith security research. **We will not pursue legal action ag
 - Avoid privacy violations, data destruction, disruption, or social engineering
 - Give us reasonable time to develop a fix before disclosure
 
-**Thank you for helping keep .LOG-hog secure! 🔒**
+**Thank you for helping keep KryptoNotes secure! 🔒**

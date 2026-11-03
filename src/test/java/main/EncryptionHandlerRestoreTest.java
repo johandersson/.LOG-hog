@@ -167,7 +167,7 @@ class EncryptionHandlerRestoreTest {
             java.util.Arrays.fill(password, '\0');
         }
         if (settingsExist) {
-            Path configuration = Files.createDirectory(home.resolve(".loghog"));
+            Path configuration = Files.createDirectory(home.resolve(".kryptonotes"));
             Files.writeString(configuration.resolve("settings.properties"), "showSplashOnStartup=false\n");
         }
         String originalHome = System.getProperty("user.home");

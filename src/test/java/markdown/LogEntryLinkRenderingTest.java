@@ -22,7 +22,7 @@ class LogEntryLinkRenderingTest {
             var text = pane.getText();
             assertEquals("timestamp", doc.getCharacterElement(0).getAttributes()
                     .getAttribute(javax.swing.text.StyleConstants.NameAttribute), header);
-            assertEquals("loghog:00:00 2020-01-01",
+            assertEquals("kryptonotes:00:00 2020-01-01",
                     doc.getCharacterElement(text.indexOf("[2020")).getAttributes().getAttribute("href"));
         }
     }
@@ -53,7 +53,7 @@ class LogEntryLinkRenderingTest {
                     pane.setSize(600, 150);
                     var text = pane.getText();
                     int offset = text.indexOf(timestamp);
-                    assertEquals("loghog:13:23 2022-12-19",
+                    assertEquals("kryptonotes:13:23 2022-12-19",
                             pane.getStyledDocument().getCharacterElement(offset)
                                     .getAttributes().getAttribute("href"), timestamp);
                     var selected = new AtomicReference<String>();
@@ -81,7 +81,7 @@ class LogEntryLinkRenderingTest {
         var text = doc.getText(0, doc.getLength());
         assertTrue(text.contains("[2022-12-12 13:23]"));
         for (String label : List.of("2022-12-12 13:23", "13:23 2022-12-12")) {
-            assertEquals("loghog:13:23 2022-12-12",
+            assertEquals("kryptonotes:13:23 2022-12-12",
                     doc.getCharacterElement(text.indexOf(label)).getAttributes().getAttribute("href"));
         }
     }

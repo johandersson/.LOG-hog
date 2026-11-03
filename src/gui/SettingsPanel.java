@@ -727,13 +727,13 @@ public final class SettingsPanel extends JPanel {
             }
         }
         var date = LocalDate.now().toString();
-        chooser.setSelectedFile(new java.io.File("loghog-backup-" + date + ".enc"));
+        chooser.setSelectedFile(new java.io.File("kryptonotes-backup-" + date + ".enc"));
         var filter = new javax.swing.filechooser.FileFilter() {
             @Override
             public boolean accept(java.io.File f) {
                 if (f.isDirectory()) return true;
                 var name = f.getName();
-                return name.startsWith("loghog-backup-") && name.endsWith(".enc");
+                return name.startsWith("kryptonotes-backup-") && name.endsWith(".enc");
             }
             @Override
             public String getDescription() {

@@ -32,8 +32,8 @@ import security.LinkOpenPolicy;
 import utils.PlatformSupport;
 
 public class LinkHandler {
-    private static final String LINK_LISTENERS_INSTALLED_KEY = "loghog.link.listeners.installed";
-    private static final String LOG_LINK_OPENER_KEY = "loghog.link.opener";
+    private static final String LINK_LISTENERS_INSTALLED_KEY = "kryptonotes.link.listeners.installed";
+    private static final String LOG_LINK_OPENER_KEY = "kryptonotes.link.opener";
 
     public static void addLinkListeners(JTextPane pane, java.util.function.Consumer<String> logLinkOpener) {
         pane.putClientProperty(LOG_LINK_OPENER_KEY, logLinkOpener);

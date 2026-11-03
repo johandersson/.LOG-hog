@@ -4,9 +4,9 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BUILD_DIR="$SCRIPT_DIR/../build"
 SOURCES_FILE=""
-if SOURCES_FILE="$(mktemp -t loghog-javac.XXXXXX 2>/dev/null)"; then
+if SOURCES_FILE="$(mktemp -t kryptonotes-javac.XXXXXX 2>/dev/null)"; then
     :
-elif SOURCES_FILE="$(mktemp "${TMPDIR:-/tmp}/loghog-javac.XXXXXX" 2>/dev/null)"; then
+elif SOURCES_FILE="$(mktemp "${TMPDIR:-/tmp}/kryptonotes-javac.XXXXXX" 2>/dev/null)"; then
     :
 else
     echo "Failed to create temporary source list file"
@@ -31,8 +31,8 @@ fi
 # NOTE: removed aggressive deletion of .class files to avoid interfering with incremental builds
 echo "Skipping class file cleanup to avoid build issues"
 
-# Stop any running loghog instances
-PIDS="$(pgrep -f "java.*loghog" 2>/dev/null || true)"
+# Stop any running kryptonotes instances
+PIDS="$(pgrep -f "java.*kryptonotes" 2>/dev/null || true)"
 if [ -n "$PIDS" ]; then
     while IFS= read -r pid; do
         [ -n "$pid" ] && kill "$pid" 2>/dev/null || true
@@ -64,7 +64,7 @@ fi
 echo "Creating JAR file..."
 mkdir -p "$BUILD_DIR"
 BUILD_TS="$(date +"%Y-%m-%d-%H_%M")"
-JAR_NAME="loghog-$BUILD_TS.jar"
+JAR_NAME="kryptonotes-$BUILD_TS.jar"
 CLASS_FILES=()
 while IFS= read -r classFile; do
     CLASS_FILES+=("$classFile")

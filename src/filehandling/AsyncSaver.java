@@ -81,7 +81,7 @@ public class AsyncSaver {
 
             // Signal completion - caller handles list refresh for proper occurrence counting
             completeIfCurrent(session, onComplete);
-        }, "loghog-save-thread");
+        }, "kryptonotes-save-thread");
         t.setDaemon(false);
         t.start();
     }
@@ -111,7 +111,7 @@ public class AsyncSaver {
                 progress.close();
             }
             completeIfCurrent(session, onComplete);
-        }, "loghog-progress-task");
+        }, "kryptonotes-progress-task");
         t.setDaemon(false);
         t.start();
     }
@@ -153,7 +153,7 @@ public class AsyncSaver {
             }
 
             completeIfCurrent(session, onComplete);
-        }, "loghog-flush-thread");
+        }, "kryptonotes-flush-thread");
         t2.setDaemon(false);
         t2.start();
     }

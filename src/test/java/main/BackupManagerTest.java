@@ -97,9 +97,9 @@ public class BackupManagerTest {
         backupManager.performAutomaticBackup();
 
         String filename = Files.list(tempBackupDir).findFirst().orElseThrow().getFileName().toString();
-        assertTrue(filename.startsWith("loghog-auto-backup-"));
+        assertTrue(filename.startsWith("kryptonotes-auto-backup-"));
         assertTrue(filename.endsWith(".enc"));
-        assertTrue(filename.matches("loghog-auto-backup-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}\\.enc"));
+        assertTrue(filename.matches("kryptonotes-auto-backup-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}\\.enc"));
     }
 
     @Test

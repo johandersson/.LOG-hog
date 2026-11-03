@@ -25,7 +25,7 @@ import security.AppPathPolicy;
  */
 public final class Log {
     private static final Logger logger = Logger.getLogger("LogHog");
-    private static final String LOG_FILE_NAME = "loghog.log";
+    private static final String LOG_FILE_NAME = "kryptonotes.log";
 
     static {
         attachFileHandler();

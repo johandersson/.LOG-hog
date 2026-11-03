@@ -93,7 +93,7 @@ public class SingleInstanceManagerTest {
 
     @Test
     void testLockDirectoryCreation() {
-        Path lockDir = Path.of(System.getProperty("user.home"), ".loghog");
+        Path lockDir = Path.of(System.getProperty("user.home"), ".kryptonotes");
         SingleInstanceManager.isAnotherInstanceRunning();
         assertTrue(Files.exists(lockDir));
         SingleInstanceManager.releaseLock();

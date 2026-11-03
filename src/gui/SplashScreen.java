@@ -265,7 +265,7 @@ public class SplashScreen extends JDialog {
         // Add text on shirt
         g2d.setFont(new Font("Segoe UI", Font.BOLD, 8));
         FontMetrics fm = g2d.getFontMetrics();
-        String line1 = ".LOG-hog";
+        String line1 = "KryptoNotes";
         String line2 = "License:";
         String line3 = "GPL3";
         int textX = manX + 10 + (40 - fm.stringWidth(line1)) / 2; // center horizontally
@@ -342,7 +342,7 @@ public class SplashScreen extends JDialog {
 
     private void drawSpeechBubble(Graphics2D g2d) {
         // Text content
-        String text = "I am a .LOG-hog! v 1.0.";
+        String text = "I am a KryptoNotes! v 1.0.";
         g2d.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         FontMetrics fm = g2d.getFontMetrics();
 

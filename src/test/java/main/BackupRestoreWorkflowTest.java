@@ -186,7 +186,7 @@ class BackupRestoreWorkflowTest {
             assertEquals(original.length + 32L, Files.size(backup));
         } else {
             // Mock only SettingsPanel's chooser/background task; its manual backup is a raw copy.
-            backup = backupDir.resolve("loghog-backup-manual.enc");
+            backup = backupDir.resolve("kryptonotes-backup-manual.enc");
             Files.copy(logPath, backup);
             assertArrayEquals(original, Files.readAllBytes(backup));
         }

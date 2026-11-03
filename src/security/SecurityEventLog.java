@@ -25,7 +25,7 @@ import main.HmacUtils;
  * Tamper-evident security event log with sequence and hash-chain anchoring.
  */
 public final class SecurityEventLog {
-    private static final String LOCKOUT_DIR_NAME = ".loghog";
+    private static final String LOCKOUT_DIR_NAME = ".kryptonotes";
     private static final String LOG_FILE = "security-events.log";
     private static final String ANCHOR_FILE = "security-events.anchor";
     private static final String KEY_FILE = "security-events.key";

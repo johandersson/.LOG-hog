@@ -41,7 +41,7 @@ public class ClipboardSecurityWarner {
         "<li><b>Shared Systems:</b> Other users can access clipboard on shared computers</li>" +
         "<li><b>Application Monitoring:</b> Keyloggers and spyware can capture clipboard data</li>" +
         "</ul>" +
-        "<p style='color: #1976d2;'><b>.LOG-hog Security:</b> Content will auto-clear in " + SecureClipboardManager.getTimeoutSeconds() + " seconds for your protection.</p>" +
+        "<p style='color: #1976d2;'><b>KryptoNotes Security:</b> Content will auto-clear in " + SecureClipboardManager.getTimeoutSeconds() + " seconds for your protection.</p>" +
         "</body></html>";
     }
 
@@ -86,7 +86,7 @@ public class ClipboardSecurityWarner {
         String message =
             "<html><body style='width: 350px; font-family: Segoe UI, sans-serif; font-size: 9px;'>" +
             "<h3 style='color: #1976d2; margin-top: 0;'>🔒 Secure Clipboard Active</h3>" +
-            "<p>Clipboard contains .LOG-hog content that will auto-clear for security.</p>" +
+            "<p>Clipboard contains KryptoNotes content that will auto-clear for security.</p>" +
             "<p><b>Content will be automatically cleared in " +
             SecureClipboardManager.getTimeoutSeconds() + " seconds.</b></p>" +
             "<p>You can manually clear it now if needed.</p>" +

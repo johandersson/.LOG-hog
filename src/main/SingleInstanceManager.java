@@ -38,7 +38,7 @@ import gui.DialogHelper;
  *   <li>Potential socket hijacking attacks</li>
  * </ul>
  * 
- * <p>The lock file is created in the user's .loghog directory with restrictive permissions.</p>
+ * <p>The lock file is created in the user's .kryptonotes directory with restrictive permissions.</p>
  */
 public class SingleInstanceManager {
     private static final String LOCK_FILE_NAME = "instance.lock";
@@ -56,7 +56,7 @@ public class SingleInstanceManager {
     public static boolean isAnotherInstanceRunning() {
         try {
             // Create lock file directory if needed
-            Path lockDir = Path.of(System.getProperty("user.home"), ".loghog");
+            Path lockDir = Path.of(System.getProperty("user.home"), ".kryptonotes");
             Files.createDirectories(lockDir);
             SecurityFilePolicy.ensureOwnerOnlyPermissions(lockDir);
             lockFilePath = lockDir.resolve(LOCK_FILE_NAME);
@@ -122,7 +122,7 @@ public class SingleInstanceManager {
      */
     public static void showAlreadyRunningDialog() {
         DialogHelper.showInfo(null, "Already Running", "Application Already Running", 
-            "Another instance of .LOG-hog is already running.<br><br>" +
+            "Another instance of KryptoNotes is already running.<br><br>" +
             "Please use the existing window or close it first.");
     }
 

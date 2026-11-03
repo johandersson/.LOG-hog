@@ -975,7 +975,7 @@ public class LogFileHandler implements LogFileOperations {
         }
 
         Path parent = target.getParent();
-        Path staged = Files.createTempFile(parent, ".loghog-restore-", ".tmp");
+        Path staged = Files.createTempFile(parent, ".kryptonotes-restore-", ".tmp");
         try {
             Files.copy(backup, staged, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             security.SecurityFilePolicy.ensureOwnerOnlyPermissions(staged);

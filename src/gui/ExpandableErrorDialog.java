@@ -23,7 +23,7 @@ import javax.swing.SwingUtilities;
  * containing a full stack trace when a Throwable is provided.
  */
 public class ExpandableErrorDialog {
-    private static final String DEBUG_FLAG = "loghog.debug";
+    private static final String DEBUG_FLAG = "kryptonotes.debug";
 
     private static boolean isProductionMode() {
         return !Boolean.getBoolean(DEBUG_FLAG);
