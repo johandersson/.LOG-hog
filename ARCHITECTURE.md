@@ -1,4 +1,4 @@
-# .LOG-hog Architecture
+# KryptoNotes Architecture
 
 Short architecture snapshot aligned with current code.
 

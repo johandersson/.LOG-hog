@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 import security.SecurityFilePolicy;
 
 public class SecurityEventLogger {
-    private static final Path LOG_DIR = Path.of(System.getProperty("user.home"), ".loghog");
+    private static final Path LOG_DIR = Path.of(System.getProperty("user.home"), ".kryptonotes");
     private static final Path LOG_FILE = LOG_DIR.resolve("security-events.log");
 
     public static void log(String event, String details) {

@@ -17,11 +17,11 @@ if exist "%~dp0..\help.md" (
 REM NOTE: removed aggressive deletion of .class files because it interferes with incremental builds
 echo Skipping class file cleanup to avoid build issues
 
-powershell -NoProfile -NonInteractive -Command "Get-Process javaw -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*loghog*' } | Stop-Process -Force" >nul 2>&1
+powershell -NoProfile -NonInteractive -Command "Get-Process javaw -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*kryptonotes*' } | Stop-Process -Force" >nul 2>&1
 REM Ensure we run from the script directory so compiled classes end up where the jar expects them
 pushd "%~dp0"
 set "JAVA_RELEASE=17"
-set "SOURCES_FILE=%TEMP%\loghog-javac-%RANDOM%%RANDOM%.args"
+set "SOURCES_FILE=%TEMP%\kryptonotes-javac-%RANDOM%%RANDOM%.args"
 > "%SOURCES_FILE%" (
     for /f "delims=" %%i in ('dir /s /b *.java ^| findstr /v test') do (
         set "SRC_FILE=%%i"
@@ -44,7 +44,7 @@ if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 REM Include compiled classes, resource directory and any top-level text resources
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format \"yyyy-MM-dd-HH_mm\""') do set "BUILD_TS=%%i"
 if "%BUILD_TS%"=="" set "BUILD_TS=unknown"
-set "JAR_NAME=loghog-%BUILD_TS%.jar"
+set "JAR_NAME=kryptonotes-%BUILD_TS%.jar"
 jar cvfm "%BUILD_DIR%\%JAR_NAME%" manifest.txt LogHog.class main/LogTextEditor.class gui/*.class filehandling/*.class clipboard/*.class browser/*.class encryption/*.class security/*.class markdown/*.class main/*.class services/*.class utils/*.class -C .. LICENSE.md resources/
 if %errorlevel% neq 0 (
     popd

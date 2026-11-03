@@ -63,7 +63,7 @@ public class BackupManager {
     private static final int OPTION_USE_HOME_DIRECTORY = 1;
     private static final int LOGH_MAGIC_SIZE = 4;
     private static final int HMAC_SIZE_BYTES = 32;
-    private static final String AUTO_BACKUP_PREFIX = "loghog-auto-backup-";
+    private static final String AUTO_BACKUP_PREFIX = "kryptonotes-auto-backup-";
     private static final String ENCRYPTED_BACKUP_EXTENSION = ".enc";
     private static final String JOURNAL_BACKUP_SUFFIX = ".journal.enc";
 
@@ -266,7 +266,7 @@ public class BackupManager {
 
         // If called on the EDT, run the backup in a background thread to avoid blocking UI.
         if (SwingUtilities.isEventDispatchThread()) {
-            Thread bg = new Thread(() -> performAutomaticBackupImpl(), "loghog-automatic-backup");
+            Thread bg = new Thread(() -> performAutomaticBackupImpl(), "kryptonotes-automatic-backup");
             bg.setDaemon(true);
             bg.start();
             return;

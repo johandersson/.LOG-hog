@@ -14,7 +14,7 @@ import encryption.FileEncryptionManager;
 public class EncryptedIncrementalWriteTest {
     @org.junit.jupiter.api.Test
     void appendsEncryptedEntriesWithoutRewritingBaseSnapshot() throws Exception {
-        Path baseFile = Files.createTempFile("loghog-incremental-", ".enc");
+        Path baseFile = Files.createTempFile("kryptonotes-incremental-", ".enc");
         Path journalFile = baseFile.resolveSibling(baseFile.getFileName().toString() + ".journal.enc");
         try {
             EncryptionManager encryptionManager = EncryptionManager.getInstance();

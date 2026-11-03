@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Locale;
 
 public final class LogEntryLink {
-    public static final String PREFIX = "loghog:";
+    public static final String PREFIX = "kryptonotes:";
     private static final DateTimeFormatter NATIVE = DateTimeFormatter
             .ofPattern("HH:mm uuuu-MM-dd", Locale.ROOT).withResolverStyle(ResolverStyle.STRICT);
 

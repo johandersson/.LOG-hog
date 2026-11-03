@@ -290,7 +290,7 @@ public final class LogTextEditor extends JFrame {
     }
 
     private java.nio.file.Path getLegacySettingsPath() {
-        return java.nio.file.Paths.get(System.getProperty("user.home"), "loghog_settings.properties");
+        return java.nio.file.Paths.get(System.getProperty("user.home"), "kryptonotes_settings.properties");
     }
 
     private void loadSettingsFromDisk() {
@@ -697,7 +697,7 @@ public final class LogTextEditor extends JFrame {
                     try { progressDialog.close(); } catch (Exception ignore) {}
                 }
             };
-            Thread startupThread2 = new Thread(startupLoad2, "loghog-startup-load");
+            Thread startupThread2 = new Thread(startupLoad2, "kryptonotes-startup-load");
             startupThread2.setDaemon(true);
             startupThread2.start();
         }
@@ -914,7 +914,7 @@ public final class LogTextEditor extends JFrame {
     private void startPeriodicBackupTimer() {
         periodicBackupTimer = new javax.swing.Timer(60000, e -> {
             // Run backup check in background to avoid blocking UI
-            Thread backupChecker = new Thread(() -> backupManager.checkPeriodicBackup(), "loghog-backup-check");
+            Thread backupChecker = new Thread(() -> backupManager.checkPeriodicBackup(), "kryptonotes-backup-check");
             backupChecker.setDaemon(true);
             backupChecker.start();
         });

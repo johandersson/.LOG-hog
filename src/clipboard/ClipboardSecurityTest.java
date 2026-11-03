@@ -20,7 +20,7 @@ public class ClipboardSecurityTest {
             Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 
             // Test copying secure content
-            String testContent = "This is secure .LOG-hog content that should be auto-cleared.";
+            String testContent = "This is secure KryptoNotes content that should be auto-cleared.";
             StringSelection selection = new StringSelection(testContent);
             clipboard.setContents(selection, null);
 

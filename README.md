@@ -1,14 +1,14 @@
-# 📦 .LOG-hog - for fast, secure, encrypted notes
+# 📦 KryptoNotes - for fast, secure, encrypted notes
 
 **A lightweight, cross-platform Java application for fast note-taking with built-in protection (strong encryption) for sensitive local notes. Perfect for keeping a work log, diary, or just any kind of sensitive notes.**
 
-.LOG-hog runs on **Windows, macOS, and Linux** and provides a simple, efficient workflow for creating timestamped log entries with encryption-first storage and practical local hardening.
+KryptoNotes runs on **Windows, macOS, and Linux** and provides a simple, efficient workflow for creating timestamped log entries with encryption-first storage and practical local hardening.
 
 ***
 
 ## 🧠 Purpose
 
-.LOG-hog is designed for **fast, uninterrupted note-taking**.
+KryptoNotes is designed for **fast, uninterrupted note-taking**.
 
 On startup, the editor is immediately focused so you can begin writing right away. After a successful unlock, focus returns to the editor when the first (entry) tab is active. Press **Ctrl+S** (or **Cmd+S** on macOS) or click **Save** to store the entry with a timestamp. The input field is then cleared automatically, allowing you to continue writing without interruption.
 
@@ -18,7 +18,7 @@ This workflow is optimized for rapid, continuous logging/writing a diary or just
 
 ## 🗂️ Format & Compatibility
 
-.LOG-hog keeps the familiar `.LOG`-style workflow but uses **encrypted storage by policy**. Plaintext `.LOG` files cannot be opened directly; use a .LOG-hog encrypted file or restore an encrypted backup.
+KryptoNotes keeps the familiar `.LOG`-style workflow but uses **encrypted storage by policy**. Plaintext `.LOG` files cannot be opened directly; use a KryptoNotes encrypted file or restore an encrypted backup.
 
 * Primary storage is encrypted (AES-GCM) when initialized
 * Entry workflow, timestamps, search, and markdown rendering stay integrated in the app
@@ -26,7 +26,7 @@ This workflow is optimized for rapid, continuous logging/writing a diary or just
 
 To restore, choose **Restore from Backup** in Settings and select your encrypted `.enc` or `.bak.enc` file. Confirm twice to replace the active log; the dialog compares file sizes.
 
-Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.com/258545/how-to-use-notepad-to-create-a-dated-log-or-journal-file/), .LOG-hog extends the workflow with:
+Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.com/258545/how-to-use-notepad-to-create-a-dated-log-or-journal-file/), KryptoNotes extends the workflow with:
 
 * structured entries
 * advanced search and filtering
@@ -38,7 +38,7 @@ Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.co
 
 ## 🔐 Security
 
-.LOG-hog provides **strong, practical protection for locally stored data**, going beyond what most note-taking apps offer by default.
+KryptoNotes provides **strong, practical protection for locally stored data**, going beyond what most note-taking apps offer by default.
 
 ### Highlights
 
@@ -61,13 +61,13 @@ Inspired by [the .LOG functionality in Windows Notepad](https://www.howtogeek.co
 
 Many lightweight note tools optimize for convenience first and security second.
 
-.LOG-hog is designed to keep fast note writing UX while enforcing encrypted storage and adding practical hardening around backup integrity and local file handling.
+KryptoNotes is designed to keep fast note writing UX while enforcing encrypted storage and adding practical hardening around backup integrity and local file handling.
 
 ***
 
 ## ⚠️ Security Model
 
-.LOG-hog is designed to protect against:
+KryptoNotes is designed to protect against:
 
 * Unauthorized access to local files or backups
 * Offline attacks on encrypted data
@@ -184,7 +184,7 @@ chmod +x build.sh
 ```bash
 cd src
 javac -encoding UTF-8 -d . $(find . -name "*.java" ! -path "*/test/*")
-jar cvfm ../build/loghog.jar manifest.txt \
+jar cvfm ../build/kryptonotes.jar manifest.txt \
 LogHog.class main/*.class gui/*.class filehandling/*.class \
 clipboard/*.class browser/*.class \
 encryption/*.class markdown/*.class services/*.class \
@@ -197,13 +197,13 @@ main/*.class security/*.class utils/*.class \
 ### Run
 
 ```bash
-java -jar build/loghog.jar
+java -jar build/kryptonotes.jar
 ```
 
 If you built with `build.sh` / `build.bat`, use the timestamped artifact:
 
 ```bash
-java -jar build/loghog-<timestamp>.jar
+java -jar build/kryptonotes-<timestamp>.jar
 ```
 
 or use `build/run-latest.sh` (Linux/macOS) / `build/run-latest.bat` (Windows).
@@ -212,7 +212,7 @@ or use `build/run-latest.sh` (Linux/macOS) / `build/run-latest.bat` (Windows).
 
 ## 🧪 Testing
 
-.LOG-hog includes tests using **JUnit 5**.
+KryptoNotes includes tests using **JUnit 5**.
 
 ### Running Tests
 
@@ -248,6 +248,6 @@ See the top-level [`LICENSE.md`](LICENSE.md) for details.
 ## 🔗 Repository
 
 GitHub:  
-<http://github.com/johandersson/.LOG-hog>
+<http://github.com/johandersson/KryptoNotes>
 
 ***

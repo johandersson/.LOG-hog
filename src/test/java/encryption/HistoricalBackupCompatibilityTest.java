@@ -167,13 +167,13 @@ class HistoricalBackupCompatibilityTest {
                 try {
                     digest.update(bytes);
                     digest.update(SALT);
-                    backupKey = digest.digest("loghog-backup-hmac-v1".getBytes(StandardCharsets.UTF_8));
+                    backupKey = digest.digest("kryptonotes-backup-hmac-v1".getBytes(StandardCharsets.UTF_8));
                 } finally {
                     Arrays.fill(bytes, (byte) 0);
                     if (encoded.hasArray()) Arrays.fill(encoded.array(), (byte) 0);
                 }
             } else {
-                byte[] context = "loghog-backup-hmac-v2".getBytes(StandardCharsets.UTF_8);
+                byte[] context = "kryptonotes-backup-hmac-v2".getBytes(StandardCharsets.UTF_8);
                 byte[] contextualSalt = Arrays.copyOf(SALT, SALT.length + context.length);
                 System.arraycopy(context, 0, contextualSalt, SALT.length, context.length);
                 backupKey = derive(password, contextualSalt, format == Format.V2_120K_BACKUP ? 120000 : 600000);

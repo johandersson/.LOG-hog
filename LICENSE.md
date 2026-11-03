@@ -1,4 +1,4 @@
-# .LOG-hog - The Ultimate Writing App for Secure time stamped notes!
+# KryptoNotes - The Ultimate Writing App for Secure time stamped notes!
 
 LogHog is is a powerful note-taking application designed for writing secure encrypted notes (great for a job diary, personal journal, or log file). It offers advanced features such as editing, searching, syntax highlighting, encryption, and a user-friendly interface.
 

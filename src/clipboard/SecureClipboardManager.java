@@ -153,7 +153,7 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
 
     /**
      * Securely copy text to clipboard with automatic clearing.
-     * Marks content as coming from .LOG-hog for security tracking.
+     * Marks content as coming from KryptoNotes for security tracking.
      */
     @Override
     public void copySecureTextToClipboard(String text, Component parent) {
@@ -232,7 +232,7 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
     }
 
     /**
-     * Manually clear the clipboard if it contains .LOG-hog secure content.
+     * Manually clear the clipboard if it contains KryptoNotes secure content.
      */
     public static void clearSecureClipboard() {
         synchronized (LOCK) {
@@ -294,7 +294,7 @@ public class SecureClipboardManager implements ClipboardHandler, java.awt.datatr
     }
 
     /**
-     * Check if clipboard contains .LOG-hog secure content.
+     * Check if clipboard contains KryptoNotes secure content.
      *
      * @return true if the clipboard contains content that was copied by this application, false otherwise
      */

@@ -14,7 +14,7 @@ public final class BackupKeyDerivation {
     // Align with primary encryption KDF hardness to avoid weaker derived backup key paths.
     private static final int PBKDF2_ITERATIONS = 600000;
     private static final String PBKDF2_ALGO = "PBKDF2WithHmacSHA256";
-    private static final byte[] CONTEXT_V2 = "loghog-backup-hmac-v2".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] CONTEXT_V2 = "kryptonotes-backup-hmac-v2".getBytes(StandardCharsets.UTF_8);
 
     private BackupKeyDerivation() {}
 

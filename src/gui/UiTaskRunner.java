@@ -29,7 +29,7 @@ public final class UiTaskRunner {
             } finally {
                 SwingUtilities.invokeLater(progress::close);
             }
-        }, "loghog-ui-task");
+        }, "kryptonotes-ui-task");
         bg.setDaemon(true);
         bg.start();
 

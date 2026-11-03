@@ -27,7 +27,7 @@ public final class SensitiveKeyProtector {
     private static final String CIPHER = "AES/GCM/NoPadding";
     private static final String SALT_FILE = "key-protection.salt";
     private static final String MASTER_SECRET_FILE = "key-protection.master";
-    private static final byte[] KEY_CONTEXT = "loghog-key-protection-v2".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] KEY_CONTEXT = "kryptonotes-key-protection-v2".getBytes(StandardCharsets.UTF_8);
     private static final int MASTER_SECRET_BYTES = 32;
     private static final long DPAPI_TIMEOUT_SECONDS = 10;
 
@@ -358,7 +358,7 @@ public final class SensitiveKeyProtector {
 
     private static byte[] aad(String purpose) {
         String normalized = purpose == null ? "generic" : purpose.trim().toLowerCase();
-        return ("loghog-aad|" + normalized).getBytes(StandardCharsets.UTF_8);
+        return ("kryptonotes-aad|" + normalized).getBytes(StandardCharsets.UTF_8);
     }
 
     private static String resolveTrustedPowerShellExecutable() throws IOException {
